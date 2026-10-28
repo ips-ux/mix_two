@@ -136,13 +136,43 @@ does.
 
 **The rekordbox side is still open.** rekordbox holds the DDJ-800's MIDI
 port, so the movement cannot simply be logged on Windows 11 23H2 while
-rekordbox runs. Two ways, both untested:
+rekordbox runs. Two ways:
 1. Perform the movement on the deck in rekordbox with REC running, capture
    the USB MIDI with USBPcap / Wireshark at the same time, convert the
    capture to a `.jog` file, and render that in Mix Two.
-2. Send a `.jog` file into rekordbox through a virtual MIDI port named like
-   the DDJ-800, with the real deck connected for the unlock. Whether
-   rekordbox accepts that is unknown.
+2. Send the `.jog` files into rekordbox through a virtual MIDI port named
+   "DDJ-800" (`send_jog.py`, being tried first, see below).
+
+### Replaying a `.jog` into rekordbox 5 (virtual DDJ-800)
+
+rekordbox 5 finds MIDI controllers by port name (`midiInGetDevCapsW`, the
+mapping file is `DDJ-800.midi.csv`), and on this PC its rekordbox dj
+activation is permanent, so it should not need the real deck for the
+unlock. `send_jog.py` creates a send-only port named "DDJ-800" with the
+teVirtualMIDI driver that loopMIDI installs: rekordbox sees only an input,
+so its LED messages cannot loop back as button presses.
+
+1. Install loopMIDI once (the owner; it installs a driver). No port needs to
+   be created in loopMIDI itself.
+2. Unplug the real DDJ-800's USB cable, and quit Mix Two and rekordbox 6/7.
+3. `python tools/soundparity/send_jog.py --loopback build/soundparity/scratch/jog/release_spin.jog`
+   checks the driver and the send timing.
+4. `python tools/soundparity/send_jog.py build/soundparity/scratch/jog/*.jog`
+   opens the port and waits; keep it running.
+5. Start rekordbox 5.8.7 in Performance mode. Check that it shows the DDJ-800
+   as connected. Import `build/soundparity/scratch/music.wav`, set its BPM to
+   128.00, load it on deck 1, cue it at the very start, paused. Same mixer
+   settings as for the effect captures above (fader up, EQ flat, Auto Gain
+   off, crossfader THRU).
+6. Start REC, then press Enter in `send_jog.py`: the script presses PLAY at
+   0 s and then moves the jog. When the render length has passed, stop REC
+   and save the file as `build/soundparity/scratch/rekordbox/<name>.wav`.
+   Pause and cue deck 1 back to the start before the next script.
+7. Compare, for example:
+   `python tools/soundparity/compare.py build/soundparity/scratch/rekordbox/backspin.wav build/soundparity/scratch/mixtwo/backspin.wav`
+
+Unknown until tried: whether rekordbox accepts a DDJ-800 that is only a MIDI
+port (no audio interface, no HID), and whether it needs an output port too.
 
 ## Later
 
