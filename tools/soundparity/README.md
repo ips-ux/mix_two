@@ -141,7 +141,8 @@ rekordbox runs. Two ways:
    the USB MIDI with USBPcap / Wireshark at the same time, convert the
    capture to a `.jog` file, and render that in Mix Two.
 2. Send the `.jog` files into rekordbox through a virtual MIDI port named
-   "DDJ-800" (`send_jog.py`, being tried first, see below).
+   "DDJ-800" (`send_jog.py`, see below; the port works, rekordbox not
+   tried yet).
 
 ### Replaying a `.jog` into rekordbox 5 (virtual DDJ-800)
 
@@ -156,7 +157,11 @@ so its LED messages cannot loop back as button presses.
    be created in loopMIDI itself.
 2. Unplug the real DDJ-800's USB cable, and quit Mix Two and rekordbox 6/7.
 3. `python tools/soundparity/send_jog.py --loopback build/soundparity/scratch/jog/release_spin.jog`
-   checks the driver and the send timing.
+   checks the driver and the send timing. Measured 2026-10-27 (loopMIDI /
+   teVirtualMIDI 1.3.0.43): all messages of every script arrive in order,
+   timing error median 0.08 ms, at most 0.63 ms. The send-only port needs
+   flags 9 (parse + TX only) and appears in Windows' port list about 0.2 s
+   after it is created.
 4. `python tools/soundparity/send_jog.py build/soundparity/scratch/jog/*.jog`
    opens the port and waits; keep it running.
 5. Start rekordbox 5.8.7 in Performance mode. Check that it shows the DDJ-800

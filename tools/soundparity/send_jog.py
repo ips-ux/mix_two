@@ -41,6 +41,8 @@ MIDI_IN_PROC = ctypes.WINFUNCTYPE(None, ctypes.c_void_p, wintypes.UINT, ctypes.c
                                   ctypes.c_size_t, ctypes.c_size_t)
 MIM_DATA = 0x3C3
 CALLBACK_FUNCTION = 0x30000
+winmm.midiInOpen.argtypes = [ctypes.POINTER(ctypes.c_void_p), wintypes.UINT, MIDI_IN_PROC,
+                             ctypes.c_void_p, wintypes.DWORD]
 
 
 class MIDIINCAPSW(ctypes.Structure):
@@ -110,6 +112,11 @@ class VirtualPort:
         if not self.port:
             raise SystemExit("Cannot create the virtual port %r (error %d); is the name "
                              "already taken?" % (name, ctypes.get_last_error()))
+        # Windows lists a new port after a short delay.
+        for _ in range(40):
+            if name in midi_inputs():
+                break
+            time.sleep(0.05)
 
     def send(self, data):
         if not self.dll.virtualMIDISendData(self.port, data, len(data)):
@@ -133,6 +140,8 @@ def play(port, messages, on_sent=None):
                     break
                 if left > 0.002:
                     time.sleep(left - 0.002)
+                else:
+                    time.sleep(0)  # yield the GIL (the --loopback receiver needs it)
             port.send(data)
             if on_sent:
                 on_sent(when, data, time.perf_counter() - start)
@@ -160,6 +169,7 @@ def loopback(name, path):
         port.close()
         raise SystemExit("midiInOpen failed")
     winmm.midiInStart(handle)
+    time.sleep(0.2)
     messages = read_jog(path)
     t0[0] = time.perf_counter()
     play(port, messages)
