@@ -133,14 +133,12 @@ individual DDJ-800 messages.)
   deck scratches with vinyl mode on **or off**; vinyl off only bends a
   playing deck. A player flag (state code 0x1010, not identified) sends a
   not-playing deck to the bend side instead.
-- **SHIFT + jog** (rekordbox reads the jog over HID; the flag being SHIFT
-  is Inferred): touched, an absolute needle search where one turn sweeps
-  the whole track (a silent jump, position clamped to the track);
-  untouched, nothing happens. Mix Two (2026-10-28, mapping only):
-  SHIFT + top adds ticks ÷ 6480 to a track fraction kept per deck (read
-  from `playposition` at each SHIFT touch, clamped 0..1) and sets
-  `playposition`; SHIFT + side is not bound. Mixxx already ends a loop
-  that the jump leaves, as rekordbox does.
+- **SHIFT + jog** slides the beat grid freely (owner, on the deck in
+  rekordbox, 2026-10-28). A static-analysis guess that it is a needle
+  search was wrong: the HID flag behind that search path is not SHIFT and
+  is not identified. Mix Two: SHIFT + top or side does what the jog does
+  with GRID SLIDE held (`beats_translate_later` / `_earlier`, one 5 ms step
+  per 8 ticks). rekordbox's slide distance per turn is not measured.
 - **Constants** (DDJ-800, rekordbox defaults): jog resolution 6480 units;
   scratch glitch 25×, spin glitch 50×, speed limit 8×, touch dead zone 60 ms
   / 9/3240 rev / 0.05×, bend threshold 0.5×, bend gain 1.5, bend cap 42,

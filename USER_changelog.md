@@ -171,10 +171,8 @@ rekordbox. You hear the track at the speed of the jog wheel, and one turn
 moves the track 1.8 seconds. This operates with the two scratch algorithms.
 Before this change, the track moved much too far.
 
-Push SHIFT and turn the top of the jog wheel to move quickly through the
-track, as in rekordbox. One turn moves from the start to the end of the
-track. You do not hear the track while it moves. If the track moves out of
-a loop, the loop stops. SHIFT and the side of the jog wheel do nothing.
+Push SHIFT and turn the jog wheel to move the beat grid, as in rekordbox.
+This is the same as GRID SLIDE and the jog wheel.
 
 For less audible bends, set the key lock engine to Rubberband
 (Preferences > Decks), then push KEY LOCK. With key lock, a bend changes

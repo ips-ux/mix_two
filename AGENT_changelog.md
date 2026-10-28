@@ -53,7 +53,23 @@
 
 ---
 
-## 2026-10-28: SHIFT + jog is rekordbox's needle search
+## 2026-10-28: SHIFT + jog slides the beat grid (needle search reverted)
+
+- **Owner's correction:** in rekordbox, SHIFT + jog freely shifts the beat
+  grid; it is not a needle search. The worker's "byte 3 flag = SHIFT" was a
+  wrong inference (that HID path is something else, not identified).
+- **Mapping:** `needleSearch` removed. SHIFT + top (CC 0x1F) and SHIFT +
+  side (CC 0x26) call the new `PioneerDDJ800.gridTurn(deck, ticks, true)`,
+  which `jogTurn` also uses for GRID SLIDE / GRID ADJUST (one 5 ms
+  `beats_translate_*` / `beats_adjust_*` step per `gridAdjustTicks` = 8).
+- **Open:** rekordbox's slide distance per jog turn is not measured; Mix
+  Two moves the grid 4.05 s per turn (810 steps of 5 ms).
+- **Tests:** Node harness with a stubbed `engine` (scratchpad): SHIFT +
+  top / side slide, no seek / jog / scratch, GRID ADJUST and plain jog
+  unchanged. ESLint not installed; not run.
+- **Status:** script-checked; not felt on the deck.
+
+## 2026-10-28: SHIFT + jog as needle search (wrong, reverted above)
 
 - **Owner's choice:** add rekordbox's SHIFT + jog (traced in the previous
   entry; SHIFT flag Inferred, read over HID in rekordbox).
