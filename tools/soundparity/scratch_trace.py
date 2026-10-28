@@ -28,12 +28,12 @@ STEP = 0.05
 
 
 def mono(path):
-    rate, data = wavfile.read(path)
-    data = data.astype(np.float64)
+    rate, raw = wavfile.read(path)
+    data = raw.astype(np.float64)
     if data.ndim > 1:
         data = data.mean(axis=1)
-    if np.issubdtype(np.asarray(wavfile.read(path)[1]).dtype, np.integer):
-        data /= 32768.0
+    if np.issubdtype(raw.dtype, np.integer):
+        data /= float(np.iinfo(raw.dtype).max) + 1.0
     return rate, data
 
 

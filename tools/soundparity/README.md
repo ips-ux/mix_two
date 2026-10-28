@@ -136,12 +136,30 @@ does.
 
 **The rekordbox side is still open.** rekordbox holds the DDJ-800's MIDI
 port, so the movement cannot simply be logged on Windows 11 23H2 while
-rekordbox runs. Two ways:
+rekordbox runs. Two ways (the first is the one in use):
 1. Perform the movement on the deck in rekordbox with REC running, capture
    the USB MIDI with USBPcap / Wireshark at the same time, convert the
    capture to a `.jog` file, and render that in Mix Two.
 2. Send the `.jog` files into rekordbox through a virtual MIDI port named
    "DDJ-800" (`send_jog.py`, see below: rekordbox does not accept it).
+
+### Capturing a real movement in rekordbox (USB capture)
+
+1. Install USBPcap once (the owner; it installs a capture driver, and
+   Windows may need a restart).
+2. rekordbox 5: `music.wav` on deck 1, BPM 128.00, paused at the start;
+   mixer settings as for the effect captures.
+3. In an administrator terminal, start `USBPcapCMD.exe` (in
+   `C:\Program Files\USBPcap`), pick the root hub that lists the DDJ-800 and
+   write to `build\soundparity\scratch\capture.pcap`.
+4. Press REC in rekordbox, then PLAY on the deck. Let the chirp and the two
+   silent bars pass, then play the movements by hand (scratches, a release
+   spin, a backspin, a side-jog nudge). Stop REC, then stop the capture with
+   Ctrl-C.
+5. `python tools/soundparity/usbpcap_to_jog.py build/soundparity/scratch/capture.pcap build/soundparity/scratch/jog/captured.jog`
+   (times from the first PLAY press), render it with
+   `render_scratch.py render`, and compare the positions with
+   `scratch_trace.py music.wav REKORDBOX.wav MIXTWO.wav`.
 
 ### Replaying a `.jog` into rekordbox 5 (virtual DDJ-800)
 
