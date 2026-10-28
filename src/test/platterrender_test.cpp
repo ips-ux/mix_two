@@ -25,6 +25,10 @@ namespace {
 ///   MIXTWO_RENDER_START      start position in seconds of track (default 0)
 ///   MIXTWO_RENDER_SECONDS    length (default: last message + 2 s)
 ///   MIXTWO_RENDER_BUFFER     audio buffer in frames (default 128)
+///   MIXTWO_RENDER_POSITIONS  optional CSV: per buffer the time (ms), the
+///                            engine's exact track position (s),
+///                            platter_state and the engine's speed, to
+///                            compare with the jog ticks
 ///   MIXTWO_RENDER_JOG_RESOLUTION  jog steps per revolution (default 6480,
 ///                                 the mapping's jogResolution)
 ///
@@ -185,6 +189,15 @@ TEST_F(PlatterRenderTest, RenderScriptedJog) {
         seconds = (messages.empty() ? 0.0 : messages.back().ms / 1000.0) + 2.0;
     }
 
+    QFile positionsFile(env("MIXTWO_RENDER_POSITIONS"));
+    QTextStream positions(&positionsFile);
+    if (!positionsFile.fileName().isEmpty()) {
+        ASSERT_TRUE(positionsFile.open(QFile::WriteOnly | QFile::Text))
+                << "Cannot write " << positionsFile.fileName().toStdString();
+        positions << "ms,position,platter_state,speed\n";
+    }
+    const ConfigKey stateKey(m_sGroup1, QStringLiteral("platter_state"));
+
     std::vector<float> out;
     out.reserve(static_cast<std::size_t>(seconds * sampleRate * 2) + bufferFrames * 2);
     std::size_t next = 0;
@@ -198,6 +211,15 @@ TEST_F(PlatterRenderTest, RenderScriptedJog) {
         m_pEngineMixer->process(bufferFrames * 2);
         const std::span<const CSAMPLE> buffer = m_pEngineMixer->getMainBuffer();
         out.insert(out.end(), buffer.begin(), buffer.begin() + bufferFrames * 2);
+        if (positionsFile.isOpen()) {
+            positions << QString::number(nowMs, 'f', 3) << ','
+                      << QString::number(m_pChannel1->getEngineBuffer()->getPlayPos().value() /
+                                         trackRate,
+                                 'f',
+                                 6)
+                      << ',' << ControlObject::get(stateKey) << ','
+                      << m_pChannel1->getEngineBuffer()->getSpeed() << '\n';
+        }
         nowMs += bufferMs;
     }
     ASSERT_TRUE(writeFloatWav(outPath, out, 2, sampleRate))

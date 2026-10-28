@@ -156,8 +156,10 @@ priorities. PARITY.md holds the per-row detail; this list is the work queue.
   2026-10-27); Mix Two renders of the scripted jog movements exist
   (`tools/soundparity/render_scratch.py`, real track `.resource/jvckpot.mp3`);
   compared with rekordbox 2026-10-27 by USB capture (jog resolution fixed:
-  6480 ticks per turn, not 720); still to do: the 0.1–0.2 s Mix Two lands
-  short of rekordbox per move, and a feel test on the deck.
+  6480 ticks per turn, not 720); the per-move gap is down to -1 / +41 /
+  +21 ms (scaler read-log fix, spin lag fix, 5.6 ms quiet time); still to
+  do: rekordbox's spin-stop and forward hand-back rules (captures of single
+  moves), and a feel test on the deck.
 - Other deck sound: Master Tempo (key lock), key shift and vinyl brake/start,
   matched to rekordbox where they differ.
 

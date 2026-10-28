@@ -162,7 +162,11 @@ CSAMPLE EngineBufferScaleHalfbandLagrange::midpointSample(SINT frame, int channe
     return static_cast<CSAMPLE>(sum);
 }
 
-SINT EngineBufferScaleHalfbandLagrange::rewindReadAhead(double newRate) {
+double EngineBufferScaleHalfbandLagrange::rewindReadAhead(double newRate) {
+    // What was read but not yet played; the engine still has it in its read
+    // log (it turns the frames we report into a position by walking that log
+    // in order).
+    const double unconsumedBefore = m_frameCount - m_position;
     const SINT playedUpTo = static_cast<SINT>(std::floor(m_position));
     const SINT unplayed = m_frameCount - (playedUpTo + 1);
     SINT framesRead = 0;
@@ -185,7 +189,12 @@ SINT EngineBufferScaleHalfbandLagrange::rewindReadAhead(double newRate) {
         m_frameCount = playedUpTo + 1;
     }
     m_position = 2.0 * playedUpTo + 1.0 - m_position;
-    return framesRead;
+    // Report the backward read-ahead and its forward re-read as consumed, so
+    // the log keeps exactly what the buffer holds unplayed. Reporting only
+    // the re-read left the backward read-ahead in the log on every direction
+    // change; after a scratch the engine's position lagged the audio and the
+    // hand-back played the leftovers out as the track going backwards.
+    return unconsumedBefore + framesRead - (m_frameCount - m_position);
 }
 
 double EngineBufferScaleHalfbandLagrange::scale(

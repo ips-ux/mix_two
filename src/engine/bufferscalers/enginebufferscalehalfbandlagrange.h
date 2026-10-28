@@ -56,8 +56,9 @@ class EngineBufferScaleHalfbandLagrange : public EngineBufferScale {
     /// Drops consumed frames that the filter no longer needs.
     void compact();
     /// Rewinds the ReadAheadManager over the read-ahead that was not played,
-    /// for a change of direction. Returns the frames it read doing so.
-    SINT rewindReadAhead(double newRate);
+    /// for a change of direction. Returns the frames to report as consumed:
+    /// the unplayed read-ahead plus what it read doing so.
+    double rewindReadAhead(double newRate);
 
     CSAMPLE frameSample(SINT frame, int channel) const {
         return m_frames[static_cast<std::size_t>(frame * m_channelCount + channel)];

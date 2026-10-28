@@ -39,13 +39,36 @@ class FakeReadAheadManager : public ReadAheadManager {
                         : 0.0f;
             }
         }
-        m_frame += rate >= 0 ? frames : -frames;
+        const SINT end = m_frame + (rate >= 0 ? frames : -frames);
+        m_log.push_back({static_cast<double>(m_frame), static_cast<double>(end)});
+        m_frame = end;
         return frames * channelCount;
+    }
+
+    /// As ReadAheadManager::getFilePlaypositionFromLog: the engine's position
+    /// after the scaler consumed `frames` of what was read, in read order.
+    double consume(double frames) {
+        double position = m_logPosition;
+        while (frames > 0 && !m_log.empty()) {
+            auto& [start, end] = m_log.front();
+            const double length = std::fabs(end - start);
+            const double step = std::min(frames, length);
+            start += end >= start ? step : -step;
+            position = start;
+            frames -= step;
+            if (step >= length) {
+                m_log.erase(m_log.begin());
+            }
+        }
+        m_logPosition = position;
+        return position;
     }
 
   private:
     std::vector<CSAMPLE> m_track;
     SINT m_frame;
+    std::vector<std::pair<double, double>> m_log;
+    double m_logPosition = static_cast<double>(m_frame);
 };
 
 std::vector<CSAMPLE> sineTrack(double frequency, SINT frames) {
@@ -184,6 +207,44 @@ TEST(EngineBufferScaleHalfbandLagrangeTest, ReversingRetracesTheTrack) {
                 out[(i - 1) * kChannels] - out[i * kChannels],
                 1e-5);
     }
+}
+
+TEST(EngineBufferScaleHalfbandLagrangeTest, PositionFromTheReadLogSurvivesDirectionChanges) {
+    // The engine works out the track position from the frames the scaler
+    // reports as consumed, walking the read log in order. A scratch changes
+    // direction many times; the position must still match what is heard.
+    // (Found by the rekordbox capture comparison: each direction change left
+    // the read-ahead in the log, and the hand-back played it out backwards.)
+    constexpr SINT kFrames = 1 << 16;
+    std::vector<CSAMPLE> ramp(kFrames * kChannels);
+    for (SINT i = 0; i < kFrames; ++i) {
+        ramp[i * kChannels] = ramp[i * kChannels + 1] = static_cast<CSAMPLE>(i) / kFrames;
+    }
+    constexpr SINT kStart = kFrames / 2;
+    FakeReadAheadManager reader(ramp, kStart);
+    EngineBufferScaleHalfbandLagrange scaler(&reader);
+    scaler.setSignal(mixxx::audio::SampleRate(kSampleRate), mixxx::audio::ChannelCount(kChannels));
+    scaler.clear();
+    constexpr SINT kSmallBuffer = 128;
+    std::vector<CSAMPLE> out(kSmallBuffer * kChannels);
+    setRate(&scaler, 1.0);
+    double position = kStart;
+    for (int change = 0; change < 40; ++change) {
+        const double rate = change % 2 == 0 ? 2.0 : -1.5;
+        for (int b = 0; b < 3; ++b) {
+            setRate(&scaler, rate);
+            position = reader.consume(
+                    scaler.scaleBuffer(out.data(), static_cast<SINT>(out.size())));
+        }
+    }
+    setRate(&scaler, 1.0); // hand back to play
+    for (int b = 0; b < 8; ++b) {
+        setRate(&scaler, 1.0);
+        position = reader.consume(scaler.scaleBuffer(out.data(), static_cast<SINT>(out.size())));
+    }
+    // The last output frame plays the ramp at the engine's position.
+    const double heard = out[(kSmallBuffer - 1) * kChannels] * kFrames;
+    EXPECT_NEAR(heard, position, 4.0);
 }
 
 TEST(EngineBufferScaleHalfbandLagrangeTest, StereoChannelsStaySeparate) {

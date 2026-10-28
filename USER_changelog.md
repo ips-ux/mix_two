@@ -160,6 +160,10 @@ Scratch algorithm:
 With the rekordbox scratch sound, one turn of the jog wheel moves the track
 1.8 seconds.
 
+After a scratch or a spin, the track now continues from the correct
+position. Before this change, the track could move backward for a short
+time when play started again.
+
 The DDJ-800 jog wheel now moves the track the correct distance. Before this
 change, the track moved 9 times too far. If scratching moves the track too
 far, go to Preferences > Controllers > DDJ-800 and set "Jog resolution" to

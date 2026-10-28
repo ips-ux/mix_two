@@ -157,22 +157,28 @@ class PlatterSpinTest : public PlatterTest {
 };
 
 TEST_F(PlatterSpinTest, ReleaseWhileTurningSpins) {
-    scratchPaused(1.5);
-    const double released = exact();
+    process(1);
+    const double before = exact();
+    scratchPaused(1.5); // 10 buffers of turning under the hand
     touch(false);
     turnFor(1.5, 30); // the platter runs on by itself
     EXPECT_EQ(kSpin, state());
-    // The paused track follows the free-running platter.
-    EXPECT_NEAR(released + 30 * turnAt(1.5) * kSecondsPerRevolution, exact(), 0.01);
+    // The paused track follows the platter, under the hand and free-running:
+    // every step counts once, none is replayed by the spin.
+    EXPECT_NEAR(before + 40 * turnAt(1.5) * kSecondsPerRevolution, exact(), 2e-3);
 }
 
 TEST_F(PlatterSpinTest, SpinStopsWithThePlatter) {
+    process(1);
+    const double before = exact();
     scratchPaused(1.5);
     touch(false);
     turnFor(1.5, 10);
-    process(8); // > 50 ms without movement
+    process(2); // the jog goes quiet (no step for > 5.6 ms)
     EXPECT_EQ(kIdle, state()); // paused at the touch: no disable phase
     const double stopped = exact();
+    // It stops where the platter stopped.
+    EXPECT_NEAR(before + 20 * turnAt(1.5) * kSecondsPerRevolution, stopped, 2e-3);
     process(20);
     EXPECT_NEAR(stopped, exact(), 1e-4);
 }

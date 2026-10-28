@@ -64,8 +64,11 @@ constexpr double kPlatterSpinGlitchSpeed = 50.0;
 // The platter speed is measured over at least this much audio.
 constexpr double kPlatterSpeedWindowSeconds = 0.020;
 // No movement for this long: the jog has gone quiet (one DDJ-800 step at
-// 720 steps per revolution is then slower than 0.05x).
-constexpr double kPlatterQuietSeconds = 0.050;
+// its 6480 steps per revolution is then slower than 0.05x, the floor of the
+// touch dead zone). The DDJ-800 never reports "stopped"; it just stops
+// sending.
+constexpr double kPlatterQuietSeconds =
+        kPlatterSecondsPerRevolution / 6480.0 / kPlatterDeadZoneMinSpeed;
 // A spin hands back to play after this many movements slower than play.
 constexpr int kPlatterSpinSlowCount = 3;
 // Pushing a disabled platter this far against the spin frees it again.
@@ -145,6 +148,7 @@ RateControl::RateControl(const QString& group, UserSettingsPointer pConfig)
           m_platterPlayingAtTouch(false),
           m_platterBend(0.0),
           m_platterBendClock(0.0),
+          m_platterSpinTarget(0.0),
           m_platterActive(false),
           m_platterDeadZone(false),
           m_platterAnchorPending(false),
@@ -626,8 +630,14 @@ bool RateControl::processPlatter(double baserate,
         }
     };
 
+    const double trackRate = baserate * outputRate;
+    const double position = frameInfo().currentPosition.value();
     if (m_platterState == kPlatterScratch) {
-        // Released: spin on if the platter still turns.
+        // Released: spin on if the platter still turns, from where the hand
+        // left the track.
+        m_platterSpinTarget = m_platterActive && !m_platterAnchorPending
+                ? m_platterAnchor + m_platterTurned * kPlatterSecondsPerRevolution * trackRate
+                : position;
         m_platterActive = false;
         m_platterSlowCount = 0;
         if (!m_platterReversed && platterSpinGoesOn(playing, playRate)) {
@@ -648,7 +658,19 @@ bool RateControl::processPlatter(double baserate,
     }
 
     if (m_platterState == kPlatterSpin) {
-        *pRate = std::clamp(m_platterSpeed, -kPlatterMaxSpeed, kPlatterMaxSpeed);
+        // The platter's speed drives the track. The speed is measured over
+        // 20 ms, so it runs 10 ms late; on its own it would replay the last
+        // 10 ms before the release (already played under the hand) and
+        // overshoot every spin. Pulling towards where the platter's steps
+        // put the track, over the same 20 ms, keeps the spin on the platter.
+        // As in a scratch, the track reaches the platter's position at the
+        // end of the buffer.
+        m_platterSpinTarget += turn * kPlatterSecondsPerRevolution * trackRate;
+        const double reached = position + m_platterSpeed * bufferSeconds * trackRate;
+        const double correction = trackRate > 0.0
+                ? (m_platterSpinTarget - reached) / (kPlatterSpeedWindowSeconds * trackRate)
+                : 0.0;
+        *pRate = std::clamp(m_platterSpeed + correction, -kPlatterMaxSpeed, kPlatterMaxSpeed);
         return true;
     }
 

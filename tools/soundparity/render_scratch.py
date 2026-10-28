@@ -177,7 +177,7 @@ def wrap(music, out, start=30.0, length=12.0, rate=44100):
 
 
 def render(track, jog, out, algorithm="rekordbox", buffer_frames=128,
-           resolution=STEPS_PER_REVOLUTION):
+           resolution=STEPS_PER_REVOLUTION, positions=None):
     env = dict(os.environ)
     env["MIXTWO_RENDER_TRACK"] = os.path.abspath(track)
     env["MIXTWO_RENDER_JOG"] = os.path.abspath(jog)
@@ -185,6 +185,8 @@ def render(track, jog, out, algorithm="rekordbox", buffer_frames=128,
     env["MIXTWO_RENDER_ALGORITHM"] = "1" if algorithm == "rekordbox" else "0"
     env["MIXTWO_RENDER_BUFFER"] = str(buffer_frames)
     env["MIXTWO_RENDER_JOG_RESOLUTION"] = str(resolution)
+    if positions:
+        env["MIXTWO_RENDER_POSITIONS"] = os.path.abspath(positions)
     bat = os.path.join(ROOT, "tools", "mixtwo_windows.bat")
     result = subprocess.run(["cmd", "/c", bat, "test", "--gtest_filter=PlatterRenderTest.*"],
                             cwd=ROOT, env=env, capture_output=True, text=True)
@@ -212,6 +214,8 @@ def main():
     p.add_argument("--buffer", type=int, default=128)
     p.add_argument("--resolution", type=float, default=STEPS_PER_REVOLUTION,
                    help="jog steps per revolution (default %(default)s)")
+    p.add_argument("--positions", metavar="CSV",
+                   help="also write the engine's exact position per buffer")
     p = sub.add_parser("all")
     p.add_argument("music")
     p.add_argument("outdir", nargs="?",
@@ -224,7 +228,8 @@ def main():
     elif args.command == "wrap":
         wrap(args.music, args.out, args.start, args.length)
     elif args.command == "render":
-        render(args.track, args.jog, args.out, args.algorithm, args.buffer, args.resolution)
+        render(args.track, args.jog, args.out, args.algorithm, args.buffer, args.resolution,
+               args.positions)
     else:
         jogdir = os.path.join(args.outdir, "jog")
         track = os.path.join(args.outdir, "music.wav")

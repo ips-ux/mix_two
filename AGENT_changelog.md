@@ -51,6 +51,39 @@
 
 ---
 
+## 2026-10-27: scratch gap vs rekordbox: scaler read log, spin lag, quiet time
+
+- **Scaler bug (all decks with the "Rekordbox" algorithm):**
+  `EngineBufferScaleHalfbandLagrange::rewindReadAhead` reported only the
+  re-read frames as consumed at a direction change; the backward
+  read-ahead stayed in `ReadAheadManager`'s read log. The engine position
+  (walked from the log) drifted from the audio with every direction change,
+  and the hand-back after a scratch played the leftovers out as -1x for
+  ~70 ms. It now reports unconsumed-before + re-read - unconsumed-after
+  (returns `double`). Test:
+  `EngineBufferScaleHalfbandLagrangeTest.PositionFromTheReadLogSurvivesDirectionChanges`
+  (fake reader with a read log; was 791 frames off after 40 changes).
+- **Spin lag:** `RateControl::processPlatter` spin now keeps
+  `m_platterSpinTarget` (where the platter's steps put the track, from the
+  scratch target at release) and adds (target - (position + speed x
+  buffer)) / 20 ms to the measured speed. Before, the 20 ms speed window
+  replayed the last 10 ms before release (~60 ms after a fast backspin).
+- **Quiet time:** `kPlatterQuietSeconds` 50 ms -> 1.8 / 6480 / 0.05 =
+  5.6 ms (spec definition at the measured resolution).
+- **Tests:** `PlatterSpinTest.ReleaseWhileTurningSpins` and
+  `SpinStopsWithThePlatter` now assert from before the touch (every step
+  counts once; the spin stops where the platter stopped). Full suite: see
+  commit.
+- **Tools:** `PlatterRenderTest` `MIXTWO_RENDER_POSITIONS` CSV (time,
+  exact position, `platter_state`, speed); `render_scratch.py render
+  --positions`.
+- **Result vs rekordbox capture:** -1 / +41 / +21 ms per move (was -122 /
+  -215 / +66). Open: rekordbox spins ~37 ms past the last step on a
+  backspin, hands back immediately on a slow release, and hands a forward
+  spin back at ~1.8x platter speed. rekordbox's audio buffer is 256 frames
+  (`rekordbox3.settings`), so per-buffer jog handling does not explain it.
+- **Status:** unit-tested and render-checked; not felt on the deck.
+
 ## 2026-10-27: double-click starts Mix Two
 
 - `tools/mixtwo_windows.bat` with no arguments builds and runs, like `run`

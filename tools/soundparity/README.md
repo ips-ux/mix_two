@@ -196,9 +196,27 @@ Notes from the first capture (2026-10-27):
   (`--resolution` / `MIXTWO_RENDER_JOG_RESOLUTION` to try others).
 - Normal play matches to the millisecond before the first touch, and the
   first 0.2 s of scratching within 10 ms.
-- Left over: Mix Two lands 0.1–0.2 s short of rekordbox per move. Likely
-  places: the 60 ms touch dead zone, the ±8× limit and glitch filters on
-  fast hand movement, and when the spin hands back. Not yet investigated.
+- Left over at that point: 0.1–0.2 s per move. Found with the position log
+  (`render_scratch.py render ... --positions CSV`, the engine's exact
+  position, `platter_state` and speed per buffer) against the summed jog
+  ticks, which rekordbox follows to within 6 ms:
+  1. the rekordbox scaler left read-ahead in the engine's read log at each
+     change of direction; the hand-back played it out backwards (~70 ms);
+  2. the spin, driven by a 20 ms average speed, replayed the last 10 ms
+     before the release;
+  3. "the jog goes quiet" was still 50 ms (from 720 steps), so a slow release
+     spun on for 50 ms.
+
+  After the fixes:
+
+| Where play resumes | rekordbox | Mix Two |
+|---|---|---|
+| after the scratch | -3.732 s | -1 ms |
+| after the backspin | -6.708 s | +41 ms (rekordbox spins ~37 ms past the last step) |
+| after the forward spin | +12.298 s at 16.4 s | +21 ms (rekordbox hands back at ~1.8× platter speed) |
+
+  The rekordbox rules behind the last two are not known yet; captures of
+  single moves would show them.
 
 ### Replaying a `.jog` into rekordbox 5 (virtual DDJ-800)
 

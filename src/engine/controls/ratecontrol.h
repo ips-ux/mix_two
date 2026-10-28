@@ -177,6 +177,7 @@ private:
   bool m_platterPlayingAtTouch;
   double m_platterBend;          // fraction of the tempo added by a bend
   double m_platterBendClock;     // m_platterClock at the last bend update
+  double m_platterSpinTarget;    // spin: track frames the platter's steps reach
   bool m_platterActive;
   bool m_platterDeadZone;
   // The renderer eases into the stop over the first touched buffer; the

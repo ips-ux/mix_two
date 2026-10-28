@@ -109,10 +109,19 @@ paused, idle deck keeps Mixxx's jog search.
   time), because Mix Two sees the jog per audio buffer, not per MIDI
   message. Rules that rekordbox applies per jog message are applied per
   buffer that received movement.
-- **"The jog goes quiet"** means no movement for **50 ms**. At the DDJ-800's
-  720 steps per revolution that is one step slower than 0.05×, the same
-  floor as the touch dead zone. It ends a spin (the platter has stopped), a
-  disable phase, and decides at release whether the platter still turns.
+- **"The jog goes quiet"** means no movement for **5.6 ms**: at the
+  DDJ-800's 6480 steps per revolution, one step slower than 0.05×, the same
+  floor as the touch dead zone. (It was 50 ms while the mapping assumed 720
+  steps.) The DDJ-800 never sends a "no movement" message, so this timer is
+  the only way to see that the platter stopped. It ends a spin, a disable
+  phase, and decides at release whether the platter still turns.
+- **Spin follows the platter's steps.** The spin is driven by the platter
+  speed, which is measured over 20 ms and so runs 10 ms late. On its own it
+  replayed the last 10 ms before the release and overshot every spin (about
+  60 ms of track after a fast backspin). The spin therefore also keeps the
+  position the platter's steps reach, and corrects towards it over the same
+  20 ms, landing on it at the end of each buffer as the scratch does.
+  rekordbox needs no correction: it measures the speed per jog message.
 - Spin renders like scratching (key lock off, the scratch scaler).
 - Bend adds (bend ÷ 100) × the deck's tempo to the play rate, as a user
   tweak, so a synced deck accepts it like any other nudge.
@@ -189,5 +198,15 @@ cubic Lagrange interpolation** on the oversampled signal.
    and early scratching, and lands 0.1–0.2 s short of rekordbox after each
    move (-122 ms after a scratch, -215 ms after a backspin, +66 ms after a
    forward spin). The capture also gave the jog resolution (6480, not the
-   mapping's old 720, which was 9× off). Next: find the 0.1–0.2 s (dead
-   zone, ±8× limit, spin hand-back) with more captures of single moves.
+   mapping's old 720, which was 9× off).
+   Then found and fixed (2026-10-27): the rekordbox scaler left its
+   read-ahead in the engine's read log at every change of direction, so
+   after a scratch the hand-back played the leftovers out as the track going
+   backwards for ~70 ms; the spin replayed the last 10 ms before the release
+   (speed window lag); and the "quiet" time was still 50 ms from the 720
+   assumption. Now: **-1 ms** after the scratch, **+41 ms** after the
+   backspin, **+21 ms** after the forward spin. Still open: rekordbox keeps
+   a backspin going ~37 ms after the platter's last step yet hands back at
+   once after a slow release, and hands a forward spin back while the
+   platter still turns at ~1.8×. Captures of single moves (several strengths
+   each) should show the rule.
