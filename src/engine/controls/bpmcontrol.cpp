@@ -129,6 +129,13 @@ BpmControl::BpmControl(const QString& group,
             this,
             &BpmControl::slotTranslateBeatsMove,
             Qt::DirectConnection);
+    m_pTranslateBeatsMs = std::make_unique<ControlEncoder>(
+            ConfigKey(group, "beats_translate_ms"), false);
+    connect(m_pTranslateBeatsMs.get(),
+            &ControlObject::valueChanged,
+            this,
+            &BpmControl::slotTranslateBeatsMs,
+            Qt::DirectConnection);
 
     m_pBeatsHalve = std::make_unique<ControlPushButton>(ConfigKey(group, "beats_set_halve"), false);
     connect(m_pBeatsHalve.get(),
@@ -384,6 +391,33 @@ void BpmControl::slotTranslateBeatsMove(double v) {
         const double sampleOffset = frameInfo().sampleRate * v * 0.01;
         const mixxx::audio::FrameDiff_t frameOffset =
                 sampleOffset / mixxx::kEngineChannelOutputCount;
+        const auto translatedBeats = pBeats->tryTranslate(frameOffset);
+        if (translatedBeats) {
+            pTrack->trySetBeats(*translatedBeats);
+        }
+    }
+}
+
+void BpmControl::slotTranslateBeatsMs(double v) {
+    if (v == 0 || !std::isfinite(v)) {
+        return;
+    }
+    const TrackPointer pTrack = getEngineBuffer()->getLoadedTrack();
+    if (!pTrack) {
+        return;
+    }
+    const mixxx::BeatsPointer pBeats = pTrack->getBeats();
+    if (pBeats) {
+        // The grid sits on whole frames (Beats::tryTranslate() rounds down),
+        // so move to the nearest whole frame and keep the rest for the next
+        // move: small moves add up evenly in both directions.
+        const double frames =
+                m_translateBeatsMsRemainder + frameInfo().sampleRate * v / 1000.0;
+        const mixxx::audio::FrameDiff_t frameOffset = std::round(frames);
+        m_translateBeatsMsRemainder = frames - frameOffset;
+        if (frameOffset == 0) {
+            return;
+        }
         const auto translatedBeats = pBeats->tryTranslate(frameOffset);
         if (translatedBeats) {
             pTrack->trySetBeats(*translatedBeats);

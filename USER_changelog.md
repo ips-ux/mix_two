@@ -172,7 +172,9 @@ moves the track 1.8 seconds. This operates with the two scratch algorithms.
 Before this change, the track moved much too far.
 
 Push SHIFT and turn the jog wheel to move the beat grid, as in rekordbox.
-This is the same as GRID SLIDE and the jog wheel.
+This is the same as GRID SLIDE and the jog wheel. The grid moves a small
+distance, so you can zoom in on the waveform and put the grid exactly on
+the kick drum. A quarter turn moves the grid approximately 80 ms.
 
 For less audible bends, set the key lock engine to Rubberband
 (Preferences > Decks), then push KEY LOCK. With key lock, a bend changes

@@ -136,9 +136,14 @@ individual DDJ-800 messages.)
 - **SHIFT + jog** slides the beat grid freely (owner, on the deck in
   rekordbox, 2026-10-28). A static-analysis guess that it is a needle
   search was wrong: the HID flag behind that search path is not SHIFT and
-  is not identified. Mix Two: SHIFT + top or side does what the jog does
-  with GRID SLIDE held (`beats_translate_later` / `_earlier`, one 5 ms step
-  per 8 ticks). rekordbox's slide distance per turn is not measured.
+  is not identified. The owner: the slide is gentle enough to place the grid
+  on a kick transient with the waveform zoomed in, yet responsive (no delay,
+  no endless spinning). Mix Two: SHIFT + top or side does what the jog does
+  with GRID SLIDE held: every message moves the grid at once by 0.05 ms per
+  tick (`gridSlideMsPerTick`, about 324 ms per turn, 81 ms per quarter
+  turn) through the new `[ChannelN],beats_translate_ms`. The grid sits on
+  whole frames, so the engine moves to the nearest frame and carries the
+  rest. rekordbox's exact distance per turn is not measured.
 - **Constants** (DDJ-800, rekordbox defaults): jog resolution 6480 units;
   scratch glitch 25×, spin glitch 50×, speed limit 8×, touch dead zone 60 ms
   / 9/3240 rev / 0.05×, bend threshold 0.5×, bend gain 1.5, bend cap 42,

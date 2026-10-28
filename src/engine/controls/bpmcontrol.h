@@ -104,6 +104,7 @@ class BpmControl : public EngineControl {
     void slotTranslateBeatsLater(double);
     void slotTranslateBeatsHalf(double);
     void slotTranslateBeatsMove(double);
+    void slotTranslateBeatsMs(double);
 
     void slotBpmTap(double value);
     void slotBpmTapFilter(double averageLength, int numSamples);
@@ -152,6 +153,11 @@ class BpmControl : public EngineControl {
     std::unique_ptr<ControlPushButton> m_pTranslateBeatsLater;
     std::unique_ptr<ControlPushButton> m_pTranslateBeatsHalf;
     std::unique_ptr<ControlEncoder> m_pTranslateBeatsMove;
+    // Mix Two: [ChannelN],beats_translate_ms moves the grid by that many
+    // milliseconds (fractions too), for a fine jog grid slide.
+    std::unique_ptr<ControlEncoder> m_pTranslateBeatsMs;
+    // The grid sits on whole frames; the fraction of a frame not moved yet.
+    double m_translateBeatsMsRemainder = 0.0;
     std::unique_ptr<ControlPushButton> m_pBeatsUndo;
     std::unique_ptr<ControlObject> m_pBeatsUndoPossible;
 

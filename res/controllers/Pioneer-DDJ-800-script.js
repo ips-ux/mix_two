@@ -123,6 +123,9 @@ PioneerDDJ800.instantDoubleWindowMs = 300;
 PioneerDDJ800.FOCUS_TRACKS_TABLE = 3;
 PioneerDDJ800.loopAdjustMultiply = 50;
 PioneerDDJ800.gridAdjustTicks = 8;
+// GRID SLIDE / SHIFT + jog: fine enough to place the grid on a kick when
+// zoomed in, yet a quarter turn still moves it about 80 ms.
+PioneerDDJ800.gridSlideMsPerTick = 0.05;
 
 PioneerDDJ800.getSetting = function(name, fallback) {
     const value = engine.getSetting(name);
@@ -799,18 +802,19 @@ PioneerDDJ800.jogTouch = function(deck, touched) {
     }
 };
 
-// GRID SLIDE (or SHIFT + jog) moves the beat grid, GRID ADJUST changes its
-// tempo: one 5 ms step per gridAdjustTicks.
+// GRID SLIDE (or SHIFT + jog) moves the beat grid with every tick, nothing
+// held back; GRID ADJUST changes its tempo, one step per gridAdjustTicks.
 PioneerDDJ800.gridTurn = function(deck, ticks, slide) {
     const group = PioneerDDJ800.deckGroup(deck);
     const state = PioneerDDJ800.decks[deck];
+    if (slide) {
+        engine.setValue(group, "beats_translate_ms", ticks * PioneerDDJ800.gridSlideMsPerTick);
+        return;
+    }
     state.gridTicks += ticks;
     while (Math.abs(state.gridTicks) >= PioneerDDJ800.gridAdjustTicks) {
         const forward = state.gridTicks > 0;
-        const key = slide ?
-            (forward ? "beats_translate_later" : "beats_translate_earlier") :
-            (forward ? "beats_adjust_faster" : "beats_adjust_slower");
-        engine.setValue(group, key, 1);
+        engine.setValue(group, forward ? "beats_adjust_faster" : "beats_adjust_slower", 1);
         state.gridTicks += forward ? -PioneerDDJ800.gridAdjustTicks : PioneerDDJ800.gridAdjustTicks;
     }
 };

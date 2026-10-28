@@ -53,6 +53,23 @@
 
 ---
 
+## 2026-10-28: fine grid slide (`beats_translate_ms`)
+
+- **Owner:** rekordbox's slide is gentle (place the grid on a kick
+  transient, zoomed in) but responsive (no delay, no endless spinning).
+  The previous mapping moved 5 ms steps per 8 ticks (about 4 s per turn).
+- **Engine (`BpmControl`):** new `[ChannelN],beats_translate_ms`
+  (`ControlEncoder`, no-op filtering off so repeats count): moves the grid
+  by that many ms. `Beats::tryTranslate` floors to whole frames, so the
+  slot moves to the nearest whole frame and carries the remainder
+  (`m_translateBeatsMsRemainder`). Listed in the controller control picker.
+- **Mapping:** `gridTurn` slide sends ticks x `gridSlideMsPerTick` (0.05 ms)
+  per message, nothing held back; GRID ADJUST unchanged (8-tick steps).
+- **Tests:** `BeatsTranslateTest.TranslateByMilliseconds`; Node harness
+  (scratchpad) for the mapping.
+- **Open:** rekordbox's real distance per turn; 0.05 ms/tick is a choice.
+- **Status:** unit-tested; not felt on the deck.
+
 ## 2026-10-28: SHIFT + jog slides the beat grid (needle search reverted)
 
 - **Owner's correction:** in rekordbox, SHIFT + jog freely shifts the beat
