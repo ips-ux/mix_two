@@ -107,7 +107,7 @@ cubic Lagrange interpolation** on the oversampled signal.
 3. ~~Rendering~~: built 2026-10-27 as `EngineBufferScaleHalfbandLagrange`,
    chosen in Preferences > Decks > Platter options > Scratch algorithm
    ("Rekordbox (6.8.5)", the default; "Mixxx (2.7)" keeps the linear scaler).
-   Still to build: the motion rules. Original plan: build Mix Two's scratch scaler: a 2× half-band (Hann-47 windowed sinc,
+   The motion rules are built too (item 2). Original plan: build Mix Two's scratch scaler: a 2× half-band (Hann-47 windowed sinc,
    generated from the formula) plus 4-point cubic Lagrange resampler, plus the motion rules above in the
    engine (not the mapping script), selected for 33⅓ / 45 RPM.
 4. Verify against rekordbox by rendering the same platter movement in both
