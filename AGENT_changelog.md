@@ -53,6 +53,28 @@
 
 ---
 
+## 2026-10-27: firmware static analysis (DDJ-800 v1.02, CDJ-3000 v3.22)
+
+- **New doc:** `docs/ddj800-program/FIRMWARE.md` (method, part inventory,
+  findings, implications, unknowns). Ledger rows F18–F25 in ROADMAP §1;
+  links from ROADMAP §6 "Hardware and driver work" and SCRATCH-ENGINE
+  "Next steps" item 5.
+- **DDJ-800:** updater CAB opened with 7-Zip; `.upd` container split by our
+  own script; SH-2A images turned into ELF from their section tables and
+  analysed in Ghidra 12.1.4 (projects and scripts in `build/re/firmware/`).
+  Jog = ×4 quadrature count, no scaling (6480 confirmed), one message per
+  1 ms frame, value 0x40 ± steps clamped to ±63, nothing sent when still;
+  touch is a plain digital line; JOG ADJUST is mechanical; USB descriptors,
+  HID report layout (per-deck OUT streams = jog display) and the rekordbox
+  verification SysEx documented. Mix Two must not implement the handshake.
+- **CDJ-3000:** the UPD is a LUKS1 volume; not decrypted (access control).
+  CDJ-3000 questions stay open; rekordbox's `HidMapCDJ3000` noted as the
+  lawful alternative.
+- **No engine change.** Implications listed in FIRMWARE.md §6 (constants in
+  `ratecontrol.cpp` confirmed; hypothesis for rekordbox's spin hand-back to
+  test by PC-side MIDI timing).
+- **Status:** docs only. Firmware was never run; nothing was sent to a device.
+
 ## 2026-10-27: scratch gap vs rekordbox: scaler read log, spin lag, quiet time
 
 - **Scaler bug (all decks with the "Rekordbox" algorithm):**

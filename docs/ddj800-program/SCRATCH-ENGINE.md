@@ -210,3 +210,12 @@ cubic Lagrange interpolation** on the oversampled signal.
    once after a slow release, and hands a forward spin back while the
    platter still turns at ~1.8×. Captures of single moves (several strengths
    each) should show the rule.
+5. Firmware check (2026-10-27, [FIRMWARE.md](FIRMWARE.md) §2.2, §3, §6): the
+   DDJ-800 firmware sends the raw ×4 encoder count (6480 per turn confirmed),
+   at most one message per jog per 1 ms frame, clamped to ±63 steps, and
+   **nothing** when the count did not change, so the quiet timer stays the
+   only stop signal. rekordbox's ScratchProcessor tick has no spin timeout
+   and rekordbox times jog messages with a 1 ms clock; next test for the
+   open rule: log PC-side MIDI arrival times while repeating the captured
+   moves (bursty arrival would make a 1.8× platter read as "slower than
+   play"). The CDJ-3000 update is encrypted, so it cannot answer this.
