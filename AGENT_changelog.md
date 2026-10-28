@@ -50,6 +50,32 @@
 
 ---
 
+## 2026-10-27: rekordbox scratch comparison by USB capture; jog resolution 6480
+
+- **Capture:** the owner played the DDJ-800 in rekordbox with REC running
+  and USBPcapCMD recording the root hub (`Z:\Program Files\USBPcap\ddj800.pcap`,
+  2.8 GB, not in the repo; REC take `.resource/01 Testing-2026-10-27.wav`,
+  ignored by git). Target remains rekordbox 6; the measured resolution
+  equals 6.8.5's constant.
+- **Finding:** the DDJ-800 sends **6480** jog ticks per turn (1.8 s of
+  track per 6490 / 6360 ticks in two moves). Mapping default was 720.
+- **Mapping:** `Pioneer-DDJ-800-script.js` `jogResolution` default 6480;
+  `Pioneer-DDJ-800.midi.xml` option default 6480, max 4096 -> 16384. A
+  profile that saved 720 keeps it until changed in Preferences. The
+  untouched `jog` search factor (`ticks * 0.8`) is unchanged (raw ticks).
+- **Tools:** `usbpcap_to_jog.py` streams pcap and skips records > 1051
+  bytes; `scratch_trace.py` prints 1×-play stretches and per-move offset
+  change (robust to wrong-bar matches); `render_scratch.py` uses 6480 and
+  has `render --resolution`; `PlatterRenderTest` reads
+  `MIXTWO_RENDER_JOG_RESOLUTION` (default 6480). Scripts and renders were
+  regenerated; release spin +1.351 s, backspin -5.134 s, bend +0.147 s, as
+  before.
+- **Result:** Mix Two at 6480 vs rekordbox: -122 ms after a scratch, -215
+  ms after a backspin, +66 ms after a forward spin (at 720: +407 ms,
+  +1397 ms). Table in `tools/soundparity/README.md`.
+- **Status:** render-checked against rekordbox; affected tests rerun (see
+  commit); not felt on the deck. Open: the 0.1–0.2 s per move.
+
 ## 2026-10-27: scratch spin, disable and bend; render harness
 
 - **Engine:** `RateControl::processPlatter` runs rekordbox's five platter

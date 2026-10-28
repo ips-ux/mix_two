@@ -39,7 +39,7 @@ from scipy.io import wavfile
 from make_signals import CHIRP_SECONDS, PEAK, chirp, silence
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-STEPS_PER_REVOLUTION = 720  # the DDJ-800 mapping's jog resolution
+STEPS_PER_REVOLUTION = 6480  # DDJ-800 jog steps per turn (measured in rekordbox)
 SECONDS_PER_REVOLUTION = 1.8  # 33 1/3 rpm
 BPM = 128.0
 # The music starts after the chirp and two silent bars.
@@ -176,13 +176,15 @@ def wrap(music, out, start=30.0, length=12.0, rate=44100):
     wavfile.write(out, rate, (np.clip(stereo, -1, 1) * 32767).astype(np.int16))
 
 
-def render(track, jog, out, algorithm="rekordbox", buffer_frames=128):
+def render(track, jog, out, algorithm="rekordbox", buffer_frames=128,
+           resolution=STEPS_PER_REVOLUTION):
     env = dict(os.environ)
     env["MIXTWO_RENDER_TRACK"] = os.path.abspath(track)
     env["MIXTWO_RENDER_JOG"] = os.path.abspath(jog)
     env["MIXTWO_RENDER_OUT"] = os.path.abspath(out)
     env["MIXTWO_RENDER_ALGORITHM"] = "1" if algorithm == "rekordbox" else "0"
     env["MIXTWO_RENDER_BUFFER"] = str(buffer_frames)
+    env["MIXTWO_RENDER_JOG_RESOLUTION"] = str(resolution)
     bat = os.path.join(ROOT, "tools", "mixtwo_windows.bat")
     result = subprocess.run(["cmd", "/c", bat, "test", "--gtest_filter=PlatterRenderTest.*"],
                             cwd=ROOT, env=env, capture_output=True, text=True)
@@ -208,6 +210,8 @@ def main():
     p.add_argument("out")
     p.add_argument("--algorithm", choices=["rekordbox", "mixxx"], default="rekordbox")
     p.add_argument("--buffer", type=int, default=128)
+    p.add_argument("--resolution", type=float, default=STEPS_PER_REVOLUTION,
+                   help="jog steps per revolution (default %(default)s)")
     p = sub.add_parser("all")
     p.add_argument("music")
     p.add_argument("outdir", nargs="?",
@@ -220,7 +224,7 @@ def main():
     elif args.command == "wrap":
         wrap(args.music, args.out, args.start, args.length)
     elif args.command == "render":
-        render(args.track, args.jog, args.out, args.algorithm, args.buffer)
+        render(args.track, args.jog, args.out, args.algorithm, args.buffer, args.resolution)
     else:
         jogdir = os.path.join(args.outdir, "jog")
         track = os.path.join(args.outdir, "music.wav")

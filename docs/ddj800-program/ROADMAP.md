@@ -155,8 +155,9 @@ priorities. PARITY.md holds the per-row detail; this list is the work queue.
   a moving platter is let go; rekordbox's pitch-bend rule~~ (built
   2026-10-27); Mix Two renders of the scripted jog movements exist
   (`tools/soundparity/render_scratch.py`, real track `.resource/jvckpot.mp3`);
-  still to do: the same movements rendered in rekordbox and compared, and a
-  check on the deck that one turn moves 1.8 s.
+  compared with rekordbox 2026-10-27 by USB capture (jog resolution fixed:
+  6480 ticks per turn, not 720); still to do: the 0.1–0.2 s Mix Two lands
+  short of rekordbox per move, and a feel test on the deck.
 - Other deck sound: Master Tempo (key lock), key shift and vinyl brake/start,
   matched to rekordbox where they differ.
 

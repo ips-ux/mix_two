@@ -67,6 +67,41 @@ def trace(music, recording, rate):
     return points
 
 
+def steady(points, i):
+    """True where the recording plays at 1x: this window and both neighbours
+    match and advance by one step. Repeating bars can make a single window
+    match the wrong place; three in a row at 1x cannot."""
+    if i == 0 or i + 1 >= len(points):
+        return False
+    (_, a, sa), (_, b, sb), (_, c, sc) = points[i - 1:i + 2]
+    return (min(sa, sb, sc) > 0.6 and abs(b - a - STEP) < 0.005 and
+            abs(c - b - STEP) < 0.005)
+
+
+def play_stretches(rekordbox, mixtwo):
+    """(start, end, rekordbox offset, Mix Two offset) per stretch where both
+    play at 1x; offset = track position - time, so a change of offset between
+    stretches is what the jog movement in between added."""
+    stretches = []
+    run = []
+    for i in range(min(len(rekordbox), len(mixtwo))):
+        if steady(rekordbox, i) and steady(mixtwo, i):
+            run.append(i)
+            continue
+        if len(run) >= 3:
+            stretches.append(run)
+        run = []
+    if len(run) >= 3:
+        stretches.append(run)
+    result = []
+    for run in stretches:
+        t = [rekordbox[i][0] for i in run]
+        a = np.median([rekordbox[i][1] - rekordbox[i][0] for i in run])
+        b = np.median([mixtwo[i][1] - mixtwo[i][0] for i in run])
+        result.append((t[0], t[-1], a, b))
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -102,6 +137,13 @@ def main():
               % (np.median(a) * 1000, np.percentile(a, 95) * 1000, a.max() * 1000))
         worst = max((r for r in rows if not np.isnan(r[3])), key=lambda r: abs(r[3]))
         print("largest at %.2f s: rekordbox %.3f s, Mix Two %.3f s" % worst[:3])
+    print("\nwhere both play at 1x (offset = track position - time):")
+    previous = None
+    for start, end, a, b in play_stretches(*traces):
+        added = "" if previous is None else ", this move %+.0f ms" % ((b - a - previous) * 1000)
+        print("  %6.2f-%6.2f s: rekordbox %+.3f s, Mix Two %+.3f s, Mix Two %+.0f ms%s"
+              % (start, end, a, b, (b - a) * 1000, added))
+        previous = b - a
 
 
 if __name__ == "__main__":

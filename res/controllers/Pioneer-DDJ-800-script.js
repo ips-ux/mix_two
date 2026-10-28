@@ -41,7 +41,9 @@
 //        Keyboard, Pad FX2 (momentary effect units), Beat Loop, Key Shift
 //
 //  Needs hardware verification:
-//      * Jog wheel resolution (ticks per revolution)
+//      * Jog wheel resolution: 6480 ticks per turn, measured from a USB
+//        capture of the deck in rekordbox (rekordbox's own constant too);
+//        check that one turn moves 1.8 s in Mix Two
 //      * Pad LED velocities (single colour vs. palette)
 //      * Whether the controller needs a keep-alive SysEx like the DDJ-400
 //      * Meaning of the "Permission_PadMode" page flags
@@ -192,7 +194,7 @@ PioneerDDJ800.init = function() {
     PioneerDDJ800.usedLeds = {};
 
     PioneerDDJ800.vinylModeDefault = PioneerDDJ800.getSetting("vinylModeDefault", true);
-    PioneerDDJ800.jogResolution = PioneerDDJ800.getSetting("jogResolution", 720);
+    PioneerDDJ800.jogResolution = PioneerDDJ800.getSetting("jogResolution", 6480);
     PioneerDDJ800.inputSelectPassthrough = PioneerDDJ800.getSetting("inputSelectPassthrough", false);
     PioneerDDJ800.cfxPresets = [
         PioneerDDJ800.getSetting("cfx1Preset", -1),

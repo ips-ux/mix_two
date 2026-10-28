@@ -122,8 +122,8 @@ python tools/soundparity/render_scratch.py all .resource/jvckpot.mp3
 writes to `build/soundparity/scratch/` (ignored by git):
 - `music.wav`: the wrapped track. Use the same file in rekordbox.
 - `jog/*.jog`: the movements, as DDJ-800 MIDI with times in ms (`B0 22`
-  top jog, `B0 21` side jog, value 0x40 ± steps at 720 steps per
-  revolution; `90 36` touch; `90 0B` PLAY). The deck plays from 0 s; the
+  top jog, `B0 21` side jog, value 0x40 ± steps at 6480 steps per
+  revolution, measured below; `90 36` touch; `90 0B` PLAY). The deck plays from 0 s; the
   movements start 4 s into the music.
 - `mixtwo/*.wav`: Mix Two's render (scratch algorithm "Rekordbox").
 - `mixtwo-linear-scaler/*.wav`: the same motion through Mixxx's linear
@@ -134,9 +134,9 @@ The renders run in `mixxx-test` (`PlatterRenderTest`, skipped unless its
 128-frame buffers. It turns the MIDI into controls as the DDJ-800 mapping
 does.
 
-**The rekordbox side is still open.** rekordbox holds the DDJ-800's MIDI
-port, so the movement cannot simply be logged on Windows 11 23H2 while
-rekordbox runs. Two ways (the first is the one in use):
+**The rekordbox side.** rekordbox holds the DDJ-800's MIDI port, so the
+movement cannot simply be logged on Windows 11 23H2 while rekordbox runs.
+Two ways were tried; the first works:
 1. Perform the movement on the deck in rekordbox with REC running, capture
    the USB MIDI with USBPcap / Wireshark at the same time, convert the
    capture to a `.jog` file, and render that in Mix Two.
@@ -163,6 +163,42 @@ rekordbox runs. Two ways (the first is the one in use):
    (times from the first PLAY press), render it with
    `render_scratch.py render`, and compare the positions with
    `scratch_trace.py music.wav REKORDBOX.wav MIXTWO.wav`.
+
+Notes from the first capture (2026-10-27):
+- USBPcap attaches only after a restart to controllers for which its
+  installer says "Reboot required" (here the AMD chipset controller with the
+  DDJ-800). Wireshark 4.6.9 did not list USBPcap interfaces; USBPcapCMD
+  works. Without a path, USBPcapCMD writes into its own folder.
+- USBPcapCMD records the whole root hub. The DDJ-800 shares it with an SSD
+  and the EVO 4 here, so 30 s gave a 2.8 GB file. `usbpcap_to_jog.py`
+  streams pcap files and skips records larger than any MIDI transfer
+  (4.5 s for that file).
+- `scratch_trace.py` also prints the stretches where both recordings play
+  at 1×, with the offset (track position − time) of each. The change of
+  offset between stretches is what each jog movement added; this is the
+  number to compare. Single windows can match the wrong bar of repeating
+  music, so the per-window statistics are rough.
+
+**Result (2026-10-27)**, `.resource/01 Testing-2026-10-27.wav` (REC take,
+29 s; 3 touches, 7916 deck 1 messages):
+
+| Where play resumes | rekordbox | Mix Two, 6480 | Mix Two, 720 (old default) |
+|---|---|---|---|
+| after a 3.9 s scratch (net +685 ticks) | -3.732 s | -122 ms | +407 ms |
+| after a backspin (-1766 ticks touched, -6144 spinning) | -6.708 s | -337 ms (this move -215 ms) | +1804 ms |
+| after a forward spin (+2680 / +10214 ticks) | +12.298 s at 16.4 s | -271 ms (this move +66 ms) | not measured |
+
+- **The DDJ-800 sends 6480 jog ticks per turn,** not 720. rekordbox moved
+  the track 1.8 s per 6490 ticks in the scratch and per 6360 in the
+  backspin; 6480 is also rekordbox 6.8.5's DDJ-800 constant. The mapping's
+  `jogResolution` default was 720 (a guess), so Mix Two moved 9× too far
+  per tick. Default now 6480; the render harness and scripts use it too
+  (`--resolution` / `MIXTWO_RENDER_JOG_RESOLUTION` to try others).
+- Normal play matches to the millisecond before the first touch, and the
+  first 0.2 s of scratching within 10 ms.
+- Left over: Mix Two lands 0.1–0.2 s short of rekordbox per move. Likely
+  places: the 60 ms touch dead zone, the ±8× limit and glitch filters on
+  fast hand movement, and when the spin hands back. Not yet investigated.
 
 ### Replaying a `.jog` into rekordbox 5 (virtual DDJ-800)
 

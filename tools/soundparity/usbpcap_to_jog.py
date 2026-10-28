@@ -22,6 +22,7 @@ import tempfile
 
 LINKTYPE_USBPCAP = 249
 TRANSFER_INTERRUPT, TRANSFER_BULK = 1, 3
+MAX_RECORD = 27 + 1024  # USBPcap header + the largest MIDI transfer kept
 # USB-MIDI 1.0 code index numbers of 3-byte channel messages.
 CIN_LENGTH = {0x8: 3, 0x9: 3, 0xA: 3, 0xB: 3, 0xE: 3, 0xC: 2, 0xD: 2}
 
@@ -74,32 +75,40 @@ def read_pcapng(data):
 
 
 def read_pcap(path):
-    """Yields (seconds, header fields, payload) per USBPcap record."""
+    """Yields (seconds, header fields, payload) per USBPcap record.
+
+    pcap files are streamed: a root hub capture also holds every disk and
+    audio transfer on that hub (gigabytes), and records larger than any MIDI
+    transfer are skipped without being read.
+    """
     with open(path, "rb") as f:
-        data = f.read()
-    magic = struct.unpack_from("<I", data, 0)[0]
-    if magic == 0x0A0D0D0A:
-        yield from read_pcapng(data)
-        return
-    if magic in (0xA1B2C3D4, 0xA1B23C4D):
-        endian = "<"
-    elif magic in (0xD4C3B2A1, 0x4D3CB2A1):
-        endian = ">"
-    else:
-        raise SystemExit("%s is neither pcap nor pcapng" % path)
-    nanos = magic in (0xA1B23C4D, 0x4D3CB2A1)
-    linktype = struct.unpack_from(endian + "I", data, 20)[0]
-    if linktype != LINKTYPE_USBPCAP:
-        raise SystemExit("link type %d is not USBPcap (249)" % linktype)
-    offset = 24
-    while offset + 16 <= len(data):
-        sec, frac, incl, _ = struct.unpack_from(endian + "IIII", data, offset)
-        offset += 16
-        record = usbpcap_record(sec + frac / (1e9 if nanos else 1e6),
-                                data[offset:offset + incl])
-        offset += incl
-        if record:
-            yield record
+        head = f.read(24)
+        magic = struct.unpack_from("<I", head, 0)[0]
+        if magic == 0x0A0D0D0A:
+            f.seek(0)
+            yield from read_pcapng(f.read())
+            return
+        if magic in (0xA1B2C3D4, 0xA1B23C4D):
+            endian = "<"
+        elif magic in (0xD4C3B2A1, 0x4D3CB2A1):
+            endian = ">"
+        else:
+            raise SystemExit("%s is neither pcap nor pcapng" % path)
+        nanos = magic in (0xA1B23C4D, 0x4D3CB2A1)
+        linktype = struct.unpack_from(endian + "I", head, 20)[0]
+        if linktype != LINKTYPE_USBPCAP:
+            raise SystemExit("link type %d is not USBPcap (249)" % linktype)
+        while True:
+            rec_head = f.read(16)
+            if len(rec_head) < 16:
+                break
+            sec, frac, incl, _ = struct.unpack(endian + "IIII", rec_head)
+            if incl > MAX_RECORD:
+                f.seek(incl, os.SEEK_CUR)
+                continue
+            record = usbpcap_record(sec + frac / (1e9 if nanos else 1e6), f.read(incl))
+            if record:
+                yield record
 
 
 def midi_messages(path):

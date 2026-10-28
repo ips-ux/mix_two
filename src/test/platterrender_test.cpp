@@ -25,11 +25,13 @@ namespace {
 ///   MIXTWO_RENDER_START      start position in seconds of track (default 0)
 ///   MIXTWO_RENDER_SECONDS    length (default: last message + 2 s)
 ///   MIXTWO_RENDER_BUFFER     audio buffer in frames (default 128)
+///   MIXTWO_RENDER_JOG_RESOLUTION  jog steps per revolution (default 6480,
+///                                 the mapping's jogResolution)
 ///
 /// Deck 1 messages of the DDJ-800 are understood as its mapping
 /// (res/controllers/Pioneer-DDJ-800-script.js, vinyl mode, scratch algorithm
 /// "Rekordbox") turns them into controls: jog touch 90 36, jog turns B0 21 /
-/// 22 / 23 (value - 0x40 steps at 720 steps per revolution), PLAY 90 0B.
+/// 22 / 23 (value - 0x40 steps, by default 6480 per revolution), PLAY 90 0B.
 class PlatterRenderTest : public BaseSignalPathTest {
   protected:
     struct Message {
@@ -39,7 +41,8 @@ class PlatterRenderTest : public BaseSignalPathTest {
         int data2;
     };
 
-    static constexpr double kJogStepsPerRevolution = 720.0;
+    static constexpr double kDefaultJogStepsPerRevolution = 6480.0;
+    double m_jogStepsPerRevolution = kDefaultJogStepsPerRevolution;
 
     static QString env(const char* name) {
         return qEnvironmentVariable(name);
@@ -94,7 +97,7 @@ class PlatterRenderTest : public BaseSignalPathTest {
                     ControlObject::get(ConfigKey(m_sGroup1, QStringLiteral("platter_state"))) > 0;
             if (toPlatter) {
                 ControlObject::set(ConfigKey(m_sGroup1, QStringLiteral("platter_turn")),
-                        steps / kJogStepsPerRevolution);
+                        steps / m_jogStepsPerRevolution);
             } else {
                 ControlObject::set(ConfigKey(m_sGroup1, QStringLiteral("jog")), steps * 0.8);
             }
@@ -173,6 +176,10 @@ TEST_F(PlatterRenderTest, RenderScriptedJog) {
             ? 128
             : env("MIXTWO_RENDER_BUFFER").toInt();
     ASSERT_GT(bufferFrames, 0);
+    if (!env("MIXTWO_RENDER_JOG_RESOLUTION").isEmpty()) {
+        m_jogStepsPerRevolution = env("MIXTWO_RENDER_JOG_RESOLUTION").toDouble();
+    }
+    ASSERT_GT(m_jogStepsPerRevolution, 0.0);
     double seconds = env("MIXTWO_RENDER_SECONDS").toDouble();
     if (seconds <= 0.0) {
         seconds = (messages.empty() ? 0.0 : messages.back().ms / 1000.0) + 2.0;

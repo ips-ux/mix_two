@@ -23,7 +23,9 @@ Traced fully for the DDJ-800 (2026-10-27).
 - **Which processor:** rekordbox special-cases the DDJ-800 by name: processor
   type 1, the plain `ScratchProcessor` **without** a feedback filter
   (`Integral2` / `Integral3` smoothing is for other controllers), and a jog
-  resolution of 6480 in rekordbox's own tick units.
+  resolution of 6480 in rekordbox's own tick units. These are the
+  DDJ-800's MIDI jog ticks: a USB capture of the deck in rekordbox
+  (2026-10-27) showed 1.8 s of track per about 6480 ticks.
 - **Speed from the platter:** per jog message, speed = revolutions turned ÷
   elapsed minutes ÷ 33⅓. 1.0 is normal playback; one revolution is 1.8 s of
   track. (45 exists in the code; Pioneer jogs use 33⅓, and Mix Two has no
@@ -164,8 +166,9 @@ cubic Lagrange interpolation** on the oversampled signal.
    (`calculatePlatterRate`, controls `platter_touch` / `platter_turn`), driven
    by the DDJ-800 jogs when the scratch algorithm is "Rekordbox". Spin,
    disable and bend traced and built 2026-10-27 (section 2.1,
-   `[ChannelN],platter_state`). Verify on hardware that one platter turn
-   moves 1.8 s, and how a spin feels against rekordbox.
+   `[ChannelN],platter_state`). Jog resolution measured 2026-10-27: 6480
+   ticks per turn (item 4; the mapping default was 720). Still to feel on
+   the deck: scratching and spins against rekordbox.
 3. ~~Rendering~~: built 2026-10-27 as `EngineBufferScaleHalfbandLagrange`,
    chosen in Preferences > Decks > Platter options > Scratch algorithm
    ("Rekordbox (6.8.5)", the default; "Mixxx (2.7)" keeps the linear scaler).
@@ -180,5 +183,11 @@ cubic Lagrange interpolation** on the oversampled signal.
    the real engine (`PlatterRenderTest`) with the owner's real track
    `.resource/jvckpot.mp3`. A cross-correlation check of the renders put
    the track within 50 ms of the position worked out by hand from each
-   script. Still open: getting the same movement into rekordbox (see the
-   README there).
+   script. rekordbox side done 2026-10-27 by USB capture
+   (`usbpcap_to_jog.py`, `scratch_trace.py`, README there): the same hand
+   movement, rendered in Mix Two, matches rekordbox to 10 ms in normal play
+   and early scratching, and lands 0.1–0.2 s short of rekordbox after each
+   move (-122 ms after a scratch, -215 ms after a backspin, +66 ms after a
+   forward spin). The capture also gave the jog resolution (6480, not the
+   mapping's old 720, which was 9× off). Next: find the 0.1–0.2 s (dead
+   zone, ±8× limit, spin hand-back) with more captures of single moves.
