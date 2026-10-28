@@ -136,7 +136,11 @@ individual DDJ-800 messages.)
 - **SHIFT + jog** (rekordbox reads the jog over HID; the flag being SHIFT
   is Inferred): touched, an absolute needle search where one turn sweeps
   the whole track (a silent jump, position clamped to the track);
-  untouched, nothing happens. Not built in Mix Two yet.
+  untouched, nothing happens. Mix Two (2026-10-28, mapping only):
+  SHIFT + top adds ticks ÷ 6480 to a track fraction kept per deck (read
+  from `playposition` at each SHIFT touch, clamped 0..1) and sets
+  `playposition`; SHIFT + side is not bound. Mixxx already ends a loop
+  that the jump leaves, as rekordbox does.
 - **Constants** (DDJ-800, rekordbox defaults): jog resolution 6480 units;
   scratch glitch 25×, spin glitch 50×, speed limit 8×, touch dead zone 60 ms
   / 9/3240 rev / 0.05×, bend threshold 0.5×, bend gain 1.5, bend cap 42,

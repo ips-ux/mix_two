@@ -221,6 +221,7 @@ PioneerDDJ800.init = function() {
             gridAdjust: false,
             gridSlide: false,
             gridTicks: 0,
+            needle: null, // SHIFT + jog: the track fraction searched to
             lastLoadPress: 0,
             padFx2Held: {},
         });
@@ -754,17 +755,19 @@ PioneerDDJ800.initJog = function(deck) {
     PioneerDDJ800.bind(cc, 0x23, turn); // top, CDJ mode
     PioneerDDJ800.bind(cc, 0x21, turn); // side
 
-    const search = function(_channel, _control, value) {
-        engine.setValue(group, "jog", (value - 0x40) * 150);
-    };
-    PioneerDDJ800.bind(cc, 0x1F, search); // SHIFT + top
-    PioneerDDJ800.bind(cc, 0x26, search); // SHIFT + side
+    // SHIFT + top: rekordbox's needle search. SHIFT + side does nothing, as
+    // in rekordbox.
+    PioneerDDJ800.bind(cc, 0x1F, function(_channel, _control, value) {
+        PioneerDDJ800.needleSearch(deck, value - 0x40);
+    });
 
     PioneerDDJ800.bind(note, 0x36, function(_channel, _control, value) {
         PioneerDDJ800.jogTouch(deck, value > 0);
     });
     PioneerDDJ800.bind(note, 0x67, function(_channel, _control, value) {
-        // SHIFT + touch searches, it never scratches.
+        // SHIFT + touch searches, it never scratches. Each touch searches
+        // from where the track is.
+        PioneerDDJ800.decks[deck].needle = null;
         if (value === 0) {
             engine.scratchDisable(deck + 1);
             engine.setValue(group, "platter_touch", 0);
@@ -796,6 +799,20 @@ PioneerDDJ800.jogTouch = function(deck, touched) {
         engine.scratchDisable(deck + 1);
         engine.setValue(group, "platter_touch", 0);
     }
+};
+
+// rekordbox's needle search: one turn of the touched jog sweeps the whole
+// track, as a jump without sound. The searched position is kept here, as
+// playposition only updates 15 times a second. Mixxx ends a loop that the
+// jump leaves, as rekordbox does.
+PioneerDDJ800.needleSearch = function(deck, ticks) {
+    const group = PioneerDDJ800.deckGroup(deck);
+    const state = PioneerDDJ800.decks[deck];
+    if (state.needle === null) {
+        state.needle = engine.getValue(group, "playposition");
+    }
+    state.needle = Math.min(1, Math.max(0, state.needle + ticks / PioneerDDJ800.jogResolution));
+    engine.setValue(group, "playposition", state.needle);
 };
 
 PioneerDDJ800.jogTurn = function(deck, ticks) {

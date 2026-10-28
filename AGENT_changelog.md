@@ -53,6 +53,21 @@
 
 ---
 
+## 2026-10-28: SHIFT + jog is rekordbox's needle search
+
+- **Owner's choice:** add rekordbox's SHIFT + jog (traced in the previous
+  entry; SHIFT flag Inferred, read over HID in rekordbox).
+- **Mapping only (`PioneerDDJ800.needleSearch`):** SHIFT + top (CC 0x1F)
+  adds ticks / `jogResolution` to `state.needle` (a 0..1 fraction, read from
+  `playposition` at each SHIFT touch, note 0x67, since playposition updates
+  at 15 Hz) and sets `playposition`. SHIFT + side (CC 0x26) is no longer
+  bound. The old SHIFT search (`jog` x150) is gone. Mixxx's
+  `LoopingControl::notifySeek` already disables a loop the seek leaves.
+- **Tests:** a Node check with a stubbed `engine` (scratchpad, not in the
+  repo): accumulation, clamp, new touch re-reads, SHIFT + side unbound.
+  ESLint is not installed on this machine; not run.
+- **Status:** script-checked; not felt on the deck.
+
 ## 2026-10-28: paused deck's jog scratches (rekordbox)
 
 - **Owner's choice:** match rekordbox for the paused side jog.
