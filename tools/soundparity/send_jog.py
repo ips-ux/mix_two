@@ -3,16 +3,23 @@
 sent them, so rekordbox gets the same jog movement as Mix Two's renders.
 
 The port is created with the teVirtualMIDI driver that loopMIDI installs
-(https://www.tobias-erichsen.de/software/loopmidi.html), as a send-only port:
-other apps see only a MIDI input named "DDJ-800". rekordbox's LED output can
-therefore not loop back into its own input, as it would through a plain
-loopMIDI port. Nothing else needs installing (ctypes only).
+(https://www.tobias-erichsen.de/software/loopmidi.html). Other apps see a
+MIDI input and output named "DDJ-800" (rekordbox lists only devices with
+both). Unlike a port made in the loopMIDI app it is not a loopback: what an
+app sends to its output (rekordbox's LED messages) arrives here and is
+dropped, so it cannot come back as button presses. Nothing else needs
+installing (ctypes only).
 
 Usage:
   send_jog.py [--name DDJ-800] [JOG ...]
       Creates the port and keeps it open. Start rekordbox after the port
       exists, then press Enter to send each file in turn; when the list is
       done, type further .jog paths, or press Enter on an empty line to quit.
+  send_jog.py --proxy [JOG ...]
+      As above, but first opens the real DDJ-800's input itself and forwards
+      everything it sends into the virtual port. Windows lets one program at
+      a time open a USB MIDI input, so rekordbox has to use the virtual one;
+      the real deck keeps working through this script.
   send_jog.py --list
       Lists the MIDI ports Windows sees.
   send_jog.py --loopback JOG
@@ -33,7 +40,7 @@ from ctypes import wintypes
 winmm = ctypes.WinDLL("winmm")
 
 TE_VM_FLAGS_PARSE_RX = 1
-TE_VM_FLAGS_INSTANTIATE_TX_ONLY = 8
+TE_VM_FLAGS_INSTANTIATE_BOTH = 12
 
 VM_DATA_CB = ctypes.WINFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte),
                                 wintypes.DWORD, ctypes.c_void_p)
@@ -106,9 +113,9 @@ class VirtualPort:
                                                  wintypes.DWORD]
         self.dll.virtualMIDISendData.restype = wintypes.BOOL
         self.dll.virtualMIDIClosePort.argtypes = [ctypes.c_void_p]
-        self.callback = VM_DATA_CB(lambda *args: None)  # nothing comes back
+        self.callback = VM_DATA_CB(lambda *args: None)  # LED messages: dropped
         self.port = self.dll.virtualMIDICreatePortEx2(
-            name, self.callback, None, 0, TE_VM_FLAGS_PARSE_RX | TE_VM_FLAGS_INSTANTIATE_TX_ONLY)
+            name, self.callback, None, 0, TE_VM_FLAGS_PARSE_RX | TE_VM_FLAGS_INSTANTIATE_BOTH)
         if not self.port:
             raise SystemExit("Cannot create the virtual port %r (error %d); is the name "
                              "already taken?" % (name, ctypes.get_last_error()))
@@ -126,6 +133,33 @@ class VirtualPort:
         if self.port:
             self.dll.virtualMIDIClosePort(self.port)
             self.port = None
+
+
+class Proxy:
+    """Holds a real MIDI input open and forwards its messages to a port."""
+
+    def __init__(self, index, port):
+        self.port = port
+
+        def on_midi(handle, msg, instance, param1, param2):
+            if msg != MIM_DATA:
+                return
+            status = param1 & 0xFF
+            length = 2 if 0xC0 <= status < 0xE0 else 3
+            self.port.send(bytes([status, (param1 >> 8) & 0x7F, (param1 >> 16) & 0x7F][:length]))
+
+        self.proc = MIDI_IN_PROC(on_midi)
+        self.handle = ctypes.c_void_p()
+        result = winmm.midiInOpen(ctypes.byref(self.handle), index, self.proc, None,
+                                  CALLBACK_FUNCTION)
+        if result != 0:
+            raise SystemExit("Cannot open the real input (error %d); is rekordbox running?"
+                             % result)
+        winmm.midiInStart(self.handle)
+
+    def close(self):
+        winmm.midiInStop(self.handle)
+        winmm.midiInClose(self.handle)
 
 
 def play(port, messages, on_sent=None):
@@ -196,6 +230,7 @@ def main():
     parser.add_argument("--name", default="DDJ-800")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--loopback", metavar="JOG")
+    parser.add_argument("--proxy", action="store_true")
     parser.add_argument("jog", nargs="*")
     args = parser.parse_args()
 
@@ -206,28 +241,46 @@ def main():
     if args.loopback:
         loopback(args.name, args.loopback)
         return
-    if args.name in midi_inputs():
+    real = midi_inputs().index(args.name) if args.name in midi_inputs() else None
+    if real is not None and not args.proxy:
         print("Warning: a MIDI input named %r already exists (the real deck?)." % args.name)
+    if args.proxy and real is None:
+        raise SystemExit("--proxy: no MIDI input named %r to take over" % args.name)
     port = VirtualPort(args.name)
+    proxy = None
+    if args.proxy:
+        proxy = Proxy(real, port)
+        print("Forwarding the real %r into the virtual port." % args.name)
     print("Port %r is open. Start rekordbox now if it is not running." % args.name)
     queue = list(args.jog)
     try:
         while True:
             if queue:
-                path = queue.pop(0)
-                if input("Enter: send %s  (q: quit) " % os.path.basename(path)).strip() == "q":
+                answer = input("Enter: send %s  (or type another .jog; q: quit) "
+                               % os.path.basename(queue[0])).strip().strip('"')
+                if answer == "q":
                     break
+                path = answer if answer else queue.pop(0)
             else:
                 path = input(".jog to send (empty: quit): ").strip().strip('"')
                 if not path:
                     break
-            messages = read_jog(path)
+            try:
+                messages = read_jog(path)
+            except (OSError, ValueError) as error:
+                print("Cannot read %s: %s" % (path, error))
+                continue
+            if not messages:
+                print("%s has no messages" % path)
+                continue
             print("Sending %d messages over %.1f s ..." % (len(messages), messages[-1][0]))
             play(port, messages)
             print("Done.")
     except (KeyboardInterrupt, EOFError):
         pass
     finally:
+        if proxy:
+            proxy.close()
         port.close()
 
 

@@ -141,8 +141,7 @@ rekordbox runs. Two ways:
    the USB MIDI with USBPcap / Wireshark at the same time, convert the
    capture to a `.jog` file, and render that in Mix Two.
 2. Send the `.jog` files into rekordbox through a virtual MIDI port named
-   "DDJ-800" (`send_jog.py`, see below; the port works, rekordbox not
-   tried yet).
+   "DDJ-800" (`send_jog.py`, see below: rekordbox does not accept it).
 
 ### Replaying a `.jog` into rekordbox 5 (virtual DDJ-800)
 
@@ -176,8 +175,13 @@ so its LED messages cannot loop back as button presses.
 7. Compare, for example:
    `python tools/soundparity/compare.py build/soundparity/scratch/rekordbox/backspin.wav build/soundparity/scratch/mixtwo/backspin.wav`
 
-Unknown until tried: whether rekordbox accepts a DDJ-800 that is only a MIDI
-port (no audio interface, no HID), and whether it needs an output port too.
+**Result (2026-10-27): dead end, dropped.** rekordbox 5 ignores a MIDI-only
+"DDJ-800" (it lists generic ports, but activates its DDJ-800 handling only
+with the real USB deck present), and with the real deck connected it reads
+only the first input of that name, the real one. The `--proxy` mode (take
+over the real input, forward it) was written but not tried. The scratch
+engine stays checked by its spec, the unit tests and the render check; the
+comparison with rekordbox is left to listening on the deck.
 
 ## Later
 
