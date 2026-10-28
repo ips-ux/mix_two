@@ -164,6 +164,7 @@ RateControl::RateControl(const QString& group, UserSettingsPointer pConfig)
           m_platterSpinEmpty(0),
           m_platterAgainstSpin(0.0),
           m_platterPlayingAtTouch(false),
+          m_platterUntouchedScratch(false),
           m_platterBend(0.0),
           m_platterBendClock(0.0),
           m_platterActive(false),
@@ -506,12 +507,7 @@ double RateControl::calculatePlatterRate(
     if (!m_platterActive) {
         // Touched: stop the track. The renderer eases into the stop over
         // this buffer, so the anchor is taken in the next one.
-        m_platterActive = true;
-        m_platterDeadZone = true;
-        m_platterAnchorPending = true;
-        m_platterTurned = 0.0;
-        m_platterDeadTurn = 0.0;
-        m_platterSinceTouch = 0.0;
+        startPlatterScratch();
         m_platterSinceTouch += bufferSeconds;
         return 0.0;
     }
@@ -544,6 +540,15 @@ double RateControl::calculatePlatterRate(
             m_platterTurned * kPlatterSecondsPerRevolution * trackRate;
     const double rate = (target - position) / (outputFrames * baserate);
     return std::clamp(rate, -kPlatterMaxSpeed, kPlatterMaxSpeed);
+}
+
+void RateControl::startPlatterScratch() {
+    m_platterActive = true;
+    m_platterDeadZone = true;
+    m_platterAnchorPending = true;
+    m_platterTurned = 0.0;
+    m_platterDeadTurn = 0.0;
+    m_platterSinceTouch = 0.0;
 }
 
 void RateControl::clearPlatterQueue() {
@@ -680,8 +685,9 @@ bool RateControl::processPlatter(double baserate,
     const bool touchedNow = m_pPlatterTouch->toBool();
     // A touch applies before this buffer's steps, a release after them, so
     // the release is decided on the motion this buffer still had under the
-    // hand.
-    const bool touched = touchedNow || m_platterState == kPlatterScratch;
+    // hand. A scratch the jog started on a paused deck is not touched.
+    const bool untouchedScratch = m_platterState == kPlatterScratch && m_platterUntouchedScratch;
+    const bool touched = touchedNow || (m_platterState == kPlatterScratch && !untouchedScratch);
     bool jogFinished = false;
     double turn = takePlatterTurn(bufferSeconds, touched, &jogFinished);
     double speed = bufferSeconds > 0.0 ? turn * kPlatterSecondsPerRevolution / bufferSeconds : 0.0;
@@ -718,8 +724,9 @@ bool RateControl::processPlatter(double baserate,
     };
 
     if (touched) {
-        if (m_platterState != kPlatterScratch) {
+        if (m_platterState != kPlatterScratch || untouchedScratch) {
             m_platterActive = false; // calculatePlatterRate anchors anew
+            m_platterUntouchedScratch = false;
             m_platterPlayingAtTouch = playing;
             m_platterBend = 0.0;
             setPlatterState(kPlatterScratch);
@@ -769,6 +776,37 @@ bool RateControl::processPlatter(double baserate,
             setPlatterState(kPlatterIdle); // the jog has gone quiet
         }
         return false;
+    }
+
+    if (untouchedScratch) {
+        if (playing) {
+            // PLAY pressed: the platter bends from now on.
+            m_platterActive = false;
+            m_platterUntouchedScratch = false;
+            setPlatterState(kPlatterIdle);
+        } else if (jogFinished) {
+            // Quiet for 56 ms: the scratch ends where the platter put the
+            // track; it never spins.
+            m_platterActive = false;
+            m_platterUntouchedScratch = false;
+            setPlatterState(kPlatterIdle);
+            return false;
+        } else {
+            *pRate = calculatePlatterRate(baserate, samplesPerBuffer, turn);
+            return true;
+        }
+    }
+
+    // Paused: any movement of the untouched platter scratches, with the
+    // touch dead zone, as a touched scratch would.
+    if (paused && moved) {
+        startPlatterScratch(); // already stopped, so no easing to wait for
+        m_platterUntouchedScratch = true;
+        m_platterPlayingAtTouch = false;
+        m_platterBend = 0.0;
+        setPlatterState(kPlatterScratch);
+        *pRate = calculatePlatterRate(baserate, samplesPerBuffer, turn);
+        return true;
     }
 
     // Idle or bend: the untouched platter bends the tempo.

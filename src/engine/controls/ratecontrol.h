@@ -107,6 +107,9 @@ private:
   // SCRATCH-ENGINE.md, "Mix Two's version"). Returns the scratch rate while
   // the platter is touched.
   double calculatePlatterRate(double baserate, std::size_t samplesPerBuffer, double turn);
+  // Starts a scratch's position lock and touch dead zone; the anchor is
+  // taken in the next calculatePlatterRate().
+  void startPlatterScratch();
   // Mix Two: runs the platter states for one buffer (SCRATCH-ENGINE.md
   // section 2.1). Returns true with *pRate set while the platter drives the
   // track (scratch or spin); otherwise the deck plays normally, with
@@ -193,6 +196,7 @@ private:
   int m_platterSpinEmpty;        // spin: buffers without movement, in a row
   double m_platterAgainstSpin;   // disable: revolutions against the spin
   bool m_platterPlayingAtTouch;
+  bool m_platterUntouchedScratch; // the jog on a paused deck, not a touch
   double m_platterBend;          // fraction of the tempo added by a bend
   double m_platterBendClock;     // m_platterClock at the last bend update
   bool m_platterActive;

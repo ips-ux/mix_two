@@ -822,19 +822,15 @@ PioneerDDJ800.jogTurn = function(deck, ticks) {
         return;
     }
 
-    // With the engine's platter, untouched turns go there too while the platter
-    // spins, is disabled or bends (rekordbox's spin and bend). A playing deck
-    // always bends with rekordbox's rule (3 % per 1x platter speed), whatever
-    // the scratch algorithm: Mixxx's "jog" is far too strong at 6480 ticks per
-    // turn. A paused, idle deck keeps Mixxx's jog search.
-    if (engine.getValue(group, "platter_touch") ||
-            (PioneerDDJ800.usesPlatter() && engine.getValue(group, "platter_state")) ||
-            (engine.getValue(group, "play") && !engine.isScratching(deck + 1))) {
-        engine.setValue(group, "platter_turn", ticks / PioneerDDJ800.jogResolution);
-    } else if (engine.isScratching(deck + 1)) {
+    // Every turn goes to the engine's platter, whatever the scratch algorithm,
+    // except while Mixxx's own scratch is on: untouched, a playing deck bends
+    // with rekordbox's rule (3 % per 1x platter speed) and a paused deck
+    // scratches (1.8 s per turn), as in rekordbox. Mixxx's "jog" is far too
+    // strong at 6480 ticks per turn.
+    if (engine.isScratching(deck + 1)) {
         engine.scratchTick(deck + 1, ticks);
     } else {
-        engine.setValue(group, "jog", ticks * 0.8);
+        engine.setValue(group, "platter_turn", ticks / PioneerDDJ800.jogResolution);
     }
 };
 

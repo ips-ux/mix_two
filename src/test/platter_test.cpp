@@ -326,4 +326,27 @@ TEST_F(PlatterSpinTest, SlowUntouchedPlatterDoesNotBend) {
     EXPECT_NEAR(40 * bufferSeconds(), exact() - before, 0.005);
 }
 
+TEST_F(PlatterSpinTest, UntouchedPlatterScratchesAPausedDeck) {
+    process(1);
+    const double before = exact();
+    turnFor(0.4, 20); // slow too: no bend threshold while paused
+    EXPECT_EQ(kScratch, state());
+    process(8); // > 56 ms quiet: idle, no spin
+    EXPECT_EQ(kIdle, state());
+    const double stopped = exact();
+    // Locked to the platter, less at most what the touch dead zone took.
+    const double perBuffer = turnAt(0.4) * kSecondsPerRevolution;
+    EXPECT_NEAR(before + 20 * perBuffer, stopped, 1.5 * perBuffer);
+    process(20);
+    EXPECT_NEAR(stopped, exact(), 1e-4);
+}
+
+TEST_F(PlatterSpinTest, PlayDuringAnUntouchedScratchBends) {
+    turnFor(1.0, 5);
+    ASSERT_EQ(kScratch, state());
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
+    turnFor(2.0, 10);
+    EXPECT_EQ(kBend, state());
+}
+
 } // namespace

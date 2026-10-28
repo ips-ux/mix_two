@@ -53,6 +53,26 @@
 
 ---
 
+## 2026-10-28: paused deck's jog scratches (rekordbox)
+
+- **Owner's choice:** match rekordbox for the paused side jog.
+- **rekordbox traced (worker, clean room, SCRATCH-ENGINE.md 2.1 "Paused
+  deck"):** a not-playing deck's untouched movement starts an untouched
+  scratch (no bend threshold), same maths as a touched scratch, 3-step dead
+  band, touch dead zone, no spin, ends after 56 ms quiet; touch restarts it
+  as touched; PLAY hands over to bend (Inferred). SHIFT + touched jog =
+  needle search, one turn = whole track (not built).
+- **Engine (`RateControl::processPlatter`):** new
+  `m_platterUntouchedScratch`; `startPlatterScratch()` factored out of
+  `calculatePlatterRate` (anchors in the same buffer when paused).
+- **Mapping (`jogTurn`):** every turn goes to `platter_turn` unless Mixxx's
+  scratch is on; the `jog` (ticks x 0.8, x18 paused) path is gone.
+- **Known difference:** vinyl off + touched + paused scratches as untouched
+  (3-step band, no release spin); rekordbox uses the touched scratch.
+- **Tests:** `UntouchedPlatterScratchesAPausedDeck`,
+  `PlayDuringAnUntouchedScratchBends`.
+- **Status:** unit-tested; not felt on the deck.
+
 ## 2026-10-28: jog bend fixed on the deck (side jog while playing)
 
 - **Owner's report:** backspin good, jogging forward/backward "very very
@@ -73,8 +93,7 @@
 - **Engine:** bend clamped to ±42 % (was +42 % only); added to the rate
   instead of scaled by the tempo ratio. New test
   `BackwardBendIsCappedAt42Percent`.
-- **Not changed (owner's choice pending):** paused deck side jog still uses
-  Mixxx's `jog` (x18 paused multiplier), also far too strong at 6480.
+- **Not changed here:** paused deck side jog (done in the next entry).
 - **Status:** unit-tested and render-checked; not felt on the deck.
 
 ## 2026-10-28: rekordbox's jog input stage in the engine

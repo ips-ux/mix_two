@@ -118,6 +118,25 @@ individual DDJ-800 messages.)
   path (`reqSetBendSlope`, `BendTaskOnPreRender`) is not used by the jog.
   With Master Tempo on, rekordbox plays through its key-preserving
   stretcher, so a bend changes tempo, not pitch (Inferred).
+- **Paused deck** (traced 2026-10-28). A stopped deck never bends. In idle,
+  any untouched movement (no 0.5× threshold) of a **not-playing** deck
+  starts a **scratch**, marked as not started by a touch: same position
+  lock (1.8 s per turn), ±8× limit with carry-over, 25× glitch filter, the
+  untouched 3-step dead band, and the touch dead zone (60 ms / 9/3240 rev /
+  0.05×) started at that moment. It never spins: when the jog has been
+  quiet for 56 ms the scratch stops where the platter put the track and the
+  state returns to idle. Touching the platter restarts it as a normal
+  touched scratch. Pressing PLAY during it hands over to the bend, and
+  pausing during a bend hands over to this scratch (both Inferred: a
+  play-state notification of the motion stage). Being paused at a cue point
+  makes no difference to the motion stage. A touched platter on a paused
+  deck scratches with vinyl mode on **or off**; vinyl off only bends a
+  playing deck. A player flag (state code 0x1010, not identified) sends a
+  not-playing deck to the bend side instead.
+- **SHIFT + jog** (rekordbox reads the jog over HID; the flag being SHIFT
+  is Inferred): touched, an absolute needle search where one turn sweeps
+  the whole track (a silent jump, position clamped to the track);
+  untouched, nothing happens. Not built in Mix Two yet.
 - **Constants** (DDJ-800, rekordbox defaults): jog resolution 6480 units;
   scratch glitch 25×, spin glitch 50×, speed limit 8×, touch dead zone 60 ms
   / 9/3240 rev / 0.05×, bend threshold 0.5×, bend gain 1.5, bend cap 42,
@@ -127,9 +146,19 @@ individual DDJ-800 messages.)
 
 The engine keeps the same five states per deck, exposed read-only as
 `[ChannelN],platter_state` (0 idle, 1 scratch, 2 spin, 3 disable, 4 bend).
-With the "Rekordbox" scratch algorithm the DDJ-800 mapping sends every jog
-turn to `platter_turn` while the deck plays, is touched, or is not idle; a
-paused, idle deck keeps Mixxx's jog search.
+The DDJ-800 mapping sends every jog turn to `platter_turn`, with either
+scratch algorithm, except while Mixxx's own scratch is on (touched, with the
+"Mixxx" algorithm). Only the touch depends on the algorithm.
+
+- **Paused deck (2026-10-28):** an untouched movement of a paused deck
+  starts a scratch (`platter_state` 1, `m_platterUntouchedScratch`) with
+  the touch dead zone and position lock of a touched scratch and the
+  untouched dead band. 56 ms without movement ends it (idle, no spin);
+  PLAY hands over to the bend; a touch restarts it as a touched scratch.
+  Mixxx's paused `jog` search (×18) is no longer used by the DDJ-800.
+  Difference: with vinyl mode off a touched platter is sent as untouched,
+  so it scratches with the 3-step dead band and does not spin on release
+  (rekordbox: 2-step band, spin).
 
 - **Jog input stage (built 2026-10-28, section 2.2):** the engine runs
   rekordbox's input stage. `platter_turn` arrivals are binned by the

@@ -166,6 +166,11 @@ to 42 % faster or slower. It operates with the two scratch algorithms.
 Before this change, the "Mixxx (2.7)" scratch algorithm made the track
 much too fast or too slow.
 
+When a track is paused, turn the jog wheel to move the track, as in
+rekordbox. You hear the track at the speed of the jog wheel, and one turn
+moves the track 1.8 seconds. This operates with the two scratch algorithms.
+Before this change, the track moved much too far.
+
 For less audible bends, set the key lock engine to Rubberband
 (Preferences > Decks), then push KEY LOCK. With key lock, a bend changes
 the tempo but not the pitch, as rekordbox does with Master Tempo.
