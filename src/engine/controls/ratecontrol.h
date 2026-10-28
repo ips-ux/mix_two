@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <array>
 #include <atomic>
 
 #include "control/pollingcontrolproxy.h"
@@ -115,10 +116,14 @@ private:
           bool paused,
           std::size_t samplesPerBuffer,
           double* pRate);
-  // Records one buffer of platter movement and updates m_platterSpeed.
-  void measurePlatter(double turn, double bufferSeconds);
-  // rekordbox's spin test: whether a spin at the measured speed goes on.
-  bool platterSpinGoesOn(bool playing, double playRate);
+  // rekordbox's jog input stage (SCRATCH-ENGINE.md section 2.2): rebuilds
+  // the 1 ms jog entries from the stamped turns, takes one buffer's worth and
+  // applies the dead band. Returns the revolutions for this buffer; sets
+  // *pJogFinished when the jog has been quiet for 56 ms.
+  double takePlatterTurn(double bufferSeconds, bool touched, bool* pJogFinished);
+  void clearPlatterQueue();
+  // rekordbox's spin test: whether a spin at this buffer's speed goes on.
+  bool platterSpinGoesOn(bool playing, double playRate, double speed);
   void setPlatterState(int state);
 
   // Set rate change of the temporary pitch rate
@@ -156,28 +161,40 @@ private:
   // [ChannelN],platter_turn: each set adds that many revolutions turned
   // (negative backwards). The value itself stays 0.
   std::unique_ptr<ControlObject> m_pPlatterTurn;
-  std::atomic<double> m_platterTurnPending;
+  // Turns by arrival millisecond (any thread adds, the engine takes them as
+  // rekordbox's 1 ms ticks would).
+  static constexpr int kPlatterTurnBins = 256; // as platterTurnBin()
+  std::array<std::atomic<double>, kPlatterTurnBins> m_platterTurnBins;
   // [ChannelN],platter_state (read-only): 0 idle, 1 scratch, 2 spin,
   // 3 disable, 4 bend.
   std::unique_ptr<ControlObject> m_pPlatterState;
   int m_platterState;
-  // Recent buffers of movement, for the platter speed (no allocations).
-  static constexpr int kPlatterHistory = 32;
-  double m_platterHistoryTurn[kPlatterHistory];
-  double m_platterHistorySeconds[kPlatterHistory];
-  int m_platterHistoryNext;
-  double m_platterClock;         // seconds of audio processed
-  double m_platterLastMoveClock; // m_platterClock at the last movement
-  double m_platterSpeed;         // platter speed, 1.0 = 33 1/3 rpm; 0 = still
-  int m_platterDirection;        // direction of the last movement (+1 / -1)
-  bool m_platterReversed;        // the last movement reversed direction
+  // The jog input stage: a queue of 1 ms entries (no allocations).
+  struct PlatterEntry {
+      double turn; // revolutions
+      double ms;   // how long the entry lasts
+  };
+  static constexpr int kPlatterQueueSize = 100;
+  std::array<PlatterEntry, kPlatterQueueSize> m_platterQueue;
+  int m_platterQueueHead;
+  int m_platterQueueCount;
+  qint64 m_platterLastTickMs;      // last 1 ms tick taken; -1 before the first
+  bool m_platterJogActive;         // ticks are queued (until 56 ms quiet)
+  int m_platterLastEntryDirection; // of the last queued entry; 0 none
+  double m_platterCarry;           // dead band: revolutions held back
+  bool m_platterPassedLast;        // the previous buffer passed the dead band
+  double m_platterLastPassClock;   // m_platterClock when steps last passed
+  double m_platterClock;           // seconds of audio processed
+  double m_platterSpeed;           // speed of the last buffer that moved
+  int m_platterDirection;          // direction of the last movement (+1 / -1)
+  bool m_platterReversed;          // the last movement reversed direction
   int m_platterSpinDirection;
-  int m_platterSlowCount;        // spin: movements slower than play, in a row
+  int m_platterSlowCount;        // spin: buffers slower than play, in a row
+  int m_platterSpinEmpty;        // spin: buffers without movement, in a row
   double m_platterAgainstSpin;   // disable: revolutions against the spin
   bool m_platterPlayingAtTouch;
   double m_platterBend;          // fraction of the tempo added by a bend
   double m_platterBendClock;     // m_platterClock at the last bend update
-  double m_platterSpinTarget;    // spin: track frames the platter's steps reach
   bool m_platterActive;
   bool m_platterDeadZone;
   // The renderer eases into the stop over the first touched buffer; the

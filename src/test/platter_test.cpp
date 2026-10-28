@@ -6,6 +6,7 @@
 #include "engine/channels/enginedeck.h"
 #include "engine/enginebuffer.h"
 #include "test/mockedenginebackendtest.h"
+#include "util/time.h"
 
 namespace {
 
@@ -14,6 +15,23 @@ namespace {
 class PlatterTest : public MockedEngineBackendTest {
   protected:
     static constexpr double kSecondsPerRevolution = 1.8; // 33 1/3 rpm
+
+    // The jog input stage times the turns with the clock (rekordbox's 1 ms
+    // jog ticks), so the tests run on a test clock, one buffer per buffer.
+    PlatterTest() {
+        mixxx::Time::setTestMode(true);
+    }
+    ~PlatterTest() override {
+        mixxx::Time::setTestMode(false);
+    }
+
+    void ProcessBuffer() {
+        const double rate = ControlObject::get(
+                ConfigKey(QStringLiteral("[App]"), QStringLiteral("samplerate")));
+        mixxx::Time::addTestTime(std::chrono::nanoseconds(
+                std::llround(kProcessBufferSize / 2.0 / rate * 1e9)));
+        MockedEngineBackendTest::ProcessBuffer();
+    }
 
     /// The deck's position in seconds of track.
     double seconds() const {
@@ -102,9 +120,23 @@ TEST_F(PlatterTest, DeadZoneIgnoresTheLandingHand) {
 
 TEST_F(PlatterTest, GlitchesAreDropped) {
     const double start = touchWhilePlaying();
-    turn(2.0); // two revolutions in one buffer: far above 25x
+    turn(2.0); // two revolutions at once: far above 25x
     process(10);
-    EXPECT_NEAR(start, seconds(), 1e-3);
+    // Each buffer that would move faster than 25x is dropped. (The queue
+    // spreads the jump over two buffers and a sliver; as in rekordbox, the
+    // sliver is slow enough to pass.)
+    EXPECT_LT(seconds() - start, 0.05 * 2.0 * kSecondsPerRevolution);
+}
+
+TEST_F(PlatterTest, MovementReachesTheTrackAboutTwoBuffersLate) {
+    // rekordbox's jog input stage: the first entry of a movement lasts two
+    // buffers, so the motion is spread over them.
+    const double start = touchWhilePlaying();
+    turn(0.02);
+    ProcessBuffer();
+    EXPECT_LT(seconds() - start, 0.6 * 0.02 * kSecondsPerRevolution);
+    process(10);
+    EXPECT_NEAR(start + 0.02 * kSecondsPerRevolution, seconds(), 2e-3);
 }
 
 TEST_F(PlatterTest, ReleaseResumesPlay) {
@@ -174,11 +206,12 @@ TEST_F(PlatterSpinTest, SpinStopsWithThePlatter) {
     scratchPaused(1.5);
     touch(false);
     turnFor(1.5, 10);
-    process(2); // the jog goes quiet (no step for > 5.6 ms)
+    process(6); // the queued motion plays out, then two empty buffers
     EXPECT_EQ(kIdle, state()); // paused at the touch: no disable phase
     const double stopped = exact();
-    // It stops where the platter stopped.
-    EXPECT_NEAR(before + 20 * turnAt(1.5) * kSecondsPerRevolution, stopped, 2e-3);
+    // Every step counts once; the first empty buffer repeats the last speed
+    // (rekordbox), so it stops one buffer of motion past the platter.
+    EXPECT_NEAR(before + 21 * turnAt(1.5) * kSecondsPerRevolution, stopped, 2e-3);
     process(20);
     EXPECT_NEAR(stopped, exact(), 1e-4);
 }
@@ -190,6 +223,28 @@ TEST_F(PlatterSpinTest, SpinEndsWhenThePlatterReverses) {
     ASSERT_EQ(kSpin, state());
     turnFor(-1.5, 1);
     EXPECT_NE(kSpin, state());
+}
+
+TEST_F(PlatterSpinTest, BackspinRunsOnUntilTwoEmptyBuffers) {
+    touchWhilePlaying();
+    turnFor(-3.0, 10);
+    touch(false);
+    turnFor(-3.0, 10); // backspin: against play, so never handed back as slow
+    ASSERT_EQ(kSpin, state());
+    // The platter has stopped. Whatever motion is still queued plays out,
+    // then the first empty buffer repeats the speed and the second ends the
+    // spin (rekordbox's ~37 ms run-on). Here the turns come once per buffer
+    // with empty milliseconds between them, which rekordbox's direction
+    // quirk (0.5 ms entries) shortens for a backwards platter, so little
+    // stays queued; the real deck sends every millisecond.
+    int runOn = 0;
+    while (state() == kSpin && runOn < 10) {
+        ProcessBuffer();
+        ++runOn;
+    }
+    EXPECT_GE(runOn, 2);
+    EXPECT_LE(runOn, 5);
+    EXPECT_EQ(kDisable, state()); // the deck played at the touch
 }
 
 TEST_F(PlatterSpinTest, ReleasingAStillPlatterDoesNotSpin) {

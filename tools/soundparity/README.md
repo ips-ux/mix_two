@@ -131,7 +131,9 @@ writes to `build/soundparity/scratch/` (ignored by git):
 
 The renders run in `mixxx-test` (`PlatterRenderTest`, skipped unless its
 `MIXTWO_RENDER_*` variables are set), through the real engine with
-128-frame buffers. It turns the MIDI into controls as the DDJ-800 mapping
+256-frame buffers by default (`--buffer`; the owner's rekordbox setting:
+the jog input delay scales with the buffer), on the test clock so that every
+message arrives at its own time. It turns the MIDI into controls as the DDJ-800 mapping
 does.
 
 **The rekordbox side.** rekordbox holds the DDJ-800's MIDI port, so the
@@ -215,8 +217,17 @@ Notes from the first capture (2026-10-27):
 | after the backspin | -6.708 s | +41 ms (rekordbox spins ~37 ms past the last step) |
 | after the forward spin | +12.298 s at 16.4 s | +21 ms (rekordbox hands back at ~1.8× platter speed) |
 
-  The rekordbox rules behind the last two are not known yet; captures of
-  single moves would show them.
+  The rules behind the last two were found in rekordbox on 2026-10-28
+  (SCRATCH-ENGINE.md section 2.2: a 1 ms jog queue drained per audio
+  buffer, so every movement arrives about two buffers late; spins end
+  after two empty buffers). With that model built, per move:
+
+| Buffer | scratch | backspin | forward spin |
+|---|---|---|---|
+| 128 frames (2.9 ms) | -3 ms | +37 ms | -5 ms |
+| **256 frames (5.8 ms), the owner's rekordbox setting** | **-10 ms** | **+18 ms** | **+11 ms** |
+| 512 frames (11.6 ms) | -28 ms | -22 ms | +30 ms |
+| before (speed window model) | -1 ms | +41 ms | +21 ms |
 
 ### Replaying a `.jog` into rekordbox 5 (virtual DDJ-800)
 

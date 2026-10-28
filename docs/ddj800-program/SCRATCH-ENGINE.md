@@ -121,24 +121,29 @@ With the "Rekordbox" scratch algorithm the DDJ-800 mapping sends every jog
 turn to `platter_turn` while the deck plays, is touched, or is not idle; a
 paused, idle deck keeps Mixxx's jog search.
 
-- **Platter speed** is measured over the last 20 ms of buffers (turns ÷
-  time), because Mix Two sees the jog per audio buffer, not per MIDI
-  message. Rules that rekordbox applies per jog message are applied per
-  buffer that received movement.
-- **"The jog goes quiet"** means no movement for **5.6 ms**: at the
-  DDJ-800's 6480 steps per revolution, one step slower than 0.05×, the same
-  floor as the touch dead zone. (It was 50 ms while the mapping assumed 720
-  steps.) The DDJ-800 never sends a "no movement" message, so this timer is
-  the only way to see that the platter stopped. It ends a spin, a disable
-  phase, and decides at release whether the platter still turns.
-- **Spin follows the platter's steps.** The spin is driven by the platter
-  speed, which is measured over 20 ms and so runs 10 ms late. On its own it
-  replayed the last 10 ms before the release and overshot every spin (about
-  60 ms of track after a fast backspin). The spin therefore also keeps the
-  position the platter's steps reach, and corrects towards it over the same
-  20 ms, landing on it at the end of each buffer as the scratch does.
-  (2026-10-28: rekordbox does not measure per jog message either; it hands
-  the motion stage exact per-buffer counts from a queue, section 2.2.)
+- **Jog input stage (built 2026-10-28, section 2.2):** the engine runs
+  rekordbox's input stage. `platter_turn` arrivals are binned by the
+  millisecond they arrive (`mixxx::Time`, any thread, lock-free); each
+  buffer rebuilds the 1 ms ticks since the last one into a 100-entry queue
+  (first entry of a movement = 2 buffers, rounded up to whole ms; 0.5 ms on
+  a direction change, nothing counting as forward), takes exactly one
+  buffer of queue time, and applies the 2 / 3-step dead band. The motion
+  stage gets exact per-buffer counts: speed = turns ÷ buffer length. So
+  every movement reaches the track about two buffers late, as in rekordbox;
+  with the same audio buffer size the timing matches.
+- **Release** is decided on the buffer processed just before the touch-off
+  (touch-on applies before a buffer's steps, touch-off after them): spin if
+  that buffer moved, did not reverse, and is not slow.
+- **Spin end:** a reversal, three buffers slower than play in its direction
+  (`kPlatterSpinSlowCount`), or **two empty buffers** (the first repeats the
+  last speed).
+- **"The jog has finished"** = no steps passed for **56 ms**: the queue and
+  the carry are dropped, the next movement starts a new delay, and
+  **disable** ends. It no longer decides spins. (The DDJ-800 never sends a
+  "no movement" message.)
+- The earlier 20 ms speed window, the spin's position correction and the
+  5.6 ms quiet time (2026-10-27) were removed: they approximated rekordbox
+  before its input stage was known.
 - Spin renders like scratching (key lock off, the scratch scaler).
 - Bend adds (bend ÷ 100) × the deck's tempo to the play rate, as a user
   tweak, so a synced deck accepts it like any other nudge.
@@ -437,9 +442,20 @@ cubic Lagrange interpolation** on the oversampled signal.
    backspin, **+21 ms** after the forward spin. Explained 2026-10-28
    (section 2.2): rekordbox's jog input is delayed by about two audio
    buffers and its spin ends two empty buffers after the queue runs dry;
-   the release decision sees the platter as it was under the hand. To
-   do: build the queue model (2.2, "What this means for Mix Two") and
-   re-render the captured moves with it.
+   the release decision sees the platter as it was under the hand.
+   **Built 2026-10-28** (the queue model, 2.2) and re-rendered; per move vs
+   rekordbox:
+
+   | Buffer | scratch | backspin | forward spin |
+   |---|---|---|---|
+   | 128 frames (2.9 ms) | -3 ms | +37 ms | -5 ms |
+   | **256 frames (5.8 ms), the owner's rekordbox setting** | **-10 ms** | **+18 ms** | **+11 ms** |
+   | 512 frames (11.6 ms) | -28 ms | -22 ms | +30 ms |
+   | before (speed window model) | -1 ms | +41 ms | +21 ms |
+
+   At 256 frames, the buffer size in the owner's `rekordbox3.settings`,
+   the largest error went from 41 ms to 18 ms and the moves now err both
+   ways. Still to feel on the deck.
 5. Firmware check (2026-10-27, [FIRMWARE.md](FIRMWARE.md) §2.2, §3, §6): the
    DDJ-800 firmware sends the raw ×4 encoder count (6480 per turn confirmed),
    at most one message per jog per 1 ms frame, clamped to ±63 steps, and
@@ -449,10 +465,9 @@ cubic Lagrange interpolation** on the oversampled signal.
    and drains the queue per audio buffer into the ScratchProcessor; message
    time stamps are ignored, the only time-out is 56 ms without movement,
    and a spin ends after two empty buffers. The bursty-MIDI hypothesis is
-   withdrawn. Next: (1) implement the queue model in `ratecontrol.cpp`
-   (constants listed in 2.2); (2) re-render the 2026-10-27 capture with it
-   at 256/512/1024-sample buffers and see which buffer reproduces +41 ms /
-   +21 ms (and ask the owner which buffer size rekordbox was set to);
-   (3) a USB capture that also decodes HID IN (EP 0x87) and OUT (EP 0x06)
-   reports, to see the jog report and the switch that enables it. The
+   withdrawn. (1) and (2) done 2026-10-28 (item 4: queue model built,
+   256 frames fits best; `rekordbox3.settings` has `AudioBufferSize` 256).
+   Next: (3) a USB capture that also decodes HID IN (EP 0x87) and OUT
+   (EP 0x06) reports, to see the jog report and the switch that enables
+   it. The
    CDJ-3000 update is encrypted and was not used.

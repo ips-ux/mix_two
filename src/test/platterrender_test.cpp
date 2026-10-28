@@ -7,6 +7,7 @@
 
 #include "control/controlobject.h"
 #include "test/signalpathtest.h"
+#include "util/time.h"
 
 namespace {
 
@@ -203,11 +204,24 @@ TEST_F(PlatterRenderTest, RenderScriptedJog) {
     std::size_t next = 0;
     double nowMs = 0.0;
     const double bufferMs = 1000.0 * bufferFrames / sampleRate;
+    // The jog input stage times the turns by the clock (rekordbox's 1 ms jog
+    // ticks), so the render runs on the test clock: each message arrives at
+    // its own time, each buffer is processed at its start.
+    mixxx::Time::setTestMode(true);
+    double clockMs = 0.0;
+    const auto advanceClockTo = [&clockMs](double ms) {
+        if (ms > clockMs) {
+            mixxx::Time::addTestTime(std::chrono::nanoseconds(std::llround((ms - clockMs) * 1e6)));
+            clockMs = ms;
+        }
+    };
     while (nowMs < seconds * 1000.0) {
-        // Messages are taken per audio buffer, as in the running app.
+        // The messages that arrived during the previous buffer.
         while (next < messages.size() && messages[next].ms <= nowMs) {
+            advanceClockTo(messages[next].ms);
             send(messages[next++]);
         }
+        advanceClockTo(nowMs);
         m_pEngineMixer->process(bufferFrames * 2);
         const std::span<const CSAMPLE> buffer = m_pEngineMixer->getMainBuffer();
         out.insert(out.end(), buffer.begin(), buffer.begin() + bufferFrames * 2);
@@ -222,6 +236,7 @@ TEST_F(PlatterRenderTest, RenderScriptedJog) {
         }
         nowMs += bufferMs;
     }
+    mixxx::Time::setTestMode(false);
     ASSERT_TRUE(writeFloatWav(outPath, out, 2, sampleRate))
             << "Cannot write " << outPath.toStdString();
 }

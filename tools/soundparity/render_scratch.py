@@ -176,7 +176,7 @@ def wrap(music, out, start=30.0, length=12.0, rate=44100):
     wavfile.write(out, rate, (np.clip(stereo, -1, 1) * 32767).astype(np.int16))
 
 
-def render(track, jog, out, algorithm="rekordbox", buffer_frames=128,
+def render(track, jog, out, algorithm="rekordbox", buffer_frames=256,
            resolution=STEPS_PER_REVOLUTION, positions=None):
     env = dict(os.environ)
     env["MIXTWO_RENDER_TRACK"] = os.path.abspath(track)
@@ -211,7 +211,9 @@ def main():
     p.add_argument("jog")
     p.add_argument("out")
     p.add_argument("--algorithm", choices=["rekordbox", "mixxx"], default="rekordbox")
-    p.add_argument("--buffer", type=int, default=128)
+    p.add_argument("--buffer", type=int, default=256,
+                   help="audio buffer in frames; 256 is the owner's rekordbox setting "
+                        "(the jog input delay scales with it)")
     p.add_argument("--resolution", type=float, default=STEPS_PER_REVOLUTION,
                    help="jog steps per revolution (default %(default)s)")
     p.add_argument("--positions", metavar="CSV",

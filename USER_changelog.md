@@ -160,6 +160,11 @@ Scratch algorithm:
 With the rekordbox scratch sound, one turn of the jog wheel moves the track
 1.8 seconds.
 
+The jog wheel now operates with the same timing as rekordbox. The track
+follows the jog wheel after approximately two audio buffers, as in
+rekordbox. For the same timing as rekordbox, set the audio buffer to
+approximately 6 ms (Preferences > Sound Hardware > Audio Buffer).
+
 After a scratch or a spin, the track now continues from the correct
 position. Before this change, the track could move backward for a short
 time when play started again.

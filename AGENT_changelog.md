@@ -53,6 +53,33 @@
 
 ---
 
+## 2026-10-28: rekordbox's jog input stage in the engine
+
+- **Engine (`RateControl`):** `platter_turn` arrivals are binned per
+  millisecond by `mixxx::Time` (256 lock-free atomic bins, any thread);
+  `takePlatterTurn` rebuilds the 1 ms ticks per buffer into a 100-entry
+  queue (first entry 2 x ceil(buffer ms), 0.5 ms on direction change, zero =
+  forward), drains one buffer of queue time, applies the dead band
+  (`kPlatterDeadBandTouched` 2/6480 rev, `...Untouched` 3/6480, or the
+  previous buffer passed). `processPlatter`: touch-on before / touch-off
+  after the buffer's steps; release spins if that buffer moved, did not
+  reverse and is not slow; spin ends on reversal, 3 slow buffers or 2 empty
+  buffers (first repeats the speed); `kPlatterQuietSeconds` 0.056 ends
+  disable and resets the queue. Removed: speed window, spin position
+  correction (`m_platterSpinTarget`), `measurePlatter` history.
+- **Owner's choice:** match rekordbox including its ~2-buffer jog delay.
+- **Tests:** `PlatterTest` runs on `mixxx::Time` test mode (one buffer of
+  time per buffer). New: `MovementReachesTheTrackAboutTwoBuffersLate`,
+  `BackspinRunsOnUntilTwoEmptyBuffers`; `GlitchesAreDropped` and
+  `SpinStopsWithThePlatter` updated to rekordbox's behaviour (glitch sliver
+  passes; one repeated buffer at the spin end). `PlatterRenderTest` runs on
+  the test clock (messages at their own time); `render_scratch.py` default
+  buffer 256 frames. Full suite: see commit.
+- **Result vs capture:** per move -10 / +18 / +11 ms at 256 frames (128:
+  -3 / +37 / -5; 512: -28 / -22 / +30; before: -1 / +41 / +21).
+  `rekordbox3.settings` `AudioBufferSize` = 256.
+- **Status:** unit-tested and render-checked; not felt on the deck.
+
 ## 2026-10-28: rekordbox jog input timing traced (spin run-on, hand-back)
 
 - **Docs:** `docs/ddj800-program/SCRATCH-ENGINE.md` new §2.2 (jog input

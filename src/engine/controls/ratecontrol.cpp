@@ -16,6 +16,7 @@
 #include "mixer/playermanager.h"
 #include "moc_ratecontrol.cpp"
 #include "util/rotary.h"
+#include "util/time.h"
 #include "vinylcontrol/defs_vinylcontrol.h"
 
 namespace {
@@ -61,16 +62,22 @@ enum PlatterState : int {
 };
 // While spinning or disabled, faster than this is a glitch.
 constexpr double kPlatterSpinGlitchSpeed = 50.0;
-// The platter speed is measured over at least this much audio.
-constexpr double kPlatterSpeedWindowSeconds = 0.020;
-// No movement for this long: the jog has gone quiet (one DDJ-800 step at
-// its 6480 steps per revolution is then slower than 0.05x, the floor of the
-// touch dead zone). The DDJ-800 never reports "stopped"; it just stops
-// sending.
-constexpr double kPlatterQuietSeconds =
-        kPlatterSecondsPerRevolution / 6480.0 / kPlatterDeadZoneMinSpeed;
-// A spin hands back to play after this many movements slower than play.
+// Jog input stage (SCRATCH-ENGINE.md section 2.2), as rekordbox runs the
+// DDJ-800: the steps are queued as 1 ms entries and taken one audio buffer at
+// a time. A buffer passes its steps only from 2 (touched) or 3 (untouched)
+// of the deck's 6480 per revolution, or if the previous buffer passed that
+// much; smaller movements are held back.
+constexpr double kPlatterDeadBandTouched = 2.0 / 6480.0;
+constexpr double kPlatterDeadBandUntouched = 3.0 / 6480.0;
+// No steps passed for this long: the jog has finished. The queue is
+// emptied, the next movement starts a new delay, and disable ends. (The
+// DDJ-800 never reports "stopped"; it just stops sending.)
+constexpr double kPlatterQuietSeconds = 0.056;
+// A spin hands back to play after this many buffers slower than play.
 constexpr int kPlatterSpinSlowCount = 3;
+// While spinning, an empty buffer repeats the last speed; this many in a row
+// end the spin.
+constexpr int kPlatterSpinEmptyBuffers = 2;
 // Pushing a disabled platter this far against the spin frees it again.
 constexpr double kPlatterDisableEndRevolutions = 1215.0 / 3240.0;
 // Bend: from 0.5x platter speed, 1.5 / (1 - 0.5) = 3 % per 1x, up to +42 %.
@@ -78,6 +85,12 @@ constexpr double kPlatterBendMinSpeed = 0.5;
 constexpr double kPlatterBendPercentPerSpeed = 1.5 / (1.0 - kPlatterBendMinSpeed);
 constexpr double kPlatterBendMaxPercent = 42.0;
 constexpr double kPlatterBendTimeoutSeconds = 0.056;
+
+/// The jog turn bin of a millisecond (the clock may be negative in tests).
+std::size_t platterTurnBin(qint64 ms) {
+    constexpr qint64 bins = 256;
+    return static_cast<std::size_t>(((ms % bins) + bins) % bins);
+}
 
 /// The smallest rekordbox range that holds a tempo change of `needed`,
 /// never narrower than `current`.
@@ -130,25 +143,29 @@ RateControl::RateControl(const QString& group, UserSettingsPointer pConfig)
                   ConfigKey(group, QStringLiteral("platter_touch")))),
           m_pPlatterTurn(std::make_unique<ControlObject>(
                   ConfigKey(group, QStringLiteral("platter_turn")))),
-          m_platterTurnPending(0.0),
           m_pPlatterState(std::make_unique<ControlObject>(
                   ConfigKey(group, QStringLiteral("platter_state")))),
           m_platterState(kPlatterIdle),
-          m_platterHistoryTurn{},
-          m_platterHistorySeconds{},
-          m_platterHistoryNext(0),
+          m_platterQueue{},
+          m_platterQueueHead(0),
+          m_platterQueueCount(0),
+          m_platterLastTickMs(-1),
+          m_platterJogActive(false),
+          m_platterLastEntryDirection(0),
+          m_platterCarry(0.0),
+          m_platterPassedLast(false),
+          m_platterLastPassClock(0.0),
           m_platterClock(0.0),
-          m_platterLastMoveClock(-1.0),
           m_platterSpeed(0.0),
           m_platterDirection(0),
           m_platterReversed(false),
           m_platterSpinDirection(1),
           m_platterSlowCount(0),
+          m_platterSpinEmpty(0),
           m_platterAgainstSpin(0.0),
           m_platterPlayingAtTouch(false),
           m_platterBend(0.0),
           m_platterBendClock(0.0),
-          m_platterSpinTarget(0.0),
           m_platterActive(false),
           m_platterDeadZone(false),
           m_platterAnchorPending(false),
@@ -272,13 +289,18 @@ RateControl::RateControl(const QString& group, UserSettingsPointer pConfig)
             Qt::DirectConnection);
     m_pPlatterTouch->setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_pPlatterState->setReadOnly();
-    // Collect the turns here (any thread); the engine takes them per buffer.
+    // Collect the turns here (any thread), by arrival millisecond; the
+    // engine queues them as rekordbox's 1 ms jog timer does.
+    for (auto& bin : m_platterTurnBins) {
+        bin.store(0.0);
+    }
     m_pPlatterTurn->connectValueChangeRequest(
             this,
             [this](double revolutions) {
-                double pending = m_platterTurnPending.load();
-                while (!m_platterTurnPending.compare_exchange_weak(
-                        pending, pending + revolutions)) {
+                const qint64 ms = mixxx::Time::elapsed().toIntegerMillis();
+                auto& bin = m_platterTurnBins[platterTurnBin(ms)];
+                double pending = bin.load();
+                while (!bin.compare_exchange_weak(pending, pending + revolutions)) {
                 }
             },
             Qt::DirectConnection);
@@ -524,45 +546,107 @@ double RateControl::calculatePlatterRate(
     return std::clamp(rate, -kPlatterMaxSpeed, kPlatterMaxSpeed);
 }
 
-void RateControl::measurePlatter(double turn, double bufferSeconds) {
-    m_platterClock += bufferSeconds;
-    m_platterHistoryTurn[m_platterHistoryNext] = turn;
-    m_platterHistorySeconds[m_platterHistoryNext] = bufferSeconds;
-    m_platterHistoryNext = (m_platterHistoryNext + 1) % kPlatterHistory;
-
-    if (turn == 0.0) {
-        if (m_platterClock - m_platterLastMoveClock > kPlatterQuietSeconds) {
-            m_platterSpeed = 0.0;
-            m_platterDirection = 0;
-            m_platterReversed = false;
-        }
-        // Between movements the last speed holds.
-        return;
-    }
-    // Measure over 20 ms, or back to the previous movement when the steps
-    // come further apart, so sparse steps do not read as a wobbling speed.
-    const double sincePrevious = m_platterClock - m_platterLastMoveClock;
-    const double window = sincePrevious <= kPlatterQuietSeconds
-            ? std::max(kPlatterSpeedWindowSeconds, sincePrevious)
-            : kPlatterSpeedWindowSeconds;
-    double turns = 0.0;
-    double seconds = 0.0;
-    int index = m_platterHistoryNext;
-    for (int i = 0; i < kPlatterHistory && seconds < window - 1e-9; ++i) {
-        index = (index + kPlatterHistory - 1) % kPlatterHistory;
-        turns += m_platterHistoryTurn[index];
-        seconds += m_platterHistorySeconds[index];
-    }
-    m_platterSpeed = seconds > 0.0 ? turns * kPlatterSecondsPerRevolution / seconds : 0.0;
-
-    const int direction = turn > 0.0 ? 1 : -1;
-    m_platterReversed = m_platterDirection != 0 && direction != m_platterDirection;
-    m_platterDirection = direction;
-    m_platterLastMoveClock = m_platterClock;
+void RateControl::clearPlatterQueue() {
+    m_platterQueueHead = 0;
+    m_platterQueueCount = 0;
+    m_platterJogActive = false;
+    m_platterLastEntryDirection = 0;
+    m_platterCarry = 0.0;
+    m_platterPassedLast = false;
 }
 
-bool RateControl::platterSpinGoesOn(bool playing, double playRate) {
-    const double speed = m_platterSpeed;
+double RateControl::takePlatterTurn(double bufferSeconds, bool touched, bool* pJogFinished) {
+    *pJogFinished = false;
+    const double bufferMs = bufferSeconds * 1000.0;
+    // An entry lasts at least 1 ms and at most two buffers (rounded up to
+    // whole ms); the first entry of a movement gets the maximum, which is
+    // what delays every movement by about two buffers.
+    const double maxEntryMs = std::max(1.0, 2.0 * std::ceil(bufferMs));
+    const auto queueEntry = [this, maxEntryMs](double turn) {
+        double ms = 1.0;
+        if (!m_platterJogActive) {
+            m_platterJogActive = true;
+            m_platterLastPassClock = m_platterClock;
+            ms = maxEntryMs;
+        }
+        // rekordbox's quirk: no movement counts as forward, and a change of
+        // direction between entries shortens the entry to 0.5 ms.
+        const int direction = turn < 0.0 ? -1 : 1;
+        if (m_platterLastEntryDirection != 0 && direction != m_platterLastEntryDirection) {
+            ms = 0.5;
+        }
+        m_platterLastEntryDirection = direction;
+        if (m_platterQueueCount < kPlatterQueueSize) {
+            m_platterQueue[(m_platterQueueHead + m_platterQueueCount) % kPlatterQueueSize] =
+                    PlatterEntry{turn, ms};
+            ++m_platterQueueCount;
+        }
+    };
+
+    // The 1 ms ticks since the last buffer: each takes what arrived in the
+    // millisecond before it; while the jog is active, even nothing is queued.
+    const qint64 nowMs = mixxx::Time::elapsed().toIntegerMillis();
+    if (m_platterLastTickMs < 0 || nowMs - m_platterLastTickMs >= kPlatterTurnBins) {
+        // The first buffer, or the engine stalled: take everything at once.
+        double turn = 0.0;
+        for (auto& bin : m_platterTurnBins) {
+            turn += bin.exchange(0.0);
+        }
+        if (turn != 0.0) {
+            queueEntry(turn);
+        }
+    } else {
+        for (qint64 tick = m_platterLastTickMs + 1; tick <= nowMs; ++tick) {
+            const double turn =
+                    m_platterTurnBins[platterTurnBin(tick - 1)].exchange(0.0);
+            if (m_platterJogActive || turn != 0.0) {
+                queueEntry(turn);
+            }
+        }
+    }
+    m_platterLastTickMs = nowMs;
+
+    // This buffer takes exactly its own length of queue time; an entry's
+    // steps are spread evenly over its duration.
+    double turn = 0.0;
+    double needMs = bufferMs;
+    while (needMs > 1e-9 && m_platterQueueCount > 0) {
+        PlatterEntry& entry = m_platterQueue[m_platterQueueHead];
+        const double usedMs = std::min(needMs, entry.ms);
+        const double part = entry.ms > 0.0 ? entry.turn * usedMs / entry.ms : entry.turn;
+        turn += part;
+        entry.turn -= part;
+        entry.ms -= usedMs;
+        needMs -= usedMs;
+        if (entry.ms <= 1e-9) {
+            m_platterQueueHead = (m_platterQueueHead + 1) % kPlatterQueueSize;
+            --m_platterQueueCount;
+        }
+    }
+
+    // Dead band.
+    turn += m_platterCarry;
+    m_platterCarry = 0.0;
+    const double band =
+            (touched ? kPlatterDeadBandTouched : kPlatterDeadBandUntouched) * (1.0 - 1e-9);
+    const bool enough = std::fabs(turn) >= band;
+    if (!enough && !m_platterPassedLast) {
+        m_platterCarry = turn;
+        turn = 0.0;
+    }
+    m_platterPassedLast = enough;
+    if (turn != 0.0) {
+        m_platterLastPassClock = m_platterClock;
+    }
+
+    if (m_platterJogActive && m_platterClock - m_platterLastPassClock > kPlatterQuietSeconds) {
+        clearPlatterQueue();
+        *pJogFinished = true;
+    }
+    return turn;
+}
+
+bool RateControl::platterSpinGoesOn(bool playing, double playRate, double speed) {
     if (speed == 0.0) {
         return false;
     }
@@ -592,32 +676,35 @@ bool RateControl::processPlatter(double baserate,
     const double bufferSeconds = outputRate > 0.0
             ? static_cast<double>(samplesPerBuffer) / 2.0 / outputRate
             : 0.0;
-    const bool touched = m_pPlatterTouch->toBool();
-    double turn = m_platterTurnPending.exchange(0.0);
-    if (turn != 0.0 && bufferSeconds > 0.0) {
+    m_platterClock += bufferSeconds;
+    const bool touchedNow = m_pPlatterTouch->toBool();
+    // A touch applies before this buffer's steps, a release after them, so
+    // the release is decided on the motion this buffer still had under the
+    // hand.
+    const bool touched = touchedNow || m_platterState == kPlatterScratch;
+    bool jogFinished = false;
+    double turn = takePlatterTurn(bufferSeconds, touched, &jogFinished);
+    double speed = bufferSeconds > 0.0 ? turn * kPlatterSecondsPerRevolution / bufferSeconds : 0.0;
+    if (turn != 0.0) {
         const double glitchSpeed =
                 (m_platterState == kPlatterSpin || m_platterState == kPlatterDisable)
                 ? kPlatterSpinGlitchSpeed
                 : kPlatterGlitchSpeed;
-        if (std::fabs(turn) * kPlatterSecondsPerRevolution / bufferSeconds > glitchSpeed) {
+        if (std::fabs(speed) > glitchSpeed) {
             turn = 0.0; // a glitch, not a hand
+            speed = 0.0;
         }
     }
-    measurePlatter(turn, bufferSeconds);
+    const bool moved = turn != 0.0;
+    if (moved) {
+        const int direction = turn > 0.0 ? 1 : -1;
+        m_platterReversed = m_platterDirection != 0 && direction != m_platterDirection;
+        m_platterDirection = direction;
+        m_platterSpeed = speed;
+    }
 
     const bool playing = !paused;
     const double playRate = m_pReverseButton->toBool() ? -tempoRatio : tempoRatio;
-
-    if (touched) {
-        if (m_platterState != kPlatterScratch) {
-            m_platterActive = false; // calculatePlatterRate anchors anew
-            m_platterPlayingAtTouch = playing;
-            m_platterBend = 0.0;
-            setPlatterState(kPlatterScratch);
-        }
-        *pRate = calculatePlatterRate(baserate, samplesPerBuffer, turn);
-        return true;
-    }
 
     // A spin or a scratch ends here. A deck that played at the touch
     // ignores the coasting platter for a while.
@@ -630,66 +717,63 @@ bool RateControl::processPlatter(double baserate,
         }
     };
 
-    const double trackRate = baserate * outputRate;
-    const double position = frameInfo().currentPosition.value();
-    if (m_platterState == kPlatterScratch) {
-        // Released: spin on if the platter still turns, from where the hand
-        // left the track.
-        m_platterSpinTarget = m_platterActive && !m_platterAnchorPending
-                ? m_platterAnchor + m_platterTurned * kPlatterSecondsPerRevolution * trackRate
-                : position;
-        m_platterActive = false;
-        m_platterSlowCount = 0;
-        if (!m_platterReversed && platterSpinGoesOn(playing, playRate)) {
-            m_platterSpinDirection = m_platterSpeed > 0.0 ? 1 : -1;
-            setPlatterState(kPlatterSpin);
-        } else {
-            m_platterSpinDirection = m_platterDirection != 0 ? m_platterDirection : 1;
-            stopDriving();
+    if (touched) {
+        if (m_platterState != kPlatterScratch) {
+            m_platterActive = false; // calculatePlatterRate anchors anew
+            m_platterPlayingAtTouch = playing;
+            m_platterBend = 0.0;
+            setPlatterState(kPlatterScratch);
         }
-    } else if (m_platterState == kPlatterSpin) {
-        if (turn != 0.0) {
-            if (m_platterReversed || !platterSpinGoesOn(playing, playRate)) {
+        *pRate = calculatePlatterRate(baserate, samplesPerBuffer, turn);
+        if (!touchedNow) {
+            // Released: spin on if this buffer still moved.
+            m_platterActive = false;
+            m_platterSlowCount = 0;
+            if (moved && !m_platterReversed && platterSpinGoesOn(playing, playRate, speed)) {
+                m_platterSpinDirection = speed > 0.0 ? 1 : -1;
+                m_platterSpinEmpty = 0;
+                setPlatterState(kPlatterSpin);
+            } else {
+                m_platterSpinDirection = m_platterDirection != 0 ? m_platterDirection : 1;
                 stopDriving();
             }
-        } else if (m_platterSpeed == 0.0) {
+        }
+        return true;
+    }
+
+    if (m_platterState == kPlatterSpin) {
+        if (moved) {
+            m_platterSpinEmpty = 0;
+            if (m_platterReversed || !platterSpinGoesOn(playing, playRate, speed)) {
+                stopDriving();
+            }
+        } else if (++m_platterSpinEmpty >= kPlatterSpinEmptyBuffers) {
             stopDriving(); // the platter has stopped
         }
     }
 
     if (m_platterState == kPlatterSpin) {
-        // The platter's speed drives the track. The speed is measured over
-        // 20 ms, so it runs 10 ms late; on its own it would replay the last
-        // 10 ms before the release (already played under the hand) and
-        // overshoot every spin. Pulling towards where the platter's steps
-        // put the track, over the same 20 ms, keeps the spin on the platter.
-        // As in a scratch, the track reaches the platter's position at the
-        // end of the buffer.
-        m_platterSpinTarget += turn * kPlatterSecondsPerRevolution * trackRate;
-        const double reached = position + m_platterSpeed * bufferSeconds * trackRate;
-        const double correction = trackRate > 0.0
-                ? (m_platterSpinTarget - reached) / (kPlatterSpeedWindowSeconds * trackRate)
-                : 0.0;
-        *pRate = std::clamp(m_platterSpeed + correction, -kPlatterMaxSpeed, kPlatterMaxSpeed);
+        // The platter's speed drives the track; an empty buffer repeats the
+        // last one.
+        *pRate = std::clamp(m_platterSpeed, -kPlatterMaxSpeed, kPlatterMaxSpeed);
         return true;
     }
 
     if (m_platterState == kPlatterDisable) {
-        if (turn != 0.0 && (turn > 0.0 ? 1 : -1) != m_platterSpinDirection) {
+        if (moved && (turn > 0.0 ? 1 : -1) != m_platterSpinDirection) {
             m_platterAgainstSpin += std::fabs(turn);
             if (m_platterAgainstSpin > kPlatterDisableEndRevolutions) {
                 setPlatterState(kPlatterIdle);
             }
-        } else if (m_platterSpeed == 0.0) {
+        } else if (jogFinished) {
             setPlatterState(kPlatterIdle); // the jog has gone quiet
         }
         return false;
     }
 
     // Idle or bend: the untouched platter bends the tempo.
-    if (turn != 0.0 && std::fabs(m_platterSpeed) > kPlatterBendMinSpeed) {
-        m_platterBend = std::min(m_platterSpeed * kPlatterBendPercentPerSpeed,
-                                kPlatterBendMaxPercent) /
+    if (moved && std::fabs(speed) > kPlatterBendMinSpeed) {
+        m_platterBend = std::min(speed * kPlatterBendPercentPerSpeed, kPlatterBendMaxPercent) /
                 100.0;
         m_platterBendClock = m_platterClock;
         setPlatterState(kPlatterBend);
