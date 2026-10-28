@@ -158,6 +158,19 @@ What is left after the 2026-10-27 build pass, grouped by the PARITY.md
 priorities. PARITY.md holds the per-row detail; this list is the work queue.
 
 ### P1: performing on the DDJ-800
+**Necessary to-do (set aside 2026-10-28 by the owner):**
+- **DDJ-800 mixer knobs do not control Mix Two** (TRIM, EQ, COLOR, channel
+  faders, crossfader; owner's report). Ruled out: the deck sends every
+  mixer control as MIDI exactly as the mapping expects (FIRMWARE.md 2.7);
+  a Node run of the whole mapping `init` with those bytes reaches pregain,
+  EQ, volume, crossfader and CFX; no script errors in `mixxx.log`; audio
+  routing matches rekordbox (MASTER on OUT 1/2, mixing in software). Next
+  step: `tools\mixtwo_windows.bat run --nobuild --controller-debug`, move
+  each control once, read the incoming messages in
+  `build/mixtwo-profile/mixxx.log`, and ask whether the on-screen knobs move
+  at all or move without an audible change. Then check the position
+  request reply (`F0 00 40 05 00 00 02 09 00 03 01 F7`) in the same log.
+
 **Sound (top priority, WS-F):**
 - Beat FX: the DDJ-800's 14 effects, rebuilt by measuring rekordbox:
   LOW CUT ECHO, ECHO, MT DELAY, SPIRAL, REVERB, TRANS, ENIGMA JET, FLANGER,
@@ -294,5 +307,7 @@ Done in Mix Two but still to check against rekordbox:
 
 ### Waiting on the owner
 - The Beat FX recordings from rekordbox 5 (input for the Beat FX work above).
+- A `--controller-debug` log of the DDJ-800 mixer controls (input for the
+  mixer-knob to-do in P1).
 
 <!-- End of AI-generated document. -->
