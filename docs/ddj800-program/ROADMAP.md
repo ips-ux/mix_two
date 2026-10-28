@@ -130,7 +130,11 @@ Feature areas the matrix started from:
 - U8: rekordbox 6 `master.db` (the user's library) is SQLCipher-encrypted. Importing it (cues, grids, playlists, history) is the migration path for rekordbox users; needs the schema and key handling, as for U4.
 
 ## 5. Ground rules
-- Interoperability RE only. Do not touch the DRM (`clatc.dll`) or deck firmware.
+- Interoperability RE only. Do not touch the DRM (`clatc.dll`). Firmware: static
+  analysis of the firmware files in `.resource/` is allowed (owner, 2026-10-27:
+  `DDJ-800_v102.exe`, `CDJ3Kv322.UPD`); never run the updater, flash, modify or
+  redistribute firmware, and never send it to a device. Findings in our own
+  words ([FIRMWARE.md](FIRMWARE.md)); extracted files stay in `build/re/firmware/`.
 - Never bundle Pioneer binaries, models or driver files. Load them from the user's install at runtime.
 - `AGENTS.md`: agents commit and push to this fork (`origin`); pull requests,
   above all to upstream Mixxx, stay human actions; AI-written text carries a

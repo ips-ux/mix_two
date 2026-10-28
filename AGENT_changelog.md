@@ -31,7 +31,9 @@
   disclaimer.
 - **Clean room:** never copy decompiled Pioneer code, tables, binaries,
   models or images. Write a behavioural spec, then implement it. Do not touch
-  `clatc.dll` (DRM) or deck firmware. RE output stays in `build/re/`.
+  `clatc.dll` (DRM). Firmware files may be analysed statically (owner,
+  2026-10-27), never run, flashed, modified or redistributed. RE output
+  stays in `build/re/`.
 - **Engine owns behaviour; mappings stay thin.** New behaviour is a control
   (`[Group],key`) used by both the skin and the controller script. The DDJ-800
   script sets LEDs from the engine's answer, not from the button press.
