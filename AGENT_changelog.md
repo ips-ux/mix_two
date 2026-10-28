@@ -40,7 +40,8 @@
   algorithms coexist ([FUNCTIONS.md](docs/ddj800-program/FUNCTIONS.md)).
 - **Engine thread:** no allocations or locks in audio callbacks.
 - **Build and test (Windows):** `tools\mixtwo_windows.bat configure | build
-  [target] | test [gtest args] | run [--nobuild]`. `run` uses a separate dev
+  [target] | test [gtest args] | run [--nobuild]`; no arguments (a
+  double-click) = `run`, pausing on failure. `run` uses a separate dev
   profile (`MIXTWO_PROFILE`, default `build\mixtwo-profile`). `mixxx-test`
   sets `MIXXX_DISABLE_PORTAUDIO` because Pioneer's ASIO driver crashes after
   repeated load/unload (ROADMAP F16); keep it set for any test binary.
@@ -49,6 +50,15 @@
   from the program docs written when each item was built.
 
 ---
+
+## 2026-10-27: double-click starts Mix Two
+
+- `tools/mixtwo_windows.bat` with no arguments builds and runs, like `run`
+  (`--nobuild` stays command-line only). If the build tools, the build or
+  Mix Two fail, the window pauses so the error can be read (only in the
+  no-argument case). Unknown arguments still print the usage.
+- **Status:** failure path, usage and build tested; the successful
+  double-click start not run here (it opens the app).
 
 ## 2026-10-27: rekordbox scratch comparison by USB capture; jog resolution 6480
 

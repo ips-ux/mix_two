@@ -80,4 +80,4 @@ opposite: the DJ may hide and rearrange sections, so:
 - Every behaviour change gets a test. Upstream tests change only where they
   encode behaviour Mix Two replaces, with a `Mix Two` comment.
 - Build and run with `tools\mixtwo_windows.bat` (`run` builds first;
-  `--nobuild` skips it). Never point a dev run at the real Mixxx profile.
+  `--nobuild` skips it; a double-click does the same as `run`). Never point a dev run at the real Mixxx profile.

@@ -26,6 +26,10 @@ Writing rules for this file (ASD-STE100):
 CAUTION: Make a copy of your Mixxx library before you start Mix Two for the
 first time. Mix Two changes the library database to schema version 41.
 
+To start Mix Two, double-click `tools\mixtwo_windows.bat`. Mix Two builds,
+then starts. If an error occurs, the window stays open. Push a key to close
+it.
+
 Quit rekordbox before you start Mix Two. rekordbox holds the DDJ-800 when it
 operates. The Pioneer audio driver can also stop Mix Two.
 

@@ -3,6 +3,9 @@ REM Mix Two local Windows build helper (MSVC Build Tools + Ninja + Mixxx builden
 REM   tools\mixtwo_windows.bat configure      Configure build\x64__portable
 REM   tools\mixtwo_windows.bat build [target] Build everything or one target (e.g. mixxx-test)
 REM   tools\mixtwo_windows.bat test [gtest args]  Run mixxx-test, e.g. --gtest_filter=*Midi*
+REM   tools\mixtwo_windows.bat                No arguments (e.g. a double-click in Explorer):
+REM                                               the same as "run"; the window stays open if
+REM                                               the build or Mix Two fails.
 REM   tools\mixtwo_windows.bat run [--nobuild] [mixxx args]
 REM                                               Build everything, then run Mix Two with a
 REM                                               separate dev profile (MIXTWO_PROFILE, default
@@ -20,6 +23,8 @@ SET NINJA=%MIXTWO_BUILDTOOLS%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja
 
 IF NOT DEFINED MIXTWO_PROFILE SET MIXTWO_PROFILE=%MIXXX_ROOT%\build\mixtwo-profile
 
+SET DOUBLECLICK=
+IF "%~1"=="" GOTO :RUN_DEFAULT
 IF /I "%1"=="test" GOTO :TEST
 IF /I "%1"=="run" GOTO :RUN
 IF /I "%1"=="configure" GOTO :CONFIGURE
@@ -69,10 +74,18 @@ IF NOT "%RUN_ARGS:--nobuild=%"=="%RUN_ARGS%" (
     SET NOBUILD=1
     CALL SET "RUN_ARGS=%%RUN_ARGS:--nobuild=%%"
 )
+GOTO :RUN_BUILD
+
+:RUN_DEFAULT
+SET DOUBLECLICK=1
+SET "RUN_ARGS= "
+SET NOBUILD=
+
+:RUN_BUILD
 IF DEFINED NOBUILD GOTO :RUN_START
 REM Build everything first, so that the app always matches the source.
 ECHO Building Mix Two. Use "run --nobuild" to start the current build instead.
-CALL "%MIXTWO_BUILDTOOLS%\VC\Auxiliary\Build\vcvars64.bat" >NUL 2>&1 || EXIT /B 1
+CALL "%MIXTWO_BUILDTOOLS%\VC\Auxiliary\Build\vcvars64.bat" >NUL 2>&1 || GOTO :RUN_BUILD_FAILED
 "%NINJA%" -C "%BUILD_DIR%"
 IF ERRORLEVEL 1 GOTO :RUN_BUILD_FAILED
 :RUN_START
@@ -85,14 +98,23 @@ SET QML_IMPORT_PATH=%DEPS%\Qt6\qml
 SET QML2_IMPORT_PATH=%DEPS%\Qt6\qml
 ECHO Profile: %MIXTWO_PROFILE%
 "%BUILD_DIR%\mixxx.exe" --settings-path "%MIXTWO_PROFILE%" %RUN_ARGS%
-EXIT /B %ERRORLEVEL%
+IF ERRORLEVEL 1 GOTO :RUN_FAILED
+EXIT /B 0
+
+:RUN_FAILED
+SET RUN_EXIT=%ERRORLEVEL%
+ECHO Mix Two exited with code %RUN_EXIT%.
+IF DEFINED DOUBLECLICK PAUSE
+EXIT /B %RUN_EXIT%
 
 :RUN_BUILD_FAILED
 ECHO Build failed; not starting Mix Two.
+IF DEFINED DOUBLECLICK PAUSE
 EXIT /B 1
 
 :RUN_NOT_BUILT
 ECHO mixxx.exe not found. Build it first: %~nx0 build mixxx
+IF DEFINED DOUBLECLICK PAUSE
 EXIT /B 1
 
 :TEST
