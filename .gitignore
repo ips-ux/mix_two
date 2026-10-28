@@ -72,3 +72,7 @@ src/mixxx.rc.include
 src/mixxx.res
 src/test/**/*.actual
 res/qrc_mixxx.cc
+
+# Mix Two: owner reference material (Pioneer firmware and images) never ships.
+# RE output lives in build/re/ and is already covered by /build* above.
+/.resource

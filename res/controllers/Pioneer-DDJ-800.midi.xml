@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AI-generated (Claude Code). All input handling lives in
+    Pioneer-DDJ-800-script.js and is registered with midi.makeInputHandler.
+    End of AI-generated notice.
+-->
+<MixxxControllerPreset schemaVersion="1" mixxxVersion="2.6">
+    <info>
+        <name>Pioneer DDJ-800</name>
+        <author>Mix Two</author>
+        <description>MIDI mapping for the Pioneer DDJ-800, derived from the rekordbox MIDI message table. Untested on hardware.</description>
+        <manual>pioneer_ddj_800</manual>
+        <devices>
+            <product protocol="midi" device_name="DDJ-800" friendly_name="Pioneer DDJ-800"/>
+        </devices>
+    </info>
+    <settings>
+        <group label="Jog Wheels">
+            <option variable="vinylModeDefault" type="boolean" default="true" label="Start in vinyl mode">
+                <description>
+                    Touching the top of the jog wheel scratches. The controller's
+                    own VINYL state overrides this once it reports it.
+                </description>
+            </option>
+            <option variable="jogResolution" type="integer" min="100" max="4096" default="720" label="Jog resolution (ticks per revolution)">
+                <description>
+                    One full turn of the platter should move the track by
+                    1.8 s, as on a record at 33 1/3 rpm. Increase if
+                    scratching moves the track too fast for the hand movement,
+                    decrease if it moves too slowly.
+                </description>
+            </option>
+        </group>
+        <group label="Mixer">
+            <option variable="inputSelectPassthrough" type="boolean" default="false" label="Input selector controls passthrough">
+                <description>
+                    When a channel's input selector is switched to LINE or PHONO,
+                    enable passthrough for that deck. Requires the matching
+                    input to be configured in Preferences > Sound Hardware.
+                </description>
+            </option>
+            <option variable="masterLevelSoftware" type="boolean" default="true" label="MASTER LEVEL and BOOTH LEVEL control the main and booth volume">
+                <description>
+                    The DDJ-800 applies MASTER LEVEL and BOOTH LEVEL in
+                    hardware, to its own master and booth outputs only. Enable
+                    this when the mix plays through another audio interface.
+                    With the mix on the DDJ-800's outputs the levels are then
+                    applied twice; disable it there.
+                </description>
+            </option>
+        </group>
+        <group label="Sound Color FX">
+            <option variable="cfx1Preset" type="integer" min="-1" max="99" default="-1" label="DUB ECHO quick effect preset">
+                <description>Quick effect chain preset index loaded by the DUB ECHO button (-1 keeps the current preset).</description>
+            </option>
+            <option variable="cfx2Preset" type="integer" min="-1" max="99" default="-1" label="SWEEP quick effect preset">
+                <description>Quick effect chain preset index loaded by the SWEEP button (-1 keeps the current preset).</description>
+            </option>
+            <option variable="cfx3Preset" type="integer" min="-1" max="99" default="-1" label="NOISE quick effect preset">
+                <description>Quick effect chain preset index loaded by the NOISE button (-1 keeps the current preset).</description>
+            </option>
+            <option variable="cfx4Preset" type="integer" min="-1" max="99" default="-1" label="FILTER quick effect preset">
+                <description>Quick effect chain preset index loaded by the FILTER button (-1 keeps the current preset).</description>
+            </option>
+        </group>
+    </settings>
+    <controller id="DDJ-800">
+        <scriptfiles>
+            <file functionprefix="PioneerDDJ800" filename="Pioneer-DDJ-800-script.js"/>
+        </scriptfiles>
+        <controls/>
+        <outputs/>
+    </controller>
+</MixxxControllerPreset>

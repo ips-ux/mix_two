@@ -187,6 +187,18 @@ class BpmControl : public EngineControl {
     ControlValueAtomic<double> m_dUserOffset;
     QAtomicInt m_resetSyncAdjustment;
     PollingControlProxy m_pSyncMode;
+    // Mix Two: [App],sync_type and [App],sync_grid (EngineSync::SyncType).
+    PollingControlProxy m_syncType;
+    PollingControlProxy m_syncGrid;
+    bool isBpmSyncOnly() const;
+    double syncGridBeats() const;
+
+  public:
+    /// Mix Two: true while this deck is synced in Grid Lock, so starting
+    /// playback snaps it into phase even with quantize off.
+    bool syncLocksPhase() const;
+
+  private:
 
     TapFilter m_bpmTapFilter;   // threadsafe
     TapFilter m_tempoTapFilter; // threadsafe

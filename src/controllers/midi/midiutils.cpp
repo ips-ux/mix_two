@@ -1,5 +1,24 @@
 #include "controllers/midi/midiutils.h"
 
+#include <QRegularExpression>
+
+namespace {
+
+// "2- DDJ-800": Windows numbers additional instances of the same device.
+const QRegularExpression kWindowsInstancePrefix(QStringLiteral("^\\d+-\\s+"));
+// "From: DDJ-800" / "To: DDJ-800"
+const QRegularExpression kDirectionPrefix(QStringLiteral("^(from|to):\\s*"),
+        QRegularExpression::CaseInsensitiveOption);
+// "DDJ-800:DDJ-800 MIDI 1": ALSA "client:port" where the port repeats the client.
+const QRegularExpression kAlsaClientPrefix(QStringLiteral("^(.+?):\\s*(\\1.*)$"),
+        QRegularExpression::CaseInsensitiveOption);
+// "DDJ-800 20:0": ALSA client/port address.
+const QRegularExpression kAlsaAddressSuffix(QStringLiteral("\\s+\\d+:\\d+$"));
+// "DDJ-800 MIDI 1" and anything after the port number.
+const QRegularExpression kMidiPortSuffix(QStringLiteral("\\s+MIDI\\s+\\d+.*$"));
+
+} // namespace
+
 // static
 QString MidiUtils::opCodeToTranslatedString(MidiOpCode code) {
     switch (code) {
@@ -148,4 +167,18 @@ QString MidiUtils::formatSysexMessage(const QString& controllerName, const QByte
             QString("%1").arg((i < (data.size()-1)) ? ' ' : ']'));
     }
     return message;
+}
+
+// static
+QString MidiUtils::canonicalDeviceName(const QString& deviceName) {
+    QString name = deviceName.trimmed();
+    name.remove(kWindowsInstancePrefix);
+    name.remove(kDirectionPrefix);
+    const QRegularExpressionMatch alsaMatch = kAlsaClientPrefix.match(name);
+    if (alsaMatch.hasMatch()) {
+        name = alsaMatch.captured(2);
+    }
+    name.remove(kAlsaAddressSuffix);
+    name.remove(kMidiPortSuffix);
+    return name.trimmed();
 }

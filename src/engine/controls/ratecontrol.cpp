@@ -1,6 +1,9 @@
 #include "engine/controls/ratecontrol.h"
 
 #include <QtDebug>
+#include <array>
+#include <algorithm>
+#include <cmath>
 
 #include "control/controlobject.h"
 #include "control/controlpotmeter.h"
@@ -27,6 +30,43 @@ ControlValueAtomic<double> RateControl::m_dPermanentRateChangeCoarse;
 ControlValueAtomic<double> RateControl::m_dPermanentRateChangeFine;
 int RateControl::m_iRateRampSensitivity;
 RateControl::RampMode RateControl::m_eRateRampMode;
+
+namespace {
+
+// rekordbox tempo ranges: ±6, ±10, ±16 % and WIDE.
+constexpr std::array<double, 4> kSyncRateRanges = {0.06, 0.10, 0.16, 1.00};
+
+// The slider BPM counts as matched below this difference.
+constexpr double kTempoSliderMatchBpm = 0.05;
+
+// Platter (rekordbox-style scratching, SCRATCH-ENGINE.md):
+// one revolution at 33 1/3 rpm is 1.8 s of track.
+constexpr double kPlatterSecondsPerRevolution = 60.0 / (100.0 / 3.0);
+// Speed limit; what it cuts off follows in the next buffers.
+constexpr double kPlatterMaxSpeed = 8.0;
+// Faster than this is a glitch and is dropped.
+constexpr double kPlatterGlitchSpeed = 25.0;
+// After a touch, motion is discarded for up to 60 ms until it adds up to
+// 9/3240 of a revolution at 0.05x or faster: the landing hand stays still.
+constexpr double kPlatterDeadZoneRevolutions = 9.0 / 3240.0;
+constexpr double kPlatterDeadZoneSeconds = 0.060;
+constexpr double kPlatterDeadZoneMinSpeed = 0.05;
+
+/// The smallest rekordbox range that holds a tempo change of `needed`,
+/// never narrower than `current`.
+double fittingRateRange(double current, double needed) {
+    if (needed <= current + 1e-9) {
+        return current;
+    }
+    for (double range : kSyncRateRanges) {
+        if (range >= current && needed <= range + 1e-9) {
+            return range;
+        }
+    }
+    return std::max(current, kSyncRateRanges.back());
+}
+
+} // namespace
 
 const double RateControl::kWheelMultiplier = 40.0;
 const double RateControl::kPausedJogMultiplier = 18.0;
@@ -55,6 +95,31 @@ RateControl::RateControl(const QString& group, UserSettingsPointer pConfig)
           // playback rate
           m_pRateSearch(std::make_unique<ControlPotmeter>(
                   ConfigKey(group, QStringLiteral("rateSearch")), -300., 300.)),
+          m_pRatePhysical(std::make_unique<ControlObject>(
+                  ConfigKey(group, QStringLiteral("rate_physical")))),
+          m_pRateRangeNext(std::make_unique<ControlPushButton>(
+                  ConfigKey(group, QStringLiteral("rate_range_next")))),
+          m_pPlatterTouch(std::make_unique<ControlPushButton>(
+                  ConfigKey(group, QStringLiteral("platter_touch")))),
+          m_pPlatterTurn(std::make_unique<ControlObject>(
+                  ConfigKey(group, QStringLiteral("platter_turn")))),
+          m_platterTurnPending(0.0),
+          m_platterActive(false),
+          m_platterDeadZone(false),
+          m_platterAnchorPending(false),
+          m_platterAnchor(0.0),
+          m_platterTurned(0.0),
+          m_platterDeadTurn(0.0),
+          m_platterSinceTouch(0.0),
+          m_pTempoSliderBpm(std::make_unique<ControlObject>(
+                  ConfigKey(group, QStringLiteral("tempo_slider_bpm")))),
+          m_pTempoSliderMatched(std::make_unique<ControlObject>(
+                  ConfigKey(group, QStringLiteral("tempo_slider_matched")),
+                  true,
+                  false,
+                  false,
+                  1.0)),
+          m_ratePhysicalKnown(false),
           // Temporary rate-change buttons
           m_pButtonRateTempDown(std::make_unique<ControlPushButton>(
                   ConfigKey(group, QStringLiteral("rate_temp_down")))),
@@ -148,6 +213,30 @@ RateControl::RateControl(const QString& group, UserSettingsPointer pConfig)
             &RateControl::slotRateSliderChanged,
             Qt::DirectConnection);
 
+    m_pTempoSliderBpm->setReadOnly();
+    m_pTempoSliderMatched->setReadOnly();
+    connect(m_pRatePhysical.get(),
+            &ControlObject::valueChanged,
+            this,
+            &RateControl::slotRatePhysicalChanged,
+            Qt::DirectConnection);
+    connect(m_pRateRangeNext.get(),
+            &ControlObject::valueChanged,
+            this,
+            &RateControl::slotRateRangeNext,
+            Qt::DirectConnection);
+    m_pPlatterTouch->setButtonMode(mixxx::control::ButtonMode::Toggle);
+    // Collect the turns here (any thread); the engine takes them per buffer.
+    m_pPlatterTurn->connectValueChangeRequest(
+            this,
+            [this](double revolutions) {
+                double pending = m_platterTurnPending.load();
+                while (!m_platterTurnPending.compare_exchange_weak(
+                        pending, pending + revolutions)) {
+                }
+            },
+            Qt::DirectConnection);
+
     m_pReverseButton->set(0);
 
     connect(m_pForwardButton.get(),
@@ -219,6 +308,10 @@ RateControl::RateControl(const QString& group, UserSettingsPointer pConfig)
 
 void RateControl::setBpmControl(BpmControl* bpmcontrol) {
     m_pBpmControl = bpmcontrol;
+    // BpmControl owns local_bpm, so it exists from here on.
+    m_pLocalBpm = std::make_unique<ControlProxy>(getGroup(), QStringLiteral("local_bpm"), this);
+    m_pLocalBpm->connectValueChanged(this, [this] { updateTempoSlider(); }, Qt::DirectConnection);
+    updateTempoSlider();
 }
 
 //static
@@ -293,16 +386,121 @@ void RateControl::slotRateRangeChanged(double) {
 void RateControl::slotRateSliderChanged(double v) {
     double rateRatio = 1.0 + m_pRateDir->get() * m_pRateRange->get() * v;
     m_pRateRatio->set(rateRatio);
+    updateTempoSlider();
 }
 
 void RateControl::slotRateRatioChanged(double v) {
     double rateRange = m_pRateRange->get();
+    if (rateRange > 0.0 && getSyncMode() != SyncMode::None) {
+        // Mix Two (rekordbox): while synced, the tempo range widens to the
+        // smallest one that holds the synced tempo.
+        const double fitting = fittingRateRange(rateRange, std::fabs(v - 1));
+        if (fitting != rateRange) {
+            rateRange = fitting;
+            m_pRateRange->set(rateRange);
+        }
+    }
     if (rateRange > 0.0) {
         double newRate = m_pRateDir->get() * (v - 1) / rateRange;
         m_pRateSlider->set(newRate);
     } else {
         m_pRateSlider->set(0);
     }
+    updateTempoSlider();
+}
+
+void RateControl::slotRateRangeNext(double v) {
+    if (v <= 0.0) {
+        return;
+    }
+    const double current = m_pRateRange->get();
+    double next = kSyncRateRanges.front();
+    for (double range : kSyncRateRanges) {
+        if (range > current + 0.001) {
+            next = range;
+            break;
+        }
+    }
+    m_pRateRange->set(next);
+    // Our own set() does not notify us. Keeps the tempo, moves the slider.
+    slotRateRangeChanged(next);
+}
+
+double RateControl::calculatePlatterRate(double baserate, std::size_t samplesPerBuffer) {
+    const double outputRate = m_pSampleRate.get();
+    const double outputFrames = static_cast<double>(samplesPerBuffer) / 2.0;
+    if (outputRate <= 0.0 || baserate <= 0.0 || outputFrames <= 0.0) {
+        return 0.0;
+    }
+    const double bufferSeconds = outputFrames / outputRate;
+    const double position = frameInfo().currentPosition.value();
+    if (!m_platterActive) {
+        // Touched: stop the track. The renderer eases into the stop over
+        // this buffer, so the anchor is taken in the next one.
+        m_platterActive = true;
+        m_platterDeadZone = true;
+        m_platterAnchorPending = true;
+        m_platterTurned = 0.0;
+        m_platterDeadTurn = 0.0;
+        m_platterSinceTouch = 0.0;
+        m_platterTurnPending.store(0.0);
+        m_platterSinceTouch += bufferSeconds;
+        return 0.0;
+    }
+    if (m_platterAnchorPending) {
+        m_platterAnchorPending = false;
+        m_platterAnchor = position;
+    }
+    m_platterSinceTouch += bufferSeconds;
+
+    double turn = m_platterTurnPending.exchange(0.0);
+    const double turnSpeed =
+            std::fabs(turn) * kPlatterSecondsPerRevolution / bufferSeconds;
+    if (turnSpeed > kPlatterGlitchSpeed) {
+        turn = 0.0; // a glitch, not a hand
+    }
+    if (m_platterDeadZone) {
+        m_platterDeadTurn += turn;
+        if (m_platterSinceTouch >= kPlatterDeadZoneSeconds ||
+                (std::fabs(m_platterDeadTurn) >= kPlatterDeadZoneRevolutions &&
+                        turnSpeed >= kPlatterDeadZoneMinSpeed)) {
+            // Out of the dead zone: this buffer's turn counts, what came
+            // before is discarded.
+            m_platterDeadZone = false;
+        } else {
+            turn = 0.0;
+        }
+    }
+    m_platterTurned += turn;
+
+    // Aim at where the platter puts the track; the speed limit only delays
+    // getting there, so nothing is lost and the audio stays locked.
+    const double trackRate = baserate * outputRate;
+    const double target = m_platterAnchor +
+            m_platterTurned * kPlatterSecondsPerRevolution * trackRate;
+    const double rate = (target - position) / (outputFrames * baserate);
+    return std::clamp(rate, -kPlatterMaxSpeed, kPlatterMaxSpeed);
+}
+
+void RateControl::slotRatePhysicalChanged(double) {
+    m_ratePhysicalKnown = true;
+    updateTempoSlider();
+}
+
+void RateControl::updateTempoSlider() {
+    const double localBpm = m_pLocalBpm ? m_pLocalBpm->get() : 0.0;
+    if (localBpm <= 0.0) {
+        m_pTempoSliderBpm->forceSet(0.0);
+        m_pTempoSliderMatched->forceSet(1.0);
+        return;
+    }
+    const double position = m_ratePhysicalKnown ? m_pRatePhysical->get() : m_pRateSlider->get();
+    const double sliderBpm =
+            localBpm * (1.0 + m_pRateDir->get() * m_pRateRange->get() * position);
+    const double bpm = localBpm * m_pRateRatio->get();
+    m_pTempoSliderBpm->forceSet(sliderBpm);
+    m_pTempoSliderMatched->forceSet(
+            std::fabs(sliderBpm - bpm) < kTempoSliderMatchBpm ? 1.0 : 0.0);
 }
 
 void RateControl::slotReverseRollActivate(double v) {
@@ -407,6 +605,17 @@ double RateControl::calculateSpeed(double baserate,
     *pReportReverse = false;
 
     processTempRate(samplesPerBuffer);
+
+    // Mix Two: the touched platter overrides everything else, as on Pioneer.
+    if (m_pPlatterTouch->toBool() || m_platterActive) {
+        if (m_pPlatterTouch->toBool()) {
+            *pReportScratching = true;
+            return calculatePlatterRate(baserate, samplesPerBuffer);
+        }
+        // Released: back to normal play.
+        m_platterActive = false;
+        m_platterTurnPending.store(0.0);
+    }
 
     double rate;
     const double searching = m_pRateSearch->get();

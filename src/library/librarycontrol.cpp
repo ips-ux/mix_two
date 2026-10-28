@@ -107,6 +107,26 @@ LibraryControl::LibraryControl(Library* pLibrary)
     m_numSamplers.connectValueChanged(this, &LibraryControl::slotNumSamplersChanged);
     m_numPreviewDecks.connectValueChanged(this, &LibraryControl::slotNumPreviewDecksChanged);
 
+    m_pLoadPrompt = std::make_unique<LoadPrompt>();
+    connect(m_pLoadPrompt.get(), &LoadPrompt::loadRequested, this, [this](int deckNumber) {
+#ifdef __STEM__
+        slotLoadSelectedTrackToGroup(PlayerManager::groupForDeck(deckNumber - 1),
+                mixxx::StemChannelSelection(),
+                false);
+#else
+        slotLoadSelectedTrackToGroup(PlayerManager::groupForDeck(deckNumber - 1), false);
+#endif
+    });
+    // The prompt window is created when it is first needed, once the skin's
+    // main window exists.
+    connect(m_pLoadPrompt.get(), &LoadPrompt::stateChanged, this, [this] {
+        if (m_pLoadPromptWidget || !m_pLoadPrompt->isOpen() || !m_pLibraryWidget) {
+            return;
+        }
+        m_pLoadPromptWidget = new WLoadPrompt(m_pLoadPrompt.get(), m_pLibraryWidget->window());
+        m_pLoadPromptWidget->slotUpdate();
+    });
+
     // Controls to navigate vertically within currently focused widget (up/down buttons)
     m_pMoveUp = std::make_unique<ControlPushButton>(ConfigKey("[Library]", "MoveUp"));
     m_pMoveDown = std::make_unique<ControlPushButton>(ConfigKey("[Library]", "MoveDown"));

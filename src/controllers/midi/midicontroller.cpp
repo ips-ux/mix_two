@@ -1,6 +1,7 @@
 #include "controllers/midi/midicontroller.h"
 
 #include <QJSValue>
+#include <QRegularExpression>
 #include <algorithm>
 
 #include "control/controlobject.h"
@@ -97,8 +98,32 @@ int MidiController::close() {
 }
 
 bool MidiController::matchMapping(const MappingInfo& mapping) {
-    // Product info mapping not implemented for MIDI devices yet
-    Q_UNUSED(mapping);
+    const QList<ProductInfo>& products = mapping.getProducts();
+    for (const auto& product : products) {
+        if (matchProductInfo(getName(), product)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// static
+bool MidiController::matchProductInfo(const QString& deviceName, const ProductInfo& product) {
+    if (product.protocol != QStringLiteral("midi")) {
+        return false;
+    }
+    if (!product.device_name.isEmpty() &&
+            MidiUtils::canonicalDeviceName(deviceName).compare(
+                    product.device_name, Qt::CaseInsensitive) == 0) {
+        return true;
+    }
+    if (!product.device_name_regex.isEmpty()) {
+        const QRegularExpression regex(product.device_name_regex,
+                QRegularExpression::CaseInsensitiveOption);
+        if (regex.isValid() && regex.match(deviceName).hasMatch()) {
+            return true;
+        }
+    }
     return false;
 }
 

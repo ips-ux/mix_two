@@ -3,7 +3,10 @@
 #include <QMutex>
 #include <QSharedPointer>
 #include <QTimer>
+#include <QStringList>
 #include <memory>
+#include <optional>
+#include <utility>
 #include <vector>
 
 #include "controllers/controllerenumerator.h"
@@ -69,9 +72,28 @@ class ControllerManager : public QObject {
     void slotShutdown();
     /// Calls poll() on all devices that have isPolling() true.
     void slotPollDevices();
+    /// Compares the platform's MIDI port list with the one PortMidi was
+    /// initialized with and rescans MIDI devices once a change has settled.
+    void slotCheckMidiHotplug();
+    /// Deletes controllers retired by rescans up to and including this one,
+    /// once the main thread has handled the matching devicesChanged().
+    void slotReleaseRetiredControllers(int rescanGeneration);
 
   private:
     void updateControllerList();
+    /// Stores the first mapping matching this never-configured device and
+    /// enables it. Returns false if no mapping declares the device.
+    bool autoConfigureDevice(Controller* pController,
+            const QString& deviceName,
+            const QList<MappingInfoEnumerator*>& enumerators);
+    /// Opens the devices that are enabled in the config, auto-enabling
+    /// never-configured devices that a mapping declares.
+    void setUpDevices(const QList<Controller*>& devices);
+    void rescanMidiDevices();
+    /// Retries opening enabled controllers whose open() failed, e.g. because
+    /// the port was briefly busy or the device was still starting up.
+    void retryFailedOpens();
+    bool isKnownController(Controller* pController) const;
     void startPolling();
     void stopPolling();
     void pollIfAnyControllersOpen();
@@ -100,4 +122,23 @@ class ControllerManager : public QObject {
     QSharedPointer<MappingInfoEnumerator> m_pMainThreadSystemMappingEnumerator;
     /// Accessed only from the ControllerManager thread via slotPollDevices().
     bool m_skipPoll;
+
+    // MIDI hotplug state, accessed only from the ControllerManager thread.
+    QTimer m_hotplugTimer;
+    /// Owned by m_enumerators; null without PortMidi.
+    ControllerEnumerator* m_pPortMidiEnumerator;
+    /// True if the platform can list MIDI ports and hotplug is enabled.
+    bool m_midiHotplugAvailable;
+    /// Port list PortMidi was last initialized with.
+    QStringList m_midiPortNames;
+    /// Changed port list seen on the previous check, waiting to settle.
+    std::optional<QStringList> m_pendingMidiPortNames;
+    int m_rescanGeneration;
+    /// Controllers replaced by a rescan, kept alive until the main thread has
+    /// dropped its pointers to them. Owned; tagged with their rescan generation.
+    QList<std::pair<int, Controller*>> m_retiredControllers;
+    /// Enabled controllers whose open() failed, retried on hotplug checks.
+    /// Non-owning.
+    QList<Controller*> m_openRetryControllers;
+    int m_openRetryChecksLeft;
 };

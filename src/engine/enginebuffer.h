@@ -46,6 +46,7 @@ class ControlPushButton;
 class ControlPotmeter;
 class EngineBufferScale;
 class EngineBufferScaleLinear;
+class EngineBufferScaleHalfbandLagrange;
 class EngineBufferScaleST;
 class EngineSync;
 class EngineWorkerScheduler;
@@ -216,6 +217,29 @@ class EngineBuffer : public EngineObject {
         }
     }
 
+    // Mix Two: how the deck renders playback when key lock is off, which is
+    // also how it renders scratching (Preferences > Decks > Platter options).
+    // This enum is also used in mixxx.cfg
+    // Don't remove or swap values to keep backward compatibility
+    enum class ScratchAlgorithm {
+        // Mixxx 2.7: linear interpolation (EngineBufferScaleLinear).
+        Mixxx = 0,
+        // rekordbox 6.8.5's design: 2x half-band oversampling and cubic
+        // Lagrange interpolation (EngineBufferScaleHalfbandLagrange).
+        Rekordbox = 1,
+    };
+    Q_ENUM(ScratchAlgorithm);
+
+    // intended for iteration over the ScratchAlgorithm enum
+    constexpr static std::initializer_list<ScratchAlgorithm> kScratchAlgorithms = {
+            ScratchAlgorithm::Mixxx,
+            ScratchAlgorithm::Rekordbox,
+    };
+
+    constexpr static ScratchAlgorithm defaultScratchAlgorithm() {
+        return ScratchAlgorithm::Rekordbox;
+    }
+
     constexpr static KeylockEngine defaultKeylockEngine() {
 #ifdef __RUBBERBAND__
         return KeylockEngine::RubberBandFaster;
@@ -262,6 +286,7 @@ class EngineBuffer : public EngineObject {
     void slotControlEnd(double);
     void slotControlSeek(double);
     void slotKeylockEngineChanged(double);
+    void slotScratchAlgorithmChanged(double);
 
   signals:
     void trackLoaded(TrackPointer pNewTrack, TrackPointer pOldTrack);
@@ -434,6 +459,7 @@ class EngineBuffer : public EngineObject {
     ControlPotmeter* m_playposSlider;
     ControlProxy* m_pSampleRate;
     ControlProxy* m_pKeylockEngine;
+    ControlProxy* m_pScratchAlgorithm;
     ControlPushButton* m_pKeylock;
     ControlProxy* m_pReplayGain;
 
@@ -460,13 +486,15 @@ class EngineBuffer : public EngineObject {
     FRIEND_TEST(EngineBufferTest, ReadFadeOut);
     FRIEND_TEST(EngineBufferTest, RateTempTest);
     FRIEND_TEST(EngineBufferTest, RatePermTest);
-    EngineBufferScale* m_pScaleVinyl;
+    // Mix Two: the scratch algorithm is configurable too, see m_pScaleKeylock.
+    EngineBufferScale* volatile m_pScaleVinyl;
     // The keylock engine is configurable, so it could flip flop between
     // ScaleST and ScaleRB during a single callback.
     EngineBufferScale* volatile m_pScaleKeylock;
 
-    // Object used for vinyl-style interpolation scaling of the audio
+    // Objects used for vinyl-style interpolation scaling of the audio
     EngineBufferScaleLinear* m_pScaleLinear;
+    EngineBufferScaleHalfbandLagrange* m_pScaleHalfbandLagrange;
     // Objects used for pitch-indep time stretch (key lock) scaling of the audio
     EngineBufferScaleST* m_pScaleST;
 #ifdef __RUBBERBAND__

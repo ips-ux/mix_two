@@ -7,8 +7,11 @@
 #include "control/controlpotmeter.h"
 #include "control/controlproxy.h"
 #include "control/controlpushbutton.h"
+#include "engine/channels/enginechannel.h"
 #include "engine/defs_keylock.h"
 #include "engine/enginebuffer.h"
+#include "engine/enginemixer.h"
+#include "engine/sync/enginesync.h"
 #include "mixer/playermanager.h"
 #include "moc_keycontrol.cpp"
 #include "track/keyutils.h"
@@ -31,6 +34,9 @@ KeyControl::KeyControl(const QString& group,
                   ConfigKey(group, "sync_key"))),
           m_pButtonResetKey(std::make_unique<ControlPushButton>(
                   ConfigKey(group, "reset_key"))),
+          m_pKeySyncEnabled(std::make_unique<ControlPushButton>(
+                  ConfigKey(group, "keysync_enabled"))),
+          m_applyingKeySync(false),
           m_keylockMode(std::make_unique<ControlPushButton>(ConfigKey(group, "keylockMode"))),
           m_keyunlockMode(std::make_unique<ControlPushButton>(ConfigKey(group, "keyunlockMode"))),
           m_pFileKey(std::make_unique<ControlObject>(ConfigKey(group, "file_key"))),
@@ -78,6 +84,13 @@ KeyControl::KeyControl(const QString& group,
             &ControlObject::valueChanged,
             this,
             &KeyControl::slotResetKey,
+            Qt::DirectConnection);
+
+    m_pKeySyncEnabled->setButtonMode(mixxx::control::ButtonMode::Toggle);
+    connect(m_pKeySyncEnabled.get(),
+            &ControlObject::valueChanged,
+            this,
+            &KeyControl::slotKeySyncEnabledChangeRequest,
             Qt::DirectConnection);
 
     connect(m_pFileKey.get(),
@@ -303,6 +316,8 @@ void KeyControl::updateRate() {
 /// or when a track with a different key is loaded
 void KeyControl::slotFileKeyChanged(double value) {
     updateKeyCOs(value,  m_pPitch->get() / 12);
+    // A new track (or key) on this deck: match it to the master again.
+    resyncKey();
 }
 
 void KeyControl::updateKeyCOs(double fileKeyNumeric, double pitchOctaves) {
@@ -359,6 +374,10 @@ void KeyControl::setEngineKey(double key, double key_distance) {
 /// AND key is locked with KeylockMode::LockCurrentKey
 void KeyControl::slotPitchChanged(double pitch) {
     Q_UNUSED(pitch)
+    // A manual key change (semitone up/down, key reset) ends KEY SYNC.
+    if (!m_applyingKeySync && m_pKeySyncEnabled->toBool()) {
+        disableKeySync();
+    }
     m_updatePitchRequest = 1;
     updatePitch();
 }
@@ -401,6 +420,9 @@ void KeyControl::updatePitch() {
 /// AND key is unlocked or locked with LockOriginalKey
 void KeyControl::slotPitchAdjustChanged(double pitchAdjust) {
     Q_UNUSED(pitchAdjust);
+    if (!m_applyingKeySync && m_pKeySyncEnabled->toBool()) {
+        disableKeySync();
+    }
     m_updatePitchAdjustRequest = 1;
     updatePitchAdjust();
 }
@@ -483,4 +505,102 @@ bool KeyControl::syncKey(EngineBuffer* pOtherEngineBuffer) {
     m_pPitch->set(pitchToTakeOctaves * 12);
     slotPitchChanged(pitchToTakeOctaves * 12);
     return true;
+}
+
+namespace {
+// Decks searched for a KEY SYNC partner when nothing is master or playing.
+constexpr int kMaxKeySyncDecks = 8;
+} // namespace
+
+EngineBuffer* KeyControl::pickKeySyncTarget() {
+    EngineMixer* pEngineMixer = getEngineMixer();
+    if (pEngineMixer && pEngineMixer->getEngineSync()) {
+        EngineChannel* pLeader = pEngineMixer->getEngineSync()->getLeaderChannel();
+        if (pLeader && pLeader->getGroup() != getGroup()) {
+            return pLeader->getEngineBuffer();
+        }
+    }
+    if (EngineBuffer* pTarget = pickSyncTarget()) {
+        return pTarget;
+    }
+    if (!pEngineMixer) {
+        return nullptr;
+    }
+    // Mix Two: without a master or a playing deck, match any other deck
+    // with an analysed key, a playing one first, so KEY SYNC works on decks
+    // that are only loaded, as in rekordbox.
+    EngineBuffer* pFallback = nullptr;
+    for (int i = 1; i <= kMaxKeySyncDecks; ++i) {
+        const QString group = QStringLiteral("[Channel%1]").arg(i);
+        if (group == getGroup()) {
+            continue;
+        }
+        EngineChannel* pChannel = pEngineMixer->getChannel(group);
+        if (!pChannel || !pChannel->getEngineBuffer()) {
+            continue;
+        }
+        const auto key = KeyUtils::keyFromNumericValue(
+                ControlObject::get(ConfigKey(group, QStringLiteral("file_key"))));
+        if (key == mixxx::track::io::key::INVALID) {
+            continue;
+        }
+        if (ControlObject::get(ConfigKey(group, QStringLiteral("play"))) > 0) {
+            return pChannel->getEngineBuffer();
+        }
+        if (!pFallback) {
+            pFallback = pChannel->getEngineBuffer();
+        }
+    }
+    return pFallback;
+}
+
+bool KeyControl::enableKeySync() {
+    EngineBuffer* pTarget = pickKeySyncTarget();
+    if (!pTarget) {
+        return false;
+    }
+    m_applyingKeySync = true;
+    const bool synced = syncKey(pTarget);
+    m_applyingKeySync = false;
+    if (!synced) {
+        return false;
+    }
+    m_pKeySyncTargetKey = std::make_unique<ControlProxy>(
+            ConfigKey(pTarget->getGroup(), QStringLiteral("key")));
+    m_pKeySyncTargetKey->connectValueChanged(this,
+            &KeyControl::slotKeySyncTargetKeyChanged,
+            Qt::DirectConnection);
+    return true;
+}
+
+void KeyControl::disableKeySync() {
+    m_pKeySyncTargetKey.reset();
+    m_pKeySyncEnabled->set(0);
+}
+
+void KeyControl::resyncKey() {
+    if (!m_pKeySyncEnabled->toBool() || m_applyingKeySync) {
+        return;
+    }
+    // The master may have changed; follow the current one.
+    m_pKeySyncTargetKey.reset();
+    if (!enableKeySync()) {
+        disableKeySync();
+    }
+}
+
+void KeyControl::slotKeySyncEnabledChangeRequest(double value) {
+    if (value > 0) {
+        if (!enableKeySync()) {
+            // Nothing to match: no other deck, or no analysed key.
+            disableKeySync();
+        }
+    } else {
+        disableKeySync();
+    }
+}
+
+void KeyControl::slotKeySyncTargetKeyChanged(double value) {
+    Q_UNUSED(value);
+    resyncKey();
 }

@@ -18,7 +18,7 @@ void WaveformMarkSet::setup(const QString& group, const QDomNode& node,
                             const SkinContext& context,
                             const WaveformSignalColors& signalColors) {
     // + 3 for cue_point, loop_start_position and loop_end_position
-    m_marks.reserve(kMaxNumberOfHotcues + 3);
+    m_marks.reserve(kMaxNumberOfHotcues + kMaxNumberOfMemoryCueMarks + 3);
     // Note: m_hotCueMarks does not support reserving space
 
     std::set<QString> controlItemSet;
@@ -63,6 +63,32 @@ void WaveformMarkSet::setup(const QString& group, const QDomNode& node,
                 m_marks.push_front(pMark);
                 m_hotCueMarks.insert(pMark->getHotCue(), pMark);
             }
+        }
+        // Waveforms that show hotcues also show memory cues, without any
+        // skin changes.
+        addMemoryCueMarks(group, signalColors);
+    }
+}
+
+void WaveformMarkSet::addMemoryCueMarks(
+        const QString& group, const WaveformSignalColors& signalColors) {
+    // Red like rekordbox's memory cue markers, drawn below hotcues.
+    const QColor memoryCueColor(0xE5, 0x24, 0x3B);
+    for (int i = 1; i <= kMaxNumberOfMemoryCueMarks; ++i) {
+        auto pMaybeMark = WaveformMark::create(group,
+                QStringLiteral("memory_cue_%1_position").arg(i),
+                QString(),
+                QStringLiteral("#FFFFFF"),
+                QStringLiteral("top|left"),
+                QStringLiteral(" M "),
+                QString(),
+                QString(),
+                memoryCueColor,
+                kMemoryCueMarkPriority - i,
+                Cue::kNoHotCue,
+                signalColors);
+        if (std::holds_alternative<WaveformMarkPointer>(pMaybeMark)) {
+            addMark(std::get<WaveformMarkPointer>(pMaybeMark));
         }
     }
 }

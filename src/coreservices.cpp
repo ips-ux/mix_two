@@ -2,7 +2,9 @@
 
 #include <QApplication>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QProcess>
+#include <QPushButton>
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QtGlobal>
@@ -74,6 +76,15 @@
 #include <QtCore/private/qandroidextras_p.h>
 #endif
 
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+// Must follow windows.h
+#include <tlhelp32.h>
+#endif
+
 #if defined(Q_OS_LINUX) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <X11/Xlibint.h>
 
@@ -93,6 +104,27 @@ constexpr int kAuxiliaryCount = 4;
 constexpr int kSamplerCount = 4;
 
 #define CLEAR_AND_CHECK_DELETED(x) clearHelper(x, #x);
+
+/// True if rekordbox (any version) is running.
+bool isRekordboxRunning() {
+#ifdef Q_OS_WIN
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    PROCESSENTRY32W entry;
+    entry.dwSize = sizeof(entry);
+    bool found = false;
+    for (BOOL ok = Process32FirstW(snapshot, &entry); ok && !found;
+            ok = Process32NextW(snapshot, &entry)) {
+        found = _wcsicmp(entry.szExeFile, L"rekordbox.exe") == 0;
+    }
+    CloseHandle(snapshot);
+    return found;
+#else
+    return false;
+#endif
+}
 
 template<typename T>
 void clearHelper(std::shared_ptr<T>& ref_ptr, const char* name) {
@@ -545,6 +577,12 @@ void CoreServices::initialize(QApplication* pApp) {
 #endif
 
     emit initializationProgressUpdate(30, tr("audio interface"));
+    // Listing the audio devices loads every ASIO driver. Pioneer's DDJ-800
+    // driver crashes when rekordbox has it open at the same time (ROADMAP
+    // F16), and rekordbox also holds the controller's MIDI ports.
+    if (!qEnvironmentVariableIsSet("MIXXX_DISABLE_PORTAUDIO")) {
+        askToCloseRekordbox();
+    }
     // Although m_pSoundManager is created here, m_pSoundManager->setupDevices()
     // needs to be called after m_pPlayerManager registers sound IO for each EngineChannel.
     m_pSoundManager = std::make_shared<SoundManager>(pConfig, m_pEngine.get());
@@ -845,6 +883,30 @@ std::shared_ptr<ConfigObject<ConfigValueKbd>> CoreServices::getKeyboardConfig() 
     return m_pKeyboardEventFilter->getKeyboardConfig();
 }
 
+void CoreServices::askToCloseRekordbox() {
+    while (isRekordboxRunning()) {
+        QMessageBox msgBox(QMessageBox::Warning,
+                tr("rekordbox is running"),
+                tr("rekordbox is open. While it runs it holds the DJ controller, "
+                   "and Pioneer's audio driver can crash when Mix Two starts at "
+                   "the same time.<br><br>Quit rekordbox, then click "
+                   "<b>Retry</b>."));
+        QPushButton* pRetry = msgBox.addButton(tr("Retry"), QMessageBox::AcceptRole);
+        QPushButton* pStartAnyway = msgBox.addButton(
+                tr("Start Anyway"), QMessageBox::DestructiveRole);
+        msgBox.addButton(tr("Quit"), QMessageBox::RejectRole);
+        msgBox.setDefaultButton(pRetry);
+        msgBox.exec();
+        if (msgBox.clickedButton() == pStartAnyway) {
+            kLogger.warning() << "Starting although rekordbox is running";
+            return;
+        }
+        if (msgBox.clickedButton() != pRetry) {
+            exit(0);
+        }
+    }
+}
+
 bool CoreServices::initializeDatabase() {
     kLogger.info() << "Connecting to database";
     QSqlDatabase dbConnection = mixxx::DbConnectionPooled(m_pDbConnectionPool);
@@ -969,6 +1031,9 @@ void CoreServices::finalize() {
     // Depends on RecordingManager and PlayerManager
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "deleting Library";
     CLEAR_AND_CHECK_DELETED(m_pLibrary);
+
+    // OverviewCache is used by library views and holds the DB connection pool.
+    OverviewCache::destroy();
 
     // RecordingManager depends on config, engine
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "deleting RecordingManager";

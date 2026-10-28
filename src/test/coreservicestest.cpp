@@ -5,6 +5,10 @@
 #include "util/cmdlineargs.h"
 
 class CoreServicesTest : public MixxxTest {
+  protected:
+    void TearDown() override {
+        restoreTestLogging();
+    }
 };
 
 // This test is disabled because it fails on CI for some unknown reason.

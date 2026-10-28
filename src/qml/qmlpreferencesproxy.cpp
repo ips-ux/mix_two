@@ -674,6 +674,24 @@ void QmlControllerManagerProxy::refreshMappings() {
 }
 void QmlControllerManagerProxy::refreshKnownDevices() {
     const auto controllers = m_pControllerManager->getControllers();
+
+    // Drop proxies for controllers that a MIDI hotplug rescan replaced. They
+    // stay alive until this has run, but are deleted soon after.
+    const auto removeStaleDevices = [&controllers](QList<QmlControllerDeviceProxy*>* pDevices) {
+        pDevices->removeIf([&controllers](QmlControllerDeviceProxy* pDevice) {
+            if (controllers.contains(pDevice->internal())) {
+                return false;
+            }
+            pDevice->deleteLater();
+            return true;
+        });
+    };
+    removeStaleDevices(&m_knownDevicesFound);
+    removeStaleDevices(&m_unknownDevicesFound);
+    m_knownControllers.removeIf([&controllers](Controller* pController) {
+        return !controllers.contains(pController);
+    });
+
     for (auto* pController : std::as_const(controllers)) {
         if (m_knownControllers.contains(pController)) {
             continue;

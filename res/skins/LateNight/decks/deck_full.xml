@@ -11,6 +11,18 @@
         <SizePolicy>me,min</SizePolicy>
         <Children>
 
+          <!-- Mix Two: mirrored from the centre out: next to the mixer the
+               rate column, then the deck hub, then the track rows.
+               Decks 1/3: rows | hub | rate, decks 2/4: rate | hub | rows.
+               The slots are set per deck in skin.xml (SlotLeft1/2,
+               SlotRight1/2); unused ones hold empty placeholders. -->
+          <SingletonContainer>
+            <ObjectName>Deck<Variable name="SlotLeft1"/><Variable name="ChanNum"/></ObjectName>
+          </SingletonContainer>
+          <SingletonContainer>
+            <ObjectName>Deck<Variable name="SlotLeft2"/><Variable name="ChanNum"/></ObjectName>
+          </SingletonContainer>
+
           <WidgetGroup>
             <ObjectName>DeckRows12345</ObjectName>
             <SizePolicy>me,min</SizePolicy>
@@ -24,21 +36,6 @@
                 <SizePolicy>me,min</SizePolicy>
                 <Layout>horizontal</Layout>
                 <Children>
-
-                  <WidgetGroup>
-                    <ObjectName>SpinnyCoverContainer_Big</ObjectName>
-                    <Layout>horizontal</Layout>
-                    <SizePolicy>f,f</SizePolicy>
-                    <Children>
-                      <SingletonContainer>
-                        <ObjectName>SpinnyCoverart<Variable name="ChanNum"/></ObjectName>
-                      </SingletonContainer>
-                    </Children>
-                    <Connection>
-                      <ConfigKey>[Skin],show_big_spinny_or_cover</ConfigKey>
-                      <BindProperty>visible</BindProperty>
-                    </Connection>
-                  </WidgetGroup><!-- SpinnyCoverContainer_Big -->
 
                   <WidgetGroup>
                     <SizePolicy>me,min</SizePolicy>
@@ -57,19 +54,12 @@
             </Children>
           </WidgetGroup><!-- DeckRows12345 -->
 
-          <WidgetGroup>
-            <ObjectName>DeckRateSpacer</ObjectName>
-            <SizePolicy>min,min</SizePolicy>
-            <Children/>
-            <!-- this is sized and styled in css -->
-            <Connection>
-              <ConfigKey persist="true">[Skin],show_rate_controls</ConfigKey>
-              <Transform><Not/></Transform>
-              <BindProperty>visible</BindProperty>
-            </Connection>
-          </WidgetGroup>
-
-          <Template src="skins:LateNight/decks/rate_controls.xml"/>
+          <SingletonContainer>
+            <ObjectName>Deck<Variable name="SlotRight1"/><Variable name="ChanNum"/></ObjectName>
+          </SingletonContainer>
+          <SingletonContainer>
+            <ObjectName>Deck<Variable name="SlotRight2"/><Variable name="ChanNum"/></ObjectName>
+          </SingletonContainer>
         </Children>
       </WidgetGroup><!-- DeckN -->
     </Children>

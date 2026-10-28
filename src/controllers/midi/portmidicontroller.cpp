@@ -43,9 +43,22 @@ PortMidiController::~PortMidiController() {
     }
 }
 
+void PortMidiController::detachFromPortMidi() {
+    if (isOpen()) {
+        close();
+    }
+    m_pInputDevice.reset();
+    m_pOutputDevice.reset();
+}
+
 int PortMidiController::open(const QString& resourcePath) {
     if (isOpen()) {
         qCWarning(m_logBase) << "PortMIDI device" << getName() << "already open";
+        return -1;
+    }
+    if (!m_pInputDevice && !m_pOutputDevice) {
+        qCWarning(m_logBase) << "PortMIDI device" << getName()
+                             << "was detached by a device rescan";
         return -1;
     }
 

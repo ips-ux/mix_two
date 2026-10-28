@@ -20,89 +20,146 @@
         <SizePolicy>min,me</SizePolicy>
         <Children>
 
-          <!-- [BPM + rate + Tap overlay] + SyncBox -->
-          <!-- We want the BPM display/edit box to be aligned with the Sync controls.
-               Since size policies are hard to control with the stacked BPM display/edit layout,
-               we put this into a separate container. -->
+          <!-- Mix Two: SYNC, KEY SYNC and MT. BPM, slider BPM, tempo % and
+               the tempo range live in the deck hub (deck_hub.xml). -->
           <WidgetGroup>
             <ObjectName>BpmTapSyncContainer</ObjectName>
             <Layout>vertical</Layout>
             <SizePolicy>min,min</SizePolicy>
             <Children>
 
-              <WidgetGroup>
-                <ObjectName>BpmTapContainer</ObjectName>
-                <!-- same width as total width of SyncBox children (40 + 22) -->
-                <Size>62f,42f</Size>
-                <Children>
-                  <!-- BPM + rate -->
-                  <WidgetGroup>
-                    <ObjectName>AlignCenter</ObjectName>
-                    <Pos>0,0</Pos>
-                    <Layout>vertical</Layout>
-                    <Size>62f,-1me</Size>
-                    <Children>
-                      <Number>
-                        <ObjectName>BpmText</ObjectName>
-                        <TooltipId>visual_bpm</TooltipId>
-                        <Size>62f,22f</Size>
-                        <Alignment>center</Alignment>
-                        <NumberOfDigits>2</NumberOfDigits>
-                        <Connection>
-                          <ConfigKey><Variable name="Group"/>,visual_bpm</ConfigKey>
-                        </Connection>
-                      </Number>
-                      <NumberRate>
-                        <TooltipId>rate_display</TooltipId>
-                        <ObjectName>RateText</ObjectName>
-                        <Alignment>center</Alignment>
-                        <Channel><Variable name="ChanNum" /></Channel>
-                        <NumberOfDigits>2</NumberOfDigits>
-                      </NumberRate>
-                    </Children>
-                  </WidgetGroup>
-                  <!-- invisible Tempo/BPM editor on top of BPM/rate displays -->
-                  <BpmEditor>
-                    <TooltipId>visual_bpm_edit</TooltipId>
-                    <Pos>0,0</Pos>
-                    <Size>62f,42f</Size>
-                    <Group><Variable name="Group"/></Group>
-                  </BpmEditor>
-                </Children>
-              </WidgetGroup><!-- BpmTapContainer -->
 
+              <!-- Mix Two: round SYNC and KEY SYNC, modelled on the DDJ-800.
+                   SYNC: click turns sync on or off, right-click makes the
+                   deck MASTER. Its light is blue while synced and red-orange
+                   on the MASTER; its label follows Preferences > Decks > Sync
+                   options (GRID LOCK or BPM SYNC). -->
               <WidgetGroup>
-                <ObjectName>SyncBox</ObjectName>
-                <Layout>horizontal</Layout>
+                <ObjectName>SyncKeySyncBox</ObjectName>
+                <Layout>vertical</Layout>
                 <SizePolicy>min,min</SizePolicy>
                 <Children>
-                  <PushButton>
-                    <TooltipId>sync_enabled</TooltipId>
-                    <ObjectName>SyncDeck</ObjectName>
-                    <Size>40f,22f</Size>
-                    <NumberStates>2</NumberStates>
-                    <RightClickIsPushButton>true</RightClickIsPushButton>
-                    <Connection>
-                      <ConfigKey><Variable name="Group"/>,sync_enabled</ConfigKey>
-                      <ButtonState>LeftButton</ButtonState>
-                    </Connection>
-                    <Connection>
-                      <ConfigKey><Variable name="Group"/>,sync_leader</ConfigKey>
-                      <ButtonState>RightButton</ButtonState>
-                    </Connection>
-                  </PushButton>
-                  <PushButton>
-                    <TooltipId>sync_leader</TooltipId>
-                    <ObjectName>SyncLeader</ObjectName>
-                    <Size>22f,22f</Size>
-                    <NumberStates>3</NumberStates>
-                    <Connection>
-                      <ConfigKey><Variable name="Group"/>,sync_leader</ConfigKey>
-                      <ButtonState>LeftButton</ButtonState>
-                    </Connection>
-                  </PushButton>
+                  <WidgetGroup>
+                    <ObjectName>AlignCenter</ObjectName>
+                    <Layout>stacked</Layout>
+                    <Size>34f,34f</Size>
+                    <Children>
+                      <!-- on top: takes the clicks -->
+                      <PushButton>
+                        <TooltipId>sync_enabled</TooltipId>
+                        <ObjectName>SyncRoundClick</ObjectName>
+                        <Size>34f,34f</Size>
+                        <NumberStates>2</NumberStates>
+                        <RightClickIsPushButton>true</RightClickIsPushButton>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,sync_enabled</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,sync_leader_toggle</ConfigKey>
+                          <ButtonState>RightButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <!-- underneath: the round button with its light -->
+                      <PushButton>
+                        <ObjectName>SyncRound</ObjectName>
+                        <Size>34f,34f</Size>
+                        <NumberStates>6</NumberStates>
+                      <State>
+                        <Number>0</Number>
+                        <Text>GRID&#10;LOCK</Text>
+                      </State>
+                      <State>
+                        <Number>1</Number>
+                        <Text>GRID&#10;LOCK</Text>
+                      </State>
+                      <State>
+                        <Number>2</Number>
+                        <Text>GRID&#10;LOCK</Text>
+                      </State>
+                      <State>
+                        <Number>3</Number>
+                        <Text>BPM&#10;SYNC</Text>
+                      </State>
+                      <State>
+                        <Number>4</Number>
+                        <Text>BPM&#10;SYNC</Text>
+                      </State>
+                      <State>
+                        <Number>5</Number>
+                        <Text>BPM&#10;SYNC</Text>
+                      </State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,sync_indicator</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+
+                  <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+
+                  <!-- KEY SYNC: click turns it on or off, right-click resets
+                       the key. Blue while on. -->
+                  <WidgetGroup>
+                    <ObjectName>AlignCenter</ObjectName>
+                    <Layout>horizontal</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <PushButton>
+                        <TooltipId>sync_reset_key</TooltipId>
+                        <ObjectName>KeySyncRound</ObjectName>
+                        <Size>34f,34f</Size>
+                        <NumberStates>2</NumberStates>
+                        <RightClickIsPushButton>true</RightClickIsPushButton>
+                        <State>
+                          <Number>0</Number>
+                          <Text>KEY&#10;SYNC</Text>
+                        </State>
+                        <State>
+                          <Number>1</Number>
+                          <Text>KEY&#10;SYNC</Text>
+                        </State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,keysync_enabled</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,reset_key</ConfigKey>
+                          <ButtonState>RightButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+
+                  <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+
+                  <!-- MT (master tempo = key lock), as on the DDJ-800: a round
+                       button with a light in its centre, red while on, and
+                       its title centred below. -->
+                  <WidgetGroup>
+                    <ObjectName>AlignCenter</ObjectName>
+                    <Layout>horizontal</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <PushButton>
+                        <TooltipId>master_tempo</TooltipId>
+                        <ObjectName>MasterTempoRound</ObjectName>
+                        <Size>34f,34f</Size>
+                        <NumberStates>2</NumberStates>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,keylock</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                  <Label>
+                    <ObjectName>MasterTempoLabel</ObjectName>
+                    <Text>MT</Text>
+                  </Label>
                 </Children>
-              </WidgetGroup><!-- SyncBox -->
+              </WidgetGroup><!-- SyncKeySyncBox -->
             </Children>
           </WidgetGroup><!-- BpmTapSyncContainer -->
 
@@ -170,104 +227,8 @@
                 </Children>
               </WidgetGroup><!-- Rate slider + range displays -->
 
-              <WidgetGroup><!-- RateButtons for different rate directions -->
-                <ObjectName>RateButtons</ObjectName>
-                <Layout>vertical</Layout>
-                <SizePolicy>min,min</SizePolicy>
-                <Children>
-                  <WidgetGroup><Size>0min,1f</Size></WidgetGroup>
-                  <WidgetGroup><!-- Up = faster -->
-                    <ObjectName>AlignLeft</ObjectName>
-                    <Layout>vertical</Layout>
-                    <SizePolicy>min,min</SizePolicy>
-                    <Children>
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_perm_up_rate_perm_up_small</SetVariable>
-                        <SetVariable name="ObjectName">RatePermUp</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_perm_up</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_perm_up_small</SetVariable>
-                      </Template>
-
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_temp_up_rate_temp_up_small</SetVariable>
-                        <SetVariable name="ObjectName">RateTempUp</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_temp_up</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_temp_up_small</SetVariable>
-                      </Template>
-
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_temp_down_rate_temp_down_small</SetVariable>
-                        <SetVariable name="ObjectName">RateTempDown</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_temp_down</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_temp_down_small</SetVariable>
-                      </Template>
-
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_perm_down_rate_perm_down_small</SetVariable>
-                        <SetVariable name="ObjectName">RatePermDown</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_perm_down</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_perm_down_small</SetVariable>
-                      </Template>
-                    </Children>
-                    <Connection>
-                      <ConfigKey><Variable name="Group"/>,rate_dir</ConfigKey>
-                      <Transform><IsEqual>1</IsEqual></Transform>
-                      <BindProperty>visible</BindProperty>
-                    </Connection>
-                  </WidgetGroup><!-- /Rate buttons for up=faster -->
-
-                  <WidgetGroup><!-- Up = slower -->
-                    <Layout>vertical</Layout>
-                    <SizePolicy>min,min</SizePolicy>
-                    <Children>
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_perm_down_rate_perm_down_small</SetVariable>
-                        <SetVariable name="ObjectName">RatePermDown</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_perm_down</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_perm_down_small</SetVariable>
-                      </Template>
-
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_temp_down_rate_temp_down_small</SetVariable>
-                        <SetVariable name="ObjectName">RateTempDownRev</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_temp_down</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_temp_down_small</SetVariable>
-                      </Template>
-
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_temp_up_rate_temp_up_small</SetVariable>
-                        <SetVariable name="ObjectName">RateTempUpRev</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_temp_up</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_temp_up_small</SetVariable>
-                      </Template>
-
-                      <Template src="skins:LateNight/controls/button_1state_right.xml">
-                        <SetVariable name="TooltipId">rate_perm_up_rate_perm_up_small</SetVariable>
-                        <SetVariable name="ObjectName">RatePermUp</SetVariable>
-                        <SetVariable name="Size">26f,26f</SetVariable>
-                        <SetVariable name="ConfigKey"><Variable name="Group"/>,rate_perm_up</SetVariable>
-                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,rate_perm_up_small</SetVariable>
-                      </Template>
-                    </Children>
-                    <Connection>
-                      <ConfigKey><Variable name="Group"/>,rate_dir</ConfigKey>
-                      <Transform><IsEqual>-1</IsEqual></Transform>
-                      <BindProperty>visible</BindProperty>
-                    </Connection>
-                  </WidgetGroup><!-- /Rate buttons for up=slower -->
-                </Children>
-                <Connection>
-                  <ConfigKey>[Skin],show_rate_control_buttons</ConfigKey>
-                  <BindProperty>visible</BindProperty>
-                </Connection>
-              </WidgetGroup><!-- RateButtons for different rate directions -->
+              <!-- Mix Two: the rate +/- and nudge buttons moved under PLAY
+                   (decks/transport_buttons.xml). -->
             </Children>
           </WidgetGroup><!-- RateControls -->
 

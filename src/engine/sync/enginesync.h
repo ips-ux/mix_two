@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <gtest/gtest_prod.h>
 
 #include "engine/sync/syncable.h"
@@ -10,6 +11,12 @@ class EngineChannel;
 
 const QString kBpmConfigGroup = QStringLiteral("[BPM]");
 const QString kSyncLockAlgorithmConfigKey = QStringLiteral("sync_lock_algorithm");
+
+// Mix Two: Preferences > Decks > Deck options > Sync options.
+// [App],sync_type: what SYNC matches (EngineSync::SyncType).
+const ConfigKey kSyncTypeConfigKey = ConfigKey(QStringLiteral("[App]"), QStringLiteral("sync_type"));
+// [App],sync_grid: Grid Lock's beat grid in beats (1/8, 1/4, 1/2 or 1).
+const ConfigKey kSyncGridConfigKey = ConfigKey(QStringLiteral("[App]"), QStringLiteral("sync_grid"));
 
 /// EngineSync is the heart of the Mixxx Sync Lock engine.  It knows which objects
 /// (Decks, Internal Clock, etc) are participating in Sync and what their statuses
@@ -26,6 +33,20 @@ class EngineSync : public SyncableListener {
         // for auto DJ mode.
         PREFER_LOCK_BPM
     };
+
+    // Mix Two: the Pioneer-style choice of what SYNC does.
+    // This enum is also used in mixxx.cfg. 0 is Mixxx's own behaviour.
+    enum class SyncType {
+        // Tempo and beats: phase locked to the master, snapping to the
+        // beat grid (sync_grid) when playback starts.
+        GridLock = 0,
+        // Tempo only: the DJ starts the track on the beat and nudges it.
+        BpmSync = 1,
+    };
+    static constexpr SyncType kDefaultSyncType = SyncType::GridLock;
+    // Grid Lock's beat grid, in beats.
+    static constexpr std::array<double, 4> kSyncGrids = {0.125, 0.25, 0.5, 1.0};
+    static constexpr double kDefaultSyncGrid = 1.0;
 
     explicit EngineSync(UserSettingsPointer pConfig);
     ~EngineSync() override;

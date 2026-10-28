@@ -19,6 +19,8 @@ enum class CueType {
     Outro = 7,
     N60dBSound = 8, // range that covers beginning and end of audible
                     // sound; not shown to user
+    MemoryCue = 9,  // rekordbox-style memory cue (no end position) or
+                    // memory loop (with end position); any number per track
 };
 
 enum class CueFlag {

@@ -76,12 +76,8 @@
                 <SetVariable name="Size">21f,18f</SetVariable>
               </Template>
 
-              <Template src="skins:LateNight/controls/button_2state.xml">
-                <SetVariable name="TooltipId">keylock</SetVariable>
-                <SetVariable name="ObjectName">KeylockButton<Variable name="DeckGroup"/></SetVariable>
-                <SetVariable name="ConfigKey"><Variable name="Group"/>,keylock</SetVariable>
-                <SetVariable name="Size">21f,18f</SetVariable>
-              </Template>
+              <!-- Mix Two: key lock moved to the MT button above the tempo
+                   slider (rate_controls.xml). -->
 
             </Children>
           </WidgetGroup><!-- /DeckSettingsGrid row 2 -->

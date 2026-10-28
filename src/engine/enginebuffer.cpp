@@ -6,6 +6,7 @@
 #include "control/controlpotmeter.h"
 #include "control/controlproxy.h"
 #include "control/controlpushbutton.h"
+#include "engine/bufferscalers/enginebufferscalehalfbandlagrange.h"
 #include "engine/bufferscalers/enginebufferscalelinear.h"
 #include "engine/bufferscalers/enginebufferscalest.h"
 #include "engine/cachingreader/cachingreader.h"
@@ -277,12 +278,21 @@ EngineBuffer::EngineBuffer(const QString& group,
             Qt::DirectConnection);
     // Construct scaling objects
     m_pScaleLinear = new EngineBufferScaleLinear(m_pReadAheadManager);
+    m_pScaleHalfbandLagrange = new EngineBufferScaleHalfbandLagrange(m_pReadAheadManager);
     m_pScaleST = new EngineBufferScaleST(m_pReadAheadManager);
 #ifdef __RUBBERBAND__
     m_pScaleRB = new EngineBufferScaleRubberBand(m_pReadAheadManager);
 #endif
     slotKeylockEngineChanged(m_pKeylockEngine->get());
     m_pScaleVinyl = m_pScaleLinear;
+    m_pScratchAlgorithm = new ControlProxy(
+            kAppGroup, QStringLiteral("scratch_algorithm"), this, ControlFlag::NoAssertIfMissing);
+    if (m_pScratchAlgorithm->valid()) {
+        m_pScratchAlgorithm->connectValueChanged(this,
+                &EngineBuffer::slotScratchAlgorithmChanged,
+                Qt::DirectConnection);
+        slotScratchAlgorithmChanged(m_pScratchAlgorithm->get());
+    }
     m_pScale = m_pScaleVinyl;
     m_pScale->clear();
     m_bScalerChanged = true;
@@ -333,6 +343,7 @@ EngineBuffer::~EngineBuffer() {
     delete m_pTrackSampleRate;
 
     delete m_pScaleLinear;
+    delete m_pScaleHalfbandLagrange;
     delete m_pScaleST;
 #ifdef __RUBBERBAND__
     delete m_pScaleRB;
@@ -810,7 +821,8 @@ void EngineBuffer::slotControlPlayRequest(double v) {
     bool verifiedPlay = updateIndicatorsAndModifyPlay(v > 0.0, oldPlay);
 
     if (!oldPlay && verifiedPlay) {
-        if (m_quantize.toBool()
+        // Mix Two: a deck synced in Grid Lock snaps into phase too.
+        if ((m_quantize.toBool() || m_pBpmControl->syncLocksPhase())
 #ifdef __VINYLCONTROL__
                 && m_pVinylControlControl && !m_pVinylControlControl->isEnabled()
 #endif
@@ -889,6 +901,25 @@ void EngineBuffer::slotKeylockEngineChanged(double dIndex) {
 #endif
     default:
         slotKeylockEngineChanged(static_cast<double>(defaultKeylockEngine()));
+        break;
+    }
+}
+
+void EngineBuffer::slotScratchAlgorithmChanged(double dIndex) {
+    if (m_bScalerOverride) {
+        return;
+    }
+    // The audio thread notices the new scaler and crossfades to it, as for a
+    // keylock engine change.
+    switch (static_cast<ScratchAlgorithm>(static_cast<int>(dIndex))) {
+    case ScratchAlgorithm::Mixxx:
+        m_pScaleVinyl = m_pScaleLinear;
+        break;
+    case ScratchAlgorithm::Rekordbox:
+        m_pScaleVinyl = m_pScaleHalfbandLagrange;
+        break;
+    default:
+        slotScratchAlgorithmChanged(static_cast<double>(defaultScratchAlgorithm()));
         break;
     }
 }
@@ -1235,6 +1266,7 @@ void EngineBuffer::process(CSAMPLE* pOutput, const std::size_t bufferSize) {
     // it doesn't reallocate when the user engages keylock during playback.
     // We do this even if rubberband is not active.
     m_pScaleLinear->setSignal(m_sampleRate, m_channelCount);
+    m_pScaleHalfbandLagrange->setSignal(m_sampleRate, m_channelCount);
     m_pScaleST->setSignal(m_sampleRate, m_channelCount);
 #ifdef __RUBBERBAND__
     m_pScaleRB->setSignal(m_sampleRate, m_channelCount);

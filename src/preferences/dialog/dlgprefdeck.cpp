@@ -6,6 +6,7 @@
 #include "control/controlproxy.h"
 #include "defs_urls.h"
 #include "engine/controls/ratecontrol.h"
+#include "engine/enginebuffer.h"
 #include "engine/sync/enginesync.h"
 #include "mixer/basetrackplayer.h"
 #include "mixer/playermanager.h"
@@ -191,6 +192,59 @@ DlgPrefDeck::DlgPrefDeck(QWidget* parent, UserSettingsPointer pConfig)
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             &DlgPrefDeck::slotLoadWhenDeckPlayingIndexChanged);
+
+    // Mix Two: Platter options. Each algorithm is named after where it comes
+    // from and that version, so later ones can sit next to them.
+    for (const auto algorithm : EngineBuffer::kScratchAlgorithms) {
+        QString name;
+        switch (algorithm) {
+        case EngineBuffer::ScratchAlgorithm::Mixxx:
+            name = tr("Mixxx (2.7)");
+            break;
+        case EngineBuffer::ScratchAlgorithm::Rekordbox:
+            name = tr("Rekordbox (6.8.5)");
+            break;
+        }
+        comboBoxScratchAlgorithm->addItem(name, static_cast<int>(algorithm));
+    }
+    m_pScratchAlgorithm = std::make_unique<ControlProxy>(
+            kAppGroup, QStringLiteral("scratch_algorithm"), this);
+    m_scratchAlgorithm = static_cast<int>(m_pConfig->getValue(
+            kConfigKeyScratchAlgorithm, EngineBuffer::defaultScratchAlgorithm()));
+    comboBoxScratchAlgorithm->setCurrentIndex(
+            comboBoxScratchAlgorithm->findData(m_scratchAlgorithm));
+    connect(comboBoxScratchAlgorithm,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &DlgPrefDeck::slotScratchAlgorithmIndexChanged);
+
+    // Mix Two: Sync options, Pioneer's BEAT SYNC / BPM SYNC.
+    comboBoxSyncType->addItem(tr("BPM Sync"),
+            static_cast<int>(EngineSync::SyncType::BpmSync));
+    comboBoxSyncType->setItemData(0,
+            tr("Sync matches the tempo only. Start the track on the beat and "
+               "line it up with the jog wheel."),
+            Qt::ToolTipRole);
+    comboBoxSyncType->addItem(tr("Grid Lock"),
+            static_cast<int>(EngineSync::SyncType::GridLock));
+    comboBoxSyncType->setItemData(1,
+            tr("Sync matches the tempo and locks the beats: a synced track "
+               "snaps to the nearest beat of the grid below when it starts."),
+            Qt::ToolTipRole);
+    comboBoxSyncGrid->addItem(QStringLiteral("1/8"), 0.125);
+    comboBoxSyncGrid->addItem(QStringLiteral("1/4"), 0.25);
+    comboBoxSyncGrid->addItem(QStringLiteral("1/2"), 0.5);
+    comboBoxSyncGrid->addItem(tr("Whole"), 1.0);
+    m_pSyncType = std::make_unique<ControlProxy>(kSyncTypeConfigKey, this);
+    m_pSyncGrid = std::make_unique<ControlProxy>(kSyncGridConfigKey, this);
+    selectSyncOptions(
+            m_pConfig->getValue(kSyncTypeConfigKey,
+                    static_cast<int>(EngineSync::kDefaultSyncType)),
+            m_pConfig->getValue(kSyncGridConfigKey, EngineSync::kDefaultSyncGrid));
+    connect(comboBoxSyncType,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &DlgPrefDeck::slotSyncTypeIndexChanged);
 
     // This option was introduced in Mixxx 2.3 with the intro & outro cues.
     // If the user has set main cue points with the intention of starting tracks
@@ -450,6 +504,11 @@ void DlgPrefDeck::slotUpdate() {
     checkBoxCloneDeckOnLoadDoubleTap->setChecked(m_pConfig->getValue(
             ConfigKey(kControlsGroup, QStringLiteral("CloneDeckOnLoadDoubleTap")), true));
 
+    comboBoxScratchAlgorithm->setCurrentIndex(comboBoxScratchAlgorithm->findData(
+            static_cast<int>(m_pScratchAlgorithm->get())));
+
+    selectSyncOptions(static_cast<int>(m_pSyncType->get()), m_pSyncGrid->get());
+
     double rateRange = m_rateRangeControls[0]->get();
     int index = ComboBoxRateRange->findData(static_cast<int>(rateRange * 100.0));
     if (index == -1) {
@@ -541,6 +600,12 @@ void DlgPrefDeck::slotResetToDefaults() {
 
     // What to do if someone loads into a playing deck
     comboBoxLoadWhenDeckPlaying->setCurrentIndex(static_cast<int>(kDefaultLoadWhenDeckPlaying));
+
+    comboBoxScratchAlgorithm->setCurrentIndex(comboBoxScratchAlgorithm->findData(
+            static_cast<int>(EngineBuffer::defaultScratchAlgorithm())));
+
+    selectSyncOptions(static_cast<int>(EngineSync::kDefaultSyncType),
+            EngineSync::kDefaultSyncGrid);
 
     // Load at intro start
     comboBoxLoadPoint->setCurrentIndex(
@@ -694,6 +759,28 @@ void DlgPrefDeck::slotLoadWhenDeckPlayingIndexChanged(int comboboxIndex) {
             comboBoxLoadWhenDeckPlaying->itemData(comboboxIndex).toInt());
 }
 
+void DlgPrefDeck::selectSyncOptions(int syncType, double syncGrid) {
+    comboBoxSyncType->setCurrentIndex(comboBoxSyncType->findData(syncType));
+    int gridIndex = comboBoxSyncGrid->findData(syncGrid);
+    if (gridIndex < 0) {
+        gridIndex = comboBoxSyncGrid->findData(EngineSync::kDefaultSyncGrid);
+    }
+    comboBoxSyncGrid->setCurrentIndex(gridIndex);
+    slotSyncTypeIndexChanged(comboBoxSyncType->currentIndex());
+}
+
+void DlgPrefDeck::slotSyncTypeIndexChanged(int comboboxIndex) {
+    // The beat grid only matters for Grid Lock.
+    const bool gridLock = comboBoxSyncType->itemData(comboboxIndex).toInt() ==
+            static_cast<int>(EngineSync::SyncType::GridLock);
+    labelSyncGrid->setEnabled(gridLock);
+    comboBoxSyncGrid->setEnabled(gridLock);
+}
+
+void DlgPrefDeck::slotScratchAlgorithmIndexChanged(int comboboxIndex) {
+    m_scratchAlgorithm = comboBoxScratchAlgorithm->itemData(comboboxIndex).toInt();
+}
+
 void DlgPrefDeck::slotApply() {
     m_pConfig->set(ConfigKey(kControlsGroup, QStringLiteral("SetIntroStartAtMainCue")),
             ConfigValue(m_bSetIntroStartAtMainCue));
@@ -715,6 +802,16 @@ void DlgPrefDeck::slotApply() {
     m_pConfig->setValue(ConfigKey(kControlsGroup, QStringLiteral("CueDefault")), m_cueMode);
 
     m_pConfig->setValue(kConfigKeyLoadWhenDeckPlaying, m_loadWhenDeckPlaying);
+
+    m_pConfig->setValue(kConfigKeyScratchAlgorithm, m_scratchAlgorithm);
+    m_pScratchAlgorithm->set(m_scratchAlgorithm);
+
+    const int syncType = comboBoxSyncType->currentData().toInt();
+    const double syncGrid = comboBoxSyncGrid->currentData().toDouble();
+    m_pConfig->setValue(kSyncTypeConfigKey, syncType);
+    m_pConfig->setValue(kSyncGridConfigKey, syncGrid);
+    m_pSyncType->set(syncType);
+    m_pSyncGrid->set(syncGrid);
 
     m_pConfig->setValue(ConfigKey(kControlsGroup, QStringLiteral("CueRecall")), m_seekOnLoadMode);
     m_pConfig->setValue(ConfigKey(kControlsGroup, QStringLiteral("CloneDeckOnLoadDoubleTap")),

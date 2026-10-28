@@ -17,6 +17,8 @@
 #include "library/dao/trackschema.h"
 #include "library/library.h"
 #include "library/queryutil.h"
+#include "library/rekordbox/rekordboxanlz.h"
+#include "library/rekordbox/rekordboxbeats.h"
 #include "library/rekordbox/rekordboxconstants.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -882,10 +884,49 @@ void setHotCue(TrackPointer track,
     }
 }
 
+// Adds a memory cue (or memory loop), or updates the one already at that
+// position, so that importing a track again does not duplicate it.
+void setMemoryCue(TrackPointer track,
+        mixxx::audio::FramePos startPosition,
+        mixxx::audio::FramePos endPosition,
+        const QString& label,
+        mixxx::RgbColor::optional_t color) {
+    CuePointer pCue;
+    const QList<CuePointer> cuePoints = track->getCuePoints();
+    for (const CuePointer& trackCue : cuePoints) {
+        if (trackCue->getType() != mixxx::CueType::MemoryCue) {
+            continue;
+        }
+        const Cue::StartAndEndPositions pos = trackCue->getStartAndEndPosition();
+        if (std::abs(pos.startPosition - startPosition) < 1 &&
+                pos.endPosition.isValid() == endPosition.isValid()) {
+            pCue = trackCue;
+            break;
+        }
+    }
+
+    if (pCue) {
+        pCue->setStartAndEndPosition(startPosition, endPosition);
+    } else {
+        pCue = track->createAndAddCue(
+                mixxx::CueType::MemoryCue,
+                Cue::kNoHotCue,
+                startPosition,
+                endPosition);
+    }
+    pCue->setLabel(label);
+    if (color) {
+        pCue->setColor(*color);
+    }
+}
+
+// Mix Two: the beat grid and the cues are read separately (they used to share
+// one "ignoreCues" flag, which skipped the grid of tracks without an .EXT).
 void readAnalyze(TrackPointer track,
         mixxx::audio::SampleRate sampleRate,
         int timingOffset,
-        bool ignoreCues,
+        bool readBeatGrid,
+        bool readCues,
         const QString& anlzPath) {
     if (!QFile(anlzPath).exists()) {
         return;
@@ -906,7 +947,7 @@ void readAnalyze(TrackPointer track,
     for (const auto& section : *anlz.sections()) {
         switch (section->fourcc()) {
         case rekordbox_anlz_t::SECTION_TAGS_BEAT_GRID: {
-            if (!ignoreCues) {
+            if (!readBeatGrid) {
                 break;
             }
 
@@ -914,7 +955,7 @@ void readAnalyze(TrackPointer track,
                     static_cast<rekordbox_anlz_t::beat_grid_tag_t*>(
                             section->body());
 
-            QVector<mixxx::audio::FramePos> beats;
+            QVector<mixxx::rekordbox::GridBeat> beats;
 
             for (const auto& beat : *beatGridTag->beats()) {
                 int time = static_cast<int>(beat->time()) - timingOffset;
@@ -922,17 +963,23 @@ void readAnalyze(TrackPointer track,
                 if (time < 1) {
                     time = 1;
                 }
-                beats << mixxx::audio::FramePos(sampleRateKhz * static_cast<double>(time));
+                beats << mixxx::rekordbox::GridBeat{
+                        mixxx::audio::FramePos(sampleRateKhz * static_cast<double>(time)),
+                        static_cast<int>(beat->tempo())};
             }
 
-            const auto pBeats = mixxx::Beats::fromBeatPositions(
+            // Mix Two: tempo segments from rekordbox's stored tempo, not one
+            // per millisecond-rounded beat (that made the BPM flicker).
+            const auto pBeats = mixxx::rekordbox::beatsFromGrid(
                     sampleRate,
                     beats,
                     mixxx::rekordboxconstants::beatsSubversion);
-            track->trySetBeats(pBeats);
+            if (pBeats) {
+                track->trySetBeats(pBeats);
+            }
         } break;
         case rekordbox_anlz_t::SECTION_TAGS_CUES: {
-            if (ignoreCues) {
+            if (!readCues) {
                 break;
             }
 
@@ -992,7 +1039,7 @@ void readAnalyze(TrackPointer track,
             }
         } break;
         case rekordbox_anlz_t::SECTION_TAGS_CUES_2: {
-            if (ignoreCues) {
+            if (!readCues) {
                 break;
             }
 
@@ -1082,29 +1129,42 @@ void readAnalyze(TrackPointer track,
             memory_cue_loop_t memoryCueOrLoop = memoryCuesAndLoops[memoryCueOrLoopIndex];
 
             if (!mainCueFound && !memoryCueOrLoop.endPosition.isValid()) {
-                // Set first chronological memory cue as Mixxx MainCue
+                // The first chronological memory cue is also the cue point,
+                // where CDJs and rekordbox stop when loading the track.
                 track->setMainCuePosition(memoryCueOrLoop.startPosition);
                 CuePointer pMainCue = track->findCueByType(mixxx::CueType::MainCue);
                 pMainCue->setLabel(memoryCueOrLoop.comment);
-                pMainCue->setColor(*memoryCueOrLoop.color);
+                // Legacy ANLZ memory cues have no color.
+                if (memoryCueOrLoop.color) {
+                    pMainCue->setColor(*memoryCueOrLoop.color);
+                }
                 mainCueFound = true;
-            } else {
-                // Mixxx v2.4 will feature multiple loops, so these saved here will be usable
-                // For 2.3, Mixxx treats them as hotcues and the first one will be loaded as the single loop Mixxx supports
-                lastHotCueIndex++;
-                setHotCue(
-                        track,
-                        memoryCueOrLoop.startPosition,
-                        memoryCueOrLoop.endPosition,
-                        lastHotCueIndex,
-                        memoryCueOrLoop.comment,
-                        memoryCueOrLoop.color);
             }
+            setMemoryCue(track,
+                    memoryCueOrLoop.startPosition,
+                    memoryCueOrLoop.endPosition,
+                    memoryCueOrLoop.comment,
+                    memoryCueOrLoop.color);
         }
     }
 }
 
 } // anonymous namespace
+
+void mixxx::rekordbox::readAnalysisFiles(TrackPointer track,
+        mixxx::audio::SampleRate sampleRate,
+        int timingOffset,
+        const QString& anlzPath) {
+    const QString anlzPathExt = anlzPath.left(anlzPath.length() - 3) + "EXT";
+    if (QFile(anlzPathExt).exists()) {
+        // Beatgrids appear to be only correct in legacy ANLZ file
+        readAnalyze(track, sampleRate, timingOffset, true, false, anlzPath);
+        readAnalyze(track, sampleRate, timingOffset, false, true, anlzPathExt);
+    } else {
+        // Only the legacy file: it holds both the grid and the cues.
+        readAnalyze(track, sampleRate, timingOffset, true, true, anlzPath);
+    }
+}
 
 RekordboxPlaylistModel::RekordboxPlaylistModel(QObject* parent,
         TrackCollectionManager* trackCollectionManager,
@@ -1279,15 +1339,7 @@ TrackPointer RekordboxPlaylistModel::getTrack(const QModelIndex& index) const {
     QString anlzPath =
             getFieldVariant(index, ColumnCache::COLUMN_REKORDBOX_ANALYZE_PATH)
                     .toString();
-    QString anlzPathExt = anlzPath.left(anlzPath.length() - 3) + "EXT";
-
-    if (QFile(anlzPathExt).exists()) {
-        // Beatgrids appear to be only correct in legacy ANLZ file
-        readAnalyze(track, sampleRate, timingOffset, true, anlzPath);
-        readAnalyze(track, sampleRate, timingOffset, false, anlzPathExt);
-    } else {
-        readAnalyze(track, sampleRate, timingOffset, false, anlzPath);
-    }
+    mixxx::rekordbox::readAnalysisFiles(track, sampleRate, timingOffset, anlzPath);
 
     // Assume that the key of the file the has been analyzed in Recordbox is correct
     // and prevent the AnalyzerKey from re-analyzing.

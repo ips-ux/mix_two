@@ -1,0 +1,135 @@
+<Template>
+  <SetVariable name="BtnType"><Variable name="SubRegion_BtnType"/></SetVariable>
+  <SetVariable name="Group">[Master]</SetVariable>
+  <SetVariable name="KnobBg">main</SetVariable>
+  <SetVariable name="KnobIndicator">main</SetVariable>
+  <SetVariable name="ArcRadius"><Variable name="ArcRadiusCompact"/></SetVariable>
+  <SetVariable name="ArcThickness"><Variable name="ArcThicknessBig"/></SetVariable>
+
+  <!-- Mix Two: the HEADPHONES section, left of the channels, mirroring the
+       MASTER section on the right, as on the DDJ-800: MIXING (cue to master)
+       on top, LEVEL below. The space above is kept for the four colour FX
+       buttons that sit above the headphone controls on the hardware. -->
+  <WidgetGroup>
+    <SizePolicy>max,min</SizePolicy>
+    <Layout>horizontal</Layout>
+    <Children>
+
+      <WidgetGroup>
+        <ObjectName>MixerHeadphonesSide</ObjectName>
+        <SizePolicy>min,min</SizePolicy>
+        <Layout>vertical</Layout>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>MixerMainHeadphone</ObjectName>
+            <SizePolicy>min,me</SizePolicy>
+            <Layout>vertical</Layout>
+            <Children>
+
+              <WidgetGroup>
+                <ObjectName>HeadphoneControls</ObjectName>
+                <SizePolicy>min,me</SizePolicy>
+                <Layout>vertical</Layout>
+                <Children>
+
+                  <!-- reserved: colour FX (DUB ECHO, PITCH, NOISE, FILTER) -->
+                  <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+
+
+                  <!-- the module's frame -->
+                  <WidgetGroup>
+                    <ObjectName>MixerModule</ObjectName>
+                    <Layout>vertical</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <!-- the module title, as printed on the mixer -->
+                      <Label>
+                        <ObjectName>MixerSectionHeader</ObjectName>
+                        <Text>Headphones</Text>
+                      </Label>
+                    <WidgetGroup><Size>0min,2f</Size></WidgetGroup>
+                    <Template src="skins:LateNight/controls/knob_label_above.xml">
+                      <SetVariable name="TooltipId">headMix</SetVariable>
+                      <SetVariable name="Size">35f,30f</SetVariable>
+                      <SetVariable name="KnobColor">red</SetVariable>
+                      <SetVariable name="ArcColor"><Variable name="ArcColorMstBal"/></SetVariable>
+                      <SetVariable name="Control">headMix</SetVariable>
+                      <SetVariable name="Label">Mixing</SetVariable>
+                    </Template>
+                    <WidgetGroup>
+                      <ObjectName>KnobEndLabels</ObjectName>
+                      <Layout>horizontal</Layout>
+                      <SizePolicy>min,min</SizePolicy>
+                      <Children>
+                        <Label>
+                          <ObjectName>KnobEndLabel</ObjectName>
+                          <Text>Cue</Text>
+                        </Label>
+                        <WidgetGroup><Size>6f,0min</Size></WidgetGroup>
+                        <Label>
+                          <ObjectName>KnobEndLabel</ObjectName>
+                          <Text>Master</Text>
+                        </Label>
+                      </Children>
+                    </WidgetGroup>
+                    <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+                    <Template src="skins:LateNight/controls/knob_label_above.xml">
+                      <SetVariable name="TooltipId">headphone_gain</SetVariable>
+                      <SetVariable name="Size">35f,30f</SetVariable>
+                      <SetVariable name="KnobColor">orange</SetVariable>
+                      <SetVariable name="ArcColor"><Variable name="ArcColorGainLow"/></SetVariable>
+                      <SetVariable name="ArcUnipolar">true</SetVariable>
+                      <SetVariable name="Control">headGain</SetVariable>
+                      <SetVariable name="Label">Level</SetVariable>
+                    </Template>
+                    <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
+                    <WidgetGroup><!-- HeadSplit button -->
+                      <Layout>horizontal</Layout>
+                      <SizePolicy>me,min</SizePolicy>
+                      <Children>
+                        <PushButton>
+                          <TooltipId>headSplit</TooltipId>
+                          <ObjectName>SplitCue</ObjectName>
+                          <Size>48f,22f</Size>
+                          <NumberStates>2</NumberStates>
+                          <RightClickIsPushButton>false</RightClickIsPushButton>
+                          <State>
+                            <Number>0</Number>
+                            <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit.svg</Unpressed>
+                            <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit.svg</Pressed>
+                          </State>
+                          <State>
+                            <Number>1</Number>
+                            <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit_active.svg</Unpressed>
+                            <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit_active.svg</Pressed>
+                          </State>
+                          <Connection>
+                            <ConfigKey>[Master],headSplit</ConfigKey>
+                            <ButtonState>LeftButton</ButtonState>
+                          </Connection>
+                        </PushButton>
+                      </Children>
+                    </WidgetGroup>
+                    </Children>
+                  </WidgetGroup><!-- MixerModule -->
+                </Children>
+              </WidgetGroup><!-- HeadphoneControls -->
+
+            </Children>
+          </WidgetGroup><!-- MixerMainHeadphone -->
+        </Children>
+      </WidgetGroup><!-- MixerHeadphonesSide -->
+
+      <WidgetGroup><!--sized and styled in css -->
+        <ObjectName>MainMixerSeparator</ObjectName>
+        <Layout>horizontal</Layout>
+        <Children/>
+      </WidgetGroup>
+
+    </Children>
+    <Connection>
+      <ConfigKey persist="true">[Skin],show_main_head_mixer</ConfigKey>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</Template>

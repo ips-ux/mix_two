@@ -155,6 +155,8 @@ class ControllerScriptEngineLegacyTest : public ControllerScriptEngineLegacy,
         CoverArtCache::destroy();
         ControllerScriptEngineBase::registerPlayerManager(nullptr);
         ControllerScriptEngineBase::registerTrackCollectionManager(nullptr);
+        // The custom key notation is process-wide; don't leak it into other tests.
+        KeyUtils::setNotation({});
     }
 
     ~ControllerScriptEngineLegacyTest() {

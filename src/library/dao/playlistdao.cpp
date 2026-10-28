@@ -2,6 +2,7 @@
 
 #include <QRandomGenerator>
 #include <QtDebug>
+#include <algorithm>
 
 #include "library/autodj/autodjprocessor.h"
 #include "library/dao/trackschema.h"
@@ -1525,4 +1526,260 @@ void PlaylistDAO::addTracksToAutoDJQueue(const QList<TrackId>& trackIds, AutoDJS
         }
         break;
     }
+}
+
+namespace {
+
+QVariant folderIdOrNull(int folderId) {
+    if (folderId == kInvalidPlaylistFolderId) {
+        return QVariant(QMetaType::fromType<int>());
+    }
+    return folderId;
+}
+
+int folderIdFromValue(const QVariant& value) {
+    bool ok = false;
+    const int folderId = value.toInt(&ok);
+    return (value.isNull() || !ok) ? kInvalidPlaylistFolderId : folderId;
+}
+
+QString idList(const QSet<int>& ids) {
+    QStringList idStrings;
+    idStrings.reserve(ids.size());
+    for (const int id : ids) {
+        idStrings.append(QString::number(id));
+    }
+    return idStrings.join(QChar(','));
+}
+
+} // namespace
+
+int PlaylistDAO::createFolder(const QString& name, int parentFolderId) {
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty() ||
+            getFolderIdFromName(trimmedName, parentFolderId) != kInvalidPlaylistFolderId) {
+        return kInvalidPlaylistFolderId;
+    }
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "INSERT INTO PlaylistFolders (name, parent_id, date_created, date_modified) "
+            "VALUES (:name, :parent, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"));
+    query.bindValue(":name", trimmedName);
+    query.bindValue(":parent", folderIdOrNull(parentFolderId));
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return kInvalidPlaylistFolderId;
+    }
+    const int folderId = query.lastInsertId().toInt();
+    emit foldersChanged();
+    return folderId;
+}
+
+bool PlaylistDAO::renameFolder(int folderId, const QString& newName) {
+    const QString trimmedName = newName.trimmed();
+    if (trimmedName.isEmpty()) {
+        return false;
+    }
+    int parentFolderId = kInvalidPlaylistFolderId;
+    const QList<PlaylistFolder> folders = getFolders();
+    for (const PlaylistFolder& folder : folders) {
+        if (folder.id == folderId) {
+            parentFolderId = folder.parentId;
+            break;
+        }
+    }
+    const int existingId = getFolderIdFromName(trimmedName, parentFolderId);
+    if (existingId != kInvalidPlaylistFolderId && existingId != folderId) {
+        return false;
+    }
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "UPDATE PlaylistFolders SET name = :name, date_modified = CURRENT_TIMESTAMP "
+            "WHERE id = :id"));
+    query.bindValue(":name", trimmedName);
+    query.bindValue(":id", folderId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return false;
+    }
+    emit foldersChanged();
+    return true;
+}
+
+bool PlaylistDAO::deleteFolder(int folderId) {
+    const QSet<int> folderIds = getFolderAndSubfolderIds(folderId);
+    if (folderIds.isEmpty()) {
+        return false;
+    }
+    const QList<int> playlistIds = getPlaylistIdsInFolder(folderId);
+    for (const int playlistId : playlistIds) {
+        if (isPlaylistLocked(playlistId)) {
+            qInfo() << "Not deleting playlist folder" << folderId
+                    << "because it contains the locked playlist" << playlistId;
+            return false;
+        }
+    }
+
+    for (const int playlistId : playlistIds) {
+        deletePlaylist(playlistId);
+    }
+
+    auto deleteFolders = FwdSqlQuery(m_database,
+            QStringLiteral("DELETE FROM PlaylistFolders WHERE id IN (%1)")
+                    .arg(idList(folderIds)));
+    if (!deleteFolders.execPrepared()) {
+        return false;
+    }
+    emit foldersChanged();
+    return true;
+}
+
+bool PlaylistDAO::moveFolder(int folderId, int newParentFolderId) {
+    if (newParentFolderId != kInvalidPlaylistFolderId &&
+            getFolderAndSubfolderIds(folderId).contains(newParentFolderId)) {
+        return false;
+    }
+    const QString name = getFolderName(folderId);
+    const int existingId = getFolderIdFromName(name, newParentFolderId);
+    if (name.isEmpty() || (existingId != kInvalidPlaylistFolderId && existingId != folderId)) {
+        return false;
+    }
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "UPDATE PlaylistFolders SET parent_id = :parent, "
+            "date_modified = CURRENT_TIMESTAMP WHERE id = :id"));
+    query.bindValue(":parent", folderIdOrNull(newParentFolderId));
+    query.bindValue(":id", folderId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return false;
+    }
+    emit foldersChanged();
+    return true;
+}
+
+QList<PlaylistDAO::PlaylistFolder> PlaylistDAO::getFolders() const {
+    QList<PlaylistFolder> folders;
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "SELECT id, name, parent_id FROM PlaylistFolders"));
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return folders;
+    }
+    while (query.next()) {
+        folders.append(PlaylistFolder{query.value(0).toInt(),
+                query.value(1).toString(),
+                folderIdFromValue(query.value(2))});
+    }
+    return folders;
+}
+
+QString PlaylistDAO::getFolderName(int folderId) const {
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral("SELECT name FROM PlaylistFolders WHERE id = :id"));
+    query.bindValue(":id", folderId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return QString();
+    }
+    return query.next() ? query.value(0).toString() : QString();
+}
+
+int PlaylistDAO::getFolderIdFromName(const QString& name, int parentFolderId) const {
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "SELECT id FROM PlaylistFolders WHERE name = :name AND parent_id IS :parent"));
+    query.bindValue(":name", name);
+    query.bindValue(":parent", folderIdOrNull(parentFolderId));
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return kInvalidPlaylistFolderId;
+    }
+    return query.next() ? query.value(0).toInt() : kInvalidPlaylistFolderId;
+}
+
+bool PlaylistDAO::setPlaylistFolder(int playlistId, int folderId) {
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "UPDATE Playlists SET folder_id = :folder WHERE id = :id"));
+    query.bindValue(":folder", folderIdOrNull(folderId));
+    query.bindValue(":id", playlistId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return false;
+    }
+    emit foldersChanged();
+    return true;
+}
+
+int PlaylistDAO::getPlaylistFolderId(int playlistId) const {
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral("SELECT folder_id FROM Playlists WHERE id = :id"));
+    query.bindValue(":id", playlistId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return kInvalidPlaylistFolderId;
+    }
+    return query.next() ? folderIdFromValue(query.value(0)) : kInvalidPlaylistFolderId;
+}
+
+QHash<int, int> PlaylistDAO::getPlaylistFolderIds(HiddenType hidden) const {
+    QHash<int, int> folderIds;
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "SELECT id, folder_id FROM Playlists "
+            "WHERE hidden = :hidden AND folder_id IS NOT NULL"));
+    query.bindValue(":hidden", static_cast<int>(hidden));
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return folderIds;
+    }
+    while (query.next()) {
+        folderIds.insert(query.value(0).toInt(), folderIdFromValue(query.value(1)));
+    }
+    return folderIds;
+}
+
+QSet<int> PlaylistDAO::getFolderAndSubfolderIds(int folderId) const {
+    QSet<int> folderIds;
+    const QList<PlaylistFolder> folders = getFolders();
+    const bool exists = std::any_of(folders.cbegin(),
+            folders.cend(),
+            [folderId](const PlaylistFolder& folder) { return folder.id == folderId; });
+    if (!exists) {
+        return folderIds;
+    }
+    folderIds.insert(folderId);
+    // Add children until nothing changes; also safe if the data has a cycle.
+    bool added = true;
+    while (added) {
+        added = false;
+        for (const PlaylistFolder& folder : folders) {
+            if (!folderIds.contains(folder.id) && folderIds.contains(folder.parentId)) {
+                folderIds.insert(folder.id);
+                added = true;
+            }
+        }
+    }
+    return folderIds;
+}
+
+QList<int> PlaylistDAO::getPlaylistIdsInFolder(int folderId) const {
+    QList<int> playlistIds;
+    const QSet<int> folderIds = getFolderAndSubfolderIds(folderId);
+    if (folderIds.isEmpty()) {
+        return playlistIds;
+    }
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral("SELECT id FROM Playlists WHERE folder_id IN (%1)")
+                    .arg(idList(folderIds)));
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return playlistIds;
+    }
+    while (query.next()) {
+        playlistIds.append(query.value(0).toInt());
+    }
+    return playlistIds;
 }

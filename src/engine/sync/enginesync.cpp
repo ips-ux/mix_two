@@ -65,6 +65,13 @@ void EngineSync::requestSyncMode(Syncable* pSyncable, SyncMode mode) {
         [[fallthrough]];
     }
     case SyncMode::Follower: {
+        // A deck that is explicit leader (rekordbox MASTER) and asks to
+        // follow gives up leadership first; otherwise pickLeader() would keep
+        // choosing it. The internal clock keeps upstream's behaviour.
+        if (m_pLeaderSyncable == pSyncable && pSyncable != m_pInternalClock &&
+                pSyncable->getSyncMode() == SyncMode::LeaderExplicit) {
+            activateFollower(pSyncable);
+        }
         // This request is also used to verify and move a soft leader
         if (!m_pLeaderSyncable || m_pLeaderSyncable == pSyncable ||
                 m_pLeaderSyncable->getSyncMode() != SyncMode::LeaderExplicit) {
@@ -284,6 +291,12 @@ Syncable* EngineSync::pickLeader(Syncable* triggering_syncable, bool newStatus) 
             PREFER_SOFT_LEADER);
     switch (picker) {
     case PREFER_SOFT_LEADER:
+        // Mix Two (rekordbox MASTER): a playing leader keeps leading; the
+        // leader only moves when it stops, not because another deck is
+        // (more) audible.
+        if (leaderIsValid) {
+            return m_pLeaderSyncable;
+        }
         // Always pick a deck for a new leader.
         if (audible_playing_deck_count == 1) {
             return first_playing_deck;

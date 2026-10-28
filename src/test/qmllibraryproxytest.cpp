@@ -68,6 +68,7 @@ class QmlLibraryProxyTest : public MixxxTest {
     void TearDown() override {
         m_proxy.reset();
         m_coreServices.reset();
+        restoreTestLogging();
         if (m_rejectFileDialogs) {
             application()->removeEventFilter(m_rejectFileDialogs.get());
             m_rejectFileDialogs.reset();

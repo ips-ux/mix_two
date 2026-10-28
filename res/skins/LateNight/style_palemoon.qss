@@ -1272,6 +1272,7 @@ WEffectChainPresetSelector,
 #Deck1 #TitleText,
   #Deck1 #ArtistText,
   #Deck1 #BpmText,
+  #Deck1 #HubBpmText,
   #Deck1 #KeyText,
   #DeckCompact1 #TitleText,
   #DeckCompact1 #ArtistText,
@@ -1284,6 +1285,7 @@ WEffectChainPresetSelector,
 #Deck2 #TitleText,
   #Deck2 #ArtistText,
   #Deck2 #BpmText,
+  #Deck2 #HubBpmText,
   #Deck2 #KeyText,
   #DeckCompact2 #TitleText,
   #DeckCompact2 #ArtistText,
@@ -1387,6 +1389,7 @@ WEffectChainPresetSelector:!editable:on,
 #Deck3 #TitleText,
   #Deck3 #ArtistText,
   #Deck3 #BpmText,
+  #Deck3 #HubBpmText,
   #Deck3 #KeyText,
   #DeckCompact3 #TitleText,
   #DeckCompact3 #ArtistText,
@@ -1399,6 +1402,7 @@ WEffectChainPresetSelector:!editable:on,
 #Deck4 #TitleText,
   #Deck4 #ArtistText,
   #Deck4 #BpmText,
+  #Deck4 #HubBpmText,
   #Deck4 #KeyText,
   #DeckCompact4 #TitleText,
   #DeckCompact4 #ArtistText,
@@ -1583,6 +1587,7 @@ WEffectSelector:!editable,
   #SyncDeck[displayValue="1"],
   WPushButton#FxAssignButton1[displayValue="1"],
   #KeyMatchReset[pressed="true"],
+  #KeyMatchReset[displayValue="1"],
   #GuiToggleButton[displayValue="1"],
   #RecFeedback[displayValue="1"],
   #RecFeedback[displayValue="2"],
@@ -2451,7 +2456,8 @@ WPushButton#PlayDeck[value="0"] {
 #KeyMatchReset {
   image: url(skins:LateNight/palemoon/buttons/btn__key_match.svg) no-repeat center center;
   }
-  #KeyMatchReset[pressed="true"] {
+  #KeyMatchReset[pressed="true"],
+  #KeyMatchReset[displayValue="1"] {
     image: url(skins:LateNight/palemoon/buttons/btn__key_match_active.svg) no-repeat center center;
   }
 
@@ -3627,3 +3633,106 @@ WSearchLineEdit::indicator:unchecked:selected {
 }
 /************** common styles for WEffectSelector ******************************
 *************** QSpinBox, QMenu, QToolTip *************************************/
+
+/************** Mix Two: deck hub and MT button ****************************/
+#HubBpmContainer:hover,
+#HubRateRangeButton:hover {
+  background-color: #1a1a1a;
+  border-radius: 1px;
+}
+
+/* Slider BPM: white while the deck plays at the slider's tempo, red-orange
+   while it does not (SYNC follows the master, or the slider has not caught
+   up yet). */
+#HubSliderBpmText {
+  color: #ffffff;
+}
+#HubSliderBpmText[highlight="1"] {
+  color: #ff5a1f;
+}
+
+#HubRateText,
+#HubRateRangeText,
+#MasterTempoLabel {
+  color: #988f86;
+}
+
+
+/************** Mix Two: MASTER and HEADPHONES sections ********************/
+/* The headphones section sits left of the channels: mirror the margin. */
+#MixerHeadphonesSide #MixerMainHeadphone {
+  margin: 2px 0px 2px 2px;
+}
+
+#MixerSectionHeader,
+#KnobEndLabel {
+  color: #988f86;
+}
+
+/* MASTER CUE: a short orange-framed button, lit while on (DDJ-800). */
+#MainCueButton {
+  color: #ff9a1f;
+  background-color: #161616;
+  border: 1px solid #ff9a1f;
+  border-radius: 2px;
+}
+#MainCueButton[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+}
+
+/************** Mix Two: mixer modules, round SYNC / KEY SYNC **************/
+/* Raised module: soft gradient face, light top edge, dark bottom edge. */
+#MixerModule {
+  background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1f1e1d, stop:1 #161514);
+  border: 1px solid #080808;
+  border-top-color: #34322f;
+  border-radius: 4px;
+  padding: 0px 4px 5px 4px;
+}
+/* The title sits in an inset bar at the top of its module. */
+#MixerSectionHeader {
+  color: #b5aca3;
+  background-color: #100f0e;
+  border: 1px solid #080808;
+  border-bottom-color: #34322f;
+  border-radius: 3px;
+  margin: 3px 0px 4px 0px;
+  padding: 0px 6px;
+}
+
+/* Round SYNC / KEY SYNC: a domed cap with a ring light. */
+#SyncRoundClick {
+  background: transparent;
+  border: none;
+}
+#SyncRound,
+#KeySyncRound,
+#MasterTempoRound {
+  color: #8a8a8a;
+  background-color: qradialgradient(cx:0.4, cy:0.35, radius:0.75, fx:0.4, fy:0.3,
+      stop:0 #3a3a3a, stop:1 #141414);
+  border: 1px solid #2a2a2a;
+  border-radius: 17px;
+}
+/* synced: tech blue */
+#SyncRound[displayValue="1"],
+#SyncRound[displayValue="4"],
+#KeySyncRound[displayValue="1"] {
+  color: #d6eeff;
+  border-color: #1fa3ff;
+}
+/* MASTER: red-orange */
+#SyncRound[displayValue="2"],
+#SyncRound[displayValue="5"] {
+  color: #ffe0d2;
+  border-color: #ff5a1f;
+}
+
+/* MT: the same domed cap, with a centre light that is vivid red while on. */
+#MasterTempoRound[displayValue="0"] {
+  image: url(skins:LateNight/palemoon/buttons/btn__mt_light.svg) no-repeat center center;
+}
+#MasterTempoRound[displayValue="1"] {
+  image: url(skins:LateNight/palemoon/buttons/btn__mt_light_on.svg) no-repeat center center;
+}

@@ -1,0 +1,144 @@
+<!--
+Mix Two: rekordbox-style deck hub, built around the circular deck (spinny).
+  * BPM, large and centred on top. Click it for the tap/edit tools.
+  * Slider BPM: the BPM the controller's tempo slider stands for. Orange
+    while the deck plays at another tempo (SYNC follows the master, or the
+    slider has not caught up yet), white once they agree.
+  * Tempo % and the tempo range (click to step ±6, ±10, ±16 %, WIDE).
+  * The platter (spinny / cover, small or big as selected), then CUE,
+    REVERSE and PLAY/PAUSE underneath.
+Variables:
+  Group, ChanNum
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>DeckHub</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>min,me</SizePolicy>
+    <Children>
+
+      <WidgetGroup>
+        <ObjectName>HubBpmContainer</ObjectName>
+        <Size>114f,30f</Size>
+        <Children>
+          <Number>
+            <ObjectName>HubBpmText</ObjectName>
+            <TooltipId>visual_bpm</TooltipId>
+            <Pos>0,0</Pos>
+            <Size>114f,30f</Size>
+            <Alignment>center</Alignment>
+            <NumberOfDigits>2</NumberOfDigits>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,visual_bpm</ConfigKey>
+            </Connection>
+          </Number>
+          <!-- invisible Tempo/BPM editor on top of the BPM -->
+          <BpmEditor>
+            <TooltipId>visual_bpm_edit</TooltipId>
+            <Pos>0,0</Pos>
+            <Size>114f,30f</Size>
+            <Group><Variable name="Group"/></Group>
+          </BpmEditor>
+        </Children>
+      </WidgetGroup><!-- HubBpmContainer -->
+
+      <Number>
+        <ObjectName>HubSliderBpmText</ObjectName>
+        <TooltipId>tempo_slider_bpm</TooltipId>
+        <Size>114f,16f</Size>
+        <Alignment>center</Alignment>
+        <NumberOfDigits>2</NumberOfDigits>
+        <Connection>
+          <ConfigKey><Variable name="Group"/>,tempo_slider_bpm</ConfigKey>
+        </Connection>
+        <Connection>
+          <ConfigKey><Variable name="Group"/>,tempo_slider_matched</ConfigKey>
+          <Transform><Not/></Transform>
+          <BindProperty>highlight</BindProperty>
+        </Connection>
+      </Number>
+
+      <WidgetGroup>
+        <ObjectName>HubRateRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>114f,18f</Size>
+        <Children>
+          <NumberRate>
+            <TooltipId>rate_display</TooltipId>
+            <ObjectName>HubRateText</ObjectName>
+            <Size>60f,18f</Size>
+            <Alignment>center</Alignment>
+            <Channel><Variable name="ChanNum"/></Channel>
+            <NumberOfDigits>2</NumberOfDigits>
+          </NumberRate>
+          <WidgetGroup>
+            <Size>54f,18f</Size>
+            <Children>
+              <RateRange>
+                <TooltipId>rate_range_next</TooltipId>
+                <ObjectName>HubRateRangeText</ObjectName>
+                <Channel><Variable name="ChanNum"/></Channel>
+                <Display>symmetric</Display>
+                <Pos>0,0</Pos>
+                <Size>54f,18f</Size>
+              </RateRange>
+              <PushButton>
+                <TooltipId>rate_range_next</TooltipId>
+                <ObjectName>HubRateRangeButton</ObjectName>
+                <Pos>0,0</Pos>
+                <Size>54f,18f</Size>
+                <NumberStates>1</NumberStates>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,rate_range_next</ConfigKey>
+                  <ButtonState>LeftButton</ButtonState>
+                </Connection>
+              </PushButton>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup><!-- HubRateRow -->
+
+      <!-- The platter: whichever spinny size is selected. -->
+      <WidgetGroup>
+        <ObjectName>HubPlatter</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>SpinnyCoverContainer_Small</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>f,f</SizePolicy>
+            <Children>
+              <SingletonContainer>
+                <ObjectName>SpinnyCoverart<Variable name="ChanNum"/></ObjectName>
+              </SingletonContainer>
+            </Children>
+            <Connection>
+              <ConfigKey>[Skin],show_small_spinny_or_cover</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup><!-- SpinnyCoverContainer_Small -->
+      <WidgetGroup>
+        <ObjectName>SpinnyCoverContainer_Big</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>f,f</SizePolicy>
+        <Children>
+          <SingletonContainer>
+            <ObjectName>SpinnyCoverart<Variable name="ChanNum"/></ObjectName>
+          </SingletonContainer>
+        </Children>
+        <Connection>
+          <ConfigKey>[Skin],show_big_spinny_or_cover</ConfigKey>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup><!-- SpinnyCoverContainer_Big -->
+        </Children>
+      </WidgetGroup><!-- HubPlatter -->
+
+      <Template src="skins:LateNight/decks/transport_buttons.xml"/>
+
+      <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+
+    </Children>
+  </WidgetGroup><!-- DeckHub -->
+</Template>

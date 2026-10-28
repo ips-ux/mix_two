@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <atomic>
 
 #include "control/pollingcontrolproxy.h"
 #include "engine/controls/enginecontrol.h"
@@ -83,6 +84,8 @@ public slots:
   void slotRateRangeChanged(double);
   void slotRateSliderChanged(double);
   void slotRateRatioChanged(double);
+  void slotRatePhysicalChanged(double);
+  void slotRateRangeNext(double);
   void slotReverseRollActivate(double);
   void slotControlRatePermDown(double);
   void slotControlRatePermDownSmall(double);
@@ -96,6 +99,13 @@ private:
   double getJogFactor() const;
   double getWheelFactor() const;
   SyncMode getSyncMode() const;
+  // Mix Two: the BPM the hardware tempo slider stands for, and whether the
+  // deck plays at it.
+  void updateTempoSlider();
+  // Mix Two: the rekordbox-style platter (docs/ddj800-program/
+  // SCRATCH-ENGINE.md, "Mix Two's version"). Returns the scratch rate while
+  // the platter is touched.
+  double calculatePlatterRate(double baserate, std::size_t samplesPerBuffer);
 
   // Set rate change of the temporary pitch rate
   void setRateTemp(double v);
@@ -117,6 +127,31 @@ private:
   std::unique_ptr<ControlObject> m_pRateRange;
   std::unique_ptr<ControlPotmeter> m_pRateSlider;
   std::unique_ptr<ControlPotmeter> m_pRateSearch;
+  // Mix Two: position of the controller's tempo slider, -1..1 like "rate".
+  // It can differ from "rate" while SYNC holds the tempo or before the
+  // slider has caught up (soft takeover).
+  std::unique_ptr<ControlObject> m_pRatePhysical;
+  // Mix Two: steps through the rekordbox ranges (±6, ±10, ±16 %, WIDE).
+  std::unique_ptr<ControlPushButton> m_pRateRangeNext;
+  std::unique_ptr<ControlObject> m_pTempoSliderBpm;
+  std::unique_ptr<ControlObject> m_pTempoSliderMatched;
+  std::unique_ptr<ControlProxy> m_pLocalBpm;
+  bool m_ratePhysicalKnown;
+  // [ChannelN],platter_touch: the platter is touched (scratching).
+  std::unique_ptr<ControlPushButton> m_pPlatterTouch;
+  // [ChannelN],platter_turn: each set adds that many revolutions turned
+  // (negative backwards). The value itself stays 0.
+  std::unique_ptr<ControlObject> m_pPlatterTurn;
+  std::atomic<double> m_platterTurnPending;
+  bool m_platterActive;
+  bool m_platterDeadZone;
+  // The renderer eases into the stop over the first touched buffer; the
+  // anchor is taken after that, where the track came to rest.
+  bool m_platterAnchorPending;
+  double m_platterAnchor;     // track frames at touch
+  double m_platterTurned;     // revolutions applied since touch
+  double m_platterDeadTurn;   // revolutions discarded in the dead zone
+  double m_platterSinceTouch; // seconds since touch
 
   std::unique_ptr<ControlPushButton> m_pButtonRateTempDown;
   std::unique_ptr<ControlPushButton> m_pButtonRateTempDownSmall;

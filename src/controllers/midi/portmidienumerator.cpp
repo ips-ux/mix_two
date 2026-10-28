@@ -3,6 +3,7 @@
 #include <portmidi.h>
 
 #include <QRegularExpression>
+#include <utility>
 
 #include "controllers/defs_controllers.h"
 #include "controllers/midi/portmidicontroller.h"
@@ -171,6 +172,24 @@ bool shouldLinkInputToOutput(const QString& input_name,
     }
 
     return false;
+}
+
+QList<Controller*> PortMidiEnumerator::releaseDevicesForRescan() {
+    QList<Controller*> released;
+    released.swap(m_devices);
+    for (Controller* pDevice : std::as_const(released)) {
+        // Their PmDeviceInfo pointers do not survive Pm_Terminate().
+        static_cast<PortMidiController*>(pDevice)->detachFromPortMidi();
+    }
+    PmError err = Pm_Terminate();
+    if (err != pmNoError) {
+        qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
+    }
+    err = Pm_Initialize();
+    if (err != pmNoError) {
+        qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
+    }
+    return released;
 }
 
 /// Enumerate the MIDI devices

@@ -122,6 +122,8 @@ EngineMixer::EngineMixer(UserSettingsPointer pConfig,
                   ConfigKey(EngineXfader::kXfaderConfigKey, "xFaderReverse"))),
           m_pHeadSplitEnabled(std::make_unique<ControlPushButton>(
                   ConfigKey(group, "headSplit"), true, 0.0)),
+          m_pMainCue(std::make_unique<ControlPushButton>(
+                  ConfigKey(group, QStringLiteral("main_cue")))),
 
           m_pKeylockEngine(std::make_unique<ControlObject>(
                   ConfigKey(kAppGroup, QStringLiteral("keylock_engine")),
@@ -130,6 +132,22 @@ EngineMixer::EngineMixer(UserSettingsPointer pConfig,
                   static_cast<double>(pConfig->getValue(
                           ConfigKey(group, "keylock_engine"),
                           EngineBuffer::defaultKeylockEngine())))),
+          m_pScratchAlgorithm(std::make_unique<ControlObject>(
+                  ConfigKey(kAppGroup, QStringLiteral("scratch_algorithm")),
+                  false,
+                  false,
+                  static_cast<double>(pConfig->getValue(
+                          ConfigKey(kAppGroup, QStringLiteral("scratch_algorithm")),
+                          EngineBuffer::defaultScratchAlgorithm())))),
+          m_pSyncType(std::make_unique<ControlObject>(kSyncTypeConfigKey,
+                  false,
+                  false,
+                  static_cast<double>(pConfig->getValue(
+                          kSyncTypeConfigKey, static_cast<int>(EngineSync::kDefaultSyncType))))),
+          m_pSyncGrid(std::make_unique<ControlObject>(kSyncGridConfigKey,
+                  false,
+                  false,
+                  pConfig->getValue(kSyncGridConfigKey, EngineSync::kDefaultSyncGrid))),
           m_mainGainOld(0.0),
           m_boothGainOld(0.0),
           m_headphoneMainGainOld(0.0),
@@ -191,6 +209,7 @@ EngineMixer::EngineMixer(UserSettingsPointer pConfig,
 
     m_pHeadSplitEnabled->setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_pHeadSplitEnabled->set(0.0);
+    m_pMainCue->setButtonMode(mixxx::control::ButtonMode::Toggle);
 
     // zero out otherwise uninitialized buffers
     m_head.clear();
@@ -395,6 +414,11 @@ void EngineMixer::process(const std::size_t bufferSize) {
         mainMixGainInHeadphones = 0.5f * (cf_val + 1.0f);
         // qDebug() << "head val " << cf_val << ", head " << chead_gain
         //          << ", main " << mainGain;
+    }
+    if (m_pMainCue->toBool()) {
+        // The main mix is on the cue bus too: the cue side of MIXING carries
+        // it, so it is heard in full whatever the MIXING position.
+        mainMixGainInHeadphones += pflMixGainInHeadphones;
     }
 
     // Mix all the PFL enabled channels together.

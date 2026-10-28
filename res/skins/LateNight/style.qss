@@ -1068,3 +1068,99 @@ WLibrarySidebar {
 #Border58 {
   border: 1px solid #585858;
 }
+
+/************** Mix Two: deck hub and MT button ****************************/
+/* see decks/deck_hub.xml and decks/rate_controls.xml */
+
+#HubBpmText {
+  font-size: 26px;
+  font-weight: bold;
+  qproperty-alignment: 'AlignCenter';
+}
+
+#HubSliderBpmText {
+  font-size: 14px;
+  qproperty-alignment: 'AlignCenter';
+}
+
+#HubRateText,
+#HubRateRangeText {
+  font-size: 13px;
+  qproperty-alignment: 'AlignCenter';
+}
+
+#DeckHub {
+  qproperty-layoutAlignment: 'AlignHCenter | AlignTop';
+  margin: 0px 2px;
+}
+
+#MasterTempoBox {
+  qproperty-layoutAlignment: 'AlignCenter';
+}
+
+#MasterTempoLabel {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  qproperty-alignment: 'AlignCenter';
+  margin-top: 1px;
+}
+
+#HubRateRangeButton,
+#HubRateRangeButton:pressed {
+  background: transparent;
+  border: none;
+}
+
+/************** Mix Two: MASTER and HEADPHONES sections ********************/
+/* see mixer/mixer_main.xml and mixer/mixer_headphones.xml */
+
+#MixerSectionHeader {
+  font-size: 11px;
+  font-weight: bold;
+  qproperty-alignment: 'AlignCenter';
+}
+
+#KnobEndLabel {
+  font-size: 9px;
+}
+
+#MainCueButton {
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/************** Mix Two: mixer modules, round SYNC / KEY SYNC **************/
+/* Aesthetic: docs/ddj800-program/DESIGN.md */
+
+#MixerModule {
+  qproperty-layoutAlignment: 'AlignHCenter | AlignTop';
+}
+
+#MixerSectionHeader {
+  font-size: 10px;
+  font-weight: bold;
+  qproperty-alignment: 'AlignCenter';
+  min-height: 16px;
+  max-height: 16px;
+}
+
+#KnobEndLabels {
+  qproperty-layoutAlignment: 'AlignHCenter | AlignTop';
+  margin-top: -3px;
+}
+
+#SyncKeySyncBox {
+  qproperty-layoutAlignment: 'AlignHCenter | AlignTop';
+  margin: 3px 0px;
+}
+
+/* Small like the DDJ-800's buttons, with Silkscreen (res/fonts, SIL OFL
+   1.1) at its crisp native 8px; 34px fits "SYNC" (30px). The MT label uses
+   the same lettering. */
+#SyncRound,
+#KeySyncRound {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+}

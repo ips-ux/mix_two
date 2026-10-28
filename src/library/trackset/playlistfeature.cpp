@@ -1,8 +1,13 @@
 #include "library/trackset/playlistfeature.h"
 
+#include <QApplication>
+#include <QInputDialog>
 #include <QMenu>
+#include <QMessageBox>
 #include <QSqlTableModel>
+#include <QStyle>
 #include <QtDebug>
+#include <algorithm>
 
 #include "library/library.h"
 #include "library/parser.h"
@@ -59,6 +64,27 @@ PlaylistFeature::PlaylistFeature(Library* pLibrary, UserSettingsPointer pConfig)
             &QAction::triggered,
             this,
             &PlaylistFeature::slotDeleteAllUnlockedPlaylists);
+
+    // Folders, with rekordbox's wording.
+    m_pCreateFolderAction = make_parented<QAction>(tr("Create New Folder"), this);
+    connect(m_pCreateFolderAction,
+            &QAction::triggered,
+            this,
+            &PlaylistFeature::slotCreateFolder);
+    m_pRenameFolderAction = make_parented<QAction>(tr("Rename Folder"), this);
+    connect(m_pRenameFolderAction,
+            &QAction::triggered,
+            this,
+            &PlaylistFeature::slotRenameFolder);
+    m_pDeleteFolderAction = make_parented<QAction>(tr("Delete Folder"), this);
+    connect(m_pDeleteFolderAction,
+            &QAction::triggered,
+            this,
+            &PlaylistFeature::slotDeleteFolder);
+    connect(&m_playlistDao,
+            &PlaylistDAO::foldersChanged,
+            this,
+            &PlaylistFeature::slotFoldersChanged);
 }
 
 QVariant PlaylistFeature::title() {
@@ -69,6 +95,7 @@ void PlaylistFeature::onRightClick(const QPoint& globalPos) {
     m_lastRightClickedIndex = QModelIndex();
     QMenu menu(m_pSidebarWidget);
     menu.addAction(m_pCreatePlaylistAction);
+    menu.addAction(m_pCreateFolderAction);
     menu.addSeparator();
     menu.addAction(m_pUnlockPlaylistsAction);
     menu.addAction(m_pDeleteAllUnlockedPlaylistsAction);
@@ -85,6 +112,20 @@ void PlaylistFeature::onRightClickChild(
         const QPoint& globalPos, const QModelIndex& index) {
     //Save the model index so we can get it in the action slots...
     m_lastRightClickedIndex = index;
+
+    const int folderId = folderIdFromIndex(index);
+    if (folderId != kInvalidPlaylistFolderId) {
+        QMenu menu(m_pSidebarWidget);
+        menu.addAction(m_pCreatePlaylistAction);
+        menu.addAction(m_pCreateFolderAction);
+        menu.addSeparator();
+        menu.addAction(m_pRenameFolderAction);
+        menu.addAction(m_pDeleteFolderAction);
+        menu.addMenu(createMoveToFolderMenu(&menu, kInvalidPlaylistId, folderId));
+        menu.exec(globalPos);
+        return;
+    }
+
     int playlistId = playlistIdFromIndex(index);
 
     bool locked = m_playlistDao.isPlaylistLocked(playlistId);
@@ -99,6 +140,7 @@ void PlaylistFeature::onRightClickChild(
 
     QMenu menu(m_pSidebarWidget);
     menu.addAction(m_pCreatePlaylistAction);
+    menu.addAction(m_pCreateFolderAction);
     menu.addSeparator();
     // TODO If playlist is selected and has more than one track selected
     // show "Shuffle selected tracks", else show "Shuffle playlist"?
@@ -109,6 +151,7 @@ void PlaylistFeature::onRightClickChild(
     menu.addAction(m_pDuplicatePlaylistAction);
     menu.addAction(m_pDeletePlaylistAction);
     menu.addAction(m_pLockPlaylistAction);
+    menu.addMenu(createMoveToFolderMenu(&menu, playlistId, kInvalidPlaylistFolderId));
     menu.addSeparator();
     menu.addAction(m_pAddToAutoDJAction);
     menu.addAction(m_pAddToAutoDJTopAction);
@@ -343,36 +386,378 @@ void PlaylistFeature::slotDeleteAllUnlockedPlaylists() {
 /// @param selectedId entry which should be selected
 QModelIndex PlaylistFeature::constructChildModel(int selectedId) {
     // qDebug() << "PlaylistFeature::constructChildModel() id:" << selectedId;
-    std::vector<std::unique_ptr<TreeItem>> childrenToAdd;
-    int selectedRow = -1;
+    const QList<IdAndLabel> playlistLabels = createPlaylistLabels(); // sorted
+    QList<PlaylistDAO::PlaylistFolder> folders = m_playlistDao.getFolders();
+    const QHash<int, int> folderIdOfPlaylist =
+            m_playlistDao.getPlaylistFolderIds(PlaylistDAO::PLHT_NOT_HIDDEN);
 
-    int row = 0;
-    const QList<IdAndLabel> playlistLabels = createPlaylistLabels();
+    QSet<int> folderIds;
+    for (const auto& folder : std::as_const(folders)) {
+        folderIds.insert(folder.id);
+    }
+    // Folders before playlists, both sorted by name, as in rekordbox.
+    std::sort(folders.begin(),
+            folders.end(),
+            [](const PlaylistDAO::PlaylistFolder& a, const PlaylistDAO::PlaylistFolder& b) {
+                return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
+            });
+    // Items whose folder no longer exists are shown at the top level.
+    QHash<int, QList<PlaylistDAO::PlaylistFolder>> subfoldersOf;
+    for (const auto& folder : std::as_const(folders)) {
+        const int parentId = folderIds.contains(folder.parentId)
+                ? folder.parentId
+                : kInvalidPlaylistFolderId;
+        subfoldersOf[parentId].append(folder);
+    }
+    QHash<int, QList<IdAndLabel>> playlistsIn;
     for (const auto& idAndLabel : playlistLabels) {
-        int playlistId = idAndLabel.id;
-        QString playlistLabel = idAndLabel.label;
+        const int folderId = folderIdOfPlaylist.value(idAndLabel.id, kInvalidPlaylistFolderId);
+        playlistsIn[folderIds.contains(folderId) ? folderId : kInvalidPlaylistFolderId]
+                .append(idAndLabel);
+    }
 
-        if (selectedId == playlistId) {
-            // save index for selection
-            selectedRow = row;
-        }
-
-        // Create the TreeItem whose parent is the invisible root item
-        auto pItem = std::make_unique<TreeItem>(playlistLabel, playlistId);
+    const QIcon folderIcon = QApplication::style()->standardIcon(QStyle::SP_DirIcon);
+    const auto decoratePlaylist = [this](TreeItem* pItem, int playlistId) {
         pItem->setBold(m_playlistIdsOfSelectedTrack.contains(playlistId));
+        decorateChild(pItem, playlistId);
+    };
+    // Builds the children of a folder item; guards against folder cycles.
+    QSet<int> builtFolderIds;
+    const auto addChildren = [&](const auto& self, TreeItem* pParent, int folderId) -> void {
+        for (const auto& subfolder : subfoldersOf.value(folderId)) {
+            if (builtFolderIds.contains(subfolder.id)) {
+                continue;
+            }
+            builtFolderIds.insert(subfolder.id);
+            TreeItem* pFolderItem = pParent->appendChild(
+                    subfolder.name, QStringLiteral("folder:%1").arg(subfolder.id));
+            pFolderItem->setIcon(folderIcon);
+            self(self, pFolderItem, subfolder.id);
+        }
+        for (const auto& idAndLabel : playlistsIn.value(folderId)) {
+            TreeItem* pItem = pParent->appendChild(idAndLabel.label, idAndLabel.id);
+            decoratePlaylist(pItem, idAndLabel.id);
+        }
+    };
 
-        decorateChild(pItem.get(), playlistId);
+    // The top-level items, whose parent is the invisible root item.
+    std::vector<std::unique_ptr<TreeItem>> childrenToAdd;
+    for (const auto& folder : subfoldersOf.value(kInvalidPlaylistFolderId)) {
+        builtFolderIds.insert(folder.id);
+        auto pFolderItem = std::make_unique<TreeItem>(
+                folder.name, QStringLiteral("folder:%1").arg(folder.id));
+        pFolderItem->setIcon(folderIcon);
+        addChildren(addChildren, pFolderItem.get(), folder.id);
+        childrenToAdd.push_back(std::move(pFolderItem));
+    }
+    for (const auto& idAndLabel : playlistsIn.value(kInvalidPlaylistFolderId)) {
+        auto pItem = std::make_unique<TreeItem>(idAndLabel.label, idAndLabel.id);
+        decoratePlaylist(pItem.get(), idAndLabel.id);
         childrenToAdd.push_back(std::move(pItem));
-
-        ++row;
     }
 
     // Append all the newly created TreeItems in a dynamic way to the childmodel
     m_pSidebarModel->insertTreeItemRows(std::move(childrenToAdd), 0);
-    if (selectedRow == -1) {
+    if (selectedId == kInvalidPlaylistId) {
         return QModelIndex();
     }
-    return m_pSidebarModel->index(selectedRow, 0);
+    return indexFromPlaylistId(selectedId);
+}
+
+int PlaylistFeature::folderIdFromIndex(const QModelIndex& index) {
+    const TreeItem* pItem = static_cast<TreeItem*>(index.internalPointer());
+    if (!pItem) {
+        return kInvalidPlaylistFolderId;
+    }
+    const QString data = pItem->getData().toString();
+    if (!data.startsWith(QLatin1String("folder:"))) {
+        return kInvalidPlaylistFolderId;
+    }
+    bool ok = false;
+    const int folderId = data.mid(7).toInt(&ok);
+    return ok ? folderId : kInvalidPlaylistFolderId;
+}
+
+int PlaylistFeature::targetFolderIdFromIndex(const QModelIndex& index) const {
+    if (!index.isValid()) {
+        return kInvalidPlaylistFolderId;
+    }
+    const int folderId = folderIdFromIndex(index);
+    if (folderId != kInvalidPlaylistFolderId) {
+        return folderId;
+    }
+    const int playlistId = playlistIdFromIndex(index);
+    return playlistId != kInvalidPlaylistId
+            ? m_playlistDao.getPlaylistFolderId(playlistId)
+            : kInvalidPlaylistFolderId;
+}
+
+int PlaylistFeature::folderIdForNewPlaylist() const {
+    return targetFolderIdFromIndex(m_lastRightClickedIndex);
+}
+
+QModelIndex PlaylistFeature::indexFromFolderId(int folderId) const {
+    const QModelIndexList results = m_pSidebarModel->match(
+            m_pSidebarModel->getRootIndex(),
+            TreeItemModel::kDataRole,
+            QVariant(QStringLiteral("folder:%1").arg(folderId)),
+            1,
+            Qt::MatchWrap | Qt::MatchExactly | Qt::MatchRecursive);
+    return results.isEmpty() ? QModelIndex() : results.front();
+}
+
+QSet<int> PlaylistFeature::expandedFolderIds() const {
+    QSet<int> folderIds;
+    if (!m_pSidebarWidget) {
+        return folderIds;
+    }
+    const auto collect = [&](const auto& self, const QModelIndex& parent) -> void {
+        for (int row = 0; row < m_pSidebarModel->rowCount(parent); ++row) {
+            const QModelIndex index = m_pSidebarModel->index(row, 0, parent);
+            const int folderId = folderIdFromIndex(index);
+            if (folderId == kInvalidPlaylistFolderId) {
+                continue;
+            }
+            if (m_pSidebarWidget->isChildIndexExpanded(index)) {
+                folderIds.insert(folderId);
+            }
+            self(self, index);
+        }
+    };
+    collect(collect, QModelIndex());
+    return folderIds;
+}
+
+void PlaylistFeature::expandFolders(const QSet<int>& folderIds) {
+    if (!m_pSidebarWidget) {
+        return;
+    }
+    for (const int folderId : folderIds) {
+        const QModelIndex index = indexFromFolderId(folderId);
+        if (index.isValid()) {
+            m_pSidebarWidget->setChildIndexExpanded(index, true);
+        }
+    }
+}
+
+void PlaylistFeature::rebuildChildModel(int selectedPlaylistId) {
+    const QSet<int> expanded = expandedFolderIds();
+    clearChildModel();
+    const QModelIndex newIndex = constructChildModel(selectedPlaylistId);
+    expandFolders(expanded);
+    if (selectedPlaylistId != kInvalidPlaylistId && newIndex.isValid()) {
+        // If a child index was selected and we got a new valid index select that.
+        // Else (root item was selected or for some reason no index could be created)
+        // there's nothing to do: either no child was selected earlier, or the root
+        // was selected and will remain selected after the child model was rebuilt.
+        selectAndActivate(newIndex);
+    }
+}
+
+void PlaylistFeature::slotFoldersChanged() {
+    int selectedPlaylistId = kInvalidPlaylistId;
+    if (isChildIndexSelectedInSidebar(m_lastClickedIndex)) {
+        selectedPlaylistId = playlistIdFromIndex(m_lastClickedIndex);
+    }
+    rebuildChildModel(selectedPlaylistId);
+}
+
+QMenu* PlaylistFeature::createMoveToFolderMenu(QWidget* pParent, int playlistId, int folderId) {
+    auto* pMenu = new QMenu(tr("Move to Folder"), pParent);
+    const int currentParentId = playlistId != kInvalidPlaylistId
+            ? m_playlistDao.getPlaylistFolderId(playlistId)
+            : [&] {
+                  const QList<PlaylistDAO::PlaylistFolder> folders = m_playlistDao.getFolders();
+                  for (const auto& folder : folders) {
+                      if (folder.id == folderId) {
+                          return folder.parentId;
+                      }
+                  }
+                  return kInvalidPlaylistFolderId;
+              }();
+    // A folder cannot move into itself or one of its subfolders.
+    const QSet<int> excluded = folderId != kInvalidPlaylistFolderId
+            ? m_playlistDao.getFolderAndSubfolderIds(folderId)
+            : QSet<int>();
+
+    const auto moveTo = [this, playlistId, folderId](int targetFolderId) {
+        if (playlistId != kInvalidPlaylistId) {
+            m_playlistDao.setPlaylistFolder(playlistId, targetFolderId);
+        } else if (!m_playlistDao.moveFolder(folderId, targetFolderId)) {
+            QMessageBox::warning(nullptr,
+                    tr("Moving Folder Failed"),
+                    tr("A folder by that name already exists there."));
+        }
+    };
+
+    QAction* pTopLevel = pMenu->addAction(tr("Top Level"));
+    pTopLevel->setEnabled(currentParentId != kInvalidPlaylistFolderId);
+    connect(pTopLevel, &QAction::triggered, this, [moveTo] {
+        moveTo(kInvalidPlaylistFolderId);
+    });
+
+    // Every folder, listed by its path.
+    QList<PlaylistDAO::PlaylistFolder> folders = m_playlistDao.getFolders();
+    QHash<int, PlaylistDAO::PlaylistFolder> folderById;
+    for (const auto& folder : std::as_const(folders)) {
+        folderById.insert(folder.id, folder);
+    }
+    QList<QPair<QString, int>> paths;
+    for (const auto& folder : std::as_const(folders)) {
+        if (excluded.contains(folder.id)) {
+            continue;
+        }
+        QStringList names{folder.name};
+        QSet<int> visited{folder.id};
+        int parentId = folder.parentId;
+        while (folderById.contains(parentId) && !visited.contains(parentId)) {
+            visited.insert(parentId);
+            names.prepend(folderById.value(parentId).name);
+            parentId = folderById.value(parentId).parentId;
+        }
+        paths.append({names.join(QStringLiteral(" / ")), folder.id});
+    }
+    std::sort(paths.begin(), paths.end(), [](const auto& a, const auto& b) {
+        return a.first.compare(b.first, Qt::CaseInsensitive) < 0;
+    });
+    if (!paths.isEmpty()) {
+        pMenu->addSeparator();
+    }
+    for (const auto& [path, targetFolderId] : std::as_const(paths)) {
+        QAction* pAction = pMenu->addAction(path);
+        pAction->setEnabled(targetFolderId != currentParentId);
+        connect(pAction, &QAction::triggered, this, [moveTo, id = targetFolderId] {
+            moveTo(id);
+        });
+    }
+    return pMenu;
+}
+
+void PlaylistFeature::slotCreateFolder() {
+    const int parentFolderId = targetFolderIdFromIndex(m_lastRightClickedIndex);
+    QString name;
+    while (true) {
+        bool ok = false;
+        name = QInputDialog::getText(nullptr,
+                tr("Create New Folder"),
+                tr("Enter name for new folder:"),
+                QLineEdit::Normal,
+                tr("Untitled Folder"),
+                &ok)
+                       .trimmed();
+        if (!ok) {
+            return;
+        }
+        if (name.isEmpty()) {
+            QMessageBox::warning(nullptr,
+                    tr("Folder Creation Failed"),
+                    tr("A folder cannot have a blank name."));
+        } else if (m_playlistDao.getFolderIdFromName(name, parentFolderId) !=
+                kInvalidPlaylistFolderId) {
+            QMessageBox::warning(nullptr,
+                    tr("Folder Creation Failed"),
+                    tr("A folder by that name already exists here."));
+        } else {
+            break;
+        }
+    }
+    const int folderId = m_playlistDao.createFolder(name, parentFolderId);
+    if (folderId == kInvalidPlaylistFolderId) {
+        QMessageBox::warning(nullptr,
+                tr("Folder Creation Failed"),
+                tr("An unknown error occurred while creating folder: ") + name);
+        return;
+    }
+    // Show the new folder.
+    const QModelIndex index = indexFromFolderId(folderId);
+    if (m_pSidebarWidget && index.isValid()) {
+        m_pSidebarWidget->selectChildIndex(index, false);
+    }
+}
+
+void PlaylistFeature::slotRenameFolder() {
+    const int folderId = folderIdFromIndex(m_lastRightClickedIndex);
+    if (folderId == kInvalidPlaylistFolderId) {
+        return;
+    }
+    const QString oldName = m_playlistDao.getFolderName(folderId);
+    while (true) {
+        bool ok = false;
+        const QString newName = QInputDialog::getText(nullptr,
+                tr("Rename Folder"),
+                tr("Enter new name for folder:"),
+                QLineEdit::Normal,
+                oldName,
+                &ok)
+                                        .trimmed();
+        if (!ok || newName == oldName) {
+            return;
+        }
+        if (newName.isEmpty()) {
+            QMessageBox::warning(nullptr,
+                    tr("Renaming Folder Failed"),
+                    tr("A folder cannot have a blank name."));
+        } else if (!m_playlistDao.renameFolder(folderId, newName)) {
+            QMessageBox::warning(nullptr,
+                    tr("Renaming Folder Failed"),
+                    tr("A folder by that name already exists here."));
+        } else {
+            return;
+        }
+    }
+}
+
+void PlaylistFeature::slotDeleteFolder() {
+    const int folderId = folderIdFromIndex(m_lastRightClickedIndex);
+    if (folderId == kInvalidPlaylistFolderId) {
+        return;
+    }
+    const QString name = m_playlistDao.getFolderName(folderId);
+    const QList<int> playlistIds = m_playlistDao.getPlaylistIdsInFolder(folderId);
+    const bool hasLockedPlaylist = std::any_of(playlistIds.cbegin(),
+            playlistIds.cend(),
+            [this](int playlistId) { return m_playlistDao.isPlaylistLocked(playlistId); });
+    if (hasLockedPlaylist) {
+        QMessageBox::warning(nullptr,
+                tr("Deleting Folder Failed"),
+                tr("The folder \"%1\" contains locked playlists. "
+                   "Unlock them before deleting the folder.")
+                        .arg(name));
+        return;
+    }
+
+    const QString question = playlistIds.isEmpty()
+            ? tr("Do you really want to delete the folder \"%1\"?").arg(name)
+            : tr("Do you really want to delete the folder \"%1\" and the %2 "
+                 "playlist(s) in it?<br>This operation can not be undone!")
+                      .arg(name, QString::number(playlistIds.size()));
+    const QMessageBox::StandardButton btn = QMessageBox::question(nullptr,
+            tr("Confirm Deletion"),
+            question,
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+    if (btn != QMessageBox::Yes) {
+        return;
+    }
+    m_playlistDao.deleteFolder(folderId);
+}
+
+void PlaylistFeature::renameItem(const QModelIndex& index) {
+    if (folderIdFromIndex(index) != kInvalidPlaylistFolderId) {
+        m_lastRightClickedIndex = index;
+        slotRenameFolder();
+        return;
+    }
+    BasePlaylistFeature::renameItem(index);
+}
+
+void PlaylistFeature::deleteItem(const QModelIndex& index) {
+    if (folderIdFromIndex(index) != kInvalidPlaylistFolderId) {
+        m_lastRightClickedIndex = index;
+        slotDeleteFolder();
+        return;
+    }
+    BasePlaylistFeature::deleteItem(index);
 }
 
 void PlaylistFeature::decorateChild(TreeItem* item, int playlistId) {
@@ -405,15 +790,7 @@ void PlaylistFeature::slotPlaylistTableChanged(int playlistId) {
         }
     }
 
-    clearChildModel();
-    QModelIndex newIndex = constructChildModel(selectedPlaylistId);
-    if (selectedPlaylistId != kInvalidPlaylistId && newIndex.isValid()) {
-        // If a child index was selected and we got a new valid index select that.
-        // Else (root item was selected or for some reason no index could be created)
-        // there's nothing to do: either no child was selected earlier, or the root
-        // was selected and will remain selected after the child model was rebuilt.
-        selectAndActivate(newIndex);
-    }
+    rebuildChildModel(selectedPlaylistId);
 }
 
 void PlaylistFeature::slotPlaylistContentOrLockChanged(const QSet<int>& playlistIds) {

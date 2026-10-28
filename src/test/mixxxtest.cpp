@@ -19,6 +19,18 @@ QString makeTestConfigFile(const QString& path) {
     return path;
 }
 
+mixxx::LogLevel s_testLogLevel = mixxx::kLogLevelDefault;
+
+void initializeTestLogging() {
+    // Log level Debug would produce too many log messages that
+    // might abort and fail the CI builds.
+    mixxx::Logging::initialize(
+            QString(), // No log file should be written during tests, only output to stderr
+            s_testLogLevel,
+            s_testLogLevel,
+            mixxx::LogFlag::DebugAssertBreak);
+}
+
 } // namespace
 
 // Static initialization
@@ -31,15 +43,8 @@ MixxxTest::ApplicationScope::ApplicationScope(int& argc, char** argv) {
     Q_UNUSED(argsParsed);
     DEBUG_ASSERT(argsParsed);
 
-    mixxx::LogLevel logLevel = args.getLogLevel();
-
-    // Log level Debug would produce too many log messages that
-    // might abort and fail the CI builds.
-    mixxx::Logging::initialize(
-            QString(), // No log file should be written during tests, only output to stderr
-            logLevel,
-            logLevel,
-            mixxx::LogFlag::DebugAssertBreak);
+    s_testLogLevel = args.getLogLevel();
+    initializeTestLogging();
 
     // All guessing of cover art should be done synchronously
     // in the same thread during tests to prevent test failures
@@ -54,6 +59,12 @@ MixxxTest::ApplicationScope::~ApplicationScope() {
     DEBUG_ASSERT(!s_pApplication.isNull());
     s_pApplication.reset();
     mixxx::Logging::shutdown();
+}
+
+// static
+void MixxxTest::restoreTestLogging() {
+    mixxx::Logging::shutdown();
+    initializeTestLogging();
 }
 
 MixxxTest::MixxxTest() {

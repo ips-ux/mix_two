@@ -21,6 +21,8 @@ constexpr bool kDefaultCloneDeckOnLoad = true;
 
 namespace {
 const ConfigKey kConfigKeyLoadWhenDeckPlaying = ConfigKey("[Controls]", "LoadWhenDeckPlaying");
+// Mix Two: Platter options > Scratch algorithm (EngineBuffer::ScratchAlgorithm).
+const ConfigKey kConfigKeyScratchAlgorithm = ConfigKey("[App]", "scratch_algorithm");
 const ConfigKey kConfigKeyAllowTrackLoadToPlayingDeck =
         ConfigKey("[Controls]", "AllowTrackLoadToPlayingDeck");
 constexpr LoadWhenDeckPlaying kDefaultLoadWhenDeckPlaying = LoadWhenDeckPlaying::Reject;
@@ -52,6 +54,8 @@ class DlgPrefDeck : public DlgPreferencePage, public Ui::DlgPrefDeckDlg  {
     void slotCueModeCombobox(int);
     void slotSetTrackLoadMode(int comboboxIndex);
     void slotLoadWhenDeckPlayingIndexChanged(int comboboxIndex);
+    void slotScratchAlgorithmIndexChanged(int comboboxIndex);
+    void slotSyncTypeIndexChanged(int comboboxIndex);
     void slotCloneDeckOnLoadDoubleTapCheckbox(bool);
     void slotRateRampingModeLinearButton(bool);
     void slotRateRampSensitivitySlider(int);
@@ -108,6 +112,13 @@ class DlgPrefDeck : public DlgPreferencePage, public Ui::DlgPrefDeckDlg  {
     KeyunlockMode m_keyunlockMode;
     SeekOnLoadMode m_seekOnLoadMode;
     LoadWhenDeckPlaying m_loadWhenDeckPlaying;
+    // Mix Two: Platter options. EngineBuffer::ScratchAlgorithm as int.
+    int m_scratchAlgorithm;
+    std::unique_ptr<ControlProxy> m_pScratchAlgorithm;
+    // Mix Two: Sync options ([App],sync_type and [App],sync_grid).
+    std::unique_ptr<ControlProxy> m_pSyncType;
+    std::unique_ptr<ControlProxy> m_pSyncGrid;
+    void selectSyncOptions(int syncType, double syncGrid);
 
     RateControl::RampMode m_bRateRamping;
     int m_iRateRampSensitivity;

@@ -348,6 +348,11 @@ void BasePlaylistFeature::slotDuplicatePlaylist() {
 
     if (newPlaylistId != kInvalidPlaylistId) {
         m_playlistDao.copyPlaylistTracks(oldPlaylistId, newPlaylistId);
+        // The copy goes into the same folder as the original.
+        const int folderId = m_playlistDao.getPlaylistFolderId(oldPlaylistId);
+        if (folderId != kInvalidPlaylistFolderId) {
+            m_playlistDao.setPlaylistFolder(newPlaylistId, folderId);
+        }
     }
 }
 
@@ -373,7 +378,7 @@ void BasePlaylistFeature::slotCreatePlaylist() {
                 tr("Create New Playlist"),
                 tr("Enter name for new playlist:"),
                 QLineEdit::Normal,
-                tr("New Playlist"),
+                tr("Untitled Playlist"),
                 &ok)
                        .trimmed();
         if (!ok) {
@@ -395,12 +400,19 @@ void BasePlaylistFeature::slotCreatePlaylist() {
         }
     }
 
+    // Read before creating: the sidebar rebuild that follows resets the
+    // right-clicked index.
+    const int folderId = folderIdForNewPlaylist();
     int playlistId = m_playlistDao.createPlaylist(name);
 
     if (playlistId == kInvalidPlaylistId) {
         QMessageBox::warning(nullptr,
                 tr("Playlist Creation Failed"),
                 tr("An unknown error occurred while creating playlist: ") + name);
+        return;
+    }
+    if (folderId != kInvalidPlaylistFolderId) {
+        m_playlistDao.setPlaylistFolder(playlistId, folderId);
     }
 }
 
@@ -776,6 +788,8 @@ void BasePlaylistFeature::bindSidebarWidget(WLibrarySidebar* pSidebarWidget) {
 
 void BasePlaylistFeature::htmlLinkClicked(const QUrl& link) {
     if (QString(link.path()) == "create") {
+        // Create at the top level, not in the last right-clicked folder.
+        m_lastRightClickedIndex = QModelIndex();
         slotCreatePlaylist();
     } else {
         qDebug() << "Unknown playlist link clicked" << link.path();
@@ -829,34 +843,25 @@ void BasePlaylistFeature::updateChildModel(const QSet<int>& playlistIds) {
         return;
     }
 
-    int id = kInvalidPlaylistId;
-    QString label;
-    bool ok = false;
-
-    for (int row = 0; row < m_pSidebarModel->rowCount(); ++row) {
-        QModelIndex index = m_pSidebarModel->index(row, 0);
-        TreeItem* pTreeItem = m_pSidebarModel->getItem(index);
-        DEBUG_ASSERT(pTreeItem != nullptr);
-        if (pTreeItem->hasChildren()) {
-            for (TreeItem* pChild : pTreeItem->children()) {
-                id = pChild->getData().toInt(&ok);
-                if (ok && id != kInvalidPlaylistId && playlistIds.contains(id)) {
-                    label = fetchPlaylistLabel(id);
-                    pChild->setLabel(label);
-                    decorateChild(pChild, id);
-                    markTreeItem(pChild);
-                }
+    // Playlists can be nested in folders (and history items in years), so
+    // walk the whole tree.
+    const auto updateItems = [&](const auto& self, const QList<TreeItem*>& items) -> void {
+        for (TreeItem* pTreeItem : items) {
+            DEBUG_ASSERT(pTreeItem != nullptr);
+            if (pTreeItem->hasChildren()) {
+                self(self, pTreeItem->children());
+                continue;
             }
-        } else {
-            id = pTreeItem->getData().toInt(&ok);
+            bool ok = false;
+            const int id = pTreeItem->getData().toInt(&ok);
             if (ok && id != kInvalidPlaylistId && playlistIds.contains(id)) {
-                label = fetchPlaylistLabel(id);
-                pTreeItem->setLabel(label);
+                pTreeItem->setLabel(fetchPlaylistLabel(id));
                 decorateChild(pTreeItem, id);
                 markTreeItem(pTreeItem);
             }
         }
-    }
+    };
+    updateItems(updateItems, m_pSidebarModel->getRootItem()->children());
     m_pSidebarModel->triggerRepaint();
 }
 

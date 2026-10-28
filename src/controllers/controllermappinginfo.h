@@ -22,6 +22,12 @@ struct ProductInfo {
     // Bulk-specific
     QString in_epaddr;
     QString out_epaddr;
+
+    // MIDI-specific. MIDI ports expose only a name, so devices are matched by
+    // name: device_name against the platform-normalized port name, or
+    // device_name_regex against the raw port name.
+    QString device_name;
+    QString device_name_regex;
 };
 
 bool operator==(const ProductInfo& a, const ProductInfo& b);
@@ -85,10 +91,12 @@ class MappingInfo {
                 m_products == b.m_products;
     }
 
-  private:
+    // Also used when a mapping file is loaded, to keep its <devices>.
     static ProductInfo parseBulkProduct(const QXmlStreamAttributes& xmlElementAttributes);
     static ProductInfo parseHIDProduct(const QXmlStreamAttributes& xmlElementAttributes);
+    static ProductInfo parseMidiProduct(const QXmlStreamAttributes& xmlElementAttributes);
 
+  private:
     bool m_valid = false;
     QString m_path;
     QString m_dirPath;

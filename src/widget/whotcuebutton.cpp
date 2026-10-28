@@ -372,6 +372,9 @@ void WHotcueButton::slotTypeChanged(double type) {
     case mixxx::CueType::N60dBSound:
         m_type = QStringLiteral("n60dbsound");
         break;
+    case mixxx::CueType::MemoryCue:
+        m_type = QStringLiteral("memorycue");
+        break;
     default:
         DEBUG_ASSERT(!"Unknown cue type!");
         m_type = QLatin1String("");

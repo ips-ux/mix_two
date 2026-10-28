@@ -374,21 +374,21 @@ TEST_F(EngineSyncTest, DisableSyncOnLeader) {
     mixxx::BeatsPointer pBeats2 = mixxx::Beats::fromConstTempo(
             m_pTrack2->getSampleRate(), mixxx::audio::kStartFramePos, mixxx::Bpm(130));
     m_pTrack2->trySetBeats(pBeats2);
-    // Set deck two to leader, but this is not allowed because it's stopped.
+    // Set deck two to leader. Mix Two (rekordbox MASTER): this is allowed
+    // although the deck is stopped.
     ProcessBuffer();
     auto pButtonSyncLeader2 =
             std::make_unique<ControlProxy>(m_sGroup2, "sync_leader");
     pButtonSyncLeader2->set(1.0);
     ProcessBuffer();
-    EXPECT_TRUE(isSoftLeader(m_sGroup1));
-    EXPECT_TRUE(isFollower(m_sGroup2));
+    EXPECT_TRUE(isFollower(m_sGroup1));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup2));
 
-    // Set deck 2 to playing, now it becomes explicit leader.
+    // Deck 2 stays explicit leader when it starts playing.
     ControlObject::getControl(ConfigKey(m_sGroup2, "play"))->set(1.0);
-    // The request to become leader is queued, so we have to process a buffer.
     ProcessBuffer();
     EXPECT_TRUE(isFollower(m_sGroup1));
-    EXPECT_TRUE(isSoftLeader(m_sGroup2));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup2));
 
     // Unset enabled on channel2, it should work.
     auto pButtonSyncEnabled2 =
@@ -425,8 +425,8 @@ TEST_F(EngineSyncTest, InternalLeaderSetFollowerSliderMoves) {
     EXPECT_TRUE(isFollower(m_sGroup1));
     EXPECT_TRUE(isExplicitLeader(m_sInternalClockGroup));
 
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.25),
-            ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))->get());
+    EXPECT_DOUBLE_EQ(1.25,
+            ControlObject::getControl(ConfigKey(m_sGroup1, "rate_ratio"))->get());
     EXPECT_DOUBLE_EQ(100.0,
             ControlObject::getControl(ConfigKey(m_sGroup1, "bpm"))->get());
 }
@@ -504,8 +504,8 @@ TEST_F(EngineSyncTest, InternalClockFollowsFirstPlayingDeck) {
     EXPECT_TRUE(isFollower(m_sGroup2));
 
     // The rate should not have changed -- deck 1 still matches deck 2.
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.3),
-            ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))->get());
+    EXPECT_DOUBLE_EQ(1.3,
+            ControlObject::getControl(ConfigKey(m_sGroup1, "rate_ratio"))->get());
 
     // Reset channel 2 rate, set channel 2 to play, and process a buffer.
     ControlObject::set(ConfigKey(m_sGroup2, "rate"), getRateSliderValue(1.0));
@@ -562,7 +562,7 @@ TEST_F(EngineSyncTest, SetExplicitLeaderByLights) {
     ProcessBuffer();
 
     // The sync lock should now be channel 1.
-    EXPECT_TRUE(isSoftLeader(m_sGroup1));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup1));
 
     // Set channel 2 to be follower.
     pButtonSyncEnabled2->set(1);
@@ -576,14 +576,14 @@ TEST_F(EngineSyncTest, SetExplicitLeaderByLights) {
 
     // Now channel 2 should be leader, and channel 1 should be a follower.
     EXPECT_TRUE(isFollower(m_sGroup1));
-    EXPECT_TRUE(isSoftLeader(m_sGroup2));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup2));
 
     // Now back again.
     pButtonSyncLeader1->set(1);
     ProcessBuffer();
 
     // Now channel 1 should be leader, and channel 2 should be a follower.
-    EXPECT_TRUE(isSoftLeader(m_sGroup1));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup1));
     EXPECT_TRUE(isFollower(m_sGroup2));
 
     // Now set channel 1 to not-leader.
@@ -599,7 +599,7 @@ TEST_F(EngineSyncTest, SetExplicitLeaderByLights) {
     pButtonSyncLeader1->set(1);
     ProcessBuffer();
 
-    EXPECT_TRUE(isSoftLeader(m_sGroup1));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup1));
     EXPECT_TRUE(isFollower(m_sGroup2));
 
     ControlObject::set(ConfigKey(m_sGroup1, "play"), 0.0);
@@ -656,8 +656,8 @@ TEST_F(EngineSyncTest, RateChangeTest) {
 
     // Set the rate of channel 1 to 1.2.
     ControlObject::set(ConfigKey(m_sGroup1, "rate"), getRateSliderValue(1.2));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.2),
-            ControlObject::get(ConfigKey(m_sGroup1, "rate")));
+    EXPECT_DOUBLE_EQ(1.2,
+            ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")));
     EXPECT_DOUBLE_EQ(192.0, ControlObject::get(ConfigKey(m_sGroup1, "bpm")));
 
     // Internal leader should also be 192.
@@ -671,8 +671,8 @@ TEST_F(EngineSyncTest, RateChangeTest) {
     EXPECT_DOUBLE_EQ(
             120.0, ControlObject::get(ConfigKey(m_sGroup2, "file_bpm")));
 
-    EXPECT_DOUBLE_EQ(getRateSliderValue(0.8),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
+    EXPECT_DOUBLE_EQ(0.8,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
     // Leader is currently 192, BPM before sync is 120, so the closer sync should be 96
     EXPECT_DOUBLE_EQ(96.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
 }
@@ -703,8 +703,8 @@ TEST_F(EngineSyncTest, RateChangeTestWeirdOrder) {
     ControlObject::set(ConfigKey(m_sGroup1, "rate"), getRateSliderValue(1.2));
 
     // Rate slider for channel 2 should now be 1.6 = (160 * 1.2 / 120) - 1.0.
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.6),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
+    EXPECT_DOUBLE_EQ(1.6,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
     EXPECT_DOUBLE_EQ(192.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
 
     // Internal Leader BPM should read the same.
@@ -744,8 +744,8 @@ TEST_F(EngineSyncTest, RateChangeTestOrder3) {
     ProcessBuffer();
 
     // Follower should immediately set its slider.
-    EXPECT_NEAR(getRateSliderValue(1.0),
-            ControlObject::get(ConfigKey(m_sGroup1, "rate")),
+    EXPECT_NEAR(1.0,
+            ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")),
             kMaxFloatingPointErrorLowPrecision);
     EXPECT_DOUBLE_EQ(160.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
     EXPECT_DOUBLE_EQ(
@@ -753,7 +753,7 @@ TEST_F(EngineSyncTest, RateChangeTestOrder3) {
 }
 
 TEST_F(EngineSyncTest, FollowerRateChange) {
-    // Confirm that followers can change sync lock rate as well.
+    // Mix Two: followers can not change the sync lock rate.
     auto pButtonLeaderSync1 =
             std::make_unique<ControlProxy>(m_sGroup1, "sync_mode");
     pButtonLeaderSync1->set(static_cast<double>(SyncMode::LeaderExplicit));
@@ -776,8 +776,8 @@ TEST_F(EngineSyncTest, FollowerRateChange) {
     ControlObject::set(ConfigKey(m_sGroup1, "rate"), getRateSliderValue(1.2));
 
     // Rate slider for channel 2 should now be 1.6 = (160 * 1.2 / 120).
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.6),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
+    EXPECT_DOUBLE_EQ(1.6,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
     EXPECT_DOUBLE_EQ(192.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
 
     // Try to twiddle the rate slider on channel 2.
@@ -785,13 +785,14 @@ TEST_F(EngineSyncTest, FollowerRateChange) {
     pSlider2->set(getRateSliderValue(0.8));
     ProcessBuffer();
 
-    // Rates should still be changed even though it's a follower.
-    EXPECT_DOUBLE_EQ(getRateSliderValue(0.8),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
-    EXPECT_DOUBLE_EQ(96.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(0.6),
-            ControlObject::get(ConfigKey(m_sGroup1, "rate")));
-    EXPECT_DOUBLE_EQ(96.0, ControlObject::get(ConfigKey(m_sGroup1, "bpm")));
+    // Mix Two (rekordbox SYNC): a follower's slider does not change the
+    // tempo; only the MASTER's does.
+    EXPECT_DOUBLE_EQ(1.6,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
+    EXPECT_DOUBLE_EQ(192.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
+    EXPECT_DOUBLE_EQ(1.2,
+            ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")));
+    EXPECT_DOUBLE_EQ(192.0, ControlObject::get(ConfigKey(m_sGroup1, "bpm")));
 }
 
 TEST_F(EngineSyncTest, InternalRateChangeTest) {
@@ -836,12 +837,12 @@ TEST_F(EngineSyncTest, InternalRateChangeTest) {
     ControlObject::getControl(ConfigKey(m_sGroup2, "play"))->set(1.0);
     ProcessBuffer();
     // Rate sliders for channels 1 and 2 should change appropriately.
-    EXPECT_DOUBLE_EQ(getRateSliderValue(0.9375),
-            ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))->get());
+    EXPECT_DOUBLE_EQ(0.9375,
+            ControlObject::getControl(ConfigKey(m_sGroup1, "rate_ratio"))->get());
     EXPECT_DOUBLE_EQ(150.0,
             ControlObject::getControl(ConfigKey(m_sGroup1, "bpm"))->get());
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.25),
-            ControlObject::getControl(ConfigKey(m_sGroup2, "rate"))->get());
+    EXPECT_DOUBLE_EQ(1.25,
+            ControlObject::getControl(ConfigKey(m_sGroup2, "rate_ratio"))->get());
     EXPECT_DOUBLE_EQ(150.0,
             ControlObject::getControl(ConfigKey(m_sGroup2, "bpm"))->get());
 
@@ -852,12 +853,12 @@ TEST_F(EngineSyncTest, InternalRateChangeTest) {
     ProcessBuffer();
 
     // Rate sliders for channels 1 and 2 should change appropriately.
-    EXPECT_DOUBLE_EQ(getRateSliderValue(.875),
-            ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))->get());
+    EXPECT_DOUBLE_EQ(.875,
+            ControlObject::getControl(ConfigKey(m_sGroup1, "rate_ratio"))->get());
     EXPECT_DOUBLE_EQ(140.0,
             ControlObject::getControl(ConfigKey(m_sGroup1, "bpm"))->get());
-    EXPECT_NEAR(getRateSliderValue(1.16666667),
-            ControlObject::getControl(ConfigKey(m_sGroup2, "rate"))->get(),
+    EXPECT_NEAR(1.16666667,
+            ControlObject::getControl(ConfigKey(m_sGroup2, "rate_ratio"))->get(),
             kMaxFloatingPointErrorLowPrecision);
     EXPECT_DOUBLE_EQ(140.0,
             ControlObject::getControl(ConfigKey(m_sGroup2, "bpm"))->get());
@@ -891,16 +892,16 @@ TEST_F(EngineSyncTest, LeaderStopSliderCheck) {
     ProcessBuffer();
 
     EXPECT_DOUBLE_EQ(120.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(0.9375),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
+    EXPECT_DOUBLE_EQ(0.9375,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
 
     pChannel1Play->set(0.0);
 
     ProcessBuffer();
 
     EXPECT_DOUBLE_EQ(120.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(0.9375),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
+    EXPECT_DOUBLE_EQ(0.9375,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
 }
 
 TEST_F(EngineSyncTest, EnableOneDeckInitsLeader) {
@@ -1260,8 +1261,8 @@ TEST_F(EngineSyncTest, SyncToNonSyncDeck) {
     EXPECT_DOUBLE_EQ(
             130.0, ControlObject::get(ConfigKey(m_sInternalClockGroup, "bpm")));
     assertSyncOff(m_sGroup2);
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.3),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
+    EXPECT_DOUBLE_EQ(1.3,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
 
     // Reset the pitch of deck 2.
     ControlObject::set(ConfigKey(m_sGroup2, "rate"), getRateSliderValue(1.0));
@@ -1283,8 +1284,8 @@ TEST_F(EngineSyncTest, SyncToNonSyncDeck) {
             ControlObject::get(ConfigKey(m_sGroup1, "sync_mode")));
     EXPECT_EQ(0, ControlObject::get(ConfigKey(m_sGroup1, "sync_enabled")));
     EXPECT_EQ(0, ControlObject::get(ConfigKey(m_sGroup1, "sync_leader")));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(100.0 / 130.0),
-            ControlObject::get(ConfigKey(m_sGroup1, "rate")));
+    EXPECT_DOUBLE_EQ(100.0 / 130.0,
+            ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")));
 
     // Reset again.
     ControlObject::set(ConfigKey(m_sGroup1, "rate"), getRateSliderValue(1.0));
@@ -1309,8 +1310,8 @@ TEST_F(EngineSyncTest, SyncToNonSyncDeck) {
             ControlObject::get(ConfigKey(m_sGroup2, "sync_mode")));
     EXPECT_EQ(0, ControlObject::get(ConfigKey(m_sGroup2, "sync_enabled")));
     EXPECT_EQ(0, ControlObject::get(ConfigKey(m_sGroup2, "sync_leader")));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.0),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")));
+    EXPECT_DOUBLE_EQ(1.0,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")));
 }
 
 TEST_F(EngineSyncTest, MomentarySyncDependsOnPlayingStates) {
@@ -1523,8 +1524,8 @@ TEST_F(EngineSyncTest, ZeroBPMRateAdjustIgnored) {
     ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))
             ->set(getRateSliderValue(1.3));
 
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.0),
-            ControlObject::getControl(ConfigKey(m_sGroup2, "rate"))->get());
+    EXPECT_DOUBLE_EQ(1.0,
+            ControlObject::getControl(ConfigKey(m_sGroup2, "rate_ratio"))->get());
 
     // Also try with explicit leader/follower setting
     pButtonSyncEnabled1->set(0.0);
@@ -1533,8 +1534,8 @@ TEST_F(EngineSyncTest, ZeroBPMRateAdjustIgnored) {
 
     ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))
             ->set(getRateSliderValue(1.4));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.0),
-            ControlObject::getControl(ConfigKey(m_sGroup2, "rate"))->get());
+    EXPECT_DOUBLE_EQ(1.0,
+            ControlObject::getControl(ConfigKey(m_sGroup2, "rate_ratio"))->get());
 
     pButtonSyncEnabled1->set(0.0);
     ControlObject::getControl(ConfigKey(m_sGroup1, "sync_mode"))
@@ -1542,8 +1543,8 @@ TEST_F(EngineSyncTest, ZeroBPMRateAdjustIgnored) {
 
     ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))
             ->set(getRateSliderValue(0.9));
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.0),
-            ControlObject::getControl(ConfigKey(m_sGroup2, "rate"))->get());
+    EXPECT_DOUBLE_EQ(1.0,
+            ControlObject::getControl(ConfigKey(m_sGroup2, "rate_ratio"))->get());
 }
 
 TEST_F(EngineSyncTest, BeatDistanceBeforeStart) {
@@ -2013,10 +2014,10 @@ TEST_F(EngineSyncTest, HalfDoubleInternalClockTest) {
     EXPECT_DOUBLE_EQ(70.0,
             ControlObject::getControl(ConfigKey(m_sInternalClockGroup, "bpm"))
                     ->get());
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.0),
-            ControlObject::getControl(ConfigKey(m_sGroup1, "rate"))->get());
-    EXPECT_DOUBLE_EQ(getRateSliderValue(1.0),
-            ControlObject::getControl(ConfigKey(m_sGroup2, "rate"))->get());
+    EXPECT_DOUBLE_EQ(1.0,
+            ControlObject::getControl(ConfigKey(m_sGroup1, "rate_ratio"))->get());
+    EXPECT_DOUBLE_EQ(1.0,
+            ControlObject::getControl(ConfigKey(m_sGroup2, "rate_ratio"))->get());
 }
 
 namespace {
@@ -2118,7 +2119,10 @@ TEST_F(EngineSyncTest, HalfDoubleEachOther) {
     ControlObject::getControl(ConfigKey(m_sGroup2, "sync_enabled"))->set(1.0);
     ControlObject::getControl(ConfigKey(m_sGroup2, "sync_enabled"))->set(0.0);
 
-    EXPECT_DOUBLE_EQ(150,
+    // Mix Two (rekordbox SYNC): half / double follows the track's own BPM
+    // (105), not its current 144: 105 / 75 = 1.40 is closer than 150 / 105
+    // = 1.43, so 75.
+    EXPECT_DOUBLE_EQ(75,
             ControlObject::getControl(ConfigKey(m_sGroup2, "bpm"))->get());
 
     ControlObject::getControl(ConfigKey(m_sGroup1, "sync_enabled"))->set(1.0);
@@ -2461,7 +2465,7 @@ TEST_F(EngineSyncTest, FollowerUserTweakPreservedInLeaderChange) {
     ControlObject::getControl(ConfigKey(m_sGroup2, "sync_leader"))->set(1);
     ProcessBuffer();
     EXPECT_TRUE(isFollower(m_sGroup1));
-    EXPECT_TRUE(isSoftLeader(m_sGroup2));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup2));
 
     for (int i = 0; i < 10; ++i) {
         ProcessBuffer();
@@ -2496,7 +2500,7 @@ TEST_F(EngineSyncTest, FollowerUserTweakPreservedInSyncDisable) {
     m_pChannel2->getEngineBuffer()
             ->m_pBpmControl->m_dUserOffset.setValue(0.3);
 
-    EXPECT_TRUE(isSoftLeader(m_sGroup1));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup1));
     EXPECT_TRUE(isFollower(m_sGroup2));
 
     ProcessBuffer();
@@ -2529,7 +2533,7 @@ TEST_F(EngineSyncTest, LeaderUserTweakPreservedInLeaderChange) {
     ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
     ControlObject::set(ConfigKey(m_sGroup2, "play"), 1.0);
 
-    EXPECT_TRUE(isSoftLeader(m_sGroup1));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup1));
     EXPECT_TRUE(isFollower(m_sGroup2));
 
     ProcessBuffer();
@@ -2553,7 +2557,7 @@ TEST_F(EngineSyncTest, LeaderUserTweakPreservedInLeaderChange) {
     ControlObject::getControl(ConfigKey(m_sGroup2, "sync_leader"))->set(1);
     ProcessBuffer();
     EXPECT_TRUE(isFollower(m_sGroup1));
-    EXPECT_TRUE(isSoftLeader(m_sGroup2));
+    EXPECT_TRUE(isExplicitLeader(m_sGroup2));
 
     for (int i = 0; i < 10; ++i) {
         ProcessBuffer();
@@ -3071,22 +3075,24 @@ TEST_F(EngineSyncTest, ImplicitLeaderToInternalClock) {
     ControlObject::set(ConfigKey(m_sGroup2, "sync_enabled"), 1.0);
     ProcessBuffer();
 
-    // group 2 should be synced to the first playing deck and becomes leader
+    // Mix Two (rekordbox MASTER): deck 1 enabled sync first while playing, so
+    // it leads (at the tempo of the deck it matched); a fader at zero does
+    // not move MASTER.
     EXPECT_DOUBLE_EQ(125.0, ControlObject::get(ConfigKey(m_sGroup1, "bpm")));
     EXPECT_DOUBLE_EQ(125.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")));
-    ASSERT_FALSE(isSoftLeader(m_sGroup1));
-    ASSERT_TRUE(isSoftLeader(m_sGroup2));
+    ASSERT_TRUE(isSoftLeader(m_sGroup1));
+    ASSERT_FALSE(isSoftLeader(m_sGroup2));
     ASSERT_FALSE(isSoftLeader(m_sInternalClockGroup));
     ProcessBuffer();
 
     // Drop Track, no change
     ControlObject::set(ConfigKey(m_sGroup1, "volume"), 1.0);
-    ASSERT_FALSE(isSoftLeader(m_sGroup1));
-    ASSERT_TRUE(isSoftLeader(m_sGroup2));
+    ASSERT_TRUE(isSoftLeader(m_sGroup1));
+    ASSERT_FALSE(isSoftLeader(m_sGroup2));
     ASSERT_FALSE(isSoftLeader(m_sInternalClockGroup));
 
-    // Other track stops, leader switches to deck 1
-    ControlObject::set(ConfigKey(m_sGroup2, "volume"), 0.0);
+    // The leader's fader goes down: it keeps playing, so it keeps MASTER.
+    ControlObject::set(ConfigKey(m_sGroup1, "volume"), 0.0);
     ProcessBuffer();
     ProcessBuffer();
 
@@ -3141,8 +3147,8 @@ TEST_F(EngineSyncTest, KeepCorrectFactorUponResync) {
     ProcessBuffer();
     EXPECT_NEAR(184.0, ControlObject::get(ConfigKey(m_sGroup1, "bpm")), 0.001);
     EXPECT_NEAR(92.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")), 0.001);
-    EXPECT_NEAR(getRateSliderValue(1.0574),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")),
+    EXPECT_NEAR(1.0574,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")),
             0.005);
 }
 
@@ -3175,7 +3181,7 @@ TEST_F(EngineSyncTest, DISABLED_KeepCorrectFactorOnLoad) {
     ProcessBuffer();
     EXPECT_NEAR(184.0, ControlObject::get(ConfigKey(m_sGroup1, "bpm")), 0.001);
     EXPECT_NEAR(92.0, ControlObject::get(ConfigKey(m_sGroup2, "bpm")), 0.001);
-    EXPECT_NEAR(getRateSliderValue(1.0574),
-            ControlObject::get(ConfigKey(m_sGroup2, "rate")),
+    EXPECT_NEAR(1.0574,
+            ControlObject::get(ConfigKey(m_sGroup2, "rate_ratio")),
             0.005);
 }

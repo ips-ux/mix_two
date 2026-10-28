@@ -105,6 +105,9 @@ class DlgPrefController : public DlgPreferencePage {
     QString askForMappingName(const QString& prefilledName = QString()) const;
     void applyMappingChanges();
     bool saveMapping();
+    /// True if the mapping, as it would be saved, differs from its file.
+    /// Script-registered input handlers are not saved, so they do not count.
+    bool mappingDiffersFromFile() const;
     void initTableView(QTableView* pTable);
     unsigned int getNumberOfVisibleTabs();
     int getIndexOfFirstVisibleTab();

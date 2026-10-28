@@ -112,6 +112,9 @@ class CoreServices : public QObject {
 
   private:
     bool initializeDatabase();
+    /// If rekordbox is running, asks the user to quit it (Retry), to start
+    /// anyway, or to quit Mix Two.
+    void askToCloseRekordbox();
     void initializeKeyboard();
     void initializeSettings();
     void initializeScreensaverManager();

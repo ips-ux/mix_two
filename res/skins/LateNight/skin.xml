@@ -370,6 +370,10 @@
       <Children>
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">1</SetVariable>
+        <SetVariable name="SlotLeft1">EmptyA</SetVariable>
+        <SetVariable name="SlotLeft2">EmptyB</SetVariable>
+        <SetVariable name="SlotRight1">Hub</SetVariable>
+        <SetVariable name="SlotRight2">Rate</SetVariable>
         <SetVariable name="DeckGroup">12</SetVariable>
         <SetVariable name="SignalColor"><Variable name="SignalColor_12"/></SetVariable>
         <SetVariable name="BgColor"><Variable name="BgColorOverview_12"/></SetVariable>
@@ -382,6 +386,10 @@
       <Children>
         <Template src="skins:LateNight/decks/deck.xml">
           <SetVariable name="ChanNum">2</SetVariable>
+          <SetVariable name="SlotLeft1">Rate</SetVariable>
+          <SetVariable name="SlotLeft2">Hub</SetVariable>
+          <SetVariable name="SlotRight1">EmptyA</SetVariable>
+          <SetVariable name="SlotRight2">EmptyB</SetVariable>
           <SetVariable name="DeckGroup">12</SetVariable>
           <SetVariable name="SignalColor"><Variable name="SignalColor_12"/></SetVariable>
           <SetVariable name="BgColor"><Variable name="BgColorOverview_12"/></SetVariable>
@@ -394,6 +402,10 @@
       <Children>
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">3</SetVariable>
+        <SetVariable name="SlotLeft1">EmptyA</SetVariable>
+        <SetVariable name="SlotLeft2">EmptyB</SetVariable>
+        <SetVariable name="SlotRight1">Hub</SetVariable>
+        <SetVariable name="SlotRight2">Rate</SetVariable>
         <SetVariable name="DeckGroup">34</SetVariable>
         <SetVariable name="SignalColor"><Variable name="SignalColor_34"/></SetVariable>
         <SetVariable name="BgColor"><Variable name="BgColorOverview_34"/></SetVariable>
@@ -406,6 +418,10 @@
       <Children>
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">4</SetVariable>
+        <SetVariable name="SlotLeft1">Rate</SetVariable>
+        <SetVariable name="SlotLeft2">Hub</SetVariable>
+        <SetVariable name="SlotRight1">EmptyA</SetVariable>
+        <SetVariable name="SlotRight2">EmptyB</SetVariable>
         <SetVariable name="DeckGroup">34</SetVariable>
         <SetVariable name="SignalColor"><Variable name="SignalColor_34"/></SetVariable>
         <SetVariable name="BgColor"><Variable name="BgColorOverview_34"/></SetVariable>

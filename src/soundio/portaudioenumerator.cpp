@@ -42,6 +42,14 @@ void PortAudioEnumerator::initialize() {
         return;
     }
 
+    // Set by mixxx-test, so that tests never load the installed audio
+    // drivers: some ASIO drivers (e.g. Pioneer's DDJ-800 driver) crash when
+    // PortAudio loads and unloads them many times in one process.
+    if (qEnvironmentVariableIsSet("MIXXX_DISABLE_PORTAUDIO")) {
+        qInfo() << "PortAudio is disabled by MIXXX_DISABLE_PORTAUDIO";
+        return;
+    }
+
     m_jackSampleRate = mixxx::audio::SampleRate();
 
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)

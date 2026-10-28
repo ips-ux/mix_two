@@ -167,14 +167,12 @@ void DlgPrefControllers::rescanControllers() {
 }
 
 void DlgPrefControllers::destroyControllerWidgets() {
-    // NOTE: this assumes that the list of controllers does not change during the lifetime of Mixxx.
-    // This is currently true, but once we support hotplug, we will need better lifecycle management
-    // to keep this dialog and the controllermanager consistent.
-    QList<Controller*> controllerList =
-            m_pControllerManager->getControllerList(false, true);
-    for (auto* pController : std::as_const(controllerList)) {
+    // Disconnect from the controllers the pages were built for, not the
+    // current list: after a MIDI hotplug rescan these differ.
+    for (auto* pController : std::as_const(m_pageControllers)) {
         pController->disconnect(this);
     }
+    m_pageControllers.clear();
     while (!m_controllerPages.isEmpty()) {
         DlgPrefController* pControllerDlg = m_controllerPages.takeLast();
 
@@ -221,6 +219,7 @@ void DlgPrefControllers::setupControllerWidgets() {
                 &DlgPrefController::slotRecreateControlPickerMenu);
 
         m_controllerPages.append(pControllerDlg);
+        m_pageControllers.append(pController);
 
         connect(pController,
                 &Controller::openChanged,

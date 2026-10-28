@@ -2,11 +2,13 @@
 #include <gtest/gtest.h>
 
 #include <QString>
+#include <cmath>
 #include <QtDebug>
 #include <memory>
 #include <tuple>
 #include <vector>
 
+#include "control/controlobject.h"
 #include "engine/channels/enginechannel.h"
 #include "engine/enginemixer.h"
 #include "gtest/gtest.h"
@@ -153,6 +155,61 @@ TEST_P(EngineMixerTest, OutputWorks) {
     m_pEngineMixer->process(static_cast<int>(channels.at(0).second.size()));
 
     assertBuffers();
+}
+
+// Mix Two: MASTER CUE ([Master],main_cue) puts the main mix in the
+// headphones even with MIXING (headMix) turned fully to CUE.
+class EngineMixerMainCueTest : public EngineMixerTest {
+  protected:
+    void processOneMainChannel() {
+        auto [pChannel, buffer] = makeChannel(QStringLiteral("[Test1]"), 0.5f);
+        EXPECT_CALL(*pChannel, updateActiveState())
+                .WillRepeatedly(Return(EngineChannel::ActiveState::Active));
+        EXPECT_CALL(*pChannel, isActive()).WillRepeatedly(Return(true));
+        EXPECT_CALL(*pChannel, isMainMixEnabled()).WillRepeatedly(Return(true));
+        EXPECT_CALL(*pChannel, isPflEnabled()).WillRepeatedly(Return(false));
+        EXPECT_CALL(*pChannel, collectFeatures(_)).Times(testing::AnyNumber());
+        EXPECT_CALL(*pChannel, postProcess(_)).Times(testing::AnyNumber());
+        EXPECT_CALL(*pChannel, process(_, _)).WillRepeatedly(Return());
+        // Twice, so the headphone gain ramps have settled.
+        m_pEngineMixer->process(static_cast<int>(buffer.size()));
+        m_pEngineMixer->process(static_cast<int>(buffer.size()));
+        m_bufferSize = buffer.size();
+    }
+
+    double headphoneLevel() const {
+        double sum = 0;
+        for (CSAMPLE v : m_pEngineMixer->getHeadphoneBuffer().subspan(0, m_bufferSize)) {
+            sum += std::fabs(v);
+        }
+        return sum / m_bufferSize;
+    }
+
+    double mainLevel() const {
+        double sum = 0;
+        for (CSAMPLE v : m_pEngineMixer->getMainBuffer().subspan(0, m_bufferSize)) {
+            sum += std::fabs(v);
+        }
+        return sum / m_bufferSize;
+    }
+
+    std::size_t m_bufferSize = 0;
+};
+
+TEST_F(EngineMixerMainCueTest, MainCueSendsTheMainMixToTheHeadphones) {
+    ControlObject::set(ConfigKey(QStringLiteral("[Master]"), QStringLiteral("headMix")), -1.0);
+    ControlObject::set(ConfigKey(QStringLiteral("[Master]"), QStringLiteral("main_cue")), 1.0);
+    processOneMainChannel();
+    ASSERT_GT(mainLevel(), 0.0);
+    EXPECT_NEAR(mainLevel(), headphoneLevel(), 1e-4);
+}
+
+TEST_F(EngineMixerMainCueTest, WithoutMainCueTheCueSideIsSilent) {
+    ControlObject::set(ConfigKey(QStringLiteral("[Master]"), QStringLiteral("headMix")), -1.0);
+    ControlObject::set(ConfigKey(QStringLiteral("[Master]"), QStringLiteral("main_cue")), 0.0);
+    processOneMainChannel();
+    ASSERT_GT(mainLevel(), 0.0);
+    EXPECT_NEAR(0.0, headphoneLevel(), 1e-6);
 }
 
 } // namespace

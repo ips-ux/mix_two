@@ -60,6 +60,9 @@ class MidiController : public Controller {
     }
 
     bool matchMapping(const MappingInfo& mapping) override;
+    /// True if a `<product protocol="midi">` entry describes the device
+    /// with this port name.
+    static bool matchProductInfo(const QString& deviceName, const ProductInfo& product);
     bool removeInputMapping(uint16_t key, const MidiInputMapping& mapping);
 
   signals:

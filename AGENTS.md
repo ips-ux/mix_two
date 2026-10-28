@@ -12,12 +12,18 @@ pre-commit setup, Git workflow, and pull request guidelines.
 > But using AI tools that **assist** the human contributor with code generation, refactoring,
 > documentation and reviewing the work before submission is welcome.
 
+### Commits and Pushes in This Fork (ips-ux/mix_two)
+
+This repository is a personal fork. AI agents working in it **should** commit and push their
+changes to `origin` (`https://github.com/ips-ux/mix_two`) as part of completing a task, without
+waiting for a separate human `git commit`/`git push`.
+
 ### No Autonomous Pull Requests
 
-AI agents **must not** open, update, or re-open pull requests autonomously on behalf of a user.
+AI agents **must not** open, update, or re-open pull requests autonomously on behalf of a user,
+in particular against upstream `mixxxdj/mixxx`.
 All pull requests must be explicitly reviewed, approved, and submitted by the human developer
-themselves. An agent may prepare and stage changes locally, but `git commit`, `git push`, and PR
-creation must be deliberate human actions. Before this, a test of the code change by a human,
+themselves. Before submitting anything upstream, a test of the code change by a human,
 using a real DJ setup, is required.
 
 ### No Automated Responses to PR Review Comments

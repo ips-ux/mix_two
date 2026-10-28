@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QInputDialog>
 #include <QKeyEvent>
+#include <QTemporaryDir>
 
 #include "controllers/controller.h"
 #include "controllers/controllerinputmappingtablemodel.h"
@@ -880,6 +881,32 @@ int DlgPrefController::getIndexOfFirstVisibleTab() {
     return -1;
 }
 
+bool DlgPrefController::mappingDiffersFromFile() const {
+    const QFileInfo mappingFile(m_pMapping->filePath());
+    if (!mappingFile.exists()) {
+        return true;
+    }
+    const std::shared_ptr<LegacyControllerMapping> pFileMapping =
+            LegacyControllerMappingFileHandler::loadMapping(
+                    mappingFile, resourceMappingsPath(m_pConfig));
+    QTemporaryDir tempDir;
+    if (!pFileMapping || !tempDir.isValid()) {
+        return true;
+    }
+    // Serialize both through the same writer, so formatting cannot differ.
+    const QString currentPath = tempDir.filePath(QStringLiteral("current.xml"));
+    const QString filePath = tempDir.filePath(QStringLiteral("file.xml"));
+    if (!m_pMapping->saveMapping(currentPath) || !pFileMapping->saveMapping(filePath)) {
+        return true;
+    }
+    QFile current(currentPath);
+    QFile file(filePath);
+    if (!current.open(QIODevice::ReadOnly) || !file.open(QIODevice::ReadOnly)) {
+        return true;
+    }
+    return current.readAll() != file.readAll();
+}
+
 bool DlgPrefController::saveMapping() {
     VERIFY_OR_DEBUG_ASSERT(m_pMapping) {
         return false;
@@ -887,6 +914,16 @@ bool DlgPrefController::saveMapping() {
 
     if (!m_pMapping->isDirty()) {
         qDebug() << "Mapping is not dirty, no need to save it.";
+        return false;
+    }
+
+    // Applying the preferences page can mark a mapping modified although
+    // nothing that is saved changed (e.g. input handlers that the mapping's
+    // script registered). Do not fork a built-in mapping into a user copy
+    // then: the copy would stop receiving updates of the built-in one.
+    if (!mappingDiffersFromFile()) {
+        qDebug() << "Mapping is unchanged from" << m_pMapping->filePath() << ", not saving it.";
+        m_pMapping->setDirty(false);
         return false;
     }
 

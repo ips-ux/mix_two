@@ -324,7 +324,15 @@ class EngineMixer : public QObject, public AudioSource {
     std::unique_ptr<ControlPotmeter> m_pXFaderCalibration;
     std::unique_ptr<ControlPushButton> m_pXFaderReverse;
     std::unique_ptr<ControlPushButton> m_pHeadSplitEnabled;
+    // Mix Two: Pioneer MASTER CUE. Puts the main mix on the cue bus, so it is
+    // heard in the headphones at any MIXING (headMix) position.
+    std::unique_ptr<ControlPushButton> m_pMainCue;
     std::unique_ptr<ControlObject> m_pKeylockEngine;
+    // Mix Two: [App],scratch_algorithm, see EngineBuffer::ScratchAlgorithm.
+    std::unique_ptr<ControlObject> m_pScratchAlgorithm;
+    // Mix Two: [App],sync_type and [App],sync_grid, see EngineSync::SyncType.
+    std::unique_ptr<ControlObject> m_pSyncType;
+    std::unique_ptr<ControlObject> m_pSyncGrid;
 
     PflGainCalculator m_headphoneGain;
     TalkoverGainCalculator m_talkoverGain;
