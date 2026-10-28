@@ -105,7 +105,21 @@ private:
   // Mix Two: the rekordbox-style platter (docs/ddj800-program/
   // SCRATCH-ENGINE.md, "Mix Two's version"). Returns the scratch rate while
   // the platter is touched.
-  double calculatePlatterRate(double baserate, std::size_t samplesPerBuffer);
+  double calculatePlatterRate(double baserate, std::size_t samplesPerBuffer, double turn);
+  // Mix Two: runs the platter states for one buffer (SCRATCH-ENGINE.md
+  // section 2.1). Returns true with *pRate set while the platter drives the
+  // track (scratch or spin); otherwise the deck plays normally, with
+  // m_platterBend applied.
+  bool processPlatter(double baserate,
+          double tempoRatio,
+          bool paused,
+          std::size_t samplesPerBuffer,
+          double* pRate);
+  // Records one buffer of platter movement and updates m_platterSpeed.
+  void measurePlatter(double turn, double bufferSeconds);
+  // rekordbox's spin test: whether a spin at the measured speed goes on.
+  bool platterSpinGoesOn(bool playing, double playRate);
+  void setPlatterState(int state);
 
   // Set rate change of the temporary pitch rate
   void setRateTemp(double v);
@@ -143,6 +157,26 @@ private:
   // (negative backwards). The value itself stays 0.
   std::unique_ptr<ControlObject> m_pPlatterTurn;
   std::atomic<double> m_platterTurnPending;
+  // [ChannelN],platter_state (read-only): 0 idle, 1 scratch, 2 spin,
+  // 3 disable, 4 bend.
+  std::unique_ptr<ControlObject> m_pPlatterState;
+  int m_platterState;
+  // Recent buffers of movement, for the platter speed (no allocations).
+  static constexpr int kPlatterHistory = 32;
+  double m_platterHistoryTurn[kPlatterHistory];
+  double m_platterHistorySeconds[kPlatterHistory];
+  int m_platterHistoryNext;
+  double m_platterClock;         // seconds of audio processed
+  double m_platterLastMoveClock; // m_platterClock at the last movement
+  double m_platterSpeed;         // platter speed, 1.0 = 33 1/3 rpm; 0 = still
+  int m_platterDirection;        // direction of the last movement (+1 / -1)
+  bool m_platterReversed;        // the last movement reversed direction
+  int m_platterSpinDirection;
+  int m_platterSlowCount;        // spin: movements slower than play, in a row
+  double m_platterAgainstSpin;   // disable: revolutions against the spin
+  bool m_platterPlayingAtTouch;
+  double m_platterBend;          // fraction of the tempo added by a bend
+  double m_platterBendClock;     // m_platterClock at the last bend update
   bool m_platterActive;
   bool m_platterDeadZone;
   // The renderer eases into the stop over the first touched buffer; the

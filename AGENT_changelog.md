@@ -50,6 +50,40 @@
 
 ---
 
+## 2026-10-27: scratch spin, disable and bend; render harness
+
+- **Engine:** `RateControl::processPlatter` runs rekordbox's five platter
+  states per buffer (idle, scratch, spin, disable, bend); new read-only
+  control `[ChannelN],platter_state` (0–4). Spec traced from rekordbox
+  6.8.5 and written in our own words:
+  [SCRATCH-ENGINE.md §2.1](docs/ddj800-program/SCRATCH-ENGINE.md).
+  Constants: spin glitch 50×, speed window 20 ms, quiet 50 ms, spin slow
+  count 3, disable end 1215/3240 rev, bend 3 %/1× from 0.5×, cap +42 %
+  (one-sided, as rekordbox), bend timeout 56 ms. The glitch filter moved
+  from `calculatePlatterRate` (which now takes the turn) to
+  `processPlatter`. Bend is added as a user tweak (sync accepts it).
+- **Mapping:** `Pioneer-DDJ-800-script.js` `jogTurn` sends untouched turns
+  to `platter_turn` while the deck plays or `platter_state` ≠ 0 (with the
+  "Rekordbox" algorithm); a paused, idle deck keeps `jog` search.
+- **Tests:** 9 new in `src/test/platter_test.cpp` (`PlatterSpinTest`,
+  using the engine's exact `getPlayPos()`, since `playposition` only
+  updates 15×/s). Full suite: 1384/1384 passed.
+- **Render harness:** `src/test/platterrender_test.cpp`
+  (`PlatterRenderTest`, env-gated `MIXTWO_RENDER_*`) and
+  `tools/soundparity/render_scratch.py` (`scripts`, `wrap`, `render`,
+  `all`). Real track: `.resource/jvckpot.mp3` (ignored by git; never
+  commit it or the renders). Output in `build/soundparity/scratch/`. A
+  cross-correlation check put every render within 50 ms of the hand-worked
+  track position. The `mixxx` algorithm in the harness only swaps the
+  scaler; the motion is always the engine's platter.
+- **Test fix:** `ControllerScriptEngineLegacyTimerTest` used a potmeter
+  clamped to 50 for Qt timer ids; reused ids carry serial bits (> 1e6)
+  when the whole binary runs in one process (our `test` helper, unlike
+  ctest). Now an unbounded `ControlObject`.
+- **Status:** unit-tested and render-checked; not tested on the deck. Open:
+  rekordbox renders of the same movements (no replay path yet, see
+  `tools/soundparity/README.md`), feel on hardware, 1.8 s/turn.
+
 ## 2026-10-27: changelogs
 
 - Added this file and [USER_changelog.md](USER_changelog.md). **Status:** docs
@@ -195,8 +229,8 @@ Everything below landed in one commit on top of upstream. 136 files,
 - Spec: [SCRATCH-ENGINE.md](docs/ddj800-program/SCRATCH-ENGINE.md).
 - **Tests:** `src/test/enginebufferscalehalfbandlagrange_test.cpp`,
   `src/test/platter_test.cpp`.
-- **Status:** unit-tested. Not done: spin/backspin on release, bend rule,
-  render comparison, hardware check of 1.8 s/turn (`jogResolution`).
+- **Status:** unit-tested. Spin, disable and bend added later the same day
+  (entry above).
 
 ### Mixer
 - `[Master],main_cue`: main mix joins the cue bus (`src/engine/enginemixer.*`).

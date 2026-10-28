@@ -820,7 +820,12 @@ PioneerDDJ800.jogTurn = function(deck, ticks) {
         return;
     }
 
-    if (engine.getValue(group, "platter_touch")) {
+    // With the engine's platter, untouched turns go there too while the deck
+    // plays or the platter spins, is disabled or bends (rekordbox's spin and
+    // bend); a paused, idle deck keeps Mixxx's jog search.
+    if (engine.getValue(group, "platter_touch") ||
+            (PioneerDDJ800.usesPlatter() &&
+                (engine.getValue(group, "play") || engine.getValue(group, "platter_state")))) {
         engine.setValue(group, "platter_turn", ticks / PioneerDDJ800.jogResolution);
     } else if (engine.isScratching(deck + 1)) {
         engine.scratchTick(deck + 1, ticks);

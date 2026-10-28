@@ -151,10 +151,12 @@ priorities. PARITY.md holds the per-row detail; this list is the work queue.
 - FX beat and BPM: finish the beat selection and BPM Auto/Tap.
 - Sound Color FX presets that sound like rekordbox's: DUB ECHO, SWEEP, NOISE,
   FILTER, plus SPACE, PITCH, CRUSH and JET.
-- Scratch ([SCRATCH-ENGINE.md](SCRATCH-ENGINE.md)): spin and backspin when a
-  moving platter is let go; rekordbox's pitch-bend rule; a render comparison
-  against rekordbox with the same scripted jog movement; check on the deck
-  that one turn moves 1.8 s.
+- Scratch ([SCRATCH-ENGINE.md](SCRATCH-ENGINE.md)): ~~spin and backspin when
+  a moving platter is let go; rekordbox's pitch-bend rule~~ (built
+  2026-10-27); Mix Two renders of the scripted jog movements exist
+  (`tools/soundparity/render_scratch.py`, real track `.resource/jvckpot.mp3`);
+  still to do: the same movements rendered in rekordbox and compared, and a
+  check on the deck that one turn moves 1.8 s.
 - Other deck sound: Master Tempo (key lock), key shift and vinyl brake/start,
   matched to rekordbox where they differ.
 

@@ -156,7 +156,19 @@ Scratch algorithm:
 With the rekordbox scratch sound, one turn of the jog wheel moves the track
 1.8 seconds.
 
-If you release the jog wheel while it turns, the track does not spin on yet.
+If you release the jog wheel while it turns, the track continues to move
+with the jog wheel. This is a spin. A backspin operates in the same way.
+
+The spin stops when the jog wheel stops or turns in the other direction.
+
+During play, a forward spin stops when the jog wheel is slower than the
+track. The track then plays at its normal speed.
+
+After a spin, Mix Two ignores the jog wheel until it stops. To use it
+sooner, turn it backward approximately 3/8 of a turn.
+
+During play, turn the side of the jog wheel to change the speed for a
+short time. A faster turn gives a larger change, to a maximum of 42 %.
 
 ### Mixer
 
@@ -217,7 +229,6 @@ The layout is not final. A rekordbox layout will follow.
 
 - The jog display on the DDJ-800 does not operate.
 - Beat FX do not sound like rekordbox yet.
-- The jog wheel does not spin on after you release it.
 - On-screen buttons outside the deck hub can operate differently from the
   DDJ-800.
 

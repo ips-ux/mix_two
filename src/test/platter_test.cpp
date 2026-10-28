@@ -3,6 +3,8 @@
 #include <cmath>
 
 #include "control/controlobject.h"
+#include "engine/channels/enginedeck.h"
+#include "engine/enginebuffer.h"
 #include "test/mockedenginebackendtest.h"
 
 namespace {
@@ -110,6 +112,149 @@ TEST_F(PlatterTest, ReleaseResumesPlay) {
     touch(false);
     process(20);
     EXPECT_GT(seconds(), held + 0.1);
+}
+
+// Release, spin, disable and bend (SCRATCH-ENGINE.md section 2.1).
+class PlatterSpinTest : public PlatterTest {
+  protected:
+    enum State { kIdle = 0, kScratch = 1, kSpin = 2, kDisable = 3, kBend = 4 };
+
+    /// The engine's exact position in seconds of track (playposition only
+    /// updates 15 times a second).
+    double exact() const {
+        return m_pChannel1->getEngineBuffer()->getPlayPos().value() /
+                ControlObject::get(ConfigKey(m_sGroup1, "track_samplerate"));
+    }
+
+    int state() const {
+        return static_cast<int>(ControlObject::get(ConfigKey(m_sGroup1, "platter_state")));
+    }
+
+    static double bufferSeconds() {
+        return kProcessBufferSize / 2.0 /
+                ControlObject::get(ConfigKey(QStringLiteral("[App]"),
+                        QStringLiteral("samplerate")));
+    }
+
+    /// Revolutions per buffer for a platter at `speed` (1.0 = 33 1/3 rpm).
+    static double turnAt(double speed) {
+        return speed * bufferSeconds() / kSecondsPerRevolution;
+    }
+
+    void turnFor(double speed, int buffers) {
+        for (int i = 0; i < buffers; ++i) {
+            turn(turnAt(speed));
+            ProcessBuffer();
+        }
+    }
+
+    /// Touches a paused deck and scratches forward at `speed`.
+    void scratchPaused(double speed) {
+        touch(true);
+        process(10); // > 60 ms dead zone
+        turnFor(speed, 10);
+    }
+};
+
+TEST_F(PlatterSpinTest, ReleaseWhileTurningSpins) {
+    scratchPaused(1.5);
+    const double released = exact();
+    touch(false);
+    turnFor(1.5, 30); // the platter runs on by itself
+    EXPECT_EQ(kSpin, state());
+    // The paused track follows the free-running platter.
+    EXPECT_NEAR(released + 30 * turnAt(1.5) * kSecondsPerRevolution, exact(), 0.01);
+}
+
+TEST_F(PlatterSpinTest, SpinStopsWithThePlatter) {
+    scratchPaused(1.5);
+    touch(false);
+    turnFor(1.5, 10);
+    process(8); // > 50 ms without movement
+    EXPECT_EQ(kIdle, state()); // paused at the touch: no disable phase
+    const double stopped = exact();
+    process(20);
+    EXPECT_NEAR(stopped, exact(), 1e-4);
+}
+
+TEST_F(PlatterSpinTest, SpinEndsWhenThePlatterReverses) {
+    scratchPaused(1.5);
+    touch(false);
+    turnFor(1.5, 5);
+    ASSERT_EQ(kSpin, state());
+    turnFor(-1.5, 1);
+    EXPECT_NE(kSpin, state());
+}
+
+TEST_F(PlatterSpinTest, ReleasingAStillPlatterDoesNotSpin) {
+    scratchPaused(1.5);
+    process(8); // the hand holds the platter still
+    touch(false);
+    ProcessBuffer();
+    EXPECT_EQ(kIdle, state());
+}
+
+TEST_F(PlatterSpinTest, ForwardSpinHandsBackToPlayThenIgnoresTheCoast) {
+    touchWhilePlaying();
+    turnFor(3.0, 10);
+    touch(false);
+    turnFor(3.0, 5);
+    ASSERT_EQ(kSpin, state());
+    // Slower than play: three movements in a row end the spin (the first
+    // slow buffer still averages with the fast one before it).
+    turnFor(0.6, 4);
+    EXPECT_EQ(kDisable, state());
+    // Disabled: the coasting platter neither scratches nor bends.
+    const double before = exact();
+    turnFor(0.6, 30);
+    EXPECT_EQ(kDisable, state());
+    EXPECT_NEAR(30 * bufferSeconds(), exact() - before, 0.005);
+    // The jog goes quiet: idle again.
+    process(8);
+    EXPECT_EQ(kIdle, state());
+}
+
+TEST_F(PlatterSpinTest, PushingAgainstTheSpinEndsTheDisablePhase) {
+    touchWhilePlaying();
+    turnFor(3.0, 10);
+    touch(false);
+    turnFor(3.0, 5);
+    turnFor(0.6, 4);
+    ASSERT_EQ(kDisable, state());
+    turn(-0.2);
+    ProcessBuffer();
+    EXPECT_EQ(kDisable, state()); // 0.2 rev: not yet
+    turn(-0.2);
+    ProcessBuffer();
+    EXPECT_EQ(kIdle, state()); // more than 1215/3240 rev
+}
+
+TEST_F(PlatterSpinTest, UntouchedPlatterBendsTheTempo) {
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
+    process(20);
+    const double before = exact();
+    turnFor(2.0, 40); // 2x platter speed: +6 %
+    EXPECT_EQ(kBend, state());
+    EXPECT_NEAR(40 * bufferSeconds() * 1.06, exact() - before, 0.006);
+    process(6); // > 56 ms without movement
+    EXPECT_EQ(kIdle, state());
+}
+
+TEST_F(PlatterSpinTest, BendIsCappedAt42Percent) {
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
+    process(20);
+    const double before = exact();
+    turnFor(20.0, 40); // 3 % per 1x would be +60 %
+    EXPECT_NEAR(40 * bufferSeconds() * 1.42, exact() - before, 0.02);
+}
+
+TEST_F(PlatterSpinTest, SlowUntouchedPlatterDoesNotBend) {
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
+    process(20);
+    const double before = exact();
+    turnFor(0.4, 40); // under 0.5x
+    EXPECT_EQ(kIdle, state());
+    EXPECT_NEAR(40 * bufferSeconds(), exact() - before, 0.005);
 }
 
 } // namespace

@@ -2988,6 +2988,7 @@ if(BUILD_TESTING)
     src/test/keyfactorytest.cpp
     src/test/keysync_test.cpp
     src/test/platter_test.cpp
+    src/test/platterrender_test.cpp
     src/test/rekordboxanlz_test.cpp
     src/test/rekordboxbeats_test.cpp
     src/test/keyutilstest.cpp

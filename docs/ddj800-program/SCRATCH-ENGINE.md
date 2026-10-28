@@ -42,8 +42,8 @@ Traced fully for the DDJ-800 (2026-10-27).
   asked for last time and the speed the player actually achieved (averaged
   over the player's blocks since then). The audio stays locked to where the
   platter is, not only to how fast it turns.
-- Other thresholds, 42/3240 and 1215/3240 of a revolution, belong to the
-  spin and loop-adjust paths.
+- The threshold 42/3240 of a revolution belongs to the bend entry and
+  1215/3240 to the end of the disable phase (section 2.1 below).
 
 ### Mix Two's version (clean room)
 
@@ -54,6 +54,67 @@ speed. Aiming at the position gives the position lock and the carry-over of
 the speed limit exactly. Dead zone and glitch filter as above. Used when
 Preferences > Decks > Platter options > Scratch algorithm is "Rekordbox";
 "Mixxx" keeps Mixxx's own scratching.
+
+## 2.1 Release, spin, disable and bend
+
+Traced for the DDJ-800 (2026-10-27, same Ghidra project). The motion stage
+has five states: **idle**, **scratch** (touched), **spin**, **disable** and
+**bend**.
+
+- **Release.** When the hand lets go, rekordbox looks at the platter speed
+  of the last jog message. If the platter is still turning (any speed above
+  zero) and that message did not reverse direction, the deck goes into
+  **spin**; otherwise the scratch stops.
+- **Spin.** The track plays at the speed of the free-running platter (speed
+  limit ±8×; anything implying more than **50×** is dropped as a glitch).
+  There is no position lock: the platter's speed drives the track. Spin ends
+  when:
+  - the platter stops (a jog update arrives with no movement),
+  - the platter changes direction, or
+  - the deck is playing in the platter's direction and the platter has been
+    slower than the deck's play speed (tempo included) for **3** jog
+    messages in a row. The count resets when the platter is faster again.
+    This is how a forward spin hands back to normal play.
+  The 3-message count is set for every controller (`SetSpinCount(3)`), so
+  the platter's speed is passed on even while it is counting.
+- **Disable.** After a spin ends (and after a release without spin), the
+  platter usually keeps coasting. If the deck was playing when it was
+  touched, rekordbox ignores the platter until either it is pushed **against
+  the spin direction by more than 1215/3240 of a revolution** (0.375 rev), or
+  the jog goes quiet. A deck that was paused at the touch goes straight back
+  to idle. While disabled the deck plays normally.
+- **Bend** (platter not touched). From idle, a platter faster than **0.5×**
+  (or more than 42/3240 of a revolution within 60 ms) starts a bend. The
+  bend amount is 1.5 ÷ (1 − 0.5) = **3 % per 1× of platter speed**, capped
+  at **+42 %** (the cap is one-sided in rekordbox), and is only updated
+  while the platter is faster than 0.5×. The player plays at
+  (1 + bend ÷ 100) × its normal speed. The bend ends **56 ms** after the
+  last update. Touching the platter cancels a bend.
+- **Constants** (DDJ-800, rekordbox defaults): jog resolution 6480 units;
+  scratch glitch 25×, spin glitch 50×, speed limit 8×, touch dead zone 60 ms
+  / 9/3240 rev / 0.05×, bend threshold 0.5×, bend gain 1.5, bend cap 42,
+  bend timeout 56 ms, spin count 3, disable-end 1215/3240 rev.
+
+### Mix Two's version (clean room)
+
+The engine keeps the same five states per deck, exposed read-only as
+`[ChannelN],platter_state` (0 idle, 1 scratch, 2 spin, 3 disable, 4 bend).
+With the "Rekordbox" scratch algorithm the DDJ-800 mapping sends every jog
+turn to `platter_turn` while the deck plays, is touched, or is not idle; a
+paused, idle deck keeps Mixxx's jog search.
+
+- **Platter speed** is measured over the last 20 ms of buffers (turns ÷
+  time), because Mix Two sees the jog per audio buffer, not per MIDI
+  message. Rules that rekordbox applies per jog message are applied per
+  buffer that received movement.
+- **"The jog goes quiet"** means no movement for **50 ms**. At the DDJ-800's
+  720 steps per revolution that is one step slower than 0.05×, the same
+  floor as the touch dead zone. It ends a spin (the platter has stopped), a
+  disable phase, and decides at release whether the platter still turns.
+- Spin renders like scratching (key lock off, the scratch scaler).
+- Bend adds (bend ÷ 100) × the deck's tempo to the play rate, as a user
+  tweak, so a synced deck accepts it like any other nudge.
+- Deliberately the same as rekordbox: the one-sided +42 % cap.
 
 ## 4. Rendering (TimeStretchScratch)
 
@@ -101,9 +162,10 @@ cubic Lagrange interpolation** on the oversampled signal.
 1. ~~Filter and polynomial~~: done, see section 4.
 2. ~~Motion~~: traced (section 2) and built 2026-10-27 in `RateControl`
    (`calculatePlatterRate`, controls `platter_touch` / `platter_turn`), driven
-   by the DDJ-800 jogs when the scratch algorithm is "Rekordbox". Still to
-   trace and build: the spin modes (release while turning, backspins) and the
-   bend amount. Verify on hardware that one platter turn moves 1.8 s.
+   by the DDJ-800 jogs when the scratch algorithm is "Rekordbox". Spin,
+   disable and bend traced and built 2026-10-27 (section 2.1,
+   `[ChannelN],platter_state`). Verify on hardware that one platter turn
+   moves 1.8 s, and how a spin feels against rekordbox.
 3. ~~Rendering~~: built 2026-10-27 as `EngineBufferScaleHalfbandLagrange`,
    chosen in Preferences > Decks > Platter options > Scratch algorithm
    ("Rekordbox (6.8.5)", the default; "Mixxx (2.7)" keeps the linear scaler).
@@ -112,3 +174,11 @@ cubic Lagrange interpolation** on the oversampled signal.
    engine (not the mapping script), selected for 33⅓ / 45 RPM.
 4. Verify against rekordbox by rendering the same platter movement in both
    (scripted jog MIDI into each app, same track) and comparing the output.
+   Mix Two side built 2026-10-27: `tools/soundparity/render_scratch.py`
+   writes the jog scripts (baby scratch, forward/back, release spin,
+   backspin, paused spin, bend) as DDJ-800 MIDI and renders them through
+   the real engine (`PlatterRenderTest`) with the owner's real track
+   `.resource/jvckpot.mp3`. A cross-correlation check of the renders put
+   the track within 50 ms of the position worked out by hand from each
+   script. Still open: getting the same movement into rekordbox (see the
+   README there).

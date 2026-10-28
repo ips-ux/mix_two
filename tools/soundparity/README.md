@@ -106,6 +106,44 @@ the content. For the 16-bar signals at 128 BPM that is 18 bars = 33.75 s.
 The latency the tool reports counts as a difference too: rekordbox's
 processing delay is part of how its effects feel.
 
+## Scratch renders (deck sound)
+
+`render_scratch.py` compares the scratch, spin and bend sound. The audio is
+a real track, not a test signal: the owner's `.resource/jvckpot.mp3`
+(ignored by git, like everything in `.resource/`). `wrap` decodes it with
+ffmpeg, takes 12 s from 0:30, scales the peaks to −6 dBFS and puts the
+alignment chirp and two silent bars in front, so captures line up with
+`compare.py`.
+
+```
+python tools/soundparity/render_scratch.py all .resource/jvckpot.mp3
+```
+
+writes to `build/soundparity/scratch/` (ignored by git):
+- `music.wav`: the wrapped track. Use the same file in rekordbox.
+- `jog/*.jog`: the movements, as DDJ-800 MIDI with times in ms (`B0 22`
+  top jog, `B0 21` side jog, value 0x40 ± steps at 720 steps per
+  revolution; `90 36` touch; `90 0B` PLAY). The deck plays from 0 s; the
+  movements start 4 s into the music.
+- `mixtwo/*.wav`: Mix Two's render (scratch algorithm "Rekordbox").
+- `mixtwo-linear-scaler/*.wav`: the same motion through Mixxx's linear
+  scaler, to hear what the rekordbox scaler changes.
+
+The renders run in `mixxx-test` (`PlatterRenderTest`, skipped unless its
+`MIXTWO_RENDER_*` variables are set), through the real engine with
+128-frame buffers. It turns the MIDI into controls as the DDJ-800 mapping
+does.
+
+**The rekordbox side is still open.** rekordbox holds the DDJ-800's MIDI
+port, so the movement cannot simply be logged on Windows 11 23H2 while
+rekordbox runs. Two ways, both untested:
+1. Perform the movement on the deck in rekordbox with REC running, capture
+   the USB MIDI with USBPcap / Wireshark at the same time, convert the
+   capture to a `.jog` file, and render that in Mix Two.
+2. Send a `.jog` file into rekordbox through a virtual MIDI port named like
+   the DDJ-800, with the real deck connected for the unlock. Whether
+   rekordbox accepts that is unknown.
+
 ## Later
 
 Replaying recorded controller MIDI into both apps, so that knob moves are
