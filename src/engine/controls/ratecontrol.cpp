@@ -773,7 +773,10 @@ bool RateControl::processPlatter(double baserate,
 
     // Idle or bend: the untouched platter bends the tempo.
     if (moved && std::fabs(speed) > kPlatterBendMinSpeed) {
-        m_platterBend = std::min(speed * kPlatterBendPercentPerSpeed, kPlatterBendMaxPercent) /
+        // Capped above at 42 %, then limited to ±42 % by the player.
+        m_platterBend = std::clamp(speed * kPlatterBendPercentPerSpeed,
+                                -kPlatterBendMaxPercent,
+                                kPlatterBendMaxPercent) /
                 100.0;
         m_platterBendClock = m_platterClock;
         setPlatterState(kPlatterBend);
@@ -916,7 +919,8 @@ double RateControl::calculateSpeed(double baserate,
         *pReportScratching = true;
         return platterRate;
     }
-    const double platterBend = paused ? 0.0 : speed * m_platterBend;
+    // rekordbox adds the bend to 1 + the tempo change; it does not scale it.
+    const double platterBend = paused ? 0.0 : m_platterBend;
 
     double rate;
     const double searching = m_pRateSearch->get();

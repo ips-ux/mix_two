@@ -309,6 +309,14 @@ TEST_F(PlatterSpinTest, BendIsCappedAt42Percent) {
     EXPECT_NEAR(40 * bufferSeconds() * 1.42, exact() - before, 0.02);
 }
 
+TEST_F(PlatterSpinTest, BackwardBendIsCappedAt42Percent) {
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
+    process(20);
+    const double before = exact();
+    turnFor(-20.0, 40); // 3 % per 1x would be -60 %
+    EXPECT_NEAR(40 * bufferSeconds() * 0.58, exact() - before, 0.02);
+}
+
 TEST_F(PlatterSpinTest, SlowUntouchedPlatterDoesNotBend) {
     ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
     process(20);

@@ -53,6 +53,30 @@
 
 ---
 
+## 2026-10-28: jog bend fixed on the deck (side jog while playing)
+
+- **Owner's report:** backspin good, jogging forward/backward "very very
+  wrong"; rekordbox's bend is nearly transparent, no artifacts.
+- **Cause:** the owner's profile (`build/mixtwo-profile/mixxx.cfg`) has
+  `[App] scratch_algorithm 0` ("Mixxx"), so the mapping sent the side jog
+  of a playing deck to Mixxx's `jog` at 0.8 per tick: at 6480 ticks/turn
+  that is roughly 200x too strong. The engine platter was not in use (the
+  backspin was Mixxx's scratch). Profile also has key lock on decks 1-2
+  with `keylock_engine 0` (SoundTouch).
+- **Mapping:** a playing deck's untouched turns always go to
+  `platter_turn` (rekordbox bend) unless Mixxx's scratch is active.
+- **rekordbox bend traced (worker, clean room):** formula confirmed (3 %
+  per 1x, threshold 0.5x, hold below it, 56 ms timeout per callback);
+  new: instant ratio offset clamped ±0.42, rate = 1 + tempo + bend
+  (additive, not limited by tempo range), speed changes ramped over at most
+  512 samples, slope path unused. SCRATCH-ENGINE.md 2.1.
+- **Engine:** bend clamped to ±42 % (was +42 % only); added to the rate
+  instead of scaled by the tempo ratio. New test
+  `BackwardBendIsCappedAt42Percent`.
+- **Not changed (owner's choice pending):** paused deck side jog still uses
+  Mixxx's `jog` (x18 paused multiplier), also far too strong at 6480.
+- **Status:** unit-tested and render-checked; not felt on the deck.
+
 ## 2026-10-28: rekordbox's jog input stage in the engine
 
 - **Engine (`RateControl`):** `platter_turn` arrivals are binned per

@@ -160,6 +160,16 @@ Scratch algorithm:
 With the rekordbox scratch sound, one turn of the jog wheel moves the track
 1.8 seconds.
 
+When a track plays, turn the side of the jog wheel to bend the tempo. The
+bend is now the same as in rekordbox: 3 % for each normal platter speed, up
+to 42 % faster or slower. It operates with the two scratch algorithms.
+Before this change, the "Mixxx (2.7)" scratch algorithm made the track
+much too fast or too slow.
+
+For less audible bends, set the key lock engine to Rubberband
+(Preferences > Decks), then push KEY LOCK. With key lock, a bend changes
+the tempo but not the pitch, as rekordbox does with Master Tempo.
+
 The jog wheel now operates with the same timing as rekordbox. The track
 follows the jog wheel after approximately two audio buffers, as in
 rekordbox. For the same timing as rekordbox, set the audio buffer to

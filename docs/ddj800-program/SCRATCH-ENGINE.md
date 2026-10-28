@@ -104,10 +104,20 @@ individual DDJ-800 messages.)
 - **Bend** (platter not touched). From idle, a platter faster than **0.5×**
   (or more than 42/3240 of a revolution within 60 ms) starts a bend. The
   bend amount is 1.5 ÷ (1 − 0.5) = **3 % per 1× of platter speed**, capped
-  at **+42 %** (the cap is one-sided in rekordbox), and is only updated
-  while the platter is faster than 0.5×. The player plays at
-  (1 + bend ÷ 100) × its normal speed. The bend ends **56 ms** after the
-  last update. Touching the platter cancels a bend.
+  at **+42 %**, and is only updated while the platter is faster than
+  0.5× (slower buffers hold the last bend). (Traced further 2026-10-28.)
+  The player (`DjPlayerUnit` setBendDiff) gets bend ÷ 100 as an
+  **instant** ratio offset, limited to **±0.42** (so a backward bend stops at
+  −42 % too), and plays at **1 + tempo offset + bend offset**: the bend is
+  added, not scaled by the tempo, and is not limited by the tempo slider's
+  range. The time-stretch engine ramps every speed change linearly over at
+  most **512 samples** (step = change ÷ 512, at least 1/32767 per sample).
+  The bend ends **56 ms** after the last update, checked once per audio
+  callback, by setting it to 0 (which ramps the same way). Releasing does
+  not end it. Touching the platter cancels a bend. The pitch-bend slope
+  path (`reqSetBendSlope`, `BendTaskOnPreRender`) is not used by the jog.
+  With Master Tempo on, rekordbox plays through its key-preserving
+  stretcher, so a bend changes tempo, not pitch (Inferred).
 - **Constants** (DDJ-800, rekordbox defaults): jog resolution 6480 units;
   scratch glitch 25×, spin glitch 50×, speed limit 8×, touch dead zone 60 ms
   / 9/3240 rev / 0.05×, bend threshold 0.5×, bend gain 1.5, bend cap 42,
@@ -145,9 +155,14 @@ paused, idle deck keeps Mixxx's jog search.
   5.6 ms quiet time (2026-10-27) were removed: they approximated rekordbox
   before its input stage was known.
 - Spin renders like scratching (key lock off, the scratch scaler).
-- Bend adds (bend ÷ 100) × the deck's tempo to the play rate, as a user
-  tweak, so a synced deck accepts it like any other nudge.
-- Deliberately the same as rekordbox: the one-sided +42 % cap.
+- Bend adds bend ÷ 100 to the play rate (2026-10-28: no longer scaled by
+  the tempo), limited to ±42 %, as a user tweak, so a synced deck accepts
+  it like any other nudge. The scaler ramps the speed over one audio buffer
+  (rekordbox: at most 512 samples).
+- DDJ-800 mapping (2026-10-28): the side jog of a **playing** deck always
+  goes to `platter_turn` (rekordbox's bend), also with the "Mixxx" scratch
+  algorithm. Before, that algorithm sent it to Mixxx's `jog` at 0.8 per
+  tick, which at 6480 ticks per turn sped the track up many times over.
 
 ## 2.2 Jog input timing: from the deck to the motion stage
 
