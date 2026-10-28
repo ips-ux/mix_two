@@ -53,6 +53,33 @@
 
 ---
 
+## 2026-10-28: rekordbox jog input timing traced (spin run-on, hand-back)
+
+- **Docs:** `docs/ddj800-program/SCRATCH-ENGINE.md` new §2.2 (jog input
+  timing, answers to the backspin run-on / slow release / "1.8× hand-back",
+  and the exact changes for `src/engine/controls/ratecontrol.cpp`), new §2.3
+  (CDJ-3000 over HID, vinyl speed adjust, Master Tempo), §2 and §2.1
+  corrected (rules are per audio buffer, not per jog message), "Next steps"
+  items 4–5. `FIRMWARE.md` §3, §6 items 4/10 and §7 rows updated (the
+  bursty-MIDI hypothesis is withdrawn). Ledger rows F26–F30 in ROADMAP §1
+  (F25 marked superseded).
+- **Findings:** rekordbox runs the DDJ-800 through the DDJ-1000 HID map and
+  reads its jogs from the HID report (absolute counters); steps are summed
+  per 1 ms timer tick, queued, drained per audio buffer with a 2/3-step dead
+  band; ~2-buffer input delay; a spin ends after two empty buffers; hand-back
+  at play speed (1 + tempo change) for 3 buffers; 56 ms quiet resets the
+  jog. CDJ-3000 map: 9720 steps/rev, 3 ms per report.
+- **Method:** static analysis of rekordbox 6.8.5 only, existing Ghidra
+  project (`build/re/`, new helper scripts `ListClasses.java`,
+  `DumpAsm.java`, an `ext:` target in `DumpTargets.java`); REA CLI 6.8.0
+  `inspect-pe-imports` evidence
+  `ev_a50335a0d496c5ba5f953d5798f8fd7b2ca00917686e2db178d8041dd87b69de`.
+  No firmware decryption, no DRM or licensing code touched.
+- **Not verified:** rekordbox's audio buffer size during the 2026-10-27
+  capture (it sets the delay); how rekordbox enables the DDJ-800 HID report.
+  **No engine change** in this pass.
+- **Status:** docs only.
+
 ## 2026-10-27: firmware static analysis (DDJ-800 v1.02, CDJ-3000 v3.22)
 
 - **New doc:** `docs/ddj800-program/FIRMWARE.md` (method, part inventory,

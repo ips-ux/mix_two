@@ -210,37 +210,44 @@ What could be established instead:
 
 | Item | CDJ-3000 | DDJ-800 firmware | rekordbox 6.8.5 (SCRATCH-ENGINE §2.1) |
 |---|---|---|---|
-| Jog resolution | Unknown | 6480 edges/turn, raw ×4 quadrature (Observed: no scaling) | 6480 for the DDJ-800 (12960 default for others) |
-| Stop report | Unknown | **None**: silent when not turning (Observed) | Spin ends on a zero-movement update, a reversal, or 3 slow updates |
-| Speed measurement | Unknown | None; one message per 1 ms frame with the raw count, clamp ±63 | Per message: steps ÷ elapsed time, time from `timeGetTime` (1 ms resolution) |
+| Jog resolution | Unknown (rekordbox's CDJ-3000 HID map uses 9720 per turn, Observed 2026-10-28) | 6480 edges/turn, raw ×4 quadrature (Observed: no scaling) | 6480 for the DDJ-800 (12960 default for others) |
+| Stop report | Unknown | **None**: silent when not turning (Observed) | Not needed: rekordbox works per audio buffer; a spin ends after 2 empty buffers, a reversal, or 3 slow buffers (2026-10-28, SCRATCH-ENGINE §2.2) |
+| Speed measurement | Unknown | None; one message per 1 ms frame with the raw count, clamp ±63 | **Corrected 2026-10-28:** steps are summed per 1 ms timer tick, queued, and drained per audio buffer; speed = buffer steps ÷ buffer length. Message time stamps are ignored for the DDJ-800. rekordbox reads the DDJ-800 jog from the HID report's absolute counters (§2.6), so the ±63 clamp does not apply to it |
 | Touch dead zone | Unknown | None (digital touch, no debounce) | 60 ms / 9/3240 rev / 0.05× |
-| Spin end timeout | Unknown | n/a | The ScratchProcessor's periodic tick has **no** spin timeout (only bend 56 ms, disable exit, touch-on time) — Observed in the existing rbx685 dump |
-| Vinyl speed adjust | Unknown | Not in the deck (no firmware trace) | rekordbox setting |
+| Spin end timeout | Unknown | n/a | The ScratchProcessor's periodic tick has **no** spin timeout; the input stage resets the jog 56 ms after the last passed movement (ends disable) — Observed 2026-10-28 |
+| Vinyl speed adjust | Unknown | Not in the deck (no firmware trace) | rekordbox setting: linear speed ramp in "speed per ms", default 1.0/ms, table values unknown (SCRATCH-ENGINE §2.3) |
 
-Consequences for the open rekordbox questions (Inferred hypotheses, to test):
+Consequences for the open rekordbox questions. The 2026-10-27 hypotheses
+(bursty MIDI read by a 1 ms clock) are **withdrawn**; the rekordbox trace of
+2026-10-28 (SCRATCH-ENGINE §2.2; static analysis of rekordbox 6.8.5, REA
+evidence `ev_a50335a0d496c5ba5f953d5798f8fd7b2ca00917686e2db178d8041dd87b69de`
+for the binary identity and its `timeGetTime` / `timeSetEvent` / `midiInOpen`
+imports, code paths from the existing headless Ghidra project) gives:
 
-1. Because the DDJ-800 never sends a zero update and rekordbox's tick has no
-   spin timeout, rekordbox cannot end a backspin by its documented "zero
-   movement" rule with this deck. The ~37 ms run-on must come from elsewhere
-   (the transport `StretchBehavior` spin/stop tasks, or the MIDI layer). Not
-   traced.
-2. rekordbox times jog messages with a 1 ms clock. If Windows delivers the
-   deck's 1-per-ms MIDI messages in small bursts, the first message after a
-   gap carries the steps of one frame but the time of the whole gap, so a
-   platter at ~1.8× (≈6.5 steps per frame) can read as slower than play for 3
-   messages in a row: the forward hand-back at ~1.8× seen in the capture.
-   Settle it by logging PC-side arrival times of the jog messages while
-   rekordbox runs (any MIDI monitor with ms timestamps, same moves as the
-   USB capture), and by tracing how `MidiJogTouch` stamps messages.
-3. A very slow release (−0.1×) produces one ±1 message every ~2.8 ms; Mix
-   Two (quiet time 5.6 ms) still sees motion and spins, rekordbox hands back.
-   Same test as in 2.
+1. The deck's silence is no problem for rekordbox: its input stage sums the
+   steps per 1 ms timer tick (also when zero), queues them and hands the
+   ScratchProcessor one count per audio buffer. Two empty buffers in a row
+   end a spin. (Observed)
+2. The queue delays the jog by about two audio buffers (the first entry of
+   each movement lasts two buffers). That delay, plus the two empty buffers,
+   explains the ~37 ms backspin run-on, and the delay alone the forward
+   spin's 21 ms offset that had been read as a hand-back at ~1.8×. The
+   hand-back threshold is the play speed (1 + tempo change), 3 buffers in a
+   row. (Mechanism Observed; buffer size during the capture unknown.)
+3. The slow release does not spin because the release decision uses the
+   buffer processed just before the touch-off, which shows the platter as it
+   was one to two buffers earlier, still under the hand; per-buffer counts
+   below 2 steps (touched) / 3 steps (untouched) are held back as 0.
+   (Mechanism Observed; the specific case Inferred.)
 
 rekordbox 6.8.5 itself contains `djplay::HidMapCDJ3000` (constructor
 0x1403A88F0, created for device "CDJ3000" in 0x1403B1CC0): rekordbox can run a
-CDJ-3000 over HID. Its jog constants were not found in the constructor; the
-rekordbox side, not the player firmware, is the reachable source for how
-rekordbox treats a CDJ-3000 platter.
+CDJ-3000 over HID. Traced 2026-10-28 (its jog set-up is in 0x1403A96C0, not
+the constructor): HID report with a 16-bit absolute jog counter, **9720 steps
+per revolution**, each report counted as 3 ms of motion, no dead band, then
+the same ScratchProcessor rules (spin count 3, or 5 with a count smoother when
+a per-player flag is set). This is rekordbox's view of a CDJ-3000, not the
+player's own behaviour, which stays unknown (§4).
 
 ## 4. CDJ-3000 `CDJ3Kv322.UPD` (Observed)
 
@@ -295,9 +302,9 @@ Engine code was not changed in this pass; these are inputs for the next one.
    message; they only guard against batching artefacts. Keep them (they are
    rekordbox's).
 4. **Speed window:** the deck adds no smoothing. Mix Two's 20 ms window
-   (`kPlatterSpeedWindowSeconds`) is our own; rekordbox measures per message
-   with a 1 ms clock (hypothesis 2 in §3 may explain its hand-back at ~1.8×;
-   test before changing `kPlatterSpinSlowCount` or the window).
+   (`kPlatterSpeedWindowSeconds`) is our own; rekordbox (traced 2026-10-28)
+   uses a 1 ms-tick queue drained per audio buffer, with a 2/3-step dead
+   band. SCRATCH-ENGINE §2.2 lists the exact changes for `ratecontrol.cpp`.
 5. **Touch:** a plain on/off line with no dead zone or debounce in the deck, so
    the 60 ms / 9/3240 rev / 0.05× dead zone (`kPlatterDeadZone*`) is the only
    one and stays.
@@ -312,18 +319,19 @@ Engine code was not changed in this pass; these are inputs for the next one.
    endpoints every 0.5 ms; a Mix Two user-mode driver needs the stream format
    (capture rekordbox's audio traffic). HID is a plain 64-byte in/out pipe with
    no report IDs; MIDI is class-compliant bulk.
-10. **Later option:** the HID input report carries absolute jog counters; if
-    the mode that enables it is found, Mix Two could read the jogs without the
-    ±63 clamp.
+10. **Later option:** the HID input report carries absolute jog counters;
+    rekordbox 6.8.5 reads the DDJ-800 jogs and touch from exactly this report
+    (2026-10-28). If the mode that enables it is found, Mix Two could read the
+    jogs without the ±63 clamp, as rekordbox does.
 
 ## 7. Unknown, and what would settle it
 
 | Unknown | How to settle |
 |---|---|
-| CDJ-3000 anything | Not from this file (encrypted). Measure a player, or analyse rekordbox's `HidMapCDJ3000`. |
-| rekordbox backspin run-on (~37 ms), slow-release and 1.8× hand-back | PC-side MIDI arrival timestamps while repeating the captured moves; trace `MidiJogTouch` time stamping and `StretchBehavior` spin end in rbx685. |
+| CDJ-3000 anything | Not from this file (encrypted). Measure a player. rekordbox's `HidMapCDJ3000` view is traced (§3: 9720 steps/rev, 3 ms per report, same scratch rules). |
+| ~~rekordbox backspin run-on (~37 ms), slow-release and 1.8× hand-back~~ | **Answered 2026-10-28** by the rekordbox trace (§3, SCRATCH-ENGINE §2.2): 1 ms-tick queue drained per audio buffer, two-buffer input delay, dead band, two-empty-buffer spin end. Still unknown: rekordbox's audio buffer size during the capture (sets the numbers). |
 | HID output report contents (jog display) | Capture rekordbox's HID OUT reports (EP 0x06), or trace the `DSP` image's display parser. |
-| What enables the HID input report | Capture: does rekordbox's traffic make EP 0x87 reports appear? |
+| What enables the HID input report | rekordbox reads its jogs from it (2026-10-28), so rekordbox must enable it. Capture EP 0x87 IN and EP 0x06 OUT while rekordbox starts (the old capture parser decoded MIDI only). |
 | Audio stream format (WS-B) | Capture EP 0x01/0x82 while rekordbox plays a known signal. |
 | DDJ-800 settings utility protocol | Not in these files; capture the utility. |
 | Panel MCU (M16C) role | Trace `m16c_ini` and the serial link in the `USB` image. |
