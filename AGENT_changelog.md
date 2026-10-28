@@ -53,6 +53,27 @@
 
 ---
 
+## 2026-10-28: DDJ-800 position request; mixer and audio traced
+
+- **Owner's report:** the mixer and level knobs do not control Mix Two;
+  wants the knob positions read at startup.
+- **Traced (worker, firmware + rekordbox capture, FIRMWARE.md 2.7):** the
+  deck sends every mixer control as MIDI exactly as the mapping expects
+  (MSB then LSB). SysEx cmd 0x03 `F0 00 40 05 00 00 02 09 00 03 01 F7`
+  makes it resend all positions (not MASTER, BOOTH, headphones); no
+  keep-alive needed. Audio: rekordbox sends MASTER on OUT 1/2, PHONES 3/4,
+  BOOTH 5/6, and mixes in software; the deck applies MASTER / BOOTH /
+  headphone levels in hardware.
+- **Mapping:** `init` ends with the send-all request
+  (`PioneerDDJ800.SYSEX_SEND_ALL`). `masterLevelSoftware` defaults to false
+  (the deck applies the level in hardware when it is the sound card).
+- **Not found:** why the mixer knobs do nothing on the owner's deck. A Node
+  run of the whole `init` with the deck's exact bytes reaches pregain, EQ,
+  volume, crossfader and CFX; the log shows no script errors; Mixxx's MIDI
+  dispatch has no filter that would treat them differently from the jog.
+  Next: a `--controller-debug` log of the owner moving each control.
+- **Status:** script-checked; not tried on the deck.
+
 ## 2026-10-28: fine grid slide (`beats_translate_ms`)
 
 - **Owner:** rekordbox's slide is gentle (place the grid on a kick

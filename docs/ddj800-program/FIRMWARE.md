@@ -191,8 +191,34 @@ build for it.
   is needed for MIDI: nothing in the MIDI path waits for the host (Inferred).
 - A routine (0x1C188E0A) sends the analogue controls as CC pairs, plus
   pad-mode notes, or a reset set of values (CC 0x00/0x20 = 0x40/0x00 on
-  channels 1–4, pad-mode notes off) depending on an internal flag; what
-  triggers it (connect, mode change, host request) was not traced.
+  channels 1–4, pad-mode notes off) depending on an internal flag.
+- **Correction (2026-10-28, Traced + Observed in the rekordbox capture):**
+  the `02 09` family is not only verification. `F0 00 40 05 00 00 02 09 00
+  <cmd> <arg> F7` (parser 0x1C19B020 / 0x1C19B08C):
+  - **cmd 0x03 arg 01 = send all positions.** The only way into 0x1C188E0A
+    (via 0x1C182E08, ctrl message 3): clears the change cache and resends 42
+    entries (TRIM, EQ, CFX, CH faders, crossfader, tempo, mic, sampler, FX
+    depth, switch notes). Not MASTER, BOOTH or the headphone knobs. The deck
+    never sends its positions by itself at power-on or connect. rekordbox
+    sends it after its setup burst; Mix Two sends it at the end of `init`.
+  - **cmd 0x50 arg 01** every ~200 ms from rekordbox starts and keeps the
+    verification session; nothing in the knob, jog or button path depends on
+    it, so Mix Two sends no keep-alive. Mix Two never answers 0x12 / 0x14.
+  - Host note `9F 46 00` / `7F` turns on / off the copy of each TRIM and EQ
+    message onto channel + 2 (on after boot; rekordbox sends `00`).
+- **Mixer messages (Traced, table 0x1C1B904C, sender 0x1C183864):** every
+  mixer control is a 14-bit pair, MSB on CC n first, LSB on n + 0x20 last,
+  sent on change: TRIM `Bn 04`, EQ `Bn 07 / 0B / 0F`, CH fader `Bn 13`,
+  CFX `B6 17–1A`, crossfader `B6 1F`, MASTER `B6 08`, BOOTH `B6 09`,
+  HEADPHONES MIX `B6 0C`, LEVEL `B6 0D`, MIC `B6 05 / 06`, sampler `B6 03`,
+  Beat FX depth `B4 02`. rekordbox reads the CH faders and crossfader from
+  the HID report instead (five 10-bit values, bytes 9–18, Inferred) and
+  applies TRIM ("Gain" row `B004`), EQ and CFX from MIDI.
+- **USB audio (Observed in the capture, menu Traced in rekordbox
+  0x140962970):** 6 out / 6 in, 24-bit, 44.1 kHz. rekordbox mixes in
+  software and sends OUT 1/2 = MASTER, 3/4 = PHONES (cue), 5/6 = BOOTH. The
+  deck applies MASTER LEVEL, BOOTH LEVEL and HEADPHONES LEVEL / MIX in
+  hardware (Inferred). IN 1–6 carry no programme audio.
 - **DDJ-800 settings utility:** not in these files; its protocol stays
   unknown (candidates: the HID output streams or Note/CC on channel 16).
 

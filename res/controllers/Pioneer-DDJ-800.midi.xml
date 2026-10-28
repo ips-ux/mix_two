@@ -40,7 +40,7 @@
                     input to be configured in Preferences > Sound Hardware.
                 </description>
             </option>
-            <option variable="masterLevelSoftware" type="boolean" default="true" label="MASTER LEVEL and BOOTH LEVEL control the main and booth volume">
+            <option variable="masterLevelSoftware" type="boolean" default="false" label="MASTER LEVEL and BOOTH LEVEL control the main and booth volume">
                 <description>
                     The DDJ-800 applies MASTER LEVEL and BOOTH LEVEL in
                     hardware, to its own master and booth outputs only. Enable

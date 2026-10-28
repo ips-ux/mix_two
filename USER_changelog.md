@@ -171,6 +171,18 @@ rekordbox. You hear the track at the speed of the jog wheel, and one turn
 moves the track 1.8 seconds. This operates with the two scratch algorithms.
 Before this change, the track moved much too far.
 
+When Mix Two starts, or when you load the DDJ-800 mapping again, Mix Two
+now gets the positions of the knobs and faders from the DDJ-800. The
+on-screen knobs then agree with the controller. MASTER LEVEL, BOOTH LEVEL
+and the headphone knobs are not included: the DDJ-800 does not send them
+until you move them.
+
+MASTER LEVEL and BOOTH LEVEL now operate only in the DDJ-800, as in
+rekordbox. Before this change, they also changed the Mix Two main and booth
+volume, so the volume changed two times. If the mix plays through a
+different audio interface, enable "MASTER LEVEL and BOOTH LEVEL control the
+main and booth volume" in the controller settings.
+
 Push SHIFT and turn the jog wheel to move the beat grid, as in rekordbox.
 This is the same as GRID SLIDE and the jog wheel. The grid moves a small
 distance, so you can zoom in on the waveform and put the grid exactly on

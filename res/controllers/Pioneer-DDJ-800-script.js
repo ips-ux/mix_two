@@ -45,7 +45,8 @@
 //        capture of the deck in rekordbox (rekordbox's own constant too);
 //        check that one turn moves 1.8 s in Mix Two
 //      * Pad LED velocities (single colour vs. palette)
-//      * Whether the controller needs a keep-alive SysEx like the DDJ-400
+//      * No keep-alive SysEx needed (firmware: the knob, jog and button
+//        messages do not depend on it)
 //      * Meaning of the "Permission_PadMode" page flags
 //      * Jog LCD (sent over the vendor HID interface, not MIDI)
 
@@ -243,7 +244,16 @@ PioneerDDJ800.init = function() {
         PioneerDDJ800.updateVinylLed(deck);
         PioneerDDJ800.selectPadMode(deck, PioneerDDJ800.PAD_MODE.hotCue);
     }
+
+    // Ask the deck for the positions of its knobs and faders, as rekordbox
+    // does at connect. It never sends them by itself, and the reply leaves
+    // out MASTER, BOOTH and the headphone knobs.
+    midi.sendSysexMsg(PioneerDDJ800.SYSEX_SEND_ALL, PioneerDDJ800.SYSEX_SEND_ALL.length);
 };
+
+// DDJ-800 host command 0x03 (traced in its firmware; seen in a USB capture
+// of rekordbox): resend every knob, fader and switch position.
+PioneerDDJ800.SYSEX_SEND_ALL = [0xF0, 0x00, 0x40, 0x05, 0x00, 0x00, 0x02, 0x09, 0x00, 0x03, 0x01, 0xF7];
 
 PioneerDDJ800.shutdown = function() {
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
