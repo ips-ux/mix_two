@@ -54,12 +54,21 @@ Preferences > Sound Hardware.
 
 To change the mapping settings, go to Preferences > Controllers, then select the DDJ-800:
 - **Start in vinyl mode** (on).
-- **Jog resolution** (720 ticks for each turn).
+- **Jog resolution** (6480 ticks for each turn).
 - **Input selector controls passthrough** (off).
-- **MASTER LEVEL and BOOTH LEVEL control the main and booth volume** (on).
+- **MASTER LEVEL and BOOTH LEVEL control the main and booth volume** (off).
 - A quick effect preset for each Sound Color FX button.
 
 The jog display on the DDJ-800 does not operate yet.
+
+In HOT CUE mode, you have 16 hot cues on two pages. Push PAGE ▶ to use hot
+cues I to P. Push PAGE ◀ to go back to hot cues A to H.
+
+In BEAT LOOP mode, push a pad to start a loop of that length. Push the same
+pad again to stop the loop.
+
+Turn the rotary selector to the right while you hold SHIFT. The waveform
+zooms in. Turn it to the left to zoom out.
 
 ### Load a track: "Load to the Deck"
 

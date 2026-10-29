@@ -25,7 +25,7 @@ Reading notes:
 | CTL-005 | BACK visits the playlist palette | rb6 | - | Y | = rb6 | Build | - | Needs a palette; DEC-§6 pinned lists are the closest planned item (bucket 08 / 10a). | A:A-005 |
 | CTL-006 | SHIFT + BACK shows / hides the playlist palette | rb6 | - | Y CSV 9666 | = rb6 | Partial | JS:308-310 (`MoveFocusForward`) | Mapped to reverse focus; no palette. | A:A-006 |
 | CTL-007 | Rotary selector turn | DDJ-800 | - | Y CSV B640 | = rb6 | Built | JS:275-282 | Also picks the deck while the load prompt is open. | A:A-007 |
-| CTL-008 | SHIFT + rotary zooms the waveform | DDJ-800 | - | Y CSV B664 | = rb6 | Partial | JS:284-289; controlpickermenu.cpp:1564 | **Defect: direction inverted** (right sends `waveform_zoom_up` = zoom out). All decks zoom together, as the CSV says. | A:A-008 |
+| CTL-008 | SHIFT + rotary zooms the waveform | DDJ-800 | - | Y CSV B664 | = rb6 | Checked | JS BROWSE + SHIFT handler; controlpickermenu.cpp:1563-1564; `tools/ddj800_mapping_test.js` | Fixed 2026-10-28: right turn sends `waveform_zoom_down` (= zoom in, enlarges), left zooms out. All decks zoom together, as the CSV says. Waiting for a deck test. | A:A-008 |
 | CTL-009 | Rotary press: open folder; on a track, "Load to the Deck" prompt | Improve | Y p182 (DDJ-RZ only) | Y p200 (DDJ-RZ only) | Y p227 | Built | JS:290-304; src/library/loadprompt.*; PAR-M2 | Owner decision 2026-10-26 (U7): both LOAD and knob-push always work, no preference. Not rb6 behaviour for the DDJ-800 (rb6 loads only by LOAD; knob push = "Library Forward"). Prompt look waits for bucket 10a. | A:A-009, C-071, PAR-M2 |
 | CTL-010 | Rotary hold: Alphabet Jump / Page Jump | Owner? | - | N | N | Build | CDJ-3000 p37 | CDJ-3000 browse feature. Unknown whether the DDJ-800 sends a hold message. Open question 3. | D-074 |
 | CTL-011 | VIEW enlarges the browser | DDJ-800 | - | Y CSV 967A | = rb6 | Built | JS:311-313 (`[Skin],show_maximized_library`) | The Browse layout itself belongs to bucket 10b (PAR-A3, C-007). | A:A-010 |
@@ -113,7 +113,7 @@ Reading notes:
 |---|---|---|---|---|---|---|---|---|---|
 | CTL-059 | Pad sets / plays a hot cue | DDJ-800 | Y p105 | Y p110 | Y p127 | Built | JS:980-982 | Paused: Mixxx previews while held (GATE, PAR-B18). | A:H-001, A:H-002, C-142 |
 | CTL-060 | SHIFT + pad clears the hot cue or hot loop | DDJ-800 | - | Y CSV +Shift | = rb6 | Built | JS:981 | | A:H-003, A:H-007 |
-| CTL-061 | Hot cues I-P on page 2 (16 per track) | rb6 | Y p134 | Y p142 | Y p159 | Build | JS:881-883 (folds to A-H); JS:932-934 (PAGE calls `memory_cue_prev/next`) | DEC-§9: 16 hot cues on two pages. **Two defects:** page-2 pads trigger A-H, and PAGE in hot cue mode moves the playhead to a memory cue. Engine has 36 hot cues; needs mapping work plus an on-screen page indicator. | A:H-004 |
+| CTL-061 | Hot cues I-P on page 2 (16 per track) | rb6 | Y p134 | Y p142 | Y p159 | Checked | JS initPads (hot cue notes 0x00-0x0F), changePage, refreshPads; `tools/ddj800_mapping_test.js` | Fixed 2026-10-28: the deck pages itself (rb6 CSV PAD9-16 = 0x08-0x0F, PAGE = PAGE DOWN / UP); pads 9-16 trigger hot cues I-P, PAGE no longer calls memory cues, LEDs go out for both pages. Open: an on-screen page indicator (bucket 10b). Waiting for a deck test. | A:H-004 |
 | CTL-062 | Pad during a loop saves a hot loop | DDJ-800 | Y | Y | Y | Built | cuecontrol.cpp:1051-1057 | | A:H-005, A:H-006 |
 | CTL-063 | Pad LED colours | rb6 | - | Y | = rb6 | Partial | JS:47, 1065-1084 (0x7F / 0x00) | No colours; whether the pads take a palette is unknown. Page-2 LEDs never lit. | A:H-008, A:AD-014 |
 
@@ -157,7 +157,7 @@ Reading notes:
 
 | ID | Feature | Ref | rb5 | rb6 | rb7 | Status | Evidence | Notes | Src |
 |---|---|---|---|---|---|---|---|---|---|
-| CTL-080 | Pad starts a loop; same pad cancels; LEDs | DDJ-800 | Y p108 | Y p113 | Y p130 | Build | JS:1025-1029 sets `beatloop_size` then `beatloop_toggle`, which does not exist (loopingcontrol.cpp:130-150, 2150) | **Broken**: pads only change the size. Fix with `beatloop_<N>_toggle` or `beatloop_activate`. Inventory C and PAR-B22 call it Have (bucket 12). | A:M-001, A:M-003, A:M-006, C-145 |
+| CTL-080 | Pad starts a loop; same pad cancels; LEDs | DDJ-800 | Y p108 | Y p113 | Y p130 | Checked | JS beatLoop case sends `beatloop_<size>_toggle`; `tools/ddj800_mapping_test.js` | Fixed 2026-10-28: a pad starts a loop of its size; the same pad ends it (engine toggle). Waiting for a deck test. | A:M-001, A:M-003, A:M-006, C-145 |
 | CTL-081 | Beat loop pad sizes and PAGE | rb6 | - | Y CSV 902A / 9032 | = rb6 | Partial | JS:100 (1/4 to 32), JS:947-949 | Manual: 1/64 to 2 beats; Mixxx stops at 1/32 (loopingcontrol.cpp:27). DEC-§9: check rb6's pad sizes before building (engine change if rb6 uses 1/64). | A:M-002, A:M-004 |
 | CTL-082 | SHIFT + pad does nothing | rb6 | - | Y CSV "No function assigned" | = rb6 | Partial | JS:1025 (SHIFT ignored) | Minor. | A:M-005 |
 

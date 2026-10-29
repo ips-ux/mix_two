@@ -56,6 +56,27 @@
 
 ---
 
+## 2026-10-28: DDJ-800 Beat Loop pads, hot cues I-P, zoom direction
+
+- **Beat Loop pads (CTL-080):** the script set `beatloop_toggle`, which the
+  engine does not have, so the pads only changed the size. A pad now sends
+  `beatloop_<size>_toggle` (starts a loop of that size; the same pad ends it).
+- **Hot cues I-P (CTL-061):** rekordbox's CSV shows the deck pages the hot
+  cue pads itself: page 2 sends notes 0x08-0x0F (PAD9-16), PAGE is "PAGE
+  DOWN / UP". The script folded those notes onto pads 1-8 and made PAGE call
+  `memory_cue_prev/next` (it moved the playhead). Hot cue mode now uses
+  pads 0-15, PAGE does nothing in the engine, and the LEDs for hot cues
+  1-16 go to both pages' notes. Other pad modes are unchanged (they still
+  fold page 2 onto pads 1-8 and use their PAGE scaling).
+- **SHIFT + BROWSE zoom (CTL-008):** right turns sent `waveform_zoom_up`,
+  which is the engine's zoom out; right now sends `waveform_zoom_down`.
+- **Test:** `node tools/ddj800_mapping_test.js`, a mock-engine harness: 15
+  checks pass (the previous script fails 10 of them); every one of the 1509
+  bound handlers runs without an error.
+- **Also:** USER_changelog jog resolution (6480) and MASTER / BOOTH LEVEL
+  default (off) corrected (TRU-056, TRU-057).
+- **Status:** `Checked` (mock harness). Not tested on the deck.
+
 ## 2026-10-28: owner interview, inventories and buckets
 
 - **What:** the owner answered 25 program questions; the answers are in

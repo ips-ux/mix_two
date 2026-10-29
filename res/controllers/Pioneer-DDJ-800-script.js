@@ -16,7 +16,7 @@
 //      0x97,0x99,0x9B,0x9D     Performance pads deck 1-4
 //      0x98,0x9A,0x9C,0x9E     Performance pads deck 1-4 with SHIFT
 //      0x9F / 0xBF             Controller state / settings (output)
-//      Pad note = (pad mode - 1) * 0x10 + pad index
+//      Pad note = (pad mode - 1) * 0x10 + pad index (hot cue page 2: + 0x08)
 //      High resolution knobs send MSB on CC n and LSB on CC n + 0x20.
 //
 //  Implemented:
@@ -96,6 +96,9 @@ PioneerDDJ800.shiftPageRightButtons = [0x09, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
 
 // Output notes the controller expects before it allows page changes.
 PioneerDDJ800.pagePermissionNotes = [0x21, 0x63, 0x6A, 0x6C, 0x6E, 0x74, 0x75, 0x76];
+
+// Hot cues A-P: two pages of 8 pads.
+PioneerDDJ800.numHotCues = 16;
 
 PioneerDDJ800.beatJumpSizes = [1, 1, 2, 2, 4, 4, 8, 8];
 PioneerDDJ800.beatLoopSizes = [0.25, 0.5, 1, 2, 4, 8, 16, 32];
@@ -292,7 +295,8 @@ PioneerDDJ800.initBrowser = function() {
     });
     // BROWSE +SHIFT: waveform zoom for all decks.
     PioneerDDJ800.bind(S.globalCC, 0x64, function(_channel, _control, value) {
-        const key = PioneerDDJ800.relative(value) > 0 ? "waveform_zoom_up" : "waveform_zoom_down";
+        // Turn right to enlarge the waveform. The engine's "zoom_down" zooms in.
+        const key = PioneerDDJ800.relative(value) > 0 ? "waveform_zoom_down" : "waveform_zoom_up";
         for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
             engine.setValue(PioneerDDJ800.deckGroup(deck), key, 1);
         }
@@ -890,7 +894,9 @@ PioneerDDJ800.initPads = function(deck) {
 
     for (let midino = 0x00; midino <= 0x7F; midino++) {
         const mode = midino >> 4;
-        const pad = midino & 0x07;
+        // The deck pages the hot cue pads itself (PAGE, allowed by the
+        // permission flags): page 2 sends 0x08-0x0F = hot cues 9-16.
+        const pad = mode === PioneerDDJ800.PAD_MODE.hotCue ? midino & 0x0F : midino & 0x07;
         PioneerDDJ800.bind(padStatus, midino, function(_channel, _control, value) {
             PioneerDDJ800.padPressed(deck, mode, pad, value > 0, false);
         });
@@ -899,7 +905,7 @@ PioneerDDJ800.initPads = function(deck) {
         });
     }
 
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= PioneerDDJ800.numHotCues; i++) {
         PioneerDDJ800.connect(group, "hotcue_" + i + "_status", function() {
             PioneerDDJ800.refreshPads(deck, PioneerDDJ800.PAD_MODE.hotCue);
         });
@@ -940,7 +946,8 @@ PioneerDDJ800.changePage = function(deck, mode, direction) {
     const clamp = function(value, min, max) { return Math.min(max, Math.max(min, value)); };
     switch (mode) {
     case PioneerDDJ800.PAD_MODE.hotCue:
-        PioneerDDJ800.callCue(deck, direction);
+        // rekordbox: PAGE DOWN / UP. The deck switches between hot cues
+        // A-H and I-P by itself and sends the other pad notes.
         break;
     case PioneerDDJ800.PAD_MODE.padFx1:
         state.rollScale = clamp(state.rollScale * factor, 0.5, 4);
@@ -1034,8 +1041,9 @@ PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
         break;
     case M.beatLoop:
         if (pressed) {
-            engine.setValue(group, "beatloop_size", PioneerDDJ800.beatLoopSizes[pad] * state.beatLoopScale);
-            engine.setValue(group, "beatloop_toggle", 1);
+            // Starts a loop of this size, or ends it when it is the active one.
+            const size = PioneerDDJ800.beatLoopSizes[pad] * state.beatLoopScale;
+            engine.setValue(group, "beatloop_" + size + "_toggle", 1);
         }
         break;
     case M.keyShift:
@@ -1086,7 +1094,9 @@ PioneerDDJ800.refreshPads = function(deck, mode) {
     if (state.padMode !== mode) {
         return;
     }
-    for (let pad = 0; pad < 8; pad++) {
+    // Hot cue LEDs go out for both pages; the deck shows the page it is on.
+    const numPads = mode === M.hotCue ? PioneerDDJ800.numHotCues : 8;
+    for (let pad = 0; pad < numPads; pad++) {
         let on = false;
         switch (mode) {
         case M.hotCue:
