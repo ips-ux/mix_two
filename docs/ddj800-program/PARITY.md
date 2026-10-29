@@ -2,6 +2,12 @@
 
 # rekordbox 6 Parity Matrix (WS-E)
 
+> **Retired 2026-10-28.** Every row of this matrix is folded into the bucket
+> files ([BUCKETS.md](BUCKETS.md), [buckets/](buckets/)), which cite rows here as
+> `PAR-<section><row>` (for example PAR-B4). Do not update this file; update the
+> bucket row instead. It stays only so those citations can be looked up.
+
+
 > **AI-generated:** Claude wrote this matrix from the strings rekordbox 6.8.5
 > ships (`locale/*.lang`, the DDJ-800 MIDI CSV) and from the Mix Two source
 > tree. A string proves a feature or setting **exists** in rekordbox 6; it does

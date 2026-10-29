@@ -10,13 +10,16 @@
 ## How to use and maintain this file
 
 - **Read first** on a new task: [Working agreements](#working-agreements),
-  then the newest entry. Per-feature status lives in
-  [PARITY.md](docs/ddj800-program/PARITY.md); the work queue is
-  [ROADMAP.md §6](docs/ddj800-program/ROADMAP.md).
+  [DECISIONS.md](docs/ddj800-program/DECISIONS.md) (the owner's rules), then
+  the newest entry. Per-feature status lives in the bucket files
+  ([BUCKETS.md](docs/ddj800-program/BUCKETS.md)); update the bucket row when
+  you change a feature, then run `python tools/buckets_summary.py`.
 - **Add an entry** for every change you commit: newest first, with the date,
   commit, and for each item the surface (controls, config keys, UI strings),
-  files, tests, and a **Status** of `verified on hardware`, `unit-tested`,
-  `compiled` or `docs only`. Record what you did not verify.
+  files, tests, and a **Status** from the ladder in DECISIONS.md §3
+  (`Built`, `Checked` with evidence, or `docs only`). Never write
+  `Deck-verified` or `CDJ-verified` yourself: only the owner sets those.
+  Record what you did not verify.
 - Mirror user-visible changes in USER_changelog.md (STE rules are in its
   header). Internal-only changes (tests, refactors, tooling) go here only.
 - Base: upstream Mixxx `main` at `ee17a27266` (2026-10-25). Diff against it
@@ -52,6 +55,23 @@
   from the program docs written when each item was built.
 
 ---
+
+## 2026-10-28: owner interview, inventories and buckets
+
+- **What:** the owner answered 25 program questions; the answers are in
+  [DECISIONS.md](docs/ddj800-program/DECISIONS.md) (rekordbox 6 default,
+  rekordbox 7 additions, export in both formats, managed library and backup,
+  Linux as a first-class target, skins, status ladder, STE for all text).
+- **Inventories:** the DDJ-800, CDJ-3000, DJM-900NXS2 and rekordbox 5.5 /
+  6.6 / 7.0 manuals were compared with the code (882 source rows) and merged
+  into 17 bucket files in `docs/ddj800-program/buckets/`; every source row is
+  in exactly one bucket row (checked by script). `tools/buckets_summary.py`
+  writes [BUCKETS.md](docs/ddj800-program/BUCKETS.md).
+- **Retired / trimmed:** PARITY.md is retired (kept for `PAR-` citations);
+  ROADMAP.md §3 and §6 now point to the buckets.
+- **Status:** docs only. Old "Have" claims became `Built` at most; owner
+  deck tests from earlier entries wait for the owner's confirmation
+  (TRU-059 to TRU-063).
 
 ## 2026-10-28: DDJ-800 position request; mixer and audio traced
 

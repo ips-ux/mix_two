@@ -8,6 +8,10 @@
 > **Observed**, **Inferred** or **Unknown**.
 
 ## 0. Program goal (set 2026-10-26)
+> **Updated 2026-10-28:** the owner's current rules (rekordbox 6 default,
+> rekordbox 7 additions, buckets, status ladder) are in
+> [DECISIONS.md](DECISIONS.md), which wins where this section differs.
+
 The owner's direction after the first hardware test: Mix Two should recreate
 the **rekordbox 6 experience completely and accurately, top to bottom**.
 Mixxx is the starting point and rekordbox 6 is the reference finish point.
@@ -67,6 +71,9 @@ only a controller mapping:
 | F30 | rekordbox vinyl speed adjust (touch/brake, release/start) is a linear speed ramp per audio block in "speed per ms" (`rbxfrm::VinylSpeedAdjustor`, default 1.0/ms, table chosen by preference; table values unknown). Master Tempo is rekordbox's own `f2dsp::TimeStretch` code (no third-party library name found); algorithm family not identified. | Static RE (ramp Observed; table and algorithm Unknown) | rbx685: 0x1419B3D50, `StretchBehavior::SpeedAdjustTask`; strings |
 
 ## 2. Workstreams
+> **History.** Status of this work now lives in the bucket files
+> ([BUCKETS.md](BUCKETS.md)); this section records how the workstreams began.
+
 
 ### WS-A: DDJ-800 controller mapping (plug-and-play MIDI)
 - Translate F6 into `res/controllers/Pioneer-DDJ-800.midi.xml` and `-script.js`, using the existing DDJ-400/FLX4 scripts as structural templates.
@@ -125,12 +132,8 @@ Feature areas the matrix started from:
 - Output: a parity matrix built from the rekordbox `locale` strings, the DDJ-800 CSV functions and Mixxx controls.
 
 ## 3. Sequencing
-
-1. **WS-A static pass** (mapping from the CSV). Needs no hardware. **Run in parallel:** WS-E parity matrix and the WS-C legacy PDB/ANLZ writer spec.
-2. **Hardware session** with the DDJ-800 connected: dump descriptors, then capture MIDI, HID and USB traffic during defined rekordbox actions. This unblocks the WS-A gaps and WS-B.
-3. WS-D oracle mode, then rb7 native models.
-4. WS-C Library Plus, after the SQLCipher schema and key work.
-5. WS-B WinUSB backend (largest risk; last).
+Replaced 2026-10-28: there is no sequential plan. Work fills buckets in
+parallel by criticality; see [DECISIONS.md](DECISIONS.md) section 2.
 
 ## 4. Open unknowns
 - U1: MI_00 descriptor class (vendor vs. UAC2). Needs a connected device.
@@ -153,161 +156,10 @@ Feature areas the matrix started from:
   above all to upstream Mixxx, stay human actions; AI-written text carries a
   disclaimer.
 
-## 6. Remaining work by priority (handoff 2026-10-27)
-What is left after the 2026-10-27 build pass, grouped by the PARITY.md
-priorities. PARITY.md holds the per-row detail; this list is the work queue.
-
-### P1: performing on the DDJ-800
-**Necessary to-do (set aside 2026-10-28 by the owner):**
-- **DDJ-800 mixer knobs do not control Mix Two** (TRIM, EQ, COLOR, channel
-  faders, crossfader; owner's report). Ruled out: the deck sends every
-  mixer control as MIDI exactly as the mapping expects (FIRMWARE.md 2.7);
-  a Node run of the whole mapping `init` with those bytes reaches pregain,
-  EQ, volume, crossfader and CFX; no script errors in `mixxx.log`; audio
-  routing matches rekordbox (MASTER on OUT 1/2, mixing in software). Next
-  step: `tools\mixtwo_windows.bat run --nobuild --controller-debug`, move
-  each control once, read the incoming messages in
-  `build/mixtwo-profile/mixxx.log`, and ask whether the on-screen knobs move
-  at all or move without an audible change. Then check the position
-  request reply (`F0 00 40 05 00 00 02 09 00 03 01 F7`) in the same log.
-
-**Sound (top priority, WS-F):**
-- Beat FX: the DDJ-800's 14 effects, rebuilt by measuring rekordbox:
-  LOW CUT ECHO, ECHO, MT DELAY, SPIRAL, REVERB, TRANS, ENIGMA JET, FLANGER,
-  PHASER, PITCH, SLIP ROLL, ROLL, MOBIUS SAW, MOBIUS TRI. Then the rest of
-  rekordbox's Beat FX (34 in total).
-- Beat FX modes: single mode (one effect, 5 parameters) and multi mode
-  (3 effects).
-- FX beat and BPM: finish the beat selection and BPM Auto/Tap.
-- Sound Color FX presets that sound like rekordbox's: DUB ECHO, SWEEP, NOISE,
-  FILTER, plus SPACE, PITCH, CRUSH and JET.
-- Scratch ([SCRATCH-ENGINE.md](SCRATCH-ENGINE.md)): ~~spin and backspin when
-  a moving platter is let go; rekordbox's pitch-bend rule~~ (built
-  2026-10-27); Mix Two renders of the scripted jog movements exist
-  (`tools/soundparity/render_scratch.py`, real track `.resource/jvckpot.mp3`);
-  compared with rekordbox 2026-10-27 by USB capture (jog resolution fixed:
-  6480 ticks per turn, not 720); rekordbox's jog input stage built
-  2026-10-28 (per move -10 / +18 / +11 ms at rekordbox's 256-frame
-  buffer); still to do: a feel test on the deck.
-- Other deck sound: Master Tempo (key lock), key shift and vinyl brake/start,
-  matched to rekordbox where they differ.
-
-**Layout (the rekordbox-layout skin):**
-- Prepare and Perform as two layouts you switch freely.
-- 2-deck and 4-deck layouts, each horizontal or vertical.
-- Browse view as a proper layout.
-- Show/hide for the FX, CFX, Sampler, Mixer and Rec panels.
-- Per-deck panel switch under the waveform: Pad / Memory Cue / Grid / Info,
-  including the Memory Cue panel and memory cue comments on the deck.
-
-**Decks and mixer:**
-- Load setting "start at the nearest memory/hot cue".
-- Fader start (SHIFT + fader).
-- Sampler gate mode, alongside one-shot and loop.
-
-**Library:**
-- A real Tag List, instead of sending tracks to Auto DJ.
-- Playlist folder UI: own order with drag-to-reorder and "Sort Items"; drag
-  playlists onto folders; rename inside the tree; plain tree labels (no track
-  count or duration); rekordbox-style icons, redrawn.
-- Rekordbox USB devices: finish the remaining work (Mix Two already reads
-  them).
-- Import from rekordbox 6 `master.db` (encrypted), with cues, grids,
-  playlists and history (U8).
-- Grid editing: adjust from a point onwards, plus rekordbox's GRID panel.
-
-### P2: Prepare and library
-- **Layout:** Simple Player and 1/2-player Prepare views; split screen / a
-  second browser window; My Tag, Related Tracks and Information windows; list
-  font size, line spacing and artwork size; Blue and 3-Band waveform colours.
-- **Decks:** the "Automatic BEAT/BPM SYNC" setting (verify what it does
-  first); double-click the tempo % to reset it; type a BPM straight into the
-  deck; quantize to 1/8, 1/4, 1/2 or a whole beat; "jump before reaching the
-  next beat"; hot cue comments on the deck; memory cue at the first beat when
-  analysing; active loop; beat count display; load lock; undo track load and
-  "locate loaded track".
-- **Mixer:** headroom presets (0 to −12 dB) and a limiter on the master
-  output; internal/external mixer mode.
-- **Effects:** Release FX and Pad FX.
-- **Sampler:** slot gain, start-point adjust and the edit window; sampler
-  quantize; capture a section to a slot; track type (normal, one-shot sample,
-  loop sample).
-- **Library:** intelligent playlists, with nested AND/OR as an improvement;
-  Related Tracks criteria sets; local Track Suggestion that says why it
-  suggests a track; My Tag; filter bar with "use the master deck's BPM and
-  key"; status icons; rekordbox XML import and export.
-- **Track menu:** analyse key only; add new analysis data; export a track or
-  playlist to a device; relocate track; first-class mix name, original artist
-  and lyricist fields.
-- **Analysis (WS-D):** BPM range for detection; phrase analysis and editing;
-  choice of analysis engine (Mixxx, or rekordbox v5/v6/v7).
-- **Library management:** backup and restore; missing file manager;
-  auto-relocate with search folders.
-- **USB export (WS-C):** Legacy format (PDB/ANLZ) and Library Plus.
-- **Controller and settings:** vinyl speed adjust (touch/brake,
-  release/start); jog rotation speed and jog display mode; deck light
-  settings; SHIFT function list generated from the mapping; a table editor
-  for MIDI mappings; a keyboard shortcut editor.
-- Auto DJ renamed and set up to match Automix.
-
-### P3: later
-- **Decks:** show/hide the on-screen pad and platter; hot cue countdown on
-  the platter display.
-- **Mixer:** PC MASTER OUT; SMART FADER.
-- **Effects:** apply CFX to the sampler with the MIC COLOR knob; FX1/FX2 as
-  send/return.
-- **Sampler:** sequencer.
-- **Library:** Hot Cue Bank Lists; Matching; category browser; search
-  target; playlist palette; tree shortcuts; library protection.
-- **Track menu:** "playlists including this track"; reset play count; set
-  cues from the list; export a loop as WAV; per-track waveform colour; BPM
-  reload, increment and decrement; bit depth.
-- **Analysis:** segment key on the waveform; vocal detection; re-fixing old
-  grids, with a diff shown first; PIONEER folder location.
-- **Library storage:** a UI to move the database.
-- **Devices:** convert to and from Library Plus; Sync Manager; device name
-  and background colour; device library backup.
-- **Recording:** start on audio input, stop after silence, split on silence,
-  optimise level.
-- **Automix:** manual crossfade start, Mix Point Link, auto BPM transition.
-- **Controller extras:** controller demo/screen saver; Ableton Link.
-- Maybe: live track separation, after the analysis-engine work.
-
-### Hardware and driver work
-- **DDJ-800 runtime capture (WS-A, U2, U3):** the jog display and on-jog
-  indicator; what the HID interface carries; how the DDJ-800 settings page
-  talks to the deck. The firmware (F18–F23, [FIRMWARE.md](FIRMWARE.md))
-  already shows the jog display is fed by per-deck HID output reports (byte 0
-  high nibble = deck) and that no keep-alive is needed; the report contents
-  still need a capture of rekordbox's HID OUT traffic.
-- **Audio (WS-B, U1):** USB descriptors read from the firmware (F21: vendor
-  class, isochronous 1024-byte endpoints every 0.5 ms; the stream format still
-  needs a capture); automatically pick the
-  DDJ-800 audio interface when it is plugged in; later, Mix Two's own audio +
-  MIDI + HID driver in place of Pioneer's (largest risk, last).
-
-### Design ([DESIGN.md](DESIGN.md) "Later")
-- View arrangement presets, including separate show/hide for the deck hub,
-  HEADPHONES and MASTER.
-- Hover tooltips that explain every control.
-- Colour FX buttons above the headphone section, and the Beat FX module
-  design.
-- One module look for the decks, library and FX units.
-- The fixed 33⅓ platter: revisit only if control vinyl (DVS) is built.
-
-### To check in rekordbox
-Done in Mix Two but still to check against rekordbox:
-- the half/double sync threshold;
-- whether the tempo range ever narrows again on its own;
-- key sync: same key or compatible key, what turning it off does, and which
-  deck leads;
-- CALL while playing;
-- how active loop behaves;
-- the look of the load prompt.
-
-### Waiting on the owner
-- The Beat FX recordings from rekordbox 5 (input for the Beat FX work above).
-- A `--controller-debug` log of the DDJ-800 mixer controls (input for the
-  mixer-knob to-do in P1).
+## 6. Remaining work
+The remaining work now lives in the bucket files (2026-10-28). The P1 / P2 /
+P3 queue that was here is folded into them, row by row; see
+[BUCKETS.md](BUCKETS.md) for the fill and [buckets/](buckets/) for the rows.
+The older text is in git history (commit a18afdb1e4).
 
 <!-- End of AI-generated document. -->
