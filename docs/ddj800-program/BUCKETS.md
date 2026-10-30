@@ -9,7 +9,7 @@ CDJ-verified rows; the others count Checked rows too.
 
 | Bucket | Criticality | Rows | Fill | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [Bucket 01: Controller (DDJ-800 mapping)*](buckets/01-controller.md) | Critical | 103 | 0% | 13 | 36 | 49 | 3 | 0 | 0 | 2 |
+| [Bucket 01: Controller (DDJ-800 mapping)*](buckets/01-controller.md) | Critical | 103 | 0% | 11 | 34 | 50 | 6 | 0 | 0 | 2 |
 | [Bucket 02: Sound: effects*](buckets/02-sound-effects.md) | Critical | 81 | 0% | 61 | 13 | 3 | 0 | 0 | 0 | 4 |
 | [Bucket 03: Sound: deck*](buckets/03-sound-deck.md) | Critical | 18 | 0% | 2 | 6 | 8 | 0 | 0 | 0 | 2 |
 | [Bucket 04: Device export*](buckets/04-device-export.md) | Critical | 82 | 0% | 69 | 0 | 0 | 0 | 0 | 0 | 13 |
@@ -22,8 +22,8 @@ CDJ-verified rows; the others count Checked rows too.
 | [Bucket 10b: Legacy Design (performance)*](buckets/10b-legacy-design.md) | High | 65 | 0% | 23 | 23 | 14 | 0 | 0 | 0 | 5 |
 | [Bucket 10c: Hardware Design + skin system*](buckets/10c-hardware-design.md) | Medium, rising | 13 | 0% | 11 | 2 | 0 | 0 | 0 | 0 | 0 |
 | [Bucket 11: Hardware link*](buckets/11-hardware-link.md) | Medium | 63 | 0% | 55 | 0 | 5 | 0 | 0 | 0 | 3 |
-| [Bucket 12: AI-Truth Keeping](buckets/12-ai-truth.md) | High, ongoing | 64 | 0% | 48 | 0 | 12 | 0 | 0 | 0 | 4 |
+| [Bucket 12: AI-Truth Keeping](buckets/12-ai-truth.md) | High, ongoing | 64 | 0% | 46 | 0 | 14 | 0 | 0 | 0 | 4 |
 | [Bucket 13: STE-Document Handling](buckets/13-ste-documents.md) | Low, ongoing | 25 | 0% | 19 | 4 | 2 | 0 | 0 | 0 | 0 |
 | [Bucket 14: Portability](buckets/14-portability.md) | High, ongoing | 27 | 5% | 13 | 5 | 2 | 1 | 0 | 0 | 6 |
 | [Bucket 15: Streaming](buckets/15-streaming.md) | Low (far future) | 8 | 0% | 5 | 0 | 3 | 0 | 0 | 0 | 0 |
-| **All** | | 892 | | 431 | 211 | 173 | 4 | 0 | 0 | 73 |
+| **All** | | 892 | | 427 | 209 | 176 | 7 | 0 | 0 | 73 |

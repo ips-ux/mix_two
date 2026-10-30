@@ -103,8 +103,10 @@ PioneerDDJ800.numHotCues = 16;
 PioneerDDJ800.beatJumpSizes = [1, 1, 2, 2, 4, 4, 8, 8];
 PioneerDDJ800.beatLoopSizes = [0.25, 0.5, 1, 2, 4, 8, 16, 32];
 PioneerDDJ800.rollSizes = [0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8];
-PioneerDDJ800.keyShiftSemitones = [1, 2, 3, 4, -1, -2, -3, -4];
+// Keyboard and key shift share the manual's layout (p.53, p.55): top row
+// +4..+7, bottom row 0..+3; PAGE moves it by 8 semitones.
 PioneerDDJ800.keyboardSemitones = [4, 5, 6, 7, 0, 1, 2, 3];
+PioneerDDJ800.keyShiftSemitones = PioneerDDJ800.keyboardSemitones;
 
 // Beat FX channel selector positions (FX channel 0x94).
 PioneerDDJ800.fxAssignTargets = {
@@ -130,6 +132,11 @@ PioneerDDJ800.gridAdjustTicks = 8;
 // GRID SLIDE / SHIFT + jog: fine enough to place the grid on a kick when
 // zoomed in, yet a quarter turn still moves it about 80 ms.
 PioneerDDJ800.gridSlideMsPerTick = 0.05;
+// Super Fast Search: track time moved by one jog turn. rekordbox's value is
+// not known; a guess to tune on the deck.
+PioneerDDJ800.superFastSearchSecondsPerTurn = 30;
+// SLIP REVERSE ends by itself after this many beats (manual p.21).
+PioneerDDJ800.slipReverseBeats = 8;
 
 PioneerDDJ800.getSetting = function(name, fallback) {
     const value = engine.getSetting(name);
@@ -222,13 +229,16 @@ PioneerDDJ800.init = function() {
             rollScale: 1,
             samplerBank: 0,
             keyboardBase: 0,
-            keyboardCue: 1,
+            keyShiftBase: 0,
+            // Hot cue keyboard mode plays; 0 until the DJ picks one with a pad.
+            keyboardCue: 0,
             loopAdjustIn: false,
             loopAdjustOut: false,
             gridAdjust: false,
             gridSlide: false,
             gridTicks: 0,
             lastLoadPress: 0,
+            slipReverseTimer: 0,
             padFx2Held: {},
         });
     }
@@ -260,6 +270,9 @@ PioneerDDJ800.SYSEX_SEND_ALL = [0xF0, 0x00, 0x40, 0x05, 0x00, 0x00, 0x02, 0x09, 
 
 PioneerDDJ800.shutdown = function() {
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
+        if (PioneerDDJ800.decks[deck].slipReverseTimer) {
+            engine.stopTimer(PioneerDDJ800.decks[deck].slipReverseTimer);
+        }
         engine.scratchDisable(deck + 1);
         engine.setValue(PioneerDDJ800.deckGroup(deck), "platter_touch", 0);
     }
@@ -610,7 +623,8 @@ PioneerDDJ800.initDeck = function(deck) {
     });
     pushButton(0x14, "beatloop_4_activate");
     pushButton(0x4D, "reloop_toggle");
-    pushButton(0x50, "reloop_andstop");
+    // SHIFT + RELOOP/EXIT (0x50) is rekordbox's Active Loop (mark a memory
+    // loop active). The engine has no active loop yet, so it is left unbound.
     pushButton(0x12, "loop_halve");
     pushButton(0x13, "loop_double");
     PioneerDDJ800.connectLed(group, "loop_enabled", note, 0x4D);
@@ -637,7 +651,10 @@ PioneerDDJ800.initDeck = function(deck) {
     PioneerDDJ800.connect(group, "slip_enabled", function(value) {
         PioneerDDJ800.setLed(S.stateNote, 0x24 + deck, value > 0);
     });
-    pushButton(0x15, "reverseroll");
+    PioneerDDJ800.bind(note, 0x15, function(_channel, _control, value) {
+        PioneerDDJ800.slipReverse(deck, value > 0);
+    });
+    PioneerDDJ800.connectLed(group, "reverseroll", note, 0x15);
     toggleButton(0x38, "reverse");
     PioneerDDJ800.connectLed(group, "reverse", note, 0x38);
     PioneerDDJ800.bindButton(note, 0x17, function() {
@@ -738,6 +755,26 @@ PioneerDDJ800.loopButton = function(deck, which, value) {
 
 
 // CALL ◀ / ▶: call the previous / next memory cue or memory loop.
+// SLIP REVERSE: reverse with slip while held, and back to normal play after
+// 8 beats even if the button stays down.
+PioneerDDJ800.slipReverse = function(deck, pressed) {
+    const state = PioneerDDJ800.decks[deck];
+    const group = PioneerDDJ800.deckGroup(deck);
+    if (state.slipReverseTimer) {
+        engine.stopTimer(state.slipReverseTimer);
+        state.slipReverseTimer = 0;
+    }
+    engine.setValue(group, "reverseroll", pressed ? 1 : 0);
+    const bpm = engine.getValue(group, "bpm");
+    if (pressed && bpm > 0) {
+        const ms = PioneerDDJ800.slipReverseBeats * 60000 / bpm;
+        state.slipReverseTimer = engine.beginTimer(ms, function() {
+            state.slipReverseTimer = 0;
+            engine.setValue(group, "reverseroll", 0);
+        }, true);
+    }
+};
+
 PioneerDDJ800.callCue = function(deck, direction) {
     const key = direction < 0 ? "memory_cue_prev" : "memory_cue_next";
     engine.setValue(PioneerDDJ800.deckGroup(deck), key, 1);
@@ -777,6 +814,18 @@ PioneerDDJ800.initJog = function(deck) {
     };
     PioneerDDJ800.bind(cc, 0x1F, slide); // SHIFT + top
     PioneerDDJ800.bind(cc, 0x26, slide); // SHIFT + side
+
+    // TRACK SEARCH + top: Super Fast Search (manual p.20). The firmware sends
+    // CC 0x29 while a TRACK SEARCH button is held (FIRMWARE.md 2.2); not yet
+    // confirmed on the deck.
+    PioneerDDJ800.bind(cc, 0x29, function(_channel, _control, value) {
+        const duration = engine.getValue(group, "duration");
+        if (duration > 0) {
+            const seconds = (value - 0x40) / PioneerDDJ800.jogResolution * PioneerDDJ800.superFastSearchSecondsPerTurn;
+            const position = engine.getValue(group, "playposition") + seconds / duration;
+            engine.setValue(group, "playposition", Math.min(1, Math.max(0, position)));
+        }
+    });
 
     PioneerDDJ800.bind(note, 0x36, function(_channel, _control, value) {
         PioneerDDJ800.jogTouch(deck, value > 0);
@@ -874,6 +923,10 @@ PioneerDDJ800.initPads = function(deck) {
 
     PioneerDDJ800.padModeButtons.forEach(function(midino, mode) {
         PioneerDDJ800.bindButton(note, midino, function() {
+            if (mode === PioneerDDJ800.PAD_MODE.keyboard) {
+                // SHIFT + HOT CUE: pick the keyboard hot cue again (manual p.53).
+                PioneerDDJ800.decks[deck].keyboardCue = 0;
+            }
             PioneerDDJ800.selectPadMode(deck, mode);
         });
     });
@@ -908,6 +961,7 @@ PioneerDDJ800.initPads = function(deck) {
     for (let i = 1; i <= PioneerDDJ800.numHotCues; i++) {
         PioneerDDJ800.connect(group, "hotcue_" + i + "_status", function() {
             PioneerDDJ800.refreshPads(deck, PioneerDDJ800.PAD_MODE.hotCue);
+            PioneerDDJ800.refreshPads(deck, PioneerDDJ800.PAD_MODE.keyboard);
         });
     }
     PioneerDDJ800.connect(group, "loop_enabled", function() {
@@ -965,7 +1019,7 @@ PioneerDDJ800.changePage = function(deck, mode, direction) {
         state.beatLoopScale = clamp(state.beatLoopScale * factor, 1 / 8, 8);
         break;
     case PioneerDDJ800.PAD_MODE.keyShift:
-        engine.setValue(group, direction > 0 ? "pitch_up" : "pitch_down", 1);
+        state.keyShiftBase = clamp(state.keyShiftBase + direction * 8, -16, 8);
         break;
     }
     PioneerDDJ800.refreshPads(deck, mode);
@@ -1024,6 +1078,18 @@ PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
         break;
     }
     case M.keyboard:
+        if (!state.keyboardCue) {
+            // The first pad picks the hot cue to play; with no hot cue
+            // there, the current position becomes one (manual p.53).
+            if (pressed && !shift) {
+                state.keyboardCue = pad + 1;
+                if (!engine.getValue(group, "hotcue_" + state.keyboardCue + "_status")) {
+                    engine.setValue(group, "hotcue_" + state.keyboardCue + "_set", 1);
+                }
+                PioneerDDJ800.refreshPads(deck, mode);
+            }
+            break;
+        }
         if (pressed) {
             if (shift) {
                 engine.setValue(group, "reset_key", 1);
@@ -1051,7 +1117,7 @@ PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
             if (shift) {
                 engine.setValue(group, "reset_key", 1);
             } else {
-                engine.setValue(group, "pitch", PioneerDDJ800.keyShiftSemitones[pad]);
+                engine.setValue(group, "pitch", state.keyShiftBase + PioneerDDJ800.keyShiftSemitones[pad]);
             }
         }
         break;
@@ -1109,14 +1175,17 @@ PioneerDDJ800.refreshPads = function(deck, mode) {
             on = engine.getValue(PioneerDDJ800.samplerGroup(deck, pad), "track_loaded") > 0;
             break;
         case M.keyboard:
-            on = engine.getValue(group, "pitch") === state.keyboardBase + PioneerDDJ800.keyboardSemitones[pad];
+            // Before a hot cue is picked, show which pads have one.
+            on = state.keyboardCue ?
+                engine.getValue(group, "pitch") === state.keyboardBase + PioneerDDJ800.keyboardSemitones[pad] :
+                engine.getValue(group, "hotcue_" + (pad + 1) + "_status") > 0;
             break;
         case M.beatLoop:
             on = engine.getValue(group, "loop_enabled") > 0 &&
                 engine.getValue(group, "beatloop_size") === PioneerDDJ800.beatLoopSizes[pad] * state.beatLoopScale;
             break;
         case M.keyShift:
-            on = engine.getValue(group, "pitch") === PioneerDDJ800.keyShiftSemitones[pad];
+            on = engine.getValue(group, "pitch") === state.keyShiftBase + PioneerDDJ800.keyShiftSemitones[pad];
             break;
         }
         PioneerDDJ800.setPadLed(deck, mode, pad, on);

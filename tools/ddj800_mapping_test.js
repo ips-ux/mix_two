@@ -1,7 +1,9 @@
 // AI-generated (Claude Code, 2026-10-28). Start of AI-generated text.
 // Mock-engine checks for the DDJ-800 mapping script: Beat Loop pads,
 // hot cues A-P on two pages, PAGE in hot cue mode, SHIFT + BROWSE zoom,
-// and that every bound handler runs without an error.
+// key shift and keyboard modes, SHIFT + RELOOP/EXIT, SLIP REVERSE's 8-beat
+// limit, Super Fast Search, and that every bound handler runs without an
+// error.
 // Run from the repository root: node tools/ddj800_mapping_test.js
 // End of AI-generated text.
 "use strict";
@@ -32,8 +34,11 @@ const engine = {
     softTakeover: () => {},
     scratchEnable: () => {}, scratchDisable: () => {}, scratchTick: () => {},
     isScratching: () => false,
-    beginTimer: () => 1, stopTimer: () => {},
+    beginTimer: (ms, cb) => { timers[++timerId] = {ms, cb}; return timerId; },
+    stopTimer: id => { delete timers[id]; },
 };
+const timers = {};
+let timerId = 0;
 const midi = {
     sendShortMsg: (s, n, v) => leds.push([s, n, v]),
     sendSysexMsg: () => {},
@@ -116,6 +121,65 @@ check("SHIFT + browse right -> waveform_zoom_down", did(n, "[Channel1]", "wavefo
 n = sets.length;
 send(0xB6, 0x64, 0x7F);
 check("SHIFT + browse left -> waveform_zoom_up", did(n, "[Channel1]", "waveform_zoom_up", 1) && !did(n, "[Channel1]", "waveform_zoom_down"));
+
+// Key shift mode (SHIFT + SAMPLER = 0x6F): manual layout, PAGE moves 8.
+send(0x90, 0x6F, 0x7F);
+n = sets.length;
+send(0x97, 0x70, 0x7F);
+check("key shift pad 1 -> pitch +4", did(n, "[Channel1]", "pitch", 4));
+n = sets.length;
+send(0x97, 0x74, 0x7F);
+check("key shift pad 5 -> pitch 0", did(n, "[Channel1]", "pitch", 0));
+n = sets.length;
+send(0x90, 0x2B, 0x7F); // PAGE left in key shift mode
+check("PAGE in key shift mode does not step the key", !did(n, "[Channel1]", "pitch_down") && !did(n, "[Channel1]", "pitch_up"));
+n = sets.length;
+send(0x97, 0x77, 0x7F);
+check("after PAGE left, pad 8 -> pitch -5", did(n, "[Channel1]", "pitch", -5));
+
+// SHIFT + RELOOP/EXIT is not "reloop and stop".
+n = sets.length;
+send(0x90, 0x50, 0x7F);
+check("SHIFT + RELOOP/EXIT sends no reloop_andstop", !did(n, "[Channel1]", "reloop_andstop"));
+
+// Keyboard mode: first pad picks the hot cue (and sets it if empty).
+send(0x90, 0x69, 0x7F); // SHIFT + HOT CUE = keyboard mode
+n = sets.length;
+send(0x97, 0x42, 0x7F);
+send(0x97, 0x42, 0x00);
+check("keyboard: first pad 3 sets hot cue 3, plays nothing", did(n, "[Channel1]", "hotcue_3_set", 1) && !did(n, "[Channel1]", "pitch"));
+n = sets.length;
+send(0x97, 0x40, 0x7F);
+check("keyboard: next pad 1 plays hot cue 3 at +4", did(n, "[Channel1]", "pitch", 4) && did(n, "[Channel1]", "hotcue_3_activate", 1));
+send(0x97, 0x40, 0x00);
+engine.setValue("[Channel1]", "hotcue_5_status", 1);
+send(0x90, 0x69, 0x7F); // pick again
+n = sets.length;
+send(0x97, 0x44, 0x7F);
+check("keyboard: re-pick existing hot cue 5 does not overwrite it", !did(n, "[Channel1]", "hotcue_5_set"));
+
+// SLIP REVERSE: held -> reverseroll; ends after 8 beats; release stops the timer.
+values["[Channel1],bpm"] = 120;
+n = sets.length;
+send(0x90, 0x15, 0x7F);
+const t = Object.values(timers).pop();
+check("slip reverse on, 8-beat timer = 4000 ms at 120 BPM", did(n, "[Channel1]", "reverseroll", 1) && t && Math.round(t.ms) === 4000);
+n = sets.length;
+if (t) { t.cb(); }
+check("timer ends slip reverse while held", did(n, "[Channel1]", "reverseroll", 0));
+send(0x90, 0x15, 0x00);
+send(0x90, 0x15, 0x7F);
+const live = Object.keys(timers).length;
+send(0x90, 0x15, 0x00);
+check("release stops the 8-beat timer", Object.keys(timers).length === live - 1);
+
+// TRACK SEARCH + jog (CC 0x29): moves the play position.
+values["[Channel1],duration"] = 300;
+values["[Channel1],playposition"] = 0.5;
+n = sets.length;
+send(0xB0, 0x29, 0x40 + 54); // 54 ticks forward
+const pos = values["[Channel1],playposition"];
+check("super fast search moves forward (" + pos.toFixed(5) + ")", did(n, "[Channel1]", "playposition") && pos > 0.5);
 
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;

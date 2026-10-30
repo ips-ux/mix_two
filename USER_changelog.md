@@ -70,6 +70,23 @@ pad again to stop the loop.
 Turn the rotary selector to the right while you hold SHIFT. The waveform
 zooms in. Turn it to the left to zoom out.
 
+In KEY SHIFT mode, the top pads are +4 to +7 semitones. The bottom pads are
+0 to +3 semitones. Push PAGE ◀ or PAGE ▶ to move all pads 8 semitones down
+or up.
+
+To use KEYBOARD mode, push HOT CUE while you hold SHIFT. Then push a pad to
+select the hot cue to play. If that hot cue is empty, Mix Two sets it at the
+current position. The pads then play the hot cue at different pitches. To
+select a different hot cue, push HOT CUE with SHIFT again.
+
+SLIP REVERSE stops after 8 beats, also if you hold the button.
+
+Hold TRACK SEARCH and turn the top of the jog dial to move quickly through
+the track (Super Fast Search). Mix Two has not tested this on the DDJ-800
+yet.
+
+SHIFT + RELOOP/EXIT does not operate yet. In rekordbox, it is Active Loop.
+
 ### Load a track: "Load to the Deck"
 
 Push the BROWSE knob on a track. The "Load to the Deck" window opens.

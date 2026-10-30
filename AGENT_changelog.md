@@ -56,6 +56,28 @@
 
 ---
 
+## 2026-10-30: DDJ-800 key shift, keyboard, slip reverse, search, SHIFT + RELOOP
+
+- **Key shift pads (CTL-083):** rb6's CSV leaves the pads to rekordbox
+  itself, so the manual decides (p.55): top +4..+7, bottom 0..+3, the same
+  as keyboard mode. PAGE moves the pads 8 semitones (`keyShiftBase`) instead
+  of sending `pitch_up` / `pitch_down`.
+- **Keyboard mode (CTL-075):** SHIFT + HOT CUE clears the keyboard hot cue;
+  the first pad picks hot cue 1-8 and sets it (`hotcue_N_set`) if empty
+  (manual p.53); pads light the existing hot cues until the pick.
+- **SLIP REVERSE (CTL-051):** ends after 8 beats while held (timer from
+  `bpm`, manual p.21); release stops the timer; the LED follows `reverseroll`.
+- **Super Fast Search (CTL-020):** CC 0x29 (sent while TRACK SEARCH is held,
+  per FIRMWARE.md 2.2) moves `playposition`, 30 s per jog turn
+  (`superFastSearchSecondsPerTurn`, a guess). Not confirmed on the deck.
+- **SHIFT + RELOOP/EXIT (CTL-033):** `reloop_andstop` removed; rb6 maps it to
+  Active Loop, which the engine does not have yet (PERF-013), so it is
+  unbound.
+- **Test:** `node tools/ddj800_mapping_test.js`: 27 checks pass; the previous
+  script fails 11 of the 12 new ones.
+- **Status:** `Checked` (mock harness), CTL-020 `Built`. Not tested on the
+  deck.
+
 ## 2026-10-28: DDJ-800 Beat Loop pads, hot cues I-P, zoom direction
 
 - **Beat Loop pads (CTL-080):** the script set `beatloop_toggle`, which the

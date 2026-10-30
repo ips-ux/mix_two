@@ -42,7 +42,7 @@ Reading notes:
 | CTL-017 | TRACK SEARCH previous | rb6 | - | Y CSV 905E | = rb6 | Built | JS:643 (`start`) | Check in rb6 whether a second press goes to the previous track. | A:B-005 |
 | CTL-018 | TRACK SEARCH next | rb6 | - | Y CSV 905F | = rb6 | Partial | JS:644-647 | Loads the next row of the browser selection, not the next track of the list the deck's track came from. | A:B-006 |
 | CTL-019 | TRACK SEARCH hold: fast forward / rewind | DDJ-800 | - | Y CSV 9070-9071 | = rb6 | Built | JS:648-649 | Search speed vs rb6 unverified. | A:B-007 |
-| CTL-020 | Super Fast Search (TRACK SEARCH + jog) | DDJ-800 | - | native | = rb6 | Build | FW §2.2 (CC 0x29 while a key is held); no handler | Probably small once CC 0x29 is confirmed on the deck. CDJ-3000 has the same idea (SEARCH + jog). | A:B-008, D-015 |
+| CTL-020 | Super Fast Search (TRACK SEARCH + jog) | DDJ-800 | - | native | = rb6 | Built | JS initJog CC 0x29 handler; `tools/ddj800_mapping_test.js` | Built 2026-10-30: CC 0x29 moves the play position, 30 s of track per jog turn (`superFastSearchSecondsPerTurn`, a guess: rekordbox's speed is unknown). That the deck sends CC 0x29 for TRACK SEARCH + jog comes from the firmware only: confirm on the deck. | A:B-008, D-015 |
 | CTL-021 | SHIFT function list on screen (SHIFT held) | rb6 | - | Y CSV 967B; pref default on | = rb6 | Build | not bound | rb6 has it (DDJ-800 manual p90). PAR-M7 plan: generate the list from the mapping. DESIGN "Later" prefers hover tooltips over printed SHIFT labels on the skin; the overlay is a separate thing. | A:B-010, A:AB-025, PAR-M7, RM§6 P2 SHIFT list |
 | CTL-022 | QUANTIZE button | rb6 | - | Y CSV 9035 | = rb6 | Partial | JS:639-640 | Per deck in Mix Two; rb6 has an "all decks" option and a beat value (bucket 09, C-116, C-118). | A:B-011 |
 | CTL-023 | QUANTIZE (right) wakes the unit from standby | DDJ-800 | - | - | - | Skip | manual p15, p91 | Deck hardware handles it. | A:B-012 |
@@ -60,7 +60,7 @@ Reading notes:
 | CTL-030 | LOOP IN held 1 s: 4-beat auto loop | DDJ-800 | - | Y CSV 9014 | = rb6 | Built | JS:597 | The deck sends the long-press note itself. | A:C-003 |
 | CTL-031 | LOOP OUT | DDJ-800 | - | Y CSV 9011 | = rb6 | Built | JS:594-596 | | A:C-004 |
 | CTL-032 | RELOOP/EXIT | DDJ-800 | - | Y CSV 904D | = rb6 | Built | JS:598, 602 | | A:C-006 |
-| CTL-033 | SHIFT + RELOOP/EXIT: Active Loop | rb6 | - | Y CSV 9050 | = rb6 | Build | JS:599 (`reloop_andstop`) | **Wrong function mapped** (jumps to the loop and stops). Rule: follow rb6. Unbind it until Active Loop exists in the engine (bucket 09, PAR-B23, C-109). | A:C-007 |
+| CTL-033 | SHIFT + RELOOP/EXIT: Active Loop | rb6 | - | Y CSV 9050 | = rb6 | Build | JS: 0x50 unbound (comment in the loop section) | Fixed 2026-10-30: the wrong `reloop_andstop` is gone; the button is unbound until the engine has Active Loop (PERF-013). rb6 CSV 9050 = Loop Active / Non active. | A:C-007 |
 | CTL-034 | CALL = LOOP 1/2X and 2X during a loop | DDJ-800 | - | Y CSV 9012, 9013 | = rb6 | Built | JS:600-612 (sends `9F 04+deck` loop state) | | A:C-008, A:C-009 |
 | CTL-035 | 1/2X / 2X while paused at the loop in point keeps the length | DDJ-800 | - | - | - | Build | Mixxx `loop_halve` / `loop_double` | Unverified; Mixxx probably changes the length. Minor. | A:C-010 |
 | CTL-036 | Controller and screen both control loops | Improve | Y p132 | Y p140 | Y p157 | Built | FUNCTIONS "engine owns behaviour" | rekordbox hands loop control to a connected controller; Mix Two keeps both working (one engine control for both). | C-243 |
@@ -93,7 +93,7 @@ Reading notes:
 |---|---|---|---|---|---|---|---|---|---|
 | CTL-049 | SLIP button | DDJ-800 | - | Y CSV 9040 | = rb6 | Built | JS:620-625 | | A:F-001 |
 | CTL-050 | SLIP LED flashes while slipping | DDJ-800 | - | Y CSV 903B | = rb6 | Partial | JS:622 (steady) | Mixxx has no "slipping now" control; the setting that chooses lit / blink is HWL-047. | A:F-002 |
-| CTL-051 | SLIP REVERSE hold, cancels after 8 beats; LED | rb6 | Y | Y | Y | Partial | JS:626 (`reverseroll`) | No 8-beat auto cancel; LED (9015 out) not driven. CDJ-3000's lever has no time limit: rb6 wins. Check that jog direction is right in reverse. | A:F-005, A:AD-010, D-025 |
+| CTL-051 | SLIP REVERSE hold, cancels after 8 beats; LED | rb6 | Y | Y | Y | Checked | JS slipReverse(); LED from `reverseroll`; `tools/ddj800_mapping_test.js` | Fixed 2026-10-30: ends by itself after 8 beats (timer from the deck BPM, manual p.21); releasing early stops the timer; the SLIP REVERSE LED follows `reverseroll`. Jog direction while reversing still to check on the deck. | A:F-005, A:AD-010, D-025 |
 | CTL-052 | SHIFT + SLIP REVERSE: latching reverse | DDJ-800 | - | Y CSV 9038 | = rb6 | Built | JS:627-628 | | A:F-006 |
 | CTL-053 | Slip hot cue: release returns to the background position | DDJ-800 | - | Y | = rb6 | Partial | JS:980-982 | Unverified: whether Mixxx's hot cue release ends the slip jump as rekordbox does needs a deck test. | A:F-008 |
 | CTL-054 | Slip with auto beat loop and manual loop | DDJ-800 | - | Y | = rb6 | Built | Mixxx slip with loops | | A:F-010, A:F-011 |
@@ -147,7 +147,7 @@ Reading notes:
 
 | ID | Feature | Ref | rb5 | rb6 | rb7 | Status | Evidence | Notes | Src |
 |---|---|---|---|---|---|---|---|---|---|
-| CTL-075 | First press selects the hot cue; SHIFT + HOT CUE re-selects; no hot cue: current position becomes one | DDJ-800 | - | Y CSV 9040-9047, 9069 | = rb6 | Build | JS:221 (`keyboardCue: 1`), JS:1009-1019 | Always hot cue A; no selection step; no auto set. | A:L-001, A:L-002 |
+| CTL-075 | First press selects the hot cue; SHIFT + HOT CUE re-selects; no hot cue: current position becomes one | DDJ-800 | - | Y CSV 9040-9047, 9069 | = rb6 | Checked | JS keyboard case in padPressed, pad mode button handler, refreshPads; `tools/ddj800_mapping_test.js` | Fixed 2026-10-30: SHIFT + HOT CUE clears the choice; the first pad picks hot cue 1-8 and sets it at the play position if it is empty; then the pads play it at the keyboard pitches. Before the pick, pads show which hot cues exist. Waiting for a deck test. | A:L-001, A:L-002 |
 | CTL-076 | Pads play the hot cue at semitone offsets | DDJ-800 | Y p109 | Y p114 | Y p131 | Built | JS:103, 1014-1015 | Pitch sound = key engine (DECK-017). | A:L-003, C-146 |
 | CTL-077 | PAGE changes the pitch set | rb6 | - | Y CSV 9028 / 9030 | = rb6 | Partial | JS:944-946 (+-8 semitones) | rb6's page steps unknown: check rb6. | A:L-004 |
 | CTL-078 | SHIFT + pad resets the key | Owner? | - | N (CSV blank) | = rb6 | Built | JS:1011-1012 | Mix Two extra. Open question 2. | A:L-005 |
@@ -165,7 +165,7 @@ Reading notes:
 
 | ID | Feature | Ref | rb5 | rb6 | rb7 | Status | Evidence | Notes | Src |
 |---|---|---|---|---|---|---|---|---|---|
-| CTL-083 | Key shift pad layout | rb6 | Y p109 | Y p114 | Y p131 | Partial | JS:102 (+1..+4 / -1..-4), JS:1031-1038 | Manual: +4..+7 / 0..+3. DEC-§9: check rb6's layout before building. SHIFT + pad also resets the key (extra, see CTL-078 question). | A:N-001, C-147 |
+| CTL-083 | Key shift pad layout | rb6 | Y p109 | Y p114 | Y p131 | Checked | JS keyShiftSemitones (= keyboard layout), keyShiftBase, changePage; `tools/ddj800_mapping_test.js` | Fixed 2026-10-30: the manual's layout (top +4..+7, bottom 0..+3, p.55); rb6's CSV leaves the pads to rekordbox itself, so the manual decides. PAGE moves the pads by 8 semitones (as keyboard mode) instead of stepping the key. SHIFT + pad still resets the key (CTL-078). Waiting for a deck test. | A:N-001, C-147 |
 | CTL-084 | PAGE re-labels the pads | rb6 | - | Y CSV 902B / 9033 | = rb6 | Partial | JS:950-952 (`pitch_up` / `pitch_down`) | PAGE shifts the key one semitone instead. Follow rb6 with CTL-083. | A:N-002 |
 
 ## Deck 3/4 switching and soft takeover
