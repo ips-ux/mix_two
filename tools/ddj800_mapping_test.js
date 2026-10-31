@@ -181,17 +181,22 @@ send(0xB0, 0x29, 0x40 + 54); // 54 ticks forward
 const pos = values["[Channel1],playposition"];
 check("super fast search moves forward (" + pos.toFixed(5) + ")", did(n, "[Channel1]", "playposition") && pos > 0.5);
 
-// MASTER and HEADPHONES knobs: ignored on HARDWARE, drive Mix Two on PC.
-values["[Master],audio_target"] = 1;
-n = sets.length;
-send(0xB6, 0x08, 0x40); send(0xB6, 0x28, 0x00);
-check("HARDWARE target: MASTER LEVEL leaves [Master] gain alone", !did(n, "[Master]", "gain"));
-values["[Master],audio_target"] = 0;
+// MASTER, BOOTH and HEADPHONES knobs drive Mix Two with both audio targets
+// (the deck does not apply them to Mix Two's sound).
+for (const target of [1, 0]) {
+    values["[Master],audio_target"] = target;
+    const name = target ? "HARDWARE" : "PC";
+    for (const [cc, key] of [[0x08, "gain"], [0x09, "booth_gain"], [0x0C, "headMix"], [0x0D, "headGain"]]) {
+        n = sets.length;
+        send(0xB6, cc, 0x30); send(0xB6, cc + 0x20, 0x00);
+        check(name + " target: knob B6 " + cc.toString(16) + " -> [Master] " + key, did(n, "[Master]", key));
+    }
+}
 n = sets.length;
 send(0xB6, 0x08, 0x40); send(0xB6, 0x28, 0x00);
 send(0xB6, 0x0C, 0x40); send(0xB6, 0x2C, 0x00);
 send(0xB6, 0x0D, 0x40); send(0xB6, 0x2D, 0x00);
-check("PC target: MASTER LEVEL -> [Master] gain", did(n, "[Master]", "gain"));
+check("MASTER LEVEL -> [Master] gain", did(n, "[Master]", "gain"));
 check("HEADPHONES MIXING -> [Master] headMix", did(n, "[Master]", "headMix"));
 check("HEADPHONES LEVEL -> [Master] headGain", did(n, "[Master]", "headGain"));
 
@@ -205,16 +210,21 @@ send(0x96, 0x09, 0x7F); send(0x96, 0x09, 0x00);
 check("SHIFT + SWEEP -> cfx2_press_shift", did(n, "[SoundColorFX]", "cfx2_press_shift", 1));
 check("the script sets no cfx state itself on a press", !did(n, "[SoundColorFX]", "cfx2"));
 check("the script loads no chain preset itself", !sets.some(x => x[1] === "loaded_chain_preset"));
-l = leds.length;
-engine.setValue("[SoundColorFX]", "cfx2", 1); // two on: FILTER and SWEEP
-const lit = (note) => leds.slice(l).filter(m => m[0] === 0x96 && m[1] === note).pop();
-check("SWEEP lights on both layers (96 01 and 96 09)", lit(0x01)[2] > 0 && lit(0x09)[2] > 0);
-check("FILTER stays lit with SWEEP (96 03)", lit(0x03)[2] > 0);
-check("DUB ECHO is dark (96 00)", lit(0x00)[2] === 0);
-l = leds.length;
-const blink = Object.values(timers).find(t => t.ms === P.cfxBlinkMs);
-if (blink) { blink.cb(); }
-check("blink: selected LEDs go dark on the off phase", blink && lit(0x01)[2] === 0 && lit(0x03)[2] === 0);
+if (P.cfxProbe) {
+    console.log("SKIP CFX LED checks: cfxProbe is on (the deck's CFX LED protocol is being traced)");
+} else {
+    l = leds.length;
+    engine.setValue("[SoundColorFX]", "cfx2", 1); // two on: FILTER and SWEEP
+    const lit = (note) => leds.slice(l).filter(m => m[0] === 0x96 && m[1] === note).pop();
+    check("SWEEP lights on both layers (96 01 and 96 09)", lit(0x01)[2] > 0 && lit(0x09)[2] > 0);
+    check("FILTER stays lit with SWEEP (96 03)", lit(0x03)[2] > 0);
+    check("DUB ECHO is dark (96 00)", lit(0x00)[2] === 0);
+    l = leds.length;
+    const blink = Object.values(timers).find(t => t.ms === P.cfxBlinkMs);
+    if (blink) { blink.cb(); }
+    check("blink: selected LEDs go dark on the off phase", blink && lit(0x01)[2] === 0 && lit(0x03)[2] === 0);
+
+}
 
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;

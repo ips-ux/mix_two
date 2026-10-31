@@ -207,13 +207,13 @@ until you move them.
 
 Use AUDIO: HARDWARE | PC in the top bar, next to REC, to select where the
 sound goes. The selection in use is orange (HARDWARE) or blue (PC):
-- **HARDWARE** (default): the sound goes through the DDJ-800. The
-  MASTER LEVEL, BOOTH LEVEL and HEADPHONES knobs on the DDJ-800 set the
-  levels, as in rekordbox. They are always correct.
+- **HARDWARE** (default): the sound goes through the DDJ-800 outputs.
 - **PC**: the sound goes through the audio interface of the computer.
-  The MASTER LEVEL, BOOTH LEVEL and HEADPHONES knobs then set the Mix Two
-  levels. The DDJ-800 cannot send the positions of these knobs when Mix Two
-  starts. Turn each knob a small amount to send its position.
+
+With the two selections, the MASTER LEVEL, BOOTH LEVEL and HEADPHONES knobs
+on the DDJ-800 set the Mix Two levels. The DDJ-800 cannot send the positions
+of these knobs when Mix Two starts. Turn each knob a small amount to send
+its position.
 
 Mix Two keeps a sound setup for each selection. If you change Preferences >
 Sound Hardware, the change applies to the current selection.

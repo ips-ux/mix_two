@@ -137,6 +137,8 @@ PioneerDDJ800.gridSlideMsPerTick = 0.05;
 PioneerDDJ800.superFastSearchSecondsPerTurn = 30;
 // Selected Sound Color FX buttons flash (manual p.74): half period in ms.
 PioneerDDJ800.cfxBlinkMs = 250;
+// Probe: send nothing to the CFX LED notes while their protocol is traced.
+PioneerDDJ800.cfxProbe = true;
 // SLIP REVERSE ends by itself after this many beats (manual p.21).
 PioneerDDJ800.slipReverseBeats = 8;
 
@@ -387,19 +389,15 @@ PioneerDDJ800.initMixer = function() {
     PioneerDDJ800.bindHiRes(S.globalCC, 0x1F, function(value) {
         engine.setParameter("[Master]", "crossfader", value);
     });
-    // MASTER LEVEL, BOOTH LEVEL and HEADPHONES MIXING / LEVEL: the DDJ-800
-    // applies them in hardware to its own outputs, and rekordbox leaves them
-    // unassigned. With the HARDWARE audio target ([Master],audio_target = 1)
-    // Mix Two plays through the DDJ-800 and leaves them to it. With the PC
-    // target the mix plays through another interface, so the knobs drive
-    // Mix Two's main, booth and headphone controls. The deck cannot report
-    // these four at start (FIRMWARE.md 2.7), so on PC they take effect when
-    // they first move.
+    // MASTER LEVEL, BOOTH LEVEL and HEADPHONES MIXING / LEVEL drive Mix Two's
+    // main, booth and headphone controls with both audio targets. The deck
+    // does not apply them to the sound it gets from Mix Two (owner's test,
+    // 2026-10-31, HARDWARE target), although rekordbox's table leaves them
+    // unassigned. The deck cannot report them at start (FIRMWARE.md 2.7),
+    // so they take effect when they first move.
     const levelKnob = function(cc, key) {
         PioneerDDJ800.bindHiRes(S.globalCC, cc, function(value) {
-            if (engine.getValue("[Master]", "audio_target") === 0) {
-                engine.setParameter("[Master]", key, value);
-            }
+            engine.setParameter("[Master]", key, value);
         });
     };
     levelKnob(0x08, "gain");
@@ -476,10 +474,9 @@ PioneerDDJ800.initCfx = function() {
     // The selected buttons flash (manual p.74), on both layers so that SHIFT
     // shows the same (rekordbox sends 96 00-03 and 96 08-0B).
     PioneerDDJ800.cfxBlinkOn = true;
-    PioneerDDJ800.cfxBlinkTimer = engine.beginTimer(PioneerDDJ800.cfxBlinkMs, function() {
-        PioneerDDJ800.cfxBlinkOn = !PioneerDDJ800.cfxBlinkOn;
-        PioneerDDJ800.updateCfxLeds();
-    });
+    // Probe (2026-10-31): the deck seems to own the CFX state (rekordbox
+    // marks these rows "RO"), so no flashing from here while it is traced.
+    PioneerDDJ800.cfxBlinkTimer = 0;
     // With no CFX selected the COLOR knobs do nothing (Pioneer). Start with
     // FILTER when none is on, so the knobs behave like Mixxx's filter.
     let anyOn = false;
@@ -498,6 +495,9 @@ PioneerDDJ800.pressCfx = function(cfx, shift) {
 };
 
 PioneerDDJ800.updateCfxLeds = function() {
+    if (PioneerDDJ800.cfxProbe) {
+        return;
+    }
     const S = PioneerDDJ800.STATUS;
     for (let cfx = 0; cfx < 4; cfx++) {
         const lit = engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0 &&

@@ -207,18 +207,6 @@ SoundManagerConfig AudioTargetManager::buildConfig(
     return config;
 }
 
-void AudioTargetManager::applyLevels(Target target) const {
-    // On HARDWARE the DJ unit applies MASTER, BOOTH and HEADPHONES LEVEL /
-    // MIXING, so Mix Two sends them at 0 dB and the headphone output carries
-    // cue only (the unit blends in the master). On PC the controller's knobs
-    // set these levels when they move.
-    ControlObject::set(ConfigKey(kMainGroup, QStringLiteral("gain")), 1.0);
-    ControlObject::set(ConfigKey(kMainGroup, QStringLiteral("booth_gain")), 1.0);
-    ControlObject::set(ConfigKey(kMainGroup, QStringLiteral("headGain")), 1.0);
-    ControlObject::set(ConfigKey(kMainGroup, QStringLiteral("headMix")),
-            target == Target::Hardware ? -1.0 : 0.0);
-}
-
 void AudioTargetManager::prepareStartup() {
     const SoundManagerConfig current = m_pSoundManager->getConfig();
     Target want = m_target;
@@ -256,7 +244,6 @@ void AudioTargetManager::prepareStartup() {
 
     m_target = want;
     m_pTarget->set(want == Target::Hardware ? 1.0 : 0.0);
-    applyLevels(want);
 }
 
 bool AudioTargetManager::switchTo(Target target) {
@@ -284,7 +271,6 @@ bool AudioTargetManager::switchTo(Target target) {
     }
     m_target = target;
     m_pConfig->setValue(kTargetKey, target == Target::Hardware ? 1 : 0);
-    applyLevels(target);
     return true;
 }
 
@@ -351,5 +337,4 @@ void AudioTargetManager::slotRoutingChanged(double value) {
         m_target = target;
         m_pTarget->set(target == Target::Hardware ? 1.0 : 0.0);
     }
-    applyLevels(m_target);
 }

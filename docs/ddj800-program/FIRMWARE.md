@@ -230,8 +230,11 @@ build for it.
 - **USB audio (Observed in the capture, menu Traced in rekordbox
   0x140962970):** 6 out / 6 in, 24-bit, 44.1 kHz. rekordbox mixes in
   software and sends OUT 1/2 = MASTER, 3/4 = PHONES (cue), 5/6 = BOOTH. The
-  deck applies MASTER LEVEL, BOOTH LEVEL and HEADPHONES LEVEL / MIX in
-  hardware (Inferred). IN 1–6 carry no programme audio.
+  earlier inference that the deck applies MASTER LEVEL, BOOTH LEVEL and
+  HEADPHONES LEVEL / MIX in hardware is **wrong for Mix Two's stream**
+  (owner's test, 2026-10-31: with Mix Two on the DDJ-800's outputs these
+  knobs did not change the sound). How rekordbox applies them is open. IN 1–6
+  carry no programme audio.
 - **DDJ-800 settings utility:** not in these files; its protocol stays
   unknown (candidates: the HID output streams or Note/CC on channel 16).
 

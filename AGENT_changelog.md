@@ -56,6 +56,22 @@
 
 ---
 
+## 2026-10-31: level knobs work on HARDWARE again; CFX LED probe
+
+- Regression from 15248c6ea5: on HARDWARE the mapping ignored MASTER /
+  BOOTH / HEADPHONES because FW 2.7 inferred the deck applies them in
+  hardware. Owner's test disproves that for Mix Two's stream. The knobs now
+  drive Mix Two's levels with both targets; AudioTargetManager no longer
+  resets gains or forces headMix -1. Mock checks cover all four knobs on
+  both targets (44 checks).
+- CFX LEDs: owner reports them always lit; rekordbox can switch them.
+  rekordbox marks the CFX rows "RO", like SHIFT, jog touch and input
+  selectors (state the deck owns and reports). Hypothesis: the deck keeps
+  the CFX selection itself; our 250 ms flash timer was flipping it. Probe:
+  `cfxProbe = true` stops all CFX LED output and the timer; Mix Two runs
+  with --controller-debug to log what the deck sends. The mock LED checks
+  are skipped while the probe flag is on.
+
 ## 2026-10-31: Sound Color FX: several at once with SHIFT, LEDs on both layers
 
 - Reference check: rb6's CSV maps CFX and SHIFT + CFX to the same on/off
