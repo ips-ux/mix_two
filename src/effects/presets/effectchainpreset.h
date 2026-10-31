@@ -18,6 +18,12 @@ class EffectChainPreset {
     /// make a chain preset with just one effect
     EffectChainPreset(EffectManifestPointer pManifest);
     EffectChainPreset(EffectPresetPointer pEffectPreset);
+    // Mix Two: a chain made from the given effects, in order (several Sound
+    // Color FX at once).
+    EffectChainPreset(const QString& name,
+            EffectChainMixMode::Type mixMode,
+            double superKnob,
+            const QList<EffectPresetPointer>& effectPresets);
     ~EffectChainPreset();
 
     const QDomElement toXml(QDomDocument* doc) const;

@@ -126,7 +126,7 @@
                         <Children>
                           <SoundColorFxButton>
                             <SoundColorFx>1</SoundColorFx>
-                            <Tooltip>Push to use DUB ECHO with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
+                            <Tooltip>Push to use DUB ECHO with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
                             <ObjectName>SoundColorFxButton</ObjectName>
                             <Size>36f,26f</Size>
                             <NumberStates>2</NumberStates>
@@ -146,7 +146,7 @@
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <SoundColorFxButton>
                             <SoundColorFx>2</SoundColorFx>
-                            <Tooltip>Push to use SWEEP with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
+                            <Tooltip>Push to use SWEEP with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
                             <ObjectName>SoundColorFxButton</ObjectName>
                             <Size>36f,26f</Size>
                             <NumberStates>2</NumberStates>
@@ -172,7 +172,7 @@
                         <Children>
                           <SoundColorFxButton>
                             <SoundColorFx>3</SoundColorFx>
-                            <Tooltip>Push to use NOISE with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
+                            <Tooltip>Push to use NOISE with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
                             <ObjectName>SoundColorFxButton</ObjectName>
                             <Size>36f,26f</Size>
                             <NumberStates>2</NumberStates>
@@ -192,7 +192,7 @@
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <SoundColorFxButton>
                             <SoundColorFx>4</SoundColorFx>
-                            <Tooltip>Push to use FILTER with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
+                            <Tooltip>Push to use FILTER with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
                             <ObjectName>SoundColorFxButton</ObjectName>
                             <Size>36f,26f</Size>
                             <NumberStates>2</NumberStates>

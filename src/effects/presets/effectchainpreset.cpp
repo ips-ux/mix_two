@@ -13,6 +13,17 @@ EffectChainPreset::EffectChainPreset()
           m_readOnly(false) {
 }
 
+EffectChainPreset::EffectChainPreset(const QString& name,
+        EffectChainMixMode::Type mixMode,
+        double superKnob,
+        const QList<EffectPresetPointer>& effectPresets)
+        : m_name(name),
+          m_mixMode(mixMode),
+          m_dSuper(superKnob),
+          m_effectPresets(effectPresets),
+          m_readOnly(true) {
+}
+
 EffectChainPreset::EffectChainPreset(const QDomElement& chainElement) {
     // chainElement can come from untrusted input from the filesystem, so do not DEBUG_ASSERT
     if (chainElement.tagName() != EffectXml::kChain) {

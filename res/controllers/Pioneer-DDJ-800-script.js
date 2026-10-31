@@ -135,6 +135,8 @@ PioneerDDJ800.gridSlideMsPerTick = 0.05;
 // Super Fast Search: track time moved by one jog turn. rekordbox's value is
 // not known; a guess to tune on the deck.
 PioneerDDJ800.superFastSearchSecondsPerTurn = 30;
+// Selected Sound Color FX buttons flash (manual p.74): half period in ms.
+PioneerDDJ800.cfxBlinkMs = 250;
 // SLIP REVERSE ends by itself after this many beats (manual p.21).
 PioneerDDJ800.slipReverseBeats = 8;
 
@@ -263,6 +265,10 @@ PioneerDDJ800.init = function() {
 PioneerDDJ800.SYSEX_SEND_ALL = [0xF0, 0x00, 0x40, 0x05, 0x00, 0x00, 0x02, 0x09, 0x00, 0x03, 0x01, 0xF7];
 
 PioneerDDJ800.shutdown = function() {
+    if (PioneerDDJ800.cfxBlinkTimer) {
+        engine.stopTimer(PioneerDDJ800.cfxBlinkTimer);
+        PioneerDDJ800.cfxBlinkTimer = 0;
+    }
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
         if (PioneerDDJ800.decks[deck].slipReverseTimer) {
             engine.stopTimer(PioneerDDJ800.decks[deck].slipReverseTimer);
@@ -452,49 +458,52 @@ PioneerDDJ800.initCfx = function() {
             engine.setParameter(group, "super1", value);
         });
     }
-    // The selected CFX lives in [SoundColorFX],cfx1..cfx4, shared with the
-    // on-screen buttons under HEADPHONES; the engine keeps one on at a time.
+    // The CFX state lives in [SoundColorFX],cfx1..cfx4, shared with the
+    // on-screen buttons under HEADPHONES. A press goes to the engine, which
+    // applies the rules (Mix Two, beyond rekordbox, where SHIFT + CFX is the
+    // same as CFX):
+    //   CFX on an off effect: only that one is on.
+    //   CFX on an on effect: all off.
+    //   SHIFT + CFX: only that one turns on or off, so several can be on.
     for (let cfx = 0; cfx < 4; cfx++) {
-        PioneerDDJ800.bindButton(S.globalNote, 0x00 + cfx, function() { PioneerDDJ800.selectCfx(cfx); });
-        PioneerDDJ800.bindButton(S.globalNote, 0x08 + cfx, function() { PioneerDDJ800.selectCfx(cfx); });
+        PioneerDDJ800.bindButton(S.globalNote, 0x00 + cfx, function() { PioneerDDJ800.pressCfx(cfx, false); });
+        PioneerDDJ800.bindButton(S.globalNote, 0x08 + cfx, function() { PioneerDDJ800.pressCfx(cfx, true); });
         PioneerDDJ800.connect("[SoundColorFX]", "cfx" + (cfx + 1), function() {
-            PioneerDDJ800.applyCfx();
+            PioneerDDJ800.cfxBlinkOn = true;
+            PioneerDDJ800.updateCfxLeds();
         });
     }
-    // Pioneer behaviour: with no CFX selected the COLOR knobs do nothing.
-    // Start with FILTER so the knobs behave like Mixxx's default filter.
-    PioneerDDJ800.selectCfx(3, true);
-};
-
-PioneerDDJ800.activeCfx = function() {
+    // The selected buttons flash (manual p.74), on both layers so that SHIFT
+    // shows the same (rekordbox sends 96 00-03 and 96 08-0B).
+    PioneerDDJ800.cfxBlinkOn = true;
+    PioneerDDJ800.cfxBlinkTimer = engine.beginTimer(PioneerDDJ800.cfxBlinkMs, function() {
+        PioneerDDJ800.cfxBlinkOn = !PioneerDDJ800.cfxBlinkOn;
+        PioneerDDJ800.updateCfxLeds();
+    });
+    // With no CFX selected the COLOR knobs do nothing (Pioneer). Start with
+    // FILTER when none is on, so the knobs behave like Mixxx's filter.
+    let anyOn = false;
     for (let cfx = 0; cfx < 4; cfx++) {
-        if (engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0) {
-            return cfx;
-        }
+        anyOn = anyOn || engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0;
     }
-    return -1;
+    if (!anyOn) {
+        engine.setValue("[SoundColorFX]", "cfx4", 1);
+    }
 };
 
-PioneerDDJ800.selectCfx = function(cfx, on) {
-    const key = "cfx" + (cfx + 1);
-    const value = on === undefined ? (engine.getValue("[SoundColorFX]", key) > 0 ? 0 : 1) : (on ? 1 : 0);
-    // The engine also keeps one on at a time, but later (queued); do it now
-    // so the LEDs are right at once.
-    for (let other = 0; other < 4; other++) {
-        if (other !== cfx && value > 0) {
-            engine.setValue("[SoundColorFX]", "cfx" + (other + 1), 0);
-        }
-    }
-    engine.setValue("[SoundColorFX]", key, value);
-    PioneerDDJ800.applyCfx();
+PioneerDDJ800.pressCfx = function(cfx, shift) {
+    const key = "cfx" + (cfx + 1) + (shift ? "_press_shift" : "_press");
+    engine.setValue("[SoundColorFX]", key, 1);
+    engine.setValue("[SoundColorFX]", key, 0);
 };
 
-PioneerDDJ800.applyCfx = function() {
-    // The engine loads each button's chain preset (right-click a CFX button
-    // on screen to change it) and switches the QuickEffects on or off.
-    const active = PioneerDDJ800.activeCfx();
+PioneerDDJ800.updateCfxLeds = function() {
+    const S = PioneerDDJ800.STATUS;
     for (let cfx = 0; cfx < 4; cfx++) {
-        PioneerDDJ800.setLed(PioneerDDJ800.STATUS.globalNote, 0x00 + cfx, cfx === active);
+        const lit = engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0 &&
+                PioneerDDJ800.cfxBlinkOn;
+        PioneerDDJ800.setLed(S.globalNote, 0x00 + cfx, lit);
+        PioneerDDJ800.setLed(S.globalNote, 0x08 + cfx, lit);
     }
 };
 

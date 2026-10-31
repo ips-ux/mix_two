@@ -36,11 +36,20 @@ void WSoundColorFxButton::mousePressEvent(QMouseEvent* pEvent) {
         pEvent->accept();
         return;
     }
+    // A left click is a press with the same rules as the DDJ-800's buttons;
+    // the keyboard's SHIFT works as SHIFT on the deck.
+    if (pEvent->button() == Qt::LeftButton && m_index >= 0 && m_pEffectsManager) {
+        m_pEffectsManager->pressSoundColorFx(m_index,
+                pEvent->modifiers().testFlag(Qt::ShiftModifier));
+        pEvent->accept();
+        return;
+    }
     WPushButton::mousePressEvent(pEvent);
 }
 
 void WSoundColorFxButton::mouseReleaseEvent(QMouseEvent* pEvent) {
-    if (pEvent->button() == Qt::RightButton) {
+    if (pEvent->button() == Qt::RightButton ||
+            (pEvent->button() == Qt::LeftButton && m_index >= 0 && m_pEffectsManager)) {
         pEvent->accept();
         return;
     }

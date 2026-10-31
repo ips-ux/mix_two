@@ -6,8 +6,9 @@ class EffectsManager;
 class QPoint;
 
 /// Mix Two: one of the four Sound Color FX buttons ([SoundColorFX],cfxN).
-/// A left click works as on any push button. A right click opens a menu to
-/// select the QuickEffect chain preset that the button loads.
+/// A left click is a press (EffectsManager::pressSoundColorFx(); SHIFT +
+/// click keeps the other effects on). A right click opens a menu to select
+/// the QuickEffect chain preset that the button loads.
 class WSoundColorFxButton : public WPushButton {
     Q_OBJECT
   public:

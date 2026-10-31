@@ -3035,6 +3035,7 @@ if(BUILD_TESTING)
     src/test/seratomarkers2test.cpp
     src/test/seratotagstest.cpp
     src/test/signalpathtest.cpp
+    src/test/soundcolorfxtest.cpp
     src/test/skincontext_test.cpp
     src/test/softtakeover_test.cpp
     src/test/soundproxy_test.cpp

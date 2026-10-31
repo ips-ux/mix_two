@@ -90,6 +90,11 @@ class EffectsManager {
     static QString soundColorFxName(int index);
     QString soundColorFxPreset(int index) const;
     void setSoundColorFxPreset(int index, const QString& presetName);
+    /// A press of a Sound Color FX button (on screen or on a controller).
+    /// Without SHIFT: an off button becomes the only one on; an on button
+    /// turns all of them off. With SHIFT: only that button turns on or off,
+    /// so several can be on together.
+    void pressSoundColorFx(int index, bool shift);
 
   private:
     void addStandardEffectChains();
@@ -97,7 +102,8 @@ class EffectsManager {
 
     void addEqualizerEffectChain(const ChannelHandleAndGroup& deckHandleGroup);
     void addQuickEffectChain(const ChannelHandleAndGroup& deckHandleGroup);
-    void soundColorFxChanged(int index, double value);
+    void soundColorFxChanged();
+    void applySoundColorFx();
 
     void readEffectsXml();
     void readEffectsXmlSingleDeck(const QString& deckGroup);
@@ -133,6 +139,11 @@ class EffectsManager {
     // Mix Two: [SoundColorFX],cfx1..cfx4, the DUB ECHO, SWEEP, NOISE and
     // FILTER buttons shared by the skin and controller mappings.
     std::array<std::unique_ptr<ControlPushButton>, kNumSoundColorFx> m_soundColorFxButtons;
+    // [SoundColorFX],cfxN_press and cfxN_press_shift: push buttons for
+    // controller mappings (pressSoundColorFx()).
+    std::array<std::unique_ptr<ControlPushButton>, kNumSoundColorFx> m_soundColorFxPress;
+    std::array<std::unique_ptr<ControlPushButton>, kNumSoundColorFx> m_soundColorFxPressShift;
+    bool m_soundColorFxApplyPending = false;
 
     // This is set true when setup() is run. Then, the initial decks (their EQ
     // and QuickEffect chains) have been initialized, either with defaults or the

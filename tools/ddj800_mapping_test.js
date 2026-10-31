@@ -195,18 +195,26 @@ check("PC target: MASTER LEVEL -> [Master] gain", did(n, "[Master]", "gain"));
 check("HEADPHONES MIXING -> [Master] headMix", did(n, "[Master]", "headMix"));
 check("HEADPHONES LEVEL -> [Master] headGain", did(n, "[Master]", "headGain"));
 
-// Sound Color FX: FILTER at start; DUB ECHO replaces it; again turns it off.
+// Sound Color FX: FILTER at start; presses go to the engine's press controls.
 check("FILTER (cfx4) on at start", values["[SoundColorFX],cfx4"] === 1);
+n = sets.length;
 send(0x96, 0x00, 0x7F); send(0x96, 0x00, 0x00);
-check("DUB ECHO -> cfx1 on, cfx4 off (the engine loads the preset)",
-    values["[SoundColorFX],cfx1"] === 1 && values["[SoundColorFX],cfx4"] === 0);
-send(0x96, 0x00, 0x7F); send(0x96, 0x00, 0x00);
-check("DUB ECHO again -> off",
-    values["[SoundColorFX],cfx1"] === 0);
+check("DUB ECHO -> cfx1_press", did(n, "[SoundColorFX]", "cfx1_press", 1) && !did(n, "[SoundColorFX]", "cfx1_press_shift", 1));
+n = sets.length;
+send(0x96, 0x09, 0x7F); send(0x96, 0x09, 0x00);
+check("SHIFT + SWEEP -> cfx2_press_shift", did(n, "[SoundColorFX]", "cfx2_press_shift", 1));
+check("the script sets no cfx state itself on a press", !did(n, "[SoundColorFX]", "cfx2"));
 check("the script loads no chain preset itself", !sets.some(x => x[1] === "loaded_chain_preset"));
 l = leds.length;
-engine.setValue("[SoundColorFX]", "cfx2", 1); // on-screen SWEEP
-check("on-screen SWEEP lights the SWEEP button", leds.slice(l).some(m => m[0] === 0x96 && m[1] === 0x01 && m[2] > 0));
+engine.setValue("[SoundColorFX]", "cfx2", 1); // two on: FILTER and SWEEP
+const lit = (note) => leds.slice(l).filter(m => m[0] === 0x96 && m[1] === note).pop();
+check("SWEEP lights on both layers (96 01 and 96 09)", lit(0x01)[2] > 0 && lit(0x09)[2] > 0);
+check("FILTER stays lit with SWEEP (96 03)", lit(0x03)[2] > 0);
+check("DUB ECHO is dark (96 00)", lit(0x00)[2] === 0);
+l = leds.length;
+const blink = Object.values(timers).find(t => t.ms === P.cfxBlinkMs);
+if (blink) { blink.cb(); }
+check("blink: selected LEDs go dark on the off phase", blink && lit(0x01)[2] === 0 && lit(0x03)[2] === 0);
 
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;

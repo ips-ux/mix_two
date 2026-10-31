@@ -56,6 +56,28 @@
 
 ---
 
+## 2026-10-31: Sound Color FX: several at once with SHIFT, LEDs on both layers
+
+- Reference check: rb6's CSV maps CFX and SHIFT + CFX to the same on/off
+  and sends the LED on both notes (96 00-03 and 96 08-0B); the manual
+  (p.74) has no SHIFT function and says the selected button flashes. The
+  script lit only 96 00-03 and never flashed, so held SHIFT showed the
+  unlit layer (likely the owner's LED mismatch; confirm on the deck).
+- Engine (owner's rules, beyond rb6): `EffectsManager::pressSoundColorFx`
+  and controls `[SoundColorFX],cfxN_press` / `cfxN_press_shift`. No SHIFT:
+  an off button becomes the only one on; an on button turns all off. SHIFT:
+  toggles that button only. `cfxN` no longer forces exclusivity. Several
+  on: one chain named "DUB ECHO + FILTER" etc. with their effects in button
+  order, up to the chain's 4 slots (`EffectChainPreset` gained a list
+  constructor). COLOR keeps its position on every reload. Applies are
+  coalesced with a 0 ms timer.
+- Mapping: CFX notes send cfxN_press, SHIFT notes cfxN_press_shift; LEDs on
+  both layers, flashing every 250 ms (`cfxBlinkMs`) while on. On screen:
+  left click = press, keyboard SHIFT + click = SHIFT press.
+- Tests: `src/test/soundcolorfxtest.cpp` (press rules; NOISE + FILTER share
+  the chain) pass; mock harness passes. Not tried on the deck: LEDs,
+  flashing, SHIFT layer.
+
 ## 2026-10-31: AUDIO: HARDWARE | PC toggle, smaller MT
 
 - Toolbar: "AUDIO:" label (headphone-jack icon `btn__audio_jack.svg`) and a
