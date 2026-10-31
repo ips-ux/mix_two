@@ -62,6 +62,10 @@ AudioTargetManager::AudioTargetManager(UserSettingsPointer pConfig,
           m_pSoundManager(pSoundManager),
           m_pTarget(std::make_unique<ControlPushButton>(
                   ConfigKey(kMainGroup, QStringLiteral("audio_target")))),
+          m_pSelectHardware(std::make_unique<ControlPushButton>(
+                  ConfigKey(kMainGroup, QStringLiteral("audio_target_hardware")))),
+          m_pSelectPc(std::make_unique<ControlPushButton>(
+                  ConfigKey(kMainGroup, QStringLiteral("audio_target_pc")))),
           m_pRouting(std::make_unique<ControlObject>(
                   ConfigKey(kSoundcardGroup, QStringLiteral("audio_routing")))),
           m_target(Target::Hardware) {
@@ -78,6 +82,14 @@ AudioTargetManager::AudioTargetManager(UserSettingsPointer pConfig,
             &ControlObject::valueChanged,
             this,
             &AudioTargetManager::slotTargetChanged);
+    connect(m_pSelectHardware.get(),
+            &ControlObject::valueChanged,
+            this,
+            &AudioTargetManager::slotSelectHardware);
+    connect(m_pSelectPc.get(),
+            &ControlObject::valueChanged,
+            this,
+            &AudioTargetManager::slotSelectPc);
 }
 
 AudioTargetManager::~AudioTargetManager() = default;
@@ -283,6 +295,28 @@ void AudioTargetManager::slotTargetChanged(double value) {
     }
     if (!switchTo(target)) {
         m_pTarget->set(m_target == Target::Hardware ? 1.0 : 0.0);
+    }
+}
+
+void AudioTargetManager::select(Target target) {
+    if (target == m_target) {
+        return;
+    }
+    if (switchTo(target)) {
+        // Set by its owner, so slotTargetChanged() is not called again.
+        m_pTarget->set(target == Target::Hardware ? 1.0 : 0.0);
+    }
+}
+
+void AudioTargetManager::slotSelectHardware(double value) {
+    if (value > 0) {
+        select(Target::Hardware);
+    }
+}
+
+void AudioTargetManager::slotSelectPc(double value) {
+    if (value > 0) {
+        select(Target::Pc);
     }
 }
 

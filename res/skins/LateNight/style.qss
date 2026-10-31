@@ -51,7 +51,9 @@ WPushButton#GuiToggleButton,
 WLabel#RecFeedback, WLabel#RecDuration,
 WPushButton#BroadcastButton,
 WPushButton#SkinSettingsToggle,
-WPushButton#AudioTargetButton,
+WPushButton#AudioTargetHardware,
+WPushButton#AudioTargetPc,
+WLabel#AudioTargetLabel,
 #LibraryFeatureControls QPushButton,
 /* Passthrough label on overview waveform */
 WPushButton#EQKillButton,
@@ -74,7 +76,9 @@ QLabel#labelRecFilename {
 #RecFeedback, #RecDuration,
 #BroadcastButton,
 #SkinSettingsToggle,
-#AudioTargetButton,
+#AudioTargetHardware,
+#AudioTargetPc,
+#AudioTargetLabel,
 #LibraryFeatureControls QPushButton {
   text-transform: uppercase;
 }

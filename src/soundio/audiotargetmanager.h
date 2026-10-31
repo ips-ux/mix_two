@@ -42,6 +42,8 @@ class AudioTargetManager : public QObject {
   private slots:
     void slotTargetChanged(double value);
     void slotRoutingChanged(double value);
+    void slotSelectHardware(double value);
+    void slotSelectPc(double value);
 
   private:
     enum class Target {
@@ -53,10 +55,16 @@ class AudioTargetManager : public QObject {
     SoundManagerConfig buildConfig(Target target, const SoundManagerConfig& current) const;
     void applyLevels(Target target) const;
     bool switchTo(Target target);
+    void select(Target target);
 
     UserSettingsPointer m_pConfig;
     SoundManager* m_pSoundManager;
     std::unique_ptr<ControlPushButton> m_pTarget;
+    // [Master],audio_target_hardware / audio_target_pc: push buttons for
+    // the toolbar's HARDWARE | PC toggle. Selecting the active side does
+    // nothing (audio_target itself toggles).
+    std::unique_ptr<ControlPushButton> m_pSelectHardware;
+    std::unique_ptr<ControlPushButton> m_pSelectPc;
     // [Soundcard],audio_routing: 0 = ASIO, 1 = WASAPI (Windows). Set by
     // Preferences > Sound Hardware > Audio Routing.
     std::unique_ptr<ControlObject> m_pRouting;

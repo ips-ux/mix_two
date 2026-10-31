@@ -157,7 +157,8 @@ To reset the key on the screen, right-click KEY SYNC.
 
 Key sync operates only when another loaded deck has an analysed key.
 
-The MT (Master Tempo) button is now a round button above the tempo slider.
+The MT (Master Tempo) button is now a small round button above the tempo
+slider, half way between KEY and the tempo slider.
 The lock button near the waveform is removed.
 
 ### Memory cues
@@ -204,12 +205,12 @@ on-screen knobs then agree with the controller. MASTER LEVEL, BOOTH LEVEL
 and the headphone knobs are not included: the DDJ-800 does not send them
 until you move them.
 
-Use the audio button in the top bar, next to REC, to select where the sound
-goes:
-- **HARDWARE AUDIO** (default): the sound goes through the DDJ-800. The
+Use AUDIO: HARDWARE | PC in the top bar, next to REC, to select where the
+sound goes. The selection in use is orange (HARDWARE) or blue (PC):
+- **HARDWARE** (default): the sound goes through the DDJ-800. The
   MASTER LEVEL, BOOTH LEVEL and HEADPHONES knobs on the DDJ-800 set the
   levels, as in rekordbox. They are always correct.
-- **PC AUDIO**: the sound goes through the audio interface of the computer.
+- **PC**: the sound goes through the audio interface of the computer.
   The MASTER LEVEL, BOOTH LEVEL and HEADPHONES knobs then set the Mix Two
   levels. The DDJ-800 cannot send the positions of these knobs when Mix Two
   starts. Turn each knob a small amount to send its position.
@@ -217,7 +218,7 @@ goes:
 Mix Two keeps a sound setup for each selection. If you change Preferences >
 Sound Hardware, the change applies to the current selection.
 
-If the DDJ-800 is not connected when Mix Two starts, Mix Two uses PC AUDIO.
+If the DDJ-800 is not connected when Mix Two starts, Mix Two uses PC.
 
 To select the audio driver, go to Preferences > Sound Hardware > Audio
 Routing:

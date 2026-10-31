@@ -218,28 +218,71 @@
 
       <WidgetGroup><Size>9f,min</Size></WidgetGroup>
 
-      <!-- Mix Two: where the sound goes ([Master],audio_target), next to REC
-           as rekordbox has PC MASTER OUT in its top bar. HARDWARE AUDIO =
-           the DJ unit's outputs (its MASTER, BOOTH and HEADPHONES knobs set
-           the levels), PC AUDIO = the computer's audio interface. -->
-      <PushButton>
-        <Tooltip>Push to change where the sound goes. HARDWARE AUDIO: the DDJ-800 outputs. The MASTER, BOOTH and HEADPHONES knobs on the DDJ-800 set the levels. PC AUDIO: the audio interface of the computer.</Tooltip>
-        <ObjectName>AudioTargetButton</ObjectName>
-        <Size>136f,20f</Size>
-        <NumberStates>2</NumberStates>
-        <State>
-          <Number>0</Number>
-          <Text>      PC AUDIO</Text>
-        </State>
-        <State>
-          <Number>1</Number>
-          <Text>      HARDWARE AUDIO</Text>
-        </State>
-        <Connection>
-          <ConfigKey>[Master],audio_target</ConfigKey>
-          <ButtonState>LeftButton</ButtonState>
-        </Connection>
-      </PushButton>
+      <!-- Mix Two: where the sound goes, next to REC as rekordbox has PC
+           MASTER OUT in its top bar. AUDIO: HARDWARE | PC, one at a time
+           ([Master],audio_target; the sides push audio_target_hardware /
+           audio_target_pc). HARDWARE = the DJ unit's outputs (its MASTER,
+           BOOTH and HEADPHONES knobs set the levels), PC = the computer's
+           audio interface. Lit: HARDWARE orange, PC blue. -->
+      <WidgetGroup>
+        <ObjectName>AudioTargetBox</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+        <Label>
+          <ObjectName>AudioTargetLabel</ObjectName>
+          <Size>64f,20f</Size>
+          <Text>      AUDIO:</Text>
+        </Label>
+        <PushButton>
+          <Tooltip>Push to play the sound through the DDJ-800 outputs. The MASTER, BOOTH and HEADPHONES knobs on the DDJ-800 set the levels.</Tooltip>
+          <ObjectName>AudioTargetHardware</ObjectName>
+          <Size>78f,20f</Size>
+          <NumberStates>2</NumberStates>
+          <State>
+            <Number>0</Number>
+            <Text>HARDWARE</Text>
+          </State>
+          <State>
+            <Number>1</Number>
+            <Text>HARDWARE</Text>
+          </State>
+          <Connection>
+            <ConfigKey>[Master],audio_target_hardware</ConfigKey>
+            <ButtonState>LeftButton</ButtonState>
+            <ConnectValueToWidget>false</ConnectValueToWidget>
+          </Connection>
+          <Connection>
+            <ConfigKey>[Master],audio_target</ConfigKey>
+            <ConnectValueFromWidget>false</ConnectValueFromWidget>
+          </Connection>
+        </PushButton>
+        <PushButton>
+          <Tooltip>Push to play the sound through the audio interface of the computer.</Tooltip>
+          <ObjectName>AudioTargetPc</ObjectName>
+          <Size>38f,20f</Size>
+          <NumberStates>2</NumberStates>
+          <State>
+            <Number>0</Number>
+            <Text>PC</Text>
+          </State>
+          <State>
+            <Number>1</Number>
+            <Text>PC</Text>
+          </State>
+          <Connection>
+            <ConfigKey>[Master],audio_target_pc</ConfigKey>
+            <ButtonState>LeftButton</ButtonState>
+            <ConnectValueToWidget>false</ConnectValueToWidget>
+          </Connection>
+          <Connection>
+            <ConfigKey>[Master],audio_target</ConfigKey>
+          <Transform><Not/></Transform>
+            <ConnectValueFromWidget>false</ConnectValueFromWidget>
+          </Connection>
+        </PushButton>
+        </Children>
+      </WidgetGroup>
 
       <WidgetGroup><Size>9f,min</Size></WidgetGroup>
 

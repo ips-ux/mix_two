@@ -3720,19 +3720,33 @@ WPushButton#PflButton[value="1"] {
   qproperty-alignment: 'AlignCenter';
 }
 
-/* Mix Two: HARDWARE AUDIO / PC AUDIO in the toolbar, next to REC. Both
-   states are "on": the same bright text, and the icon names the output. */
-#AudioTargetButton {
+/* Mix Two: AUDIO: HARDWARE | PC in the toolbar, next to REC. The side
+   that is not in use looks like the other toolbar buttons when off; the
+   side in use is lit: HARDWARE in our orange, PC in our blue. */
+#AudioTargetLabel {
+  color: #bfbfbe;
+  image: url(skins:LateNight/palemoon/buttons/btn__audio_jack.svg) no-repeat left center;
+}
+#AudioTargetHardware,
+#AudioTargetPc {
   outline: none;
   border-width: 2px;
   border-image: url(skins:LateNight/palemoon/buttons/btn_embedded_library.svg) 2 2 2 2;
-  color: #bfbfbe;
+  color: #777;
 }
-#AudioTargetButton[displayValue="0"] {
-  image: url(skins:LateNight/palemoon/buttons/btn__audio_pc.svg) no-repeat left top;
+#AudioTargetHardware[displayValue="1"] {
+  border-image: none;
+  border: 1px solid #ff9a1f;
+  border-radius: 2px;
+  background-color: #ff9a1f;
+  color: #1a1000;
 }
-#AudioTargetButton[displayValue="1"] {
-  image: url(skins:LateNight/palemoon/buttons/btn__audio_hardware.svg) no-repeat left top;
+#AudioTargetPc[displayValue="1"] {
+  border-image: none;
+  border: 1px solid #3d9be9;
+  border-radius: 2px;
+  background-color: #3d9be9;
+  color: #06121e;
 }
 
 /* Mix Two: channel CUE (headphone cue) buttons, the same as MASTER CUE. */
@@ -3817,6 +3831,10 @@ WPushButton#PflButton[value="1"] {
 }
 
 /* MT: the same domed cap, with a centre light that is vivid red while on. */
+/* Mix Two: MT is smaller than SYNC and KEY (24 px), as on the DDJ-800. */
+#MasterTempoRound {
+  border-radius: 12px;
+}
 #MasterTempoRound[displayValue="0"] {
   image: url(skins:LateNight/palemoon/buttons/btn__mt_light.svg) no-repeat center center;
 }

@@ -56,6 +56,17 @@
 
 ---
 
+## 2026-10-31: AUDIO: HARDWARE | PC toggle, smaller MT
+
+- Toolbar: "AUDIO:" label (headphone-jack icon `btn__audio_jack.svg`) and a
+  two-side toggle. The sides push new controls `[Master],audio_target_hardware`
+  / `audio_target_pc` (AudioTargetManager::select(); the side in use does
+  nothing) and display `audio_target` (PC through `<Not/>`). Lit: HARDWARE
+  #ff9a1f, PC #3d9be9. The single-button icons are deleted.
+- MT: 24 px (was 34, radius 12 px), moved out of SyncKeySyncBox between two
+  equal expanding spacers, so it sits half way between KEY and the tempo
+  slider. Seen on screen (PaleMoon).
+
 ## 2026-10-31: HARDWARE / PC audio target and Audio Routing
 
 - Owner chose "play through the DDJ-800" after the firmware trace (FW 2.7:

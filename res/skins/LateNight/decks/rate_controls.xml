@@ -132,37 +132,44 @@
                     </Children>
                   </WidgetGroup>
 
-                  <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
-
-                  <!-- MT (master tempo = key lock), as on the DDJ-800: a round
-                       button with a light in its centre, red while on, and
-                       its title centred below. -->
-                  <WidgetGroup>
-                    <ObjectName>AlignCenter</ObjectName>
-                    <Layout>horizontal</Layout>
-                    <SizePolicy>min,min</SizePolicy>
-                    <Children>
-                      <PushButton>
-                        <TooltipId>master_tempo</TooltipId>
-                        <ObjectName>MasterTempoRound</ObjectName>
-                        <Size>34f,34f</Size>
-                        <NumberStates>2</NumberStates>
-                        <Connection>
-                          <ConfigKey><Variable name="Group"/>,keylock</ConfigKey>
-                          <ButtonState>LeftButton</ButtonState>
-                        </Connection>
-                      </PushButton>
-                    </Children>
-                  </WidgetGroup>
-                  <Label>
-                    <ObjectName>MasterTempoLabel</ObjectName>
-                    <Text>MT</Text>
-                  </Label>
                 </Children>
               </WidgetGroup><!-- SyncKeySyncBox -->
             </Children>
           </WidgetGroup><!-- BpmTapSyncContainer -->
 
+          <!-- Mix Two: MT (master tempo = key lock), as on the DDJ-800: a
+               small round button with a light in its centre, red while on,
+               and its title below. Two equal spacers keep it half way
+               between KEY and the top of the tempo slider. -->
+          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>AlignCenter</ObjectName>
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <ObjectName>AlignCenter</ObjectName>
+                <Layout>horizontal</Layout>
+                <SizePolicy>min,min</SizePolicy>
+                <Children>
+                  <PushButton>
+                    <TooltipId>master_tempo</TooltipId>
+                    <ObjectName>MasterTempoRound</ObjectName>
+                    <Size>24f,24f</Size>
+                    <NumberStates>2</NumberStates>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,keylock</ConfigKey>
+                      <ButtonState>LeftButton</ButtonState>
+                    </Connection>
+                  </PushButton>
+                </Children>
+              </WidgetGroup>
+              <Label>
+                <ObjectName>MasterTempoLabel</ObjectName>
+                <Text>MT</Text>
+              </Label>
+            </Children>
+          </WidgetGroup>
           <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
 
           <WidgetGroup>
