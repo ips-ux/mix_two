@@ -135,10 +135,6 @@ PioneerDDJ800.gridSlideMsPerTick = 0.05;
 // Super Fast Search: track time moved by one jog turn. rekordbox's value is
 // not known; a guess to tune on the deck.
 PioneerDDJ800.superFastSearchSecondsPerTurn = 30;
-// Selected Sound Color FX buttons flash (manual p.74): half period in ms.
-PioneerDDJ800.cfxBlinkMs = 250;
-// Probe: send nothing to the CFX LED notes while their protocol is traced.
-PioneerDDJ800.cfxProbe = true;
 // SLIP REVERSE ends by itself after this many beats (manual p.21).
 PioneerDDJ800.slipReverseBeats = 8;
 
@@ -267,10 +263,6 @@ PioneerDDJ800.init = function() {
 PioneerDDJ800.SYSEX_SEND_ALL = [0xF0, 0x00, 0x40, 0x05, 0x00, 0x00, 0x02, 0x09, 0x00, 0x03, 0x01, 0xF7];
 
 PioneerDDJ800.shutdown = function() {
-    if (PioneerDDJ800.cfxBlinkTimer) {
-        engine.stopTimer(PioneerDDJ800.cfxBlinkTimer);
-        PioneerDDJ800.cfxBlinkTimer = 0;
-    }
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
         if (PioneerDDJ800.decks[deck].slipReverseTimer) {
             engine.stopTimer(PioneerDDJ800.decks[deck].slipReverseTimer);
@@ -467,16 +459,9 @@ PioneerDDJ800.initCfx = function() {
         PioneerDDJ800.bindButton(S.globalNote, 0x00 + cfx, function() { PioneerDDJ800.pressCfx(cfx, false); });
         PioneerDDJ800.bindButton(S.globalNote, 0x08 + cfx, function() { PioneerDDJ800.pressCfx(cfx, true); });
         PioneerDDJ800.connect("[SoundColorFX]", "cfx" + (cfx + 1), function() {
-            PioneerDDJ800.cfxBlinkOn = true;
             PioneerDDJ800.updateCfxLeds();
         });
     }
-    // The selected buttons flash (manual p.74), on both layers so that SHIFT
-    // shows the same (rekordbox sends 96 00-03 and 96 08-0B).
-    PioneerDDJ800.cfxBlinkOn = true;
-    // Probe (2026-10-31): the deck seems to own the CFX state (rekordbox
-    // marks these rows "RO"), so no flashing from here while it is traced.
-    PioneerDDJ800.cfxBlinkTimer = 0;
     // With no CFX selected the COLOR knobs do nothing (Pioneer). Start with
     // FILTER when none is on, so the knobs behave like Mixxx's filter.
     let anyOn = false;
@@ -494,16 +479,18 @@ PioneerDDJ800.pressCfx = function(cfx, shift) {
     engine.setValue("[SoundColorFX]", key, 0);
 };
 
+// The deck draws the CFX LEDs itself: 00 = steadily lit (available, off),
+// 7F = flashing (selected), as the manual (p.74) and rekordbox show. The
+// deck sends plain presses and never reports a selection (traced
+// 2026-10-31), so Mix Two owns the state and sends it on both layers, so
+// that SHIFT shows the same (rekordbox sends 96 00-03 and 96 08-0B). Never
+// flash from here: that restarts the deck's own flashing.
 PioneerDDJ800.updateCfxLeds = function() {
-    if (PioneerDDJ800.cfxProbe) {
-        return;
-    }
     const S = PioneerDDJ800.STATUS;
     for (let cfx = 0; cfx < 4; cfx++) {
-        const lit = engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0 &&
-                PioneerDDJ800.cfxBlinkOn;
-        PioneerDDJ800.setLed(S.globalNote, 0x00 + cfx, lit);
-        PioneerDDJ800.setLed(S.globalNote, 0x08 + cfx, lit);
+        const selected = engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0;
+        PioneerDDJ800.setLed(S.globalNote, 0x00 + cfx, selected);
+        PioneerDDJ800.setLed(S.globalNote, 0x08 + cfx, selected);
     }
 };
 

@@ -56,6 +56,17 @@
 
 ---
 
+## 2026-10-31: CFX LEDs: the deck flashes them itself
+
+- Probe result (--controller-debug): CFX buttons send plain press/release,
+  96 00-03 (SHIFT: 96 08-0B, 7F/00), and no selection reports. Owner: with
+  no host output all four stay steadily lit; in rekordbox the selected one
+  flashes. So 00 = steady lit (available), 7F = flashing (selected), drawn
+  by the deck (the descriptor flag that CFX, BEAT FX ON and the pad-mode
+  buttons share). The 250 ms host flash restarted the deck's flashing,
+  hence "always lit". Now: 7F for selected / 00 for the rest on both
+  layers, no timer; probe removed. Mock: 46 checks pass.
+
 ## 2026-10-31: level knobs work on HARDWARE again; CFX LED probe
 
 - Regression from 15248c6ea5: on HARDWARE the mapping ignored MASTER /
