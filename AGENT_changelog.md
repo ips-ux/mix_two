@@ -56,6 +56,19 @@
 
 ---
 
+## 2026-10-30: MASTER / BOOTH / headphone knobs keep their last value
+
+- Owner: MASTER and BOOTH do not start at their hardware positions. Cause
+  (FW §2.7): the position reply (SysEx cmd 0x03) leaves out MASTER, BOOTH
+  and both headphone knobs; the HID input report is not enabled or decoded
+  (FW §2.6), so there is no way to read them at start.
+- Fix: `[Master],gain`, `booth_gain`, `headGain` and `headMix` now persist
+  in mixxx.cfg (`ControlAudioTaperPot` gained a `bPersist` argument; it no
+  longer resets a persistent value to 1.0). Verified: start, quit, the four
+  keys are in `[Master]` of the profile's mixxx.cfg. Still wrong if a knob
+  moved while Mix Two was off, until that knob moves (MIX-002 note).
+- Applies to every user and controller, not only the DDJ-800.
+
 ## 2026-10-30: mixer scales and the SOUND COLOR FX row
 
 - 2-deck mixer rebuilt: `channel_left/right.xml` are now knob columns only

@@ -63,12 +63,16 @@ EngineMixer::EngineMixer(UserSettingsPointer pConfig,
           m_sidechainMix(kMaxEngineSamples),
           m_pWorkerScheduler(make_parented<EngineWorkerScheduler>(this)),
           m_pEngineSync(std::make_unique<EngineSync>(pConfig)),
+          // Mix Two: the main, booth and headphone levels and the headphone
+          // mix keep their values between sessions. The DDJ-800 (and other
+          // controllers) cannot report these knobs at start, so the last
+          // position is the best guess until the knob moves.
           m_pMainGain(std::make_unique<ControlAudioTaperPot>(
-                  ConfigKey(group, "gain"), -14, 14, 0.5)),
+                  ConfigKey(group, "gain"), -14, 14, 0.5, true)),
           m_pBoothGain(std::make_unique<ControlAudioTaperPot>(
-                  ConfigKey(group, "booth_gain"), -14, 14, 0.5)),
+                  ConfigKey(group, "booth_gain"), -14, 14, 0.5, true)),
           m_pHeadGain(std::make_unique<ControlAudioTaperPot>(
-                  ConfigKey(group, "headGain"), -14, 14, 0.5)),
+                  ConfigKey(group, "headGain"), -14, 14, 0.5, true)),
           m_pSampleRate(std::make_unique<ControlObject>(
                   ConfigKey(kAppGroup, QStringLiteral("samplerate")),
                   true,
@@ -103,7 +107,14 @@ EngineMixer::EngineMixer(UserSettingsPointer pConfig,
           m_pCrossfader(std::make_unique<ControlPotmeter>(
                   ConfigKey(group, "crossfader"), -1., 1.)),
           m_pHeadMix(std::make_unique<ControlPotmeter>(
-                  ConfigKey(group, "headMix"), -1., 1.)),
+                  ConfigKey(group, "headMix"),
+                  -1.,
+                  1.,
+                  false,
+                  true,
+                  false,
+                  true, // persist, see m_pMainGain
+                  0.)),
           m_pBalance(std::make_unique<ControlPotmeter>(
                   ConfigKey(group, "balance"), -1., 1.)),
           m_pXFaderMode(std::make_unique<ControlPushButton>(

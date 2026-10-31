@@ -205,6 +205,12 @@ on-screen knobs then agree with the controller. MASTER LEVEL, BOOTH LEVEL
 and the headphone knobs are not included: the DDJ-800 does not send them
 until you move them.
 
+Mix Two now keeps the positions of MASTER LEVEL, BOOTH LEVEL and the
+HEADPHONES MIXING and LEVEL knobs when it stops. When it starts again, it
+uses these positions. If you turned one of these knobs while Mix Two was
+off, turn it a small amount. The on-screen knob then agrees with the
+DDJ-800.
+
 MASTER LEVEL, BOOTH LEVEL and the HEADPHONES MIXING and LEVEL knobs now
 control the Mix Two knobs. The DDJ-800 changes these levels only on its own
 outputs. Thus, the knobs had no effect when the mix went through a different
