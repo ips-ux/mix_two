@@ -206,6 +206,19 @@ build for it.
     it, so Mix Two sends no keep-alive. Mix Two never answers 0x12 / 0x14.
   - Host note `9F 46 00` / `7F` turns on / off the copy of each TRIM and EQ
     message onto channel + 2 (on after boot; rekordbox sends `00`).
+- **MASTER, BOOTH and HEADPHONES cannot be read at start (Traced,
+  2026-10-30).** Analogue inputs: MASTER 0x24, BOOTH 0x25, HEADPHONES LEVEL
+  0x26, HEADPHONES MIX 0x27 (each descriptor's first byte in table
+  0x1C1B904C is its input number). The sender 0x1C183864 sends a control
+  only when its converted 14-bit value differs from the last value it sent
+  (a per-input, per-SHIFT-state memory). When the host connects, 0x1C18A21A
+  fills that memory with the current position of every input, these four
+  included, for both SHIFT states, so nothing is sent. The only later reset
+  is the cmd 0x03 resend (0x1C188E0A), whose 42-entry table (0x1C1BA990)
+  leaves out inputs 2, 3, 0x1C-0x21 and 0x24-0x27. The HID input report
+  (0xFFF87630) carries the jog counters, channel faders and crossfader, not
+  these four. Result: the host learns these positions only when the knob
+  moves. No host message changes this (the SHIFT memory is filled too).
 - **Mixer messages (Traced, table 0x1C1B904C, sender 0x1C183864):** every
   mixer control is a 14-bit pair, MSB on CC n first, LSB on n + 0x20 last,
   sent on change: TRIM `Bn 04`, EQ `Bn 07 / 0B / 0F`, CH fader `Bn 13`,
