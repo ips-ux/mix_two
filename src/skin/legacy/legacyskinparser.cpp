@@ -90,6 +90,7 @@
 #include "widget/wvumeterglsl.h"
 #include "widget/wvumeterlegacy.h"
 #include "widget/wwaveformviewer.h"
+#include "widget/wsoundcolorfxbutton.h"
 #include "widget/wwidget.h"
 #include "widget/wwidgetgroup.h"
 #include "widget/wwidgetstack.h"
@@ -618,6 +619,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parseEffectChainName(node));
     } else if (nodeName == "EffectChainPresetButton") {
         result = wrapWidget(parseEffectChainPresetButton(node));
+    } else if (nodeName == "SoundColorFxButton") {
+        result = wrapWidget(parseSoundColorFxButton(node));
     } else if (nodeName == "EffectChainPresetSelector") {
         result = wrapWidget(parseEffectChainPresetSelector(node));
     } else if (nodeName == "EffectName") {
@@ -2031,6 +2034,18 @@ QWidget* LegacySkinParser::parseEffectChainPresetButton(const QDomElement& node)
         pButton->prependBaseTooltip(toolTip);
     }
     pButton->setup(node, *m_pContext);
+    return pButton;
+}
+
+// Mix Two: a Sound Color FX button; right-click selects its chain preset.
+QWidget* LegacySkinParser::parseSoundColorFxButton(const QDomElement& node) {
+    WSoundColorFxButton* pButton = new WSoundColorFxButton(m_pParent, m_pEffectsManager);
+    commonWidgetSetup(node, pButton);
+    pButton->setup(node, *m_pContext);
+    pButton->installEventFilter(m_pKeyboard);
+    pButton->installEventFilter(
+            m_pControllerManager->getControllerLearningEventFilter());
+    pButton->Init();
     return pButton;
 }
 

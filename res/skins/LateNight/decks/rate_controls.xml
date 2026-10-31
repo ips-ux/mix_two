@@ -33,7 +33,7 @@
                    SYNC: click turns sync on or off, right-click makes the
                    deck MASTER. Its light is blue while synced and red-orange
                    on the MASTER; its label follows Preferences > Decks > Sync
-                   options (GRID LOCK or BPM SYNC). -->
+                   options: GRID (Grid Lock) or BPM (BPM Sync). KEY is KEY SYNC. -->
               <WidgetGroup>
                 <ObjectName>SyncKeySyncBox</ObjectName>
                 <Layout>vertical</Layout>
@@ -67,27 +67,27 @@
                         <NumberStates>6</NumberStates>
                       <State>
                         <Number>0</Number>
-                        <Text>GRID&#10;LOCK</Text>
+                        <Text>GRID</Text>
                       </State>
                       <State>
                         <Number>1</Number>
-                        <Text>GRID&#10;LOCK</Text>
+                        <Text>GRID</Text>
                       </State>
                       <State>
                         <Number>2</Number>
-                        <Text>GRID&#10;LOCK</Text>
+                        <Text>GRID</Text>
                       </State>
                       <State>
                         <Number>3</Number>
-                        <Text>BPM&#10;SYNC</Text>
+                        <Text>BPM</Text>
                       </State>
                       <State>
                         <Number>4</Number>
-                        <Text>BPM&#10;SYNC</Text>
+                        <Text>BPM</Text>
                       </State>
                       <State>
                         <Number>5</Number>
-                        <Text>BPM&#10;SYNC</Text>
+                        <Text>BPM</Text>
                       </State>
                         <Connection>
                           <ConfigKey><Variable name="Group"/>,sync_indicator</ConfigKey>
@@ -114,11 +114,11 @@
                         <RightClickIsPushButton>true</RightClickIsPushButton>
                         <State>
                           <Number>0</Number>
-                          <Text>KEY&#10;SYNC</Text>
+                          <Text>KEY</Text>
                         </State>
                         <State>
                           <Number>1</Number>
-                          <Text>KEY&#10;SYNC</Text>
+                          <Text>KEY</Text>
                         </State>
                         <Connection>
                           <ConfigKey><Variable name="Group"/>,keysync_enabled</ConfigKey>

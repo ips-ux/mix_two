@@ -2987,6 +2987,17 @@ WSearchLineEdit::indicator:unchecked:selected {
   background-color: #ff9a1f;
 }
 
+/* Mix Two: MASTER CUE. Off: grey and dim, so off reads as off. */
+#MainCueButton {
+  color: #6f6a65;
+  border-color: #454240;
+}
+#MainCueButton[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+
 /* Sound Color FX (DUB ECHO, SWEEP, NOISE, FILTER) under HEADPHONES:
    rectangular grey buttons, lit blue while selected. */
 #SoundColorFxButton {

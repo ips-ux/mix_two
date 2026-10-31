@@ -193,12 +193,12 @@ check("HEADPHONES LEVEL -> [Master] headGain", did(n, "[Master]", "headGain"));
 // Sound Color FX: FILTER at start; DUB ECHO replaces it; again turns it off.
 check("FILTER (cfx4) on at start", values["[SoundColorFX],cfx4"] === 1);
 send(0x96, 0x00, 0x7F); send(0x96, 0x00, 0x00);
-check("DUB ECHO -> cfx1 on, cfx4 off, quick effect on",
-    values["[SoundColorFX],cfx1"] === 1 && values["[SoundColorFX],cfx4"] === 0 &&
-    values["[QuickEffectRack1_[Channel1]],enabled"] === 1);
+check("DUB ECHO -> cfx1 on, cfx4 off (the engine loads the preset)",
+    values["[SoundColorFX],cfx1"] === 1 && values["[SoundColorFX],cfx4"] === 0);
 send(0x96, 0x00, 0x7F); send(0x96, 0x00, 0x00);
-check("DUB ECHO again -> off, quick effect off",
-    values["[SoundColorFX],cfx1"] === 0 && values["[QuickEffectRack1_[Channel1]],enabled"] === 0);
+check("DUB ECHO again -> off",
+    values["[SoundColorFX],cfx1"] === 0);
+check("the script loads no chain preset itself", !sets.some(x => x[1] === "loaded_chain_preset"));
 l = leds.length;
 engine.setValue("[SoundColorFX]", "cfx2", 1); // on-screen SWEEP
 check("on-screen SWEEP lights the SWEEP button", leds.slice(l).some(m => m[0] === 0x96 && m[1] === 0x01 && m[2] > 0));

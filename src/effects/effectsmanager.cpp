@@ -19,6 +19,7 @@
 namespace {
 const unsigned int kEffectMessagePipeFifoSize = 2048;
 const QString kEffectsXmlFile = QStringLiteral("effects.xml");
+const QString kSoundColorFxGroup = QStringLiteral("[SoundColorFX]");
 } // anonymous namespace
 
 EffectsManager::EffectsManager(
@@ -49,12 +50,11 @@ EffectsManager::EffectsManager(
     m_pVisibleEffectsList = VisibleEffectsListPointer(new VisibleEffectsList());
 
     // Mix Two: the Sound Color FX buttons, as on Pioneer mixers. Only one is
-    // on at a time; it switches every deck's QuickEffect on, and turning it
-    // off switches them off. Mappings load the matching chain presets.
-    for (int i = 0; i < static_cast<int>(m_soundColorFxButtons.size()); ++i) {
+    // on at a time; it loads its chain preset into every deck's QuickEffect
+    // and switches them on. Turning it off switches them off.
+    for (int i = 0; i < kNumSoundColorFx; ++i) {
         auto pButton = std::make_unique<ControlPushButton>(
-                ConfigKey(QStringLiteral("[SoundColorFX]"),
-                        QStringLiteral("cfx%1").arg(i + 1)));
+                ConfigKey(kSoundColorFxGroup, QStringLiteral("cfx%1").arg(i + 1)));
         pButton->setButtonMode(mixxx::control::ButtonMode::Toggle);
         ControlPushButton* pRawButton = pButton.get();
         QObject::connect(pRawButton,
@@ -65,16 +65,62 @@ EffectsManager::EffectsManager(
     }
 }
 
+// static
+QString EffectsManager::soundColorFxName(int index) {
+    static const std::array<QString, kNumSoundColorFx> kNames = {
+            QStringLiteral("DUB ECHO"),
+            QStringLiteral("SWEEP"),
+            QStringLiteral("NOISE"),
+            QStringLiteral("FILTER")};
+    return index >= 0 && index < kNumSoundColorFx ? kNames[index] : QString();
+}
+
+QString EffectsManager::soundColorFxPreset(int index) const {
+    // Mixxx stand-ins until the Pioneer CFX exist (bucket 02, FX-062).
+    static const std::array<QString, kNumSoundColorFx> kDefaults = {
+            QStringLiteral("Filter Echo"),
+            QStringLiteral("Moog Filter"),
+            QStringLiteral("White Noise"),
+            QStringLiteral("Filter")};
+    if (index < 0 || index >= kNumSoundColorFx) {
+        return QString();
+    }
+    return m_pConfig->getValue(
+            ConfigKey(kSoundColorFxGroup, QStringLiteral("cfx%1_preset").arg(index + 1)),
+            kDefaults[index]);
+}
+
+void EffectsManager::setSoundColorFxPreset(int index, const QString& presetName) {
+    if (index < 0 || index >= kNumSoundColorFx) {
+        return;
+    }
+    m_pConfig->setValue(
+            ConfigKey(kSoundColorFxGroup, QStringLiteral("cfx%1_preset").arg(index + 1)),
+            presetName);
+    if (m_soundColorFxButtons[index]->get() > 0) {
+        soundColorFxChanged(index, 1.0);
+    }
+}
+
 void EffectsManager::soundColorFxChanged(int index, double value) {
     const bool on = value > 0;
+    EffectChainPresetPointer pPreset;
     if (on) {
-        for (int i = 0; i < static_cast<int>(m_soundColorFxButtons.size()); ++i) {
+        for (int i = 0; i < kNumSoundColorFx; ++i) {
             if (i != index) {
                 m_soundColorFxButtons[i]->set(0);
             }
         }
+        pPreset = m_pChainPresetManager->getPreset(soundColorFxPreset(index));
     }
     for (const auto& pChain : std::as_const(m_quickEffectChains)) {
+        if (pPreset && pChain->presetName() != pPreset->name()) {
+            // Keep the COLOR knob where it is: the knob on the deck does not
+            // move when the effect changes.
+            const double superValue = pChain->getSuperParameter();
+            pChain->loadChainPreset(pPreset);
+            pChain->setSuperParameter(superValue, true);
+        }
         ControlObject::set(ConfigKey(pChain->group(), QStringLiteral("enabled")),
                 on ? 1.0 : 0.0);
     }

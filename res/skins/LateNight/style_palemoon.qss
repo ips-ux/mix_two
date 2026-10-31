@@ -3681,6 +3681,22 @@ WSearchLineEdit::indicator:unchecked:selected {
   background-color: #ff9a1f;
 }
 
+/* Mix Two: CUE buttons. Off: grey and dim, so off reads as off. On: lit
+   orange, as the DDJ-800 CUE buttons. */
+WPushButton#PflButton[value="1"] {
+  background-color: #2a1d0e;
+  image: url(skins:LateNight/palemoon/buttons/btn__pfl_lit.svg) no-repeat center center;
+}
+#MainCueButton {
+  color: #6f6a65;
+  border-color: #454240;
+}
+#MainCueButton[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+
 /* Sound Color FX (DUB ECHO, SWEEP, NOISE, FILTER) under HEADPHONES:
    rectangular grey buttons, lit blue while selected. */
 #SoundColorFxButton {

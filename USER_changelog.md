@@ -57,7 +57,6 @@ To change the mapping settings, go to Preferences > Controllers, then select the
 - **Jog resolution** (6480 ticks for each turn).
 - **Input selector controls passthrough** (off).
 - **MASTER, BOOTH and HEADPHONES knobs control Mix Two** (on).
-- A quick effect preset for each Sound Color FX button.
 
 The jog display on the DDJ-800 does not operate yet.
 
@@ -106,6 +105,9 @@ Push SYNC to start sync. Push SYNC again to stop sync.
 
 To make a deck the MASTER, push SHIFT + SYNC. On the screen, right-click
 SYNC.
+
+On the screen, the SYNC button shows GRID (Grid Lock) or BPM (BPM Sync).
+The KEY SYNC button shows KEY.
 
 The MASTER deck stays the MASTER while it plays. It stays the MASTER when you
 close its channel fader.
@@ -266,6 +268,26 @@ Below HEADPHONES are four Sound Color FX buttons: DUB ECHO, SWEEP, NOISE and
 FILTER. Push a button to use that effect with the COLOR knobs. The button
 comes on in blue. Push it again to stop the effect. Only one button is on at
 a time. The buttons on the screen and on the DDJ-800 operate together.
+
+To change the effect of a Sound Color FX button, right-click the button.
+Then select an effect in the list. Mix Two keeps your selection.
+
+The Pioneer effects are not available yet. Until then, the buttons use
+Mixxx effects: Filter Echo, Moog Filter, White Noise and Filter. These
+effects do not sound like rekordbox.
+
+When you change the effect, the COLOR knob stays at its position.
+
+The effect lists below the mixer channels are removed. The Sound Color FX
+buttons replace them.
+
+The headphone CUE buttons are now below the COLOR knobs.
+
+All knob pointers are now white. The TRIM knobs are orange. The COLOR knobs
+are light blue.
+
+A CUE button that is off is now dark grey. A CUE button that is on is
+orange.
 
 For headphone sound, set a Headphones output in Preferences > Sound
 Hardware.

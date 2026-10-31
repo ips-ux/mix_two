@@ -56,6 +56,32 @@
 
 ---
 
+## 2026-10-30: mixer look; CFX buttons pick their effect
+
+- **Labels:** round SYNC shows GRID / BPM (was GRID LOCK / BPM SYNC), KEY
+  SYNC shows KEY (`decks/rate_controls.xml`).
+- **PFL under COLOR:** the 2-deck mixer's QuickEffect selectors are gone;
+  the PFL buttons sit in their place under the COLOR knobs; a 39 px spacer
+  keeps the meters level with the faders. 4-deck: selector removed (PFL was
+  already under the knob).
+- **CFX right-click (FX-060):** new widget `WSoundColorFxButton`
+  (`<SoundColorFxButton><SoundColorFx>N</SoundColorFx>`) opens a menu of
+  the QuickEffect chain presets. `EffectsManager` stores
+  `[SoundColorFX] cfxN_preset` in mixxx.cfg (defaults Filter Echo, Moog
+  Filter, White Noise, Filter: Mixxx stand-ins, not Pioneer CFX) and loads
+  it into every deck when the button turns on, keeping `super1`. The
+  mapping's `cfxNPreset` settings and its preset loading are removed.
+- **Knobs:** every pointer white (`KnobColor*` = white; new white pointer
+  SVGs for regular / main / small / fx); TRIM body orange
+  (`knob_bg_regular_trim.svg`), COLOR body light blue
+  (`knob_bg_regular_colorfx.svg`, arc `ArcColorQuickEffect` #4f9fd6). Both
+  schemes.
+- **CUE off state:** PaleMoon PFL off icon #4c4c4c, on = orange icon on a
+  dark warm face; Classic PFL off icon #5e5e5e; MASTER CUE off = grey text
+  and border, on = orange.
+- **Test:** mock harness 35 checks pass; `mixxx-lib` builds. `mixxx.exe`
+  not linked (Mix Two was running): nothing seen on screen yet.
+
 ## 2026-10-30: DDJ-800 level knobs, Sound Color FX buttons on screen
 
 - **Cause of "MASTER and headphone knobs do nothing":** the owner's

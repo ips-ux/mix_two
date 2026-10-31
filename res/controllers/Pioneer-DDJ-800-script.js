@@ -34,8 +34,8 @@
 //        memory loop), DELETE removes the one just stored or called
 //      * Mixer: gain, 3-band EQ, channel faders, crossfader, headphone
 //        cue, master cue, VU meters, fader start
-//      * Sound Color FX: CFX buttons enable the quick effects, COLOR knobs
-//        drive the quick effect super knob
+//      * Sound Color FX: CFX buttons set [SoundColorFX],cfx1..4 (the engine
+//        loads each button's preset), COLOR knobs drive the super knob
 //      * Beat FX: effect selector, channel assign, depth, on/off
 //      * Pad modes: Hot Cue, Pad FX1 (rolls), Beat Jump, Sampler,
 //        Keyboard, Pad FX2 (momentary effect units), Beat Loop, Key Shift
@@ -210,12 +210,6 @@ PioneerDDJ800.init = function() {
     PioneerDDJ800.vinylModeDefault = PioneerDDJ800.getSetting("vinylModeDefault", true);
     PioneerDDJ800.jogResolution = PioneerDDJ800.getSetting("jogResolution", 6480);
     PioneerDDJ800.inputSelectPassthrough = PioneerDDJ800.getSetting("inputSelectPassthrough", false);
-    PioneerDDJ800.cfxPresets = [
-        PioneerDDJ800.getSetting("cfx1Preset", -1),
-        PioneerDDJ800.getSetting("cfx2Preset", -1),
-        PioneerDDJ800.getSetting("cfx3Preset", -1),
-        PioneerDDJ800.getSetting("cfx4Preset", -1),
-    ];
 
     PioneerDDJ800.numDecks = Math.min(4, engine.getValue("[App]", "num_decks"));
     PioneerDDJ800.decks = [];
@@ -485,7 +479,8 @@ PioneerDDJ800.activeCfx = function() {
 PioneerDDJ800.selectCfx = function(cfx, on) {
     const key = "cfx" + (cfx + 1);
     const value = on === undefined ? (engine.getValue("[SoundColorFX]", key) > 0 ? 0 : 1) : (on ? 1 : 0);
-    // Older engines without the shared buttons: keep them exclusive here.
+    // The engine also keeps one on at a time, but later (queued); do it now
+    // so the LEDs are right at once.
     for (let other = 0; other < 4; other++) {
         if (other !== cfx && value > 0) {
             engine.setValue("[SoundColorFX]", "cfx" + (other + 1), 0);
@@ -496,14 +491,9 @@ PioneerDDJ800.selectCfx = function(cfx, on) {
 };
 
 PioneerDDJ800.applyCfx = function() {
+    // The engine loads each button's chain preset (right-click a CFX button
+    // on screen to change it) and switches the QuickEffects on or off.
     const active = PioneerDDJ800.activeCfx();
-    for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
-        const group = "[QuickEffectRack1_" + PioneerDDJ800.deckGroup(deck) + "]";
-        if (active >= 0 && PioneerDDJ800.cfxPresets[active] >= 0) {
-            engine.setValue(group, "loaded_chain_preset", PioneerDDJ800.cfxPresets[active]);
-        }
-        engine.setValue(group, "enabled", active >= 0 ? 1 : 0);
-    }
     for (let cfx = 0; cfx < 4; cfx++) {
         PioneerDDJ800.setLed(PioneerDDJ800.STATUS.globalNote, 0x00 + cfx, cfx === active);
     }

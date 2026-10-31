@@ -47,7 +47,7 @@
                     <Template src="skins:LateNight/controls/knob_label_above.xml">
                       <SetVariable name="TooltipId">headMix</SetVariable>
                       <SetVariable name="Size">35f,30f</SetVariable>
-                      <SetVariable name="KnobColor">red</SetVariable>
+                      <SetVariable name="KnobColor">white</SetVariable>
                       <SetVariable name="ArcColor"><Variable name="ArcColorMstBal"/></SetVariable>
                       <SetVariable name="Control">headMix</SetVariable>
                       <SetVariable name="Label">Mixing</SetVariable>
@@ -72,7 +72,7 @@
                     <Template src="skins:LateNight/controls/knob_label_above.xml">
                       <SetVariable name="TooltipId">headphone_gain</SetVariable>
                       <SetVariable name="Size">35f,30f</SetVariable>
-                      <SetVariable name="KnobColor">orange</SetVariable>
+                      <SetVariable name="KnobColor">white</SetVariable>
                       <SetVariable name="ArcColor"><Variable name="ArcColorGainLow"/></SetVariable>
                       <SetVariable name="ArcUnipolar">true</SetVariable>
                       <SetVariable name="Control">headGain</SetVariable>
@@ -116,8 +116,9 @@
                     <Layout>vertical</Layout>
                     <SizePolicy>min,min</SizePolicy>
                     <Children>
-                      <PushButton>
-                        <Tooltip>Push to use DUB ECHO with the COLOR knobs. Push again to stop it.</Tooltip>
+                      <SoundColorFxButton>
+                        <SoundColorFx>1</SoundColorFx>
+                        <Tooltip>Push to use DUB ECHO with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
                         <ObjectName>SoundColorFxButton</ObjectName>
                         <Size>58f,16f</Size>
                         <NumberStates>2</NumberStates>
@@ -133,10 +134,11 @@
                           <ConfigKey>[SoundColorFX],cfx1</ConfigKey>
                           <ButtonState>LeftButton</ButtonState>
                         </Connection>
-                      </PushButton>
+                      </SoundColorFxButton>
                       <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
-                      <PushButton>
-                        <Tooltip>Push to use SWEEP with the COLOR knobs. Push again to stop it.</Tooltip>
+                      <SoundColorFxButton>
+                        <SoundColorFx>2</SoundColorFx>
+                        <Tooltip>Push to use SWEEP with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
                         <ObjectName>SoundColorFxButton</ObjectName>
                         <Size>58f,16f</Size>
                         <NumberStates>2</NumberStates>
@@ -152,10 +154,11 @@
                           <ConfigKey>[SoundColorFX],cfx2</ConfigKey>
                           <ButtonState>LeftButton</ButtonState>
                         </Connection>
-                      </PushButton>
+                      </SoundColorFxButton>
                       <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
-                      <PushButton>
-                        <Tooltip>Push to use NOISE with the COLOR knobs. Push again to stop it.</Tooltip>
+                      <SoundColorFxButton>
+                        <SoundColorFx>3</SoundColorFx>
+                        <Tooltip>Push to use NOISE with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
                         <ObjectName>SoundColorFxButton</ObjectName>
                         <Size>58f,16f</Size>
                         <NumberStates>2</NumberStates>
@@ -171,10 +174,11 @@
                           <ConfigKey>[SoundColorFX],cfx3</ConfigKey>
                           <ButtonState>LeftButton</ButtonState>
                         </Connection>
-                      </PushButton>
+                      </SoundColorFxButton>
                       <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
-                      <PushButton>
-                        <Tooltip>Push to use FILTER with the COLOR knobs. Push again to stop it.</Tooltip>
+                      <SoundColorFxButton>
+                        <SoundColorFx>4</SoundColorFx>
+                        <Tooltip>Push to use FILTER with the COLOR knobs. Push again to stop it. Right-click to select the effect.</Tooltip>
                         <ObjectName>SoundColorFxButton</ObjectName>
                         <Size>58f,16f</Size>
                         <NumberStates>2</NumberStates>
@@ -190,7 +194,7 @@
                           <ConfigKey>[SoundColorFX],cfx4</ConfigKey>
                           <ButtonState>LeftButton</ButtonState>
                         </Connection>
-                      </PushButton>
+                      </SoundColorFxButton>
                     </Children>
                   </WidgetGroup><!-- SoundColorFxButtons -->
 

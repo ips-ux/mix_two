@@ -50,20 +50,6 @@
                 </description>
             </option>
         </group>
-        <group label="Sound Color FX">
-            <option variable="cfx1Preset" type="integer" min="-1" max="99" default="-1" label="DUB ECHO quick effect preset">
-                <description>Quick effect chain preset index loaded by the DUB ECHO button (-1 keeps the current preset).</description>
-            </option>
-            <option variable="cfx2Preset" type="integer" min="-1" max="99" default="-1" label="SWEEP quick effect preset">
-                <description>Quick effect chain preset index loaded by the SWEEP button (-1 keeps the current preset).</description>
-            </option>
-            <option variable="cfx3Preset" type="integer" min="-1" max="99" default="-1" label="NOISE quick effect preset">
-                <description>Quick effect chain preset index loaded by the NOISE button (-1 keeps the current preset).</description>
-            </option>
-            <option variable="cfx4Preset" type="integer" min="-1" max="99" default="-1" label="FILTER quick effect preset">
-                <description>Quick effect chain preset index loaded by the FILTER button (-1 keeps the current preset).</description>
-            </option>
-        </group>
     </settings>
     <controller id="DDJ-800">
         <scriptfiles>

@@ -84,6 +84,13 @@ class EffectsManager {
 
     bool isAdoptMetaknobSettingEnabled() const;
 
+    // Mix Two: the Sound Color FX buttons ([SoundColorFX],cfx1..cfx4) and
+    // the QuickEffect chain preset that each one loads (saved in mixxx.cfg).
+    static constexpr int kNumSoundColorFx = 4;
+    static QString soundColorFxName(int index);
+    QString soundColorFxPreset(int index) const;
+    void setSoundColorFxPreset(int index, const QString& presetName);
+
   private:
     void addStandardEffectChains();
     void addOutputEffectChain();
@@ -125,7 +132,7 @@ class EffectsManager {
 
     // Mix Two: [SoundColorFX],cfx1..cfx4, the DUB ECHO, SWEEP, NOISE and
     // FILTER buttons shared by the skin and controller mappings.
-    std::array<std::unique_ptr<ControlPushButton>, 4> m_soundColorFxButtons;
+    std::array<std::unique_ptr<ControlPushButton>, kNumSoundColorFx> m_soundColorFxButtons;
 
     // This is set true when setup() is run. Then, the initial decks (their EQ
     // and QuickEffect chains) have been initialized, either with defaults or the

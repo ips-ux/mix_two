@@ -1834,6 +1834,7 @@ add_library(
   src/widget/wstarratingaction.cpp
   src/widget/wrecordingduration.cpp
   src/widget/wscrollable.cpp
+  src/widget/wsoundcolorfxbutton.cpp
   src/widget/wsearchlineedit.cpp
   src/widget/wsearchrelatedtracksmenu.cpp
   src/widget/wsettingscheckboxlabel.cpp

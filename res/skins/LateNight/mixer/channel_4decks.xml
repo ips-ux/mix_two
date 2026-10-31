@@ -21,8 +21,9 @@
         <Children>
           <Template src="skins:LateNight/controls/knob.xml">
             <SetVariable name="Size">40f,34f</SetVariable>
-            <SetVariable name="KnobColor">orange</SetVariable>
+            <SetVariable name="KnobColor">white</SetVariable>
             <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
+            <SetVariable name="KnobBg">regular_trim</SetVariable>
             <SetVariable name="Control">pregain</SetVariable>
             <SetVariable name="TooltipId">pregain</SetVariable>
           </Template>
@@ -58,23 +59,9 @@
 
       <Template src="skins:LateNight/mixer/quick_effect_knob_4decks.xml"/>
 
-      <WidgetGroup>
-        <SizePolicy>i,f</SizePolicy>
-        <MinimumSize>,18</MinimumSize>
-        <MaximumSize>,18</MaximumSize>
-        <Layout>vertical</Layout>
-        <Children>
-          <EffectChainPresetSelector>
-            <ObjectName>QuickEffectSelectorLeft</ObjectName>
-            <Size>40min,18f</Size>
-            <EffectUnitGroup>[QuickEffectRack1_<Variable name="Group"/>]</EffectUnitGroup>
-          </EffectChainPresetSelector>
-        </Children>
-        <Connection>
-          <ConfigKey persist="true">[Skin],show_eq_knobs</ConfigKey>
-          <BindProperty>visible</BindProperty>
-        </Connection>
-      </WidgetGroup>
+      <!-- Mix Two: no QuickEffect selector; the Sound Color FX buttons under
+           HEADPHONES select the effect. -->
+      <WidgetGroup><Size>1min,3f</Size></WidgetGroup>
 
       <WidgetGroup>
         <ObjectName>PflBox_4Decks</ObjectName>
