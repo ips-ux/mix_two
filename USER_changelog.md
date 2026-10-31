@@ -281,7 +281,15 @@ When you change the effect, the COLOR knob stays at its position.
 The effect lists below the mixer channels are removed. The Sound Color FX
 buttons replace them.
 
-The headphone CUE buttons are now below the COLOR knobs.
+The headphone CUE buttons are now below the COLOR knobs. They look the same
+as the MASTER CUE button.
+
+The Sound Color FX buttons are in two rows of two, as on the DDJ-800.
+
+The star buttons next to the COLOR knobs are removed. Use the Sound Color
+FX buttons to start and stop the effect.
+
+The TRIM knob is now at the top of each channel, above HI.
 
 All knob pointers are now white. The TRIM knobs are orange. The COLOR knobs
 are light blue.

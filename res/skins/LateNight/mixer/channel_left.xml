@@ -28,6 +28,31 @@ vertical layout and a side-by-side layout for two-deck mode -->
                push Gain and QuickEffect etc. to the top/bottom -->
           <WidgetGroup><Size>1min,0me</Size></WidgetGroup>
 
+          <!-- Mix Two: TRIM at the top of the channel's knobs, as on the DDJ-800 -->
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <Size>18f,0min</Size>
+                <Connection>
+                  <ConfigKey>[Skin],show_eq_kill_buttons</ConfigKey>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+              <Template src="skins:LateNight/controls/knob.xml">
+                <SetVariable name="Size">40f,34f</SetVariable>
+                <SetVariable name="KnobColor">white</SetVariable>
+                <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
+                <SetVariable name="KnobBg">regular_trim</SetVariable>
+                <SetVariable name="Control">pregain</SetVariable>
+                <SetVariable name="TooltipId">pregain</SetVariable>
+              </Template>
+            </Children>
+          </WidgetGroup>
+
+          <WidgetGroup><Size>1min,2f</Size></WidgetGroup>
+
           <Template src="skins:LateNight/mixer/eq_knob_left.xml">
             <SetVariable name="EqParameter">3</SetVariable>
             <SetVariable name="EqRange">High</SetVariable>
@@ -65,16 +90,9 @@ vertical layout and a side-by-side layout for two-deck mode -->
         <Layout>vertical</Layout>
         <SizePolicy>me,min</SizePolicy>
         <Children>
-          <Template src="skins:LateNight/controls/knob.xml">
-            <SetVariable name="Size">40f,34f</SetVariable>
-            <SetVariable name="KnobColor">white</SetVariable>
-            <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
-            <SetVariable name="KnobBg">regular_trim</SetVariable>
-            <SetVariable name="Control">pregain</SetVariable>
-            <SetVariable name="TooltipId">pregain</SetVariable>
-          </Template>
-
-          <WidgetGroup><Size>1min,4f</Size></WidgetGroup>
+          <!-- Mix Two: TRIM moved to the top of the knob column; this keeps
+               the fader level with HI, where it was. -->
+          <WidgetGroup><Size>1min,38f</Size></WidgetGroup>
 
           <SliderComposed><!-- Volume -->
             <TooltipId>channel_volume</TooltipId>

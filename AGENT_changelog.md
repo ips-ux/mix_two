@@ -56,6 +56,21 @@
 
 ---
 
+## 2026-10-30: mixer follow-ups (owner, after the screenshot)
+
+- Channel CUE (PFL) in the 2- and 4-deck mixers is now a "CUE" text button
+  styled as MASTER CUE (`#ChannelCueButton`, grey off / orange on), as on
+  the DDJ-800 photo (`.resource/Gear Images/ddj800.jpg`).
+- CFX buttons in a 2 x 2 grid (DUB ECHO, SWEEP / NOISE, FILTER) as on the
+  hardware; they stay under HEADPHONES (owner's placement; the hardware has
+  them above).
+- QuickEffect star button and dot removed from the COLOR knobs (2- and
+  4-deck); their 18 px slot stays so the knobs line up.
+- 2-deck TRIM moved to the top of the knob column (above HI); a 38 px
+  spacer keeps the fader where it was. 4-deck already had TRIM on top.
+- Seen on screen (new build, PaleMoon): layout, CFX right-click menu (ticks
+  the current preset). Not checked: CUE on state, Classic scheme.
+
 ## 2026-10-30: mixer look; CFX buttons pick their effect
 
 - **Labels:** round SYNC shows GRID / BPM (was GRID LOCK / BPM SYNC), KEY

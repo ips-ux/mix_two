@@ -68,13 +68,24 @@
         <Layout>horizontal</Layout>
         <SizePolicy>min,min</SizePolicy>
         <Children>
-          <Template src="skins:LateNight/controls/button_2state.xml">
-            <SetVariable name="TooltipId">pfl</SetVariable>
-            <SetVariable name="ObjectName">PflButton</SetVariable>
-            <SetVariable name="Size">26,26</SetVariable>
-            <SetVariable name="BtnSize">square</SetVariable>
-            <SetVariable name="ConfigKey"><Variable name="Group"/>,pfl</SetVariable>
-          </Template>
+          <PushButton>
+            <TooltipId>pfl</TooltipId>
+            <ObjectName>ChannelCueButton</ObjectName>
+            <Size>42f,16f</Size>
+            <NumberStates>2</NumberStates>
+            <State>
+              <Number>0</Number>
+              <Text>CUE</Text>
+            </State>
+            <State>
+              <Number>1</Number>
+              <Text>CUE</Text>
+            </State>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,pfl</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
         </Children>
       </WidgetGroup>
 

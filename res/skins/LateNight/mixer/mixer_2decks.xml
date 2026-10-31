@@ -69,7 +69,7 @@
             <Layout>vertical</Layout>
             <SizePolicy>min,min</SizePolicy>
             <Children>
-              <!-- Mix Two: headphone CUE under the COLOR knob, as on the
+              <!-- Mix Two: headphone CUE (styled as MASTER CUE) under the COLOR knob, as on the
                    DDJ-800 (the QuickEffect selector is gone: the Sound Color
                    FX buttons under HEADPHONES select the effect). -->
               <WidgetGroup>
@@ -85,16 +85,27 @@
                   </WidgetGroup>
                   <WidgetGroup><!-- under the COLOR knob -->
                     <Layout>horizontal</Layout>
-                    <Size>40f,24f</Size>
+                    <Size>42f,22f</Size>
                     <Children>
                       <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
-                      <Template src="skins:LateNight/controls/button_2state.xml">
-                        <SetVariable name="TooltipId">pfl</SetVariable>
-                        <SetVariable name="ObjectName">PflButton</SetVariable>
-                        <SetVariable name="Size">26f,24f</SetVariable>
-                        <SetVariable name="BtnSize">square</SetVariable>
-                        <SetVariable name="ConfigKey">[Channel1],pfl</SetVariable>
-                      </Template>
+                      <PushButton>
+                        <TooltipId>pfl</TooltipId>
+                        <ObjectName>ChannelCueButton</ObjectName>
+                        <Size>42f,16f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State>
+                          <Number>0</Number>
+                          <Text>CUE</Text>
+                        </State>
+                        <State>
+                          <Number>1</Number>
+                          <Text>CUE</Text>
+                        </State>
+                        <Connection>
+                          <ConfigKey>[Channel1],pfl</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
                       <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
                     </Children>
                   </WidgetGroup>
@@ -213,7 +224,7 @@
             <SizePolicy>min,min</SizePolicy>
             <Children>
 
-              <!-- Mix Two: headphone CUE under the COLOR knob, as on the
+              <!-- Mix Two: headphone CUE (styled as MASTER CUE) under the COLOR knob, as on the
                    DDJ-800 (the QuickEffect selector is gone: the Sound Color
                    FX buttons under HEADPHONES select the effect). -->
               <WidgetGroup>
@@ -222,16 +233,27 @@
                 <Children>
                   <WidgetGroup><!-- under the COLOR knob -->
                     <Layout>horizontal</Layout>
-                    <Size>40f,24f</Size>
+                    <Size>42f,22f</Size>
                     <Children>
                       <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
-                      <Template src="skins:LateNight/controls/button_2state.xml">
-                        <SetVariable name="TooltipId">pfl</SetVariable>
-                        <SetVariable name="ObjectName">PflButton</SetVariable>
-                        <SetVariable name="Size">26f,24f</SetVariable>
-                        <SetVariable name="BtnSize">square</SetVariable>
-                        <SetVariable name="ConfigKey">[Channel2],pfl</SetVariable>
-                      </Template>
+                      <PushButton>
+                        <TooltipId>pfl</TooltipId>
+                        <ObjectName>ChannelCueButton</ObjectName>
+                        <Size>42f,16f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State>
+                          <Number>0</Number>
+                          <Text>CUE</Text>
+                        </State>
+                        <State>
+                          <Number>1</Number>
+                          <Text>CUE</Text>
+                        </State>
+                        <Connection>
+                          <ConfigKey>[Channel2],pfl</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
                       <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
                     </Children>
                   </WidgetGroup>
