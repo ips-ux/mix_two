@@ -40,13 +40,13 @@
                     input to be configured in Preferences > Sound Hardware.
                 </description>
             </option>
-            <option variable="masterLevelSoftware" type="boolean" default="false" label="MASTER LEVEL and BOOTH LEVEL control the main and booth volume">
+            <option variable="levelKnobsSoftware" type="boolean" default="true" label="MASTER, BOOTH and HEADPHONES knobs control Mix Two">
                 <description>
-                    The DDJ-800 applies MASTER LEVEL and BOOTH LEVEL in
-                    hardware, to its own master and booth outputs only. Enable
-                    this when the mix plays through another audio interface.
-                    With the mix on the DDJ-800's outputs the levels are then
-                    applied twice; disable it there.
+                    The DDJ-800 changes MASTER LEVEL, BOOTH LEVEL and the
+                    HEADPHONES knobs only on its own outputs. Enable this when
+                    the mix goes through a different audio interface. Disable
+                    this when the mix goes through the DDJ-800 outputs. If you
+                    do not, the level changes two times.
                 </description>
             </option>
         </group>

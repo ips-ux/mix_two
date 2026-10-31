@@ -56,7 +56,7 @@ To change the mapping settings, go to Preferences > Controllers, then select the
 - **Start in vinyl mode** (on).
 - **Jog resolution** (6480 ticks for each turn).
 - **Input selector controls passthrough** (off).
-- **MASTER LEVEL and BOOTH LEVEL control the main and booth volume** (off).
+- **MASTER, BOOTH and HEADPHONES knobs control Mix Two** (on).
 - A quick effect preset for each Sound Color FX button.
 
 The jog display on the DDJ-800 does not operate yet.
@@ -203,11 +203,14 @@ on-screen knobs then agree with the controller. MASTER LEVEL, BOOTH LEVEL
 and the headphone knobs are not included: the DDJ-800 does not send them
 until you move them.
 
-MASTER LEVEL and BOOTH LEVEL now operate only in the DDJ-800, as in
-rekordbox. Before this change, they also changed the Mix Two main and booth
-volume, so the volume changed two times. If the mix plays through a
-different audio interface, enable "MASTER LEVEL and BOOTH LEVEL control the
-main and booth volume" in the controller settings.
+MASTER LEVEL, BOOTH LEVEL and the HEADPHONES MIXING and LEVEL knobs now
+control the Mix Two knobs. The DDJ-800 changes these levels only on its own
+outputs. Thus, the knobs had no effect when the mix went through a different
+audio interface.
+
+CAUTION: If the mix goes through the DDJ-800 outputs, the level changes two
+times. Go to Preferences > Controllers > DDJ-800. Disable "MASTER, BOOTH and
+HEADPHONES knobs control Mix Two".
 
 Push SHIFT and turn the jog wheel to move the beat grid, as in rekordbox.
 This is the same as GRID SLIDE and the jog wheel. The grid moves a small
@@ -256,6 +259,16 @@ the booth volume.
 For booth sound, set a Booth output in Preferences > Sound Hardware.
 
 The BOOTH knob replaces the balance knob on the screen.
+
+The HEADPHONES section is now at the top of the left mixer column.
+
+Below HEADPHONES are four Sound Color FX buttons: DUB ECHO, SWEEP, NOISE and
+FILTER. Push a button to use that effect with the COLOR knobs. The button
+comes on in blue. Push it again to stop the effect. Only one button is on at
+a time. The buttons on the screen and on the DDJ-800 operate together.
+
+For headphone sound, set a Headphones output in Preferences > Sound
+Hardware.
 
 ### Playlist folders
 

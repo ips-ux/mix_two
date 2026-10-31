@@ -3681,6 +3681,24 @@ WSearchLineEdit::indicator:unchecked:selected {
   background-color: #ff9a1f;
 }
 
+/* Sound Color FX (DUB ECHO, SWEEP, NOISE, FILTER) under HEADPHONES:
+   rectangular grey buttons, lit blue while selected. */
+#SoundColorFxButton {
+  color: #bfbfbe;
+  background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4a4a4e, stop:1 #38383c);
+  border: 1px solid #0a0a0a;
+  border-top-color: #5a5a60;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: bold;
+}
+#SoundColorFxButton[displayValue="1"] {
+  color: #06121e;
+  background-color: #3d9be9;
+  border-color: #1b5a8c;
+  border-top-color: #7cc0f5;
+}
+
 /************** Mix Two: mixer modules, round SYNC / KEY SYNC **************/
 /* Raised module: soft gradient face, light top edge, dark bottom edge. */
 #MixerModule {

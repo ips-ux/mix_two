@@ -47,6 +47,37 @@ EffectsManager::EffectsManager(
             new EffectChainPresetManager(pConfig, m_pBackendManager));
 
     m_pVisibleEffectsList = VisibleEffectsListPointer(new VisibleEffectsList());
+
+    // Mix Two: the Sound Color FX buttons, as on Pioneer mixers. Only one is
+    // on at a time; it switches every deck's QuickEffect on, and turning it
+    // off switches them off. Mappings load the matching chain presets.
+    for (int i = 0; i < static_cast<int>(m_soundColorFxButtons.size()); ++i) {
+        auto pButton = std::make_unique<ControlPushButton>(
+                ConfigKey(QStringLiteral("[SoundColorFX]"),
+                        QStringLiteral("cfx%1").arg(i + 1)));
+        pButton->setButtonMode(mixxx::control::ButtonMode::Toggle);
+        ControlPushButton* pRawButton = pButton.get();
+        QObject::connect(pRawButton,
+                &ControlObject::valueChanged,
+                pRawButton,
+                [this, i](double value) { soundColorFxChanged(i, value); });
+        m_soundColorFxButtons[i] = std::move(pButton);
+    }
+}
+
+void EffectsManager::soundColorFxChanged(int index, double value) {
+    const bool on = value > 0;
+    if (on) {
+        for (int i = 0; i < static_cast<int>(m_soundColorFxButtons.size()); ++i) {
+            if (i != index) {
+                m_soundColorFxButtons[i]->set(0);
+            }
+        }
+    }
+    for (const auto& pChain : std::as_const(m_quickEffectChains)) {
+        ControlObject::set(ConfigKey(pChain->group(), QStringLiteral("enabled")),
+                on ? 1.0 : 0.0);
+    }
 }
 
 EffectsManager::~EffectsManager() {

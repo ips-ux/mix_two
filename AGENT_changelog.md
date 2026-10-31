@@ -56,6 +56,29 @@
 
 ---
 
+## 2026-10-30: DDJ-800 level knobs, Sound Color FX buttons on screen
+
+- **Cause of "MASTER and headphone knobs do nothing":** the owner's
+  `soundconfig.xml` sends Master to the Audient USB ASIO interface and has
+  no Headphones output. The DDJ-800 applies MASTER / BOOTH / HEADPHONES in
+  hardware to its own outputs only, so the knobs changed nothing audible;
+  MASTER stopped when 1d3e9f8a05 set `masterLevelSoftware` to off.
+- **Fix (MIX-003..006):** option renamed `levelKnobsSoftware` (so the new
+  default applies over a stored `false`), default **on**; it now also binds
+  HEADPHONES MIXING `B6 0C` -> `[Master],headMix` and LEVEL `B6 0D` ->
+  `[Master],headGain`. With the DDJ-800 as sound card, turn it off (else
+  levels apply twice).
+- **Sound Color FX on screen (FX-059, CTL):** new engine controls
+  `[SoundColorFX],cfx1..cfx4` in `EffectsManager` (toggle; one on at a
+  time; switches every deck's QuickEffect `enabled`). The script reads and
+  writes them (presets, LEDs) instead of its own `activeCfx`, so the deck
+  and the screen share one state. LateNight: HEADPHONES module moved to the
+  top of its column; four rectangular grey buttons (lit blue) DUB ECHO,
+  SWEEP, NOISE, FILTER under it (`#SoundColorFxButton`, both schemes).
+- **Test:** mock harness 34 checks pass; `mixxx-test` builds; effects tests
+  pass. `mixxx.exe` link not done (Mix Two was running). Not tried on deck
+  or on screen.
+
 ## 2026-10-30: DDJ-800 key shift, keyboard, slip reverse, search, SHIFT + RELOOP
 
 - **Key shift pads (CTL-083):** rb6's CSV leaves the pads to rekordbox

@@ -387,17 +387,24 @@ PioneerDDJ800.initMixer = function() {
     PioneerDDJ800.bindHiRes(S.globalCC, 0x1F, function(value) {
         engine.setParameter("[Master]", "crossfader", value);
     });
-    // MASTER LEVEL and BOOTH LEVEL: the DDJ-800 applies them in hardware to
-    // its own master and booth outputs only, and rekordbox leaves them
-    // unassigned. When the mix goes to another audio interface the knobs
-    // would do nothing, so they drive the main and booth gain instead, over
-    // the on-screen knobs' full range.
-    if (engine.getSetting("masterLevelSoftware")) {
+    // MASTER LEVEL, BOOTH LEVEL and HEADPHONES MIXING / LEVEL: the DDJ-800
+    // applies them in hardware to its own outputs only, and rekordbox leaves
+    // them unassigned. When the mix goes to another audio interface the knobs
+    // would do nothing, so they drive Mix Two's main, booth and headphone
+    // controls instead, over the on-screen knobs' full range. Default on
+    // (the owner's mix plays through another interface).
+    if (PioneerDDJ800.getSetting("levelKnobsSoftware", true)) {
         PioneerDDJ800.bindHiRes(S.globalCC, 0x08, function(value) {
             engine.setParameter("[Master]", "gain", value);
         });
         PioneerDDJ800.bindHiRes(S.globalCC, 0x09, function(value) {
             engine.setParameter("[Master]", "booth_gain", value);
+        });
+        PioneerDDJ800.bindHiRes(S.globalCC, 0x0C, function(value) {
+            engine.setParameter("[Master]", "headMix", value);
+        });
+        PioneerDDJ800.bindHiRes(S.globalCC, 0x0D, function(value) {
+            engine.setParameter("[Master]", "headGain", value);
         });
     }
     PioneerDDJ800.bindHiRes(S.globalCC, 0x03, function(value) {
@@ -452,23 +459,44 @@ PioneerDDJ800.initCfx = function() {
             engine.setParameter(group, "super1", value);
         });
     }
+    // The selected CFX lives in [SoundColorFX],cfx1..cfx4, shared with the
+    // on-screen buttons under HEADPHONES; the engine keeps one on at a time.
     for (let cfx = 0; cfx < 4; cfx++) {
         PioneerDDJ800.bindButton(S.globalNote, 0x00 + cfx, function() { PioneerDDJ800.selectCfx(cfx); });
         PioneerDDJ800.bindButton(S.globalNote, 0x08 + cfx, function() { PioneerDDJ800.selectCfx(cfx); });
+        PioneerDDJ800.connect("[SoundColorFX]", "cfx" + (cfx + 1), function() {
+            PioneerDDJ800.applyCfx();
+        });
     }
     // Pioneer behaviour: with no CFX selected the COLOR knobs do nothing.
     // Start with FILTER so the knobs behave like Mixxx's default filter.
-    PioneerDDJ800.activeCfx = 3;
-    PioneerDDJ800.applyCfx();
+    PioneerDDJ800.selectCfx(3, true);
 };
 
-PioneerDDJ800.selectCfx = function(cfx) {
-    PioneerDDJ800.activeCfx = PioneerDDJ800.activeCfx === cfx ? -1 : cfx;
+PioneerDDJ800.activeCfx = function() {
+    for (let cfx = 0; cfx < 4; cfx++) {
+        if (engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0) {
+            return cfx;
+        }
+    }
+    return -1;
+};
+
+PioneerDDJ800.selectCfx = function(cfx, on) {
+    const key = "cfx" + (cfx + 1);
+    const value = on === undefined ? (engine.getValue("[SoundColorFX]", key) > 0 ? 0 : 1) : (on ? 1 : 0);
+    // Older engines without the shared buttons: keep them exclusive here.
+    for (let other = 0; other < 4; other++) {
+        if (other !== cfx && value > 0) {
+            engine.setValue("[SoundColorFX]", "cfx" + (other + 1), 0);
+        }
+    }
+    engine.setValue("[SoundColorFX]", key, value);
     PioneerDDJ800.applyCfx();
 };
 
 PioneerDDJ800.applyCfx = function() {
-    const active = PioneerDDJ800.activeCfx;
+    const active = PioneerDDJ800.activeCfx();
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
         const group = "[QuickEffectRack1_" + PioneerDDJ800.deckGroup(deck) + "]";
         if (active >= 0 && PioneerDDJ800.cfxPresets[active] >= 0) {

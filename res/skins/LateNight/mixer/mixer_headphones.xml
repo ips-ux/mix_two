@@ -7,9 +7,9 @@
   <SetVariable name="ArcThickness"><Variable name="ArcThicknessBig"/></SetVariable>
 
   <!-- Mix Two: the HEADPHONES section, left of the channels, mirroring the
-       MASTER section on the right, as on the DDJ-800: MIXING (cue to master)
-       on top, LEVEL below. The space above is kept for the four colour FX
-       buttons that sit above the headphone controls on the hardware. -->
+       MASTER section on the right: MIXING (cue to master) on top, LEVEL
+       below. Under it are the four Sound Color FX buttons (DUB ECHO, SWEEP,
+       NOISE, FILTER; [SoundColorFX],cfx1..cfx4, shared with the DDJ-800). -->
   <WidgetGroup>
     <SizePolicy>max,min</SizePolicy>
     <Layout>horizontal</Layout>
@@ -31,10 +31,6 @@
                 <SizePolicy>min,me</SizePolicy>
                 <Layout>vertical</Layout>
                 <Children>
-
-                  <!-- reserved: colour FX (DUB ECHO, PITCH, NOISE, FILTER) -->
-                  <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
-
 
                   <!-- the module's frame -->
                   <WidgetGroup>
@@ -112,6 +108,93 @@
                     </WidgetGroup>
                     </Children>
                   </WidgetGroup><!-- MixerModule -->
+
+                  <!-- Sound Color FX: one on at a time (the engine keeps it so) -->
+                  <WidgetGroup><Size>0min,6f</Size></WidgetGroup>
+                  <WidgetGroup>
+                    <ObjectName>SoundColorFxButtons</ObjectName>
+                    <Layout>vertical</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <PushButton>
+                        <Tooltip>Push to use DUB ECHO with the COLOR knobs. Push again to stop it.</Tooltip>
+                        <ObjectName>SoundColorFxButton</ObjectName>
+                        <Size>58f,16f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State>
+                          <Number>0</Number>
+                          <Text>DUB ECHO</Text>
+                        </State>
+                        <State>
+                          <Number>1</Number>
+                          <Text>DUB ECHO</Text>
+                        </State>
+                        <Connection>
+                          <ConfigKey>[SoundColorFX],cfx1</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+                      <PushButton>
+                        <Tooltip>Push to use SWEEP with the COLOR knobs. Push again to stop it.</Tooltip>
+                        <ObjectName>SoundColorFxButton</ObjectName>
+                        <Size>58f,16f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State>
+                          <Number>0</Number>
+                          <Text>SWEEP</Text>
+                        </State>
+                        <State>
+                          <Number>1</Number>
+                          <Text>SWEEP</Text>
+                        </State>
+                        <Connection>
+                          <ConfigKey>[SoundColorFX],cfx2</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+                      <PushButton>
+                        <Tooltip>Push to use NOISE with the COLOR knobs. Push again to stop it.</Tooltip>
+                        <ObjectName>SoundColorFxButton</ObjectName>
+                        <Size>58f,16f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State>
+                          <Number>0</Number>
+                          <Text>NOISE</Text>
+                        </State>
+                        <State>
+                          <Number>1</Number>
+                          <Text>NOISE</Text>
+                        </State>
+                        <Connection>
+                          <ConfigKey>[SoundColorFX],cfx3</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+                      <PushButton>
+                        <Tooltip>Push to use FILTER with the COLOR knobs. Push again to stop it.</Tooltip>
+                        <ObjectName>SoundColorFxButton</ObjectName>
+                        <Size>58f,16f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State>
+                          <Number>0</Number>
+                          <Text>FILTER</Text>
+                        </State>
+                        <State>
+                          <Number>1</Number>
+                          <Text>FILTER</Text>
+                        </State>
+                        <Connection>
+                          <ConfigKey>[SoundColorFX],cfx4</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup><!-- SoundColorFxButtons -->
+
+                  <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
                 </Children>
               </WidgetGroup><!-- HeadphoneControls -->
 

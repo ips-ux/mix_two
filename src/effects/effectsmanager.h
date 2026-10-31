@@ -3,8 +3,11 @@
 #include <QHash>
 #include <QList>
 #include <QSet>
+#include <array>
+#include <memory>
 
 #include "control/controlpotmeter.h"
+#include "control/controlpushbutton.h"
 #include "effects/backends/effectsbackendmanager.h"
 #include "effects/presets/effectchainpresetmanager.h"
 #include "engine/channelhandle.h"
@@ -87,6 +90,7 @@ class EffectsManager {
 
     void addEqualizerEffectChain(const ChannelHandleAndGroup& deckHandleGroup);
     void addQuickEffectChain(const ChannelHandleAndGroup& deckHandleGroup);
+    void soundColorFxChanged(int index, double value);
 
     void readEffectsXml();
     void readEffectsXmlSingleDeck(const QString& deckGroup);
@@ -118,6 +122,10 @@ class EffectsManager {
     // TODO: replace these with effect parameters that are hidden by default
     ControlPotmeter m_loEqFreq;
     ControlPotmeter m_hiEqFreq;
+
+    // Mix Two: [SoundColorFX],cfx1..cfx4, the DUB ECHO, SWEEP, NOISE and
+    // FILTER buttons shared by the skin and controller mappings.
+    std::array<std::unique_ptr<ControlPushButton>, 4> m_soundColorFxButtons;
 
     // This is set true when setup() is run. Then, the initial decks (their EQ
     // and QuickEffect chains) have been initialized, either with defaults or the
