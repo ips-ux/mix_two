@@ -56,6 +56,24 @@
 
 ---
 
+## 2026-10-30: mixer scales and the SOUND COLOR FX row
+
+- 2-deck mixer rebuilt: `channel_left/right.xml` are now knob columns only
+  (TRIM, HI/MID/LOW, divider, COLOR, CUE); the faders and meters moved to a
+  centre block in `mixer_2decks.xml` with the "SOUND COLOR FX" label level
+  with the COLOR knobs (fixed heights must match: divider 1 + 6 + 41 + 4 +
+  16 + 3). CUE is centred under each knob column; the crossfader row keeps
+  only the orientation dots. COLOR knobs are always visible now (the
+  `loaded_chain_preset` visibility binding is gone).
+- Scales are drawn in the knob background SVGs: TRIM
+  (`knob_bg_regular_trim`), MIXING (`knob_bg_main_scale`), headphone LEVEL
+  (`knob_bg_main_level`), MASTER LEVEL and BOOTH (`knob_bg_main_level_red`,
+  red from 75 %). Corner labels: `#KnobCornerLabel` (Open Sans); "-inf" is
+  an SVG (`knobs/label_minus_inf.svg`) because fonts draw the infinity sign
+  too small. TRIM ends: -inf / +12 (Mix Two's pregain range, not the
+  DDJ-800's +9). New template `controls/knob_label_above_level.xml`.
+- Seen on screen (PaleMoon). Not checked: Classic scheme, 4-deck mixer.
+
 ## 2026-10-30: mixer follow-ups (owner, after the screenshot)
 
 - Channel CUE (PFL) in the 2- and 4-deck mixers is now a "CUE" text button

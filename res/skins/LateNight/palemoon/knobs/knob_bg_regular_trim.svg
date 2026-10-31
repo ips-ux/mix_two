@@ -13,4 +13,17 @@
   <path d="m8.2297758 21.380224c.3211083 1.518471.9509058 2.996445 1.9033672 4.345243 3.68078 5.486321 11.186006 6.910874 16.677268 3.169848 5.491609-3.741264 6.868188-11.224395 3.057458-16.622767-3.680781-5.486321-11.184667-6.9132893-16.675928-3.1722633-4.1199672 2.8068063-5.9262795 7.7208053-4.9621652 12.2799393z" color="#000000" color-rendering="auto" dominant-baseline="auto" fill="#d9802f" image-rendering="auto" shape-rendering="auto" solid-color="#000000" style="font-feature-settings:normal;font-variant-alternates:normal;font-variant-caps:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variant-position:normal;isolation:auto;mix-blend-mode:normal;shape-padding:0;text-decoration-color:#000000;text-decoration-line:none;text-decoration-style:solid;text-indent:0;text-orientation:mixed;text-transform:none;white-space:normal"/>
   <path d="m8.6548538 22.98599a11.904658 11.988866 88.966938 1 1 22.6207732-7.896104 11.904658 11.988866 88.966938 1 1-22.6207732 7.896104z" fill="url(#d)" opacity=".761619" stroke-width="1.12532"/>
   <path d="m18.077475 8.4052397a10.690954 10.775167 8.0144789 1 1 3.844613 21.1858913 10.690954 10.775167 8.0144789 1 1-3.844613-21.1858913z" fill="#b85a16" stroke-width="1.011"/>
+  <g fill="none" stroke-linecap="round"><!-- Mix Two: TRIM scale -->
+    <line x1="7.28" y1="29.67" x2="5.90" y2="30.83" stroke="#d8d8d8" stroke-width="1"/>
+    <line x1="3.89" y1="23.02" x2="2.15" y2="23.45" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="3.76" y1="15.55" x2="2.00" y2="15.17" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="6.92" y1="8.78" x2="5.50" y2="7.67" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="12.72" y1="4.08" x2="11.93" y2="2.46" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="20.00" y1="2.40" x2="20.00" y2="0.10" stroke="#d8d8d8" stroke-width="1"/>
+    <line x1="27.28" y1="4.08" x2="28.07" y2="2.46" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="33.08" y1="8.78" x2="34.50" y2="7.67" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="36.24" y1="15.55" x2="38.00" y2="15.17" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="36.11" y1="23.02" x2="37.85" y2="23.45" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="32.72" y1="29.67" x2="34.10" y2="30.83" stroke="#d8d8d8" stroke-width="1"/>
+  </g>
 </svg>

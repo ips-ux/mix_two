@@ -2998,6 +2998,29 @@ WSearchLineEdit::indicator:unchecked:selected {
   border-color: #ff9a1f;
 }
 
+/* Mix Two: end values at a knob's bottom corners (TRIM -inf / +12,
+   COLOR LOW / HI, levels -inf / 0). Open Sans has the infinity sign;
+   Silkscreen does not. */
+#KnobCornerLabel {
+  font-family: "Open Sans";
+  font-size: 9px;
+  font-weight: bold;
+  color: #a39a90;
+}
+
+/* Mix Two: SOUND COLOR FX set apart from the EQ: a line across the mixer
+   and the band's name between the COLOR knobs, as on the DDJ-800. */
+#SoundColorFxDivider {
+  background-color: #3a3a3e;
+}
+#SoundColorFxLabel {
+  font-family: "Open Sans";
+  font-size: 10px;
+  font-weight: bold;
+  color: #bfbfbe;
+  qproperty-alignment: 'AlignCenter';
+}
+
 /* Mix Two: channel CUE (headphone cue) buttons, the same as MASTER CUE. */
 #ChannelCueButton {
   font-size: 11px;

@@ -1,5 +1,6 @@
-<!--  This layout is only used for channel 1.  It can switch between a standard
-vertical layout and a side-by-side layout for two-deck mode -->
+<!-- Mix Two: the knob column of channel 1 in the 2-deck mixer: TRIM,
+     HI / MID / LOW, SOUND COLOR FX (COLOR) and the headphone CUE, top to
+     bottom as on the DDJ-800. The channel fader is in mixer_2decks.xml. -->
 
 <Template>
   <SetVariable name="Group">[Channel<Variable name="ChanNum"/>]</SetVariable>
@@ -16,19 +17,12 @@ vertical layout and a side-by-side layout for two-deck mode -->
     <Layout>horizontal</Layout>
     <SizePolicy>min,min</SizePolicy>
     <Children>
-
-      <WidgetGroup><!-- EQs -->
-        <Layout>vertical</Layout>
+      <WidgetGroup>
         <ObjectName>MixerChannel_2Decks_Left</ObjectName>
+        <Layout>vertical</Layout>
         <SizePolicy>min,min</SizePolicy>
         <Children>
-
-          <!-- In case an EQ/non-EQ effect has less than 3 knobs we need
-               center those vertically. This spacer and the one below knob 3
-               push Gain and QuickEffect etc. to the top/bottom -->
-          <WidgetGroup><Size>1min,0me</Size></WidgetGroup>
-
-          <!-- Mix Two: TRIM at the top of the channel's knobs, as on the DDJ-800 -->
+          <!-- TRIM on top, as on the DDJ-800 -->
           <WidgetGroup>
             <Layout>horizontal</Layout>
             <SizePolicy>min,min</SizePolicy>
@@ -40,79 +34,108 @@ vertical layout and a side-by-side layout for two-deck mode -->
                   <BindProperty>visible</BindProperty>
                 </Connection>
               </WidgetGroup>
-              <Template src="skins:LateNight/controls/knob.xml">
-                <SetVariable name="Size">40f,34f</SetVariable>
-                <SetVariable name="KnobColor">white</SetVariable>
-                <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
-                <SetVariable name="KnobBg">regular_trim</SetVariable>
-                <SetVariable name="Control">pregain</SetVariable>
-                <SetVariable name="TooltipId">pregain</SetVariable>
-              </Template>
+              <!-- TRIM with its scale (in the knob image) and the end values at the
+                   bottom corners: -inf and +12 dB (Mix Two's range; the DDJ-800 stops
+                   at +9). -->
+              <WidgetGroup>
+                <Size>40f,41f</Size>
+                <Children>
+                  <Template src="skins:LateNight/controls/knob.xml">
+                    <SetVariable name="Size">40f,34f</SetVariable>
+                    <SetVariable name="KnobColor">white</SetVariable>
+                    <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
+                    <SetVariable name="KnobBg">regular_trim</SetVariable>
+                    <SetVariable name="Control">pregain</SetVariable>
+                    <SetVariable name="TooltipId">pregain</SetVariable>
+                  </Template>
+                  <WidgetGroup><!-- -inf -->
+                    <Pos>0,31</Pos>
+                    <Size>18f,10f</Size>
+                    <BackPath scalemode="STRETCH">skins:LateNight/<Variable name="KnobScheme"/>/knobs/label_minus_inf.svg</BackPath>
+                  </WidgetGroup>
+                  <Label>
+                    <ObjectName>KnobCornerLabel</ObjectName>
+                    <Pos>20,31</Pos>
+                    <Size>20f,10f</Size>
+                    <Text>+12</Text>
+                    <Alignment>right</Alignment>
+                  </Label>
+                </Children>
+              </WidgetGroup>
             </Children>
           </WidgetGroup>
-
           <WidgetGroup><Size>1min,2f</Size></WidgetGroup>
-
-          <Template src="skins:LateNight/mixer/eq_knob_left.xml">
-            <SetVariable name="EqParameter">3</SetVariable>
-            <SetVariable name="EqRange">High</SetVariable>
-          </Template>
-
-          <WidgetGroup><Size>1min,2f</Size></WidgetGroup>
-
-          <Template src="skins:LateNight/mixer/eq_knob_left.xml">
-            <SetVariable name="EqParameter">2</SetVariable>
-            <SetVariable name="EqRange">Mid</SetVariable>
-          </Template>
-
-          <WidgetGroup><Size>1min,2f</Size></WidgetGroup>
-
-          <Template src="skins:LateNight/mixer/eq_knob_left.xml">
-            <SetVariable name="EqParameter">1</SetVariable>
-            <SetVariable name="EqRange">Low</SetVariable>
-          </Template>
-
+          <WidgetGroup><!-- HI, MID, LOW -->
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/mixer/eq_knob_left.xml">
+                <SetVariable name="EqParameter">3</SetVariable>
+                <SetVariable name="EqRange">High</SetVariable>
+              </Template>
+              <WidgetGroup><Size>1min,2f</Size></WidgetGroup>
+              <Template src="skins:LateNight/mixer/eq_knob_left.xml">
+                <SetVariable name="EqParameter">2</SetVariable>
+                <SetVariable name="EqRange">Mid</SetVariable>
+              </Template>
+              <WidgetGroup><Size>1min,2f</Size></WidgetGroup>
+              <Template src="skins:LateNight/mixer/eq_knob_left.xml">
+                <SetVariable name="EqParameter">1</SetVariable>
+                <SetVariable name="EqRange">Low</SetVariable>
+              </Template>
+            </Children>
+            <Connection>
+              <ConfigKey>[Skin],show_eq_knobs</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
           <WidgetGroup><Size>1min,2me</Size></WidgetGroup>
-
-
+          <!-- SOUND COLOR FX: set apart from the EQ, as on the DDJ-800. The
+               line and the label between the channels are in mixer_2decks.xml;
+               the fixed heights below must match its SOUND COLOR FX block. -->
+          <WidgetGroup>
+            <ObjectName>SoundColorFxDivider</ObjectName>
+            <SizePolicy>me,f</SizePolicy>
+            <Size>1me,1f</Size>
+          </WidgetGroup>
+          <WidgetGroup><Size>1min,6f</Size></WidgetGroup>
           <Template src="skins:LateNight/mixer/quick_effect_knob_left.xml"/>
-
+          <WidgetGroup><Size>1min,4f</Size></WidgetGroup>
+          <!-- headphone CUE, centred under the knobs -->
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <Size>18f,0min</Size>
+                <Connection>
+                  <ConfigKey>[Skin],show_eq_kill_buttons</ConfigKey>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+              <PushButton>
+                <TooltipId>pfl</TooltipId>
+                <ObjectName>ChannelCueButton</ObjectName>
+                <Size>40f,16f</Size>
+                <NumberStates>2</NumberStates>
+                <State>
+                  <Number>0</Number>
+                  <Text>CUE</Text>
+                </State>
+                <State>
+                  <Number>1</Number>
+                  <Text>CUE</Text>
+                </State>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,pfl</ConfigKey>
+                  <ButtonState>LeftButton</ButtonState>
+                </Connection>
+              </PushButton>
+            </Children>
+          </WidgetGroup>
           <WidgetGroup><Size>1min,3f</Size></WidgetGroup>
         </Children>
-        <Connection>
-          <ConfigKey>[Skin],show_eq_knobs</ConfigKey>
-          <BindProperty>visible</BindProperty>
-        </Connection>
-      </WidgetGroup><!-- /EQs -->
-
-      <WidgetGroup>
-        <ObjectName>VolumeGain2Decks</ObjectName>
-        <Layout>vertical</Layout>
-        <SizePolicy>me,min</SizePolicy>
-        <Children>
-          <!-- Mix Two: TRIM moved to the top of the knob column; this keeps
-               the fader level with HI, where it was. -->
-          <WidgetGroup><Size>1min,38f</Size></WidgetGroup>
-
-          <SliderComposed><!-- Volume -->
-            <TooltipId>channel_volume</TooltipId>
-            <Size>42f,107f</Size>
-            <Handle scalemode="STRETCH_ASPECT">skins:LateNight/<Variable name="SliderScheme"/>/sliders/knob_volume_deck.svg</Handle>
-            <Slider scalemode="STRETCH_ASPECT">skins:LateNight/<Variable name="SliderScheme"/>/sliders/slider_volume_deck.svg</Slider>
-            <Horizontal>false</Horizontal>
-            <BarColor><Variable name="BarColorVolume"/></BarColor>
-            <BarWidth><Variable name="BarWidth"/></BarWidth>
-            <BarMargins><Variable name="BarMarginVolume"/></BarMargins>
-            <BarRoundCaps>true</BarRoundCaps>
-            <BarAxisPos>21.0</BarAxisPos>
-            <Connection>
-              <ConfigKey><Variable name="Group"/>,volume</ConfigKey>
-            </Connection>
-          </SliderComposed>
-
-          <WidgetGroup><Size>1min,0me</Size></WidgetGroup>
-        </Children>
-      </WidgetGroup><!-- VolumeGain2Decks -->
+      </WidgetGroup>
     </Children>
-  </WidgetGroup><!-- MixerChannel_2Decks -->
+  </WidgetGroup>
 </Template>

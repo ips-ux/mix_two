@@ -281,15 +281,24 @@ When you change the effect, the COLOR knob stays at its position.
 The effect lists below the mixer channels are removed. The Sound Color FX
 buttons replace them.
 
-The headphone CUE buttons are now below the COLOR knobs. They look the same
-as the MASTER CUE button.
+The headphone CUE buttons look the same as the MASTER CUE button.
 
 The Sound Color FX buttons are in two rows of two, as on the DDJ-800.
 
 The star buttons next to the COLOR knobs are removed. Use the Sound Color
 FX buttons to start and stop the effect.
 
-The TRIM knob is now at the top of each channel, above HI.
+The TRIM knob is now at the top of each channel, above HI. It has a scale
+with -∞ and +12 at its ends. +12 dB is the maximum TRIM in Mix Two. The
+DDJ-800 TRIM stops at +9 dB.
+
+The COLOR knobs are now in a SOUND COLOR FX row below the EQ knobs, as on
+the DDJ-800. Each COLOR knob shows LOW and HI at its ends. The headphone CUE
+buttons are below the COLOR knobs, at the center of each channel.
+
+The HEADPHONES MIXING and LEVEL knobs and the MASTER LEVEL and BOOTH knobs
+now have scales. The level knobs show -∞ and 0 at their ends. On MASTER
+LEVEL and BOOTH, the last quarter of the scale is red, as on the DDJ-800.
 
 All knob pointers are now white. The TRIM knobs are orange. The COLOR knobs
 are light blue.

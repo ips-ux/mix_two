@@ -45,6 +45,7 @@
                       </Label>
                     <WidgetGroup><Size>0min,2f</Size></WidgetGroup>
                     <Template src="skins:LateNight/controls/knob_label_above.xml">
+                      <SetVariable name="KnobBg">main_scale</SetVariable>
                       <SetVariable name="TooltipId">headMix</SetVariable>
                       <SetVariable name="Size">35f,30f</SetVariable>
                       <SetVariable name="KnobColor">white</SetVariable>
@@ -69,7 +70,8 @@
                       </Children>
                     </WidgetGroup>
                     <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
-                    <Template src="skins:LateNight/controls/knob_label_above.xml">
+                    <Template src="skins:LateNight/controls/knob_label_above_level.xml">
+                      <SetVariable name="KnobBg">main_level</SetVariable>
                       <SetVariable name="TooltipId">headphone_gain</SetVariable>
                       <SetVariable name="Size">35f,30f</SetVariable>
                       <SetVariable name="KnobColor">white</SetVariable>

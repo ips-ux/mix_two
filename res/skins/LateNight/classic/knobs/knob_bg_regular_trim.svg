@@ -26,4 +26,17 @@
 	<path d="m18.098392 8.5205096a10.574617 10.657914 8.0144789 1 1 3.802779 20.9553524 10.574617 10.657914 8.0144789 1 1-3.802779-20.9553524z" fill="url(#c)"/>
 	<path d="m4.2885454 24.518558a16.746911 16.754821 0 0 1 5.7363876-19.1699185 16.746911 16.754821 0 0 1 20.001123 0 16.746911 16.754821 0 0 1 5.736387 19.1699185" fill="none" stroke="#0b0b0b" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.10000002" style="paint-order:fill markers stroke"/>
 	<path d="m4.2040566 25.536932a16.836822 16.84602 0 0 1 5.7671838-19.2742619 16.836822 16.84602 0 0 1 20.1085056 0 16.836822 16.84602 0 0 1 5.767184 19.2742619" fill="none" stroke="#555" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.10000002" style="paint-order:fill markers stroke"/>
+  <g fill="none" stroke-linecap="round"><!-- Mix Two: TRIM scale -->
+    <line x1="8.26" y1="30.74" x2="6.99" y2="32.01" stroke="#d8d8d8" stroke-width="1"/>
+    <line x1="4.21" y1="24.13" x2="2.50" y2="24.69" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="3.60" y1="16.40" x2="1.83" y2="16.12" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="6.57" y1="9.24" x2="5.11" y2="8.18" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="12.46" y1="4.21" x2="11.65" y2="2.61" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="20.00" y1="2.40" x2="20.00" y2="0.10" stroke="#d8d8d8" stroke-width="1"/>
+    <line x1="27.54" y1="4.21" x2="28.35" y2="2.61" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="33.43" y1="9.24" x2="34.89" y2="8.18" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="36.40" y1="16.40" x2="38.17" y2="16.12" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="35.79" y1="24.13" x2="37.50" y2="24.69" stroke="#8c8c8c" stroke-width="1"/>
+    <line x1="31.74" y1="30.74" x2="33.01" y2="32.01" stroke="#d8d8d8" stroke-width="1"/>
+  </g>
 </svg>

@@ -19,14 +19,34 @@
         <Layout>horizontal</Layout>
         <SizePolicy>min,max</SizePolicy>
         <Children>
-          <Template src="skins:LateNight/controls/knob.xml">
-            <SetVariable name="Size">40f,34f</SetVariable>
-            <SetVariable name="KnobColor">white</SetVariable>
-            <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
-            <SetVariable name="KnobBg">regular_trim</SetVariable>
-            <SetVariable name="Control">pregain</SetVariable>
-            <SetVariable name="TooltipId">pregain</SetVariable>
-          </Template>
+          <!-- Mix Two: TRIM with its scale (in the knob image) and the end
+               values at the bottom corners: -inf and +12 dB (Mix Two's range;
+               the DDJ-800 stops at +9). -->
+          <WidgetGroup>
+            <Size>40f,41f</Size>
+            <Children>
+            <Template src="skins:LateNight/controls/knob.xml">
+              <SetVariable name="Size">40f,34f</SetVariable>
+              <SetVariable name="KnobColor">white</SetVariable>
+              <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
+              <SetVariable name="KnobBg">regular_trim</SetVariable>
+              <SetVariable name="Control">pregain</SetVariable>
+              <SetVariable name="TooltipId">pregain</SetVariable>
+            </Template>
+              <WidgetGroup><!-- -inf -->
+                <Pos>0,32</Pos>
+                <Size>18f,10f</Size>
+                <BackPath scalemode="STRETCH">skins:LateNight/<Variable name="KnobScheme"/>/knobs/label_minus_inf.svg</BackPath>
+              </WidgetGroup>
+              <Label>
+                <ObjectName>KnobCornerLabel</ObjectName>
+                <Pos>22,32</Pos>
+                <Size>18f,9f</Size>
+                <Text>+12</Text>
+                <Alignment>right</Alignment>
+              </Label>
+            </Children>
+          </WidgetGroup>
           <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
         </Children>
       </WidgetGroup>

@@ -14,7 +14,7 @@
 
           <WidgetGroup>
             <Layout>vertical</Layout>
-            <Size>18f,34f</Size>
+            <Size>18f,41f</Size>
             <Children>
               <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
               <!-- Mix Two: no star button; the Sound Color FX buttons switch the QuickEffect. -->
@@ -25,8 +25,8 @@
             </Connection>
           </WidgetGroup>
 
-          <WidgetGroup><!-- QuickEffect Meta knob + status dot -->
-            <Size>40f,34f</Size>
+          <WidgetGroup><!-- COLOR knob, LOW / HI at its bottom corners -->
+            <Size>40f,41f</Size>
             <Children>
               <KnobComposed>
                 <TooltipId>QuickEffectRack_super1</TooltipId>
@@ -47,6 +47,20 @@
                   <ConfigKey><Variable name="QuickEffectGroup"/>,super1</ConfigKey>
                 </Connection>
               </KnobComposed>
+              <Label>
+                <ObjectName>KnobCornerLabel</ObjectName>
+                <Pos>0,31</Pos>
+                <Size>18f,10f</Size>
+                <Text>LOW</Text>
+                <Alignment>left</Alignment>
+              </Label>
+              <Label>
+                <ObjectName>KnobCornerLabel</ObjectName>
+                <Pos>20,31</Pos>
+                <Size>20f,10f</Size>
+                <Text>HI</Text>
+                <Alignment>right</Alignment>
+              </Label>
 
             </Children>
           </WidgetGroup><!-- QuickEffect Meta knob + status dot -->
@@ -54,13 +68,5 @@
         </Children>
       </WidgetGroup>
     </Children>
-    <Connection>
-      <ConfigKey><Variable name="QuickEffectGroup"/>,loaded_chain_preset</ConfigKey>
-      <Transform>
-        <IsEqual>0</IsEqual>
-        <Not/>
-      </Transform>
-      <BindProperty>visible</BindProperty>
-    </Connection>
   </WidgetGroup>
 </Template>
