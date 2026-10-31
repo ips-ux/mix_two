@@ -219,6 +219,22 @@ build for it.
   (0xFFF87630) carries the jog counters, channel faders and crossfader, not
   these four. Result: the host learns these positions only when the knob
   moves. No host message changes this (the SHIFT memory is filled too).
+- **CFX buttons and LEDs depend on the operating mode (Traced + Observed,
+  2026-10-31).** The manual (p.83) has two modes: "rekordbox running" and
+  "general MIDI controller" (utilities mode can force the second). The
+  firmware's mode flag is 0 (rekordbox) only when status byte 0xFFF8CB09 is
+  2 and 0xFFF8CB0D (utility setting 0, "force MIDI") is 0 (0x1C1833B8);
+  byte 0xFFF8CB09 also gates the HID input report and is cleared on USB
+  reset. The rekordbox mode is reached through the `02 09` session
+  (0x1C1827DC queues it to the verification task). In rekordbox mode the
+  deck runs the CFX selection (sends 00 for the old, 7F for the new, on
+  press) and its renderer 0x1C19FFA0 flashes a CFX LED whose host state is
+  7F and keeps the others steadily lit. In general-MIDI mode (Mix Two) the
+  CFX keys send plain press / release and the LED handler 0x1C188D82 writes
+  level 1 (00) or 3 (7F) to the LED array only when 0xFFF88C44 and both
+  SHIFT flags are 0; the owner saw no difference between 00 and 7F, so
+  Mix Two cannot drive the CFX LEDs (they stay lit). BEAT FX ON, with the
+  same descriptor flag, does respond. Mix Two does not imitate the session.
 - **Mixer messages (Traced, table 0x1C1B904C, sender 0x1C183864):** every
   mixer control is a 14-bit pair, MSB on CC n first, LSB on n + 0x20 last,
   sent on change: TRIM `Bn 04`, EQ `Bn 07 / 0B / 0F`, CH fader `Bn 13`,

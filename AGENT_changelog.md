@@ -56,6 +56,16 @@
 
 ---
 
+## 2026-10-31: CFX LEDs cannot be driven in general-MIDI mode
+
+- Supersedes the entry below. Owner: 7F does not flash; a fixed 00 / 7F
+  test pattern looked identical. Firmware (FW 2.7, new bullet): the CFX
+  flashing and the deck-run CFX selection exist only in the rekordbox mode,
+  reached through the `02 09` verification session, which Mix Two must not
+  imitate (ROADMAP §5). In general-MIDI mode the deck ignores host CFX LED
+  messages. The mapping now sends none; a mock check guards that (45
+  checks). The selection shows on screen only.
+
 ## 2026-10-31: CFX LEDs: the deck flashes them itself
 
 - Probe result (--controller-debug): CFX buttons send plain press/release,

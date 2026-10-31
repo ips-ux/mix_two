@@ -292,8 +292,9 @@ together:
   effects stay as they are. Thus, you can use more than one effect at a
   time. On the screen, use the SHIFT key of the keyboard.
 
-On the DDJ-800, the buttons of the effects that are on flash, as the DDJ-800
-manual shows. They also flash correctly while you hold SHIFT.
+On the DDJ-800, the Sound Color FX buttons stay lit. They do not show which
+effects are on. The DDJ-800 shows this only when rekordbox operates it. The
+screen shows which effects are on.
 
 When more than one effect is on, the COLOR knob controls all of them.
 

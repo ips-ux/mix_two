@@ -458,10 +458,12 @@ PioneerDDJ800.initCfx = function() {
     for (let cfx = 0; cfx < 4; cfx++) {
         PioneerDDJ800.bindButton(S.globalNote, 0x00 + cfx, function() { PioneerDDJ800.pressCfx(cfx, false); });
         PioneerDDJ800.bindButton(S.globalNote, 0x08 + cfx, function() { PioneerDDJ800.pressCfx(cfx, true); });
-        PioneerDDJ800.connect("[SoundColorFX]", "cfx" + (cfx + 1), function() {
-            PioneerDDJ800.updateCfxLeds();
-        });
     }
+    // No CFX LED output. In general-MIDI mode (Mix Two) the deck ignores
+    // host messages for the CFX LEDs and keeps them steadily lit; only
+    // rekordbox's verified mode lets it flash the selected one (traced
+    // 2026-10-31, FIRMWARE.md 2.7), and Mix Two must not imitate that
+    // handshake. The selection shows on screen.
     // With no CFX selected the COLOR knobs do nothing (Pioneer). Start with
     // FILTER when none is on, so the knobs behave like Mixxx's filter.
     let anyOn = false;
@@ -477,21 +479,6 @@ PioneerDDJ800.pressCfx = function(cfx, shift) {
     const key = "cfx" + (cfx + 1) + (shift ? "_press_shift" : "_press");
     engine.setValue("[SoundColorFX]", key, 1);
     engine.setValue("[SoundColorFX]", key, 0);
-};
-
-// The deck draws the CFX LEDs itself: 00 = steadily lit (available, off),
-// 7F = flashing (selected), as the manual (p.74) and rekordbox show. The
-// deck sends plain presses and never reports a selection (traced
-// 2026-10-31), so Mix Two owns the state and sends it on both layers, so
-// that SHIFT shows the same (rekordbox sends 96 00-03 and 96 08-0B). Never
-// flash from here: that restarts the deck's own flashing.
-PioneerDDJ800.updateCfxLeds = function() {
-    const S = PioneerDDJ800.STATUS;
-    for (let cfx = 0; cfx < 4; cfx++) {
-        const selected = engine.getValue("[SoundColorFX]", "cfx" + (cfx + 1)) > 0;
-        PioneerDDJ800.setLed(S.globalNote, 0x00 + cfx, selected);
-        PioneerDDJ800.setLed(S.globalNote, 0x08 + cfx, selected);
-    }
 };
 
 //

@@ -211,12 +211,10 @@ check("SHIFT + SWEEP -> cfx2_press_shift", did(n, "[SoundColorFX]", "cfx2_press_
 check("the script sets no cfx state itself on a press", !did(n, "[SoundColorFX]", "cfx2"));
 check("the script loads no chain preset itself", !sets.some(x => x[1] === "loaded_chain_preset"));
 l = leds.length;
-engine.setValue("[SoundColorFX]", "cfx2", 1); // two on: FILTER and SWEEP
-const lit = (note) => leds.slice(l).filter(m => m[0] === 0x96 && m[1] === note).pop();
-check("selected SWEEP sends 7F on both layers (96 01 and 96 09)", lit(0x01)[2] === 0x7F && lit(0x09)[2] === 0x7F);
-check("selected FILTER sends 7F (96 03, 96 0B)", lit(0x03)[2] === 0x7F && lit(0x0B)[2] === 0x7F);
-check("DUB ECHO not selected sends 00 (96 00, 96 08)", lit(0x00)[2] === 0 && lit(0x08)[2] === 0);
-check("no CFX flash timer (the deck flashes by itself)", Object.keys(timers).length === 0 || !Object.values(timers).some(t => t.ms < 1000 && t.ms !== 0 && t.cb.toString().indexOf("Cfx") >= 0));
+engine.setValue("[SoundColorFX]", "cfx2", 1);
+const cfxLedNotes = [0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0A, 0x0B];
+check("no CFX LED output (the deck ignores it in general-MIDI mode)",
+    !leds.some(m => m[0] === 0x96 && cfxLedNotes.indexOf(m[1]) >= 0));
 
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;
