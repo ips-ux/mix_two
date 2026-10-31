@@ -67,6 +67,9 @@ class SoundManager : public QObject {
     QList<QString> getHostAPIList() const;
     SoundManagerConfig getConfig() const;
     SoundDeviceStatus setConfig(const SoundManagerConfig& config);
+    /// Mix Two: replace the configuration before the first setupDevices(),
+    /// without opening devices (AudioTargetManager::prepareStartup()).
+    void setConfigBeforeSetup(const SoundManagerConfig& config);
     // Due to a bug in in PulseAudio, we must give at least 5 seconds of cool
     // down before performing further audio related operation. This sleep
     // happens during the function call by default (synchronous blocking), but

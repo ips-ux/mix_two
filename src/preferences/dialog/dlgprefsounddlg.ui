@@ -17,6 +17,23 @@
    <item>
     <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
      <item row="0" column="0">
+      <widget class="QLabel" name="audioRoutingLabel">
+       <property name="text">
+        <string>Audio Routing</string>
+       </property>
+       <property name="buddy">
+        <cstring>audioRoutingComboBox</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="audioRoutingComboBox">
+       <property name="toolTip">
+        <string>ASIO: lowest latency. Other apps cannot play sound through the device. WASAPI: other apps can play sound at the same time. The latency is higher.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
       <widget class="QLabel" name="apiLabel">
        <property name="text">
         <string>Sound API</string>
@@ -29,14 +46,14 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
+     <item row="1" column="1">
       <layout class="QHBoxLayout" name="apiHBox">
         <item>
           <widget class="QComboBox" name="apiComboBox"/>
         </item>
       </layout>
      </item>
-     <item row="1" column="0">
+     <item row="2" column="0">
       <widget class="QLabel" name="sampleRateLabel">
        <property name="text">
         <string>Sample Rate</string>
@@ -46,14 +63,14 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
+     <item row="2" column="1">
       <layout class="QHBoxLayout" name="sampleRateHBox">
         <item>
           <widget class="QComboBox" name="sampleRateComboBox"/>
         </item>
       </layout>
      </item>
-     <item row="2" column="0">
+     <item row="3" column="0">
       <widget class="QLabel" name="audioBufferLabel">
        <property name="text">
         <string>Audio Buffer</string>
@@ -63,38 +80,38 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
+     <item row="3" column="1">
       <layout class="QHBoxLayout" name="audioBufferHBox">
         <item>
           <widget class="QComboBox" name="audioBufferComboBox"/>
         </item>
       </layout>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="deviceSyncLabel">
        <property name="text">
         <string>Multi-Soundcard Synchronization</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
+     <item row="4" column="1">
       <widget class="QComboBox" name="deviceSyncComboBox"/>
      </item>
-     <item row="4" column="0">
+     <item row="5" column="0">
       <widget class="QLabel" name="engineClockLabel">
        <property name="text">
         <string>Engine Clock</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="5" column="1">
       <widget class="QComboBox" name="engineClockComboBox">
        <property name="toolTip">
         <string>Use soundcard clock for live audience setups and lowest latency.&lt;br&gt;Use network clock for broadcasting without a live audience.</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
+     <item row="6" column="0">
       <widget class="QLabel" name="keylockLabel">
        <property name="text">
         <string>Keylock/Pitch-Bending Engine</string>
@@ -104,30 +121,30 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="0">
+     <item row="7" column="0">
       <widget class="QLabel" name="masteMixLabel">
        <property name="text">
         <string>Main Mix</string>
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
+     <item row="7" column="1">
       <widget class="QComboBox" name="mainMixComboBox"/>
      </item>
-     <item row="7" column="1">
+     <item row="8" column="1">
       <widget class="QComboBox" name="mainOutputModeComboBox"/>
      </item>
-     <item row="7" column="0">
+     <item row="8" column="0">
       <widget class="QLabel" name="mainMonoLabel">
        <property name="text">
         <string>Main Output Mode</string>
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
+     <item row="9" column="1">
       <widget class="QComboBox" name="micMonitorModeComboBox"/>
      </item>
-     <item row="8" column="0">
+     <item row="9" column="0">
       <widget class="QLabel" name="micMonitorModeLabel">
        <property name="text">
         <string>Microphone Monitor Mode</string>
@@ -137,7 +154,7 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="0">
+     <item row="10" column="0">
       <widget class="QLabel" name="latencyCompensationLabel">
        <property name="text">
         <string>Microphone Latency Compensation</string>
@@ -147,7 +164,7 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="1">
+     <item row="10" column="1">
       <widget class="QDoubleSpinBox" name="latencyCompensationSpinBox">
        <property name="suffix">
         <string> ms</string>
@@ -163,14 +180,14 @@
        </property>
       </widget>
      </item>
-     <item row="11" column="0">
+     <item row="12" column="0">
       <widget class="QLabel" name="mainDelayLabel">
        <property name="text">
         <string>Main Output Delay</string>
        </property>
       </widget>
      </item>
-     <item row="11" column="1">
+     <item row="12" column="1">
       <widget class="QDoubleSpinBox" name="mainDelaySpinBox">
        <property name="suffix">
         <string extracomment="milliseconds"> ms</string>
@@ -186,14 +203,14 @@
        </property>
       </widget>
      </item>
-     <item row="12" column="0">
+     <item row="13" column="0">
       <widget class="QLabel" name="headDelayLabel">
        <property name="text">
         <string>Headphone Output Delay</string>
        </property>
       </widget>
      </item>
-     <item row="12" column="1">
+     <item row="13" column="1">
       <widget class="QDoubleSpinBox" name="headDelaySpinBox">
        <property name="suffix">
         <string extracomment="milliseconds"> ms</string>
@@ -209,14 +226,14 @@
        </property>
       </widget>
      </item>
-     <item row="13" column="0">
+     <item row="14" column="0">
       <widget class="QLabel" name="boothDelayLabel">
        <property name="text">
         <string>Booth Output Delay</string>
        </property>
       </widget>
      </item>
-     <item row="13" column="1">
+     <item row="14" column="1">
       <widget class="QDoubleSpinBox" name="boothDelaySpinBox">
        <property name="suffix">
         <string extracomment="milliseconds"> ms</string>
@@ -232,14 +249,14 @@
        </property>
       </widget>
      </item>
-     <item row="14" column="0" colspan="2">
+     <item row="15" column="0" colspan="2">
       <widget class="QLabel" name="latencyCompensationWarningLabel">
        <property name="text">
         <string notr="true">warning goes here</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
+     <item row="6" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
         <widget class="QComboBox" name="keylockComboBox"/>
@@ -465,6 +482,7 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <tabstops>
+  <tabstop>audioRoutingComboBox</tabstop>
   <tabstop>apiComboBox</tabstop>
   <tabstop>sampleRateComboBox</tabstop>
   <tabstop>audioBufferComboBox</tabstop>

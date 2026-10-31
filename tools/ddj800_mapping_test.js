@@ -181,12 +181,17 @@ send(0xB0, 0x29, 0x40 + 54); // 54 ticks forward
 const pos = values["[Channel1],playposition"];
 check("super fast search moves forward (" + pos.toFixed(5) + ")", did(n, "[Channel1]", "playposition") && pos > 0.5);
 
-// MASTER and HEADPHONES knobs drive Mix Two by default (levelKnobsSoftware).
+// MASTER and HEADPHONES knobs: ignored on HARDWARE, drive Mix Two on PC.
+values["[Master],audio_target"] = 1;
+n = sets.length;
+send(0xB6, 0x08, 0x40); send(0xB6, 0x28, 0x00);
+check("HARDWARE target: MASTER LEVEL leaves [Master] gain alone", !did(n, "[Master]", "gain"));
+values["[Master],audio_target"] = 0;
 n = sets.length;
 send(0xB6, 0x08, 0x40); send(0xB6, 0x28, 0x00);
 send(0xB6, 0x0C, 0x40); send(0xB6, 0x2C, 0x00);
 send(0xB6, 0x0D, 0x40); send(0xB6, 0x2D, 0x00);
-check("MASTER LEVEL -> [Master] gain", did(n, "[Master]", "gain"));
+check("PC target: MASTER LEVEL -> [Master] gain", did(n, "[Master]", "gain"));
 check("HEADPHONES MIXING -> [Master] headMix", did(n, "[Master]", "headMix"));
 check("HEADPHONES LEVEL -> [Master] headGain", did(n, "[Master]", "headGain"));
 

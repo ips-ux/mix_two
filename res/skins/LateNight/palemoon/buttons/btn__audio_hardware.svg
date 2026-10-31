@@ -1,0 +1,10 @@
+<svg width="264" height="32" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 16">
+  <!-- Mix Two: audio target icon, drawn at the left of the toolbar button
+       like the ON AIR and SETTINGS icons (canvas = button minus border). -->
+  <g fill="none" stroke="#c9bfb4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="1.2" y="3.6" width="14" height="9.2" rx="1.4"/>
+    <circle cx="5" cy="8.2" r="2.2"/>
+    <circle cx="11.4" cy="8.2" r="2.2"/>
+    <path d="M7.4 11.2 H9"/>
+  </g>
+</svg>

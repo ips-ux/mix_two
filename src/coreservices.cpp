@@ -52,6 +52,7 @@
 #include "qml/qmlpreferencesproxy.h"
 #include "qml/qmlsoundmanagerproxy.h"
 #endif
+#include "soundio/audiotargetmanager.h"
 #include "soundio/soundmanager.h"
 #include "sources/soundsourceproxy.h"
 #include "util/clipboard.h"
@@ -587,6 +588,9 @@ void CoreServices::initialize(QApplication* pApp) {
     // needs to be called after m_pPlayerManager registers sound IO for each EngineChannel.
     m_pSoundManager = std::make_shared<SoundManager>(pConfig, m_pEngine.get());
     m_pEngine->registerNonEngineChannelSoundIO(gsl::make_not_null(m_pSoundManager.get()));
+    // Mix Two: pick the HARDWARE or PC audio target before the devices open.
+    m_pAudioTargetManager = std::make_unique<AudioTargetManager>(pConfig, m_pSoundManager.get());
+    m_pAudioTargetManager->prepareStartup();
 
     m_pRecordingManager = std::make_shared<RecordingManager>(pConfig, m_pEngine.get());
 
@@ -999,6 +1003,8 @@ void CoreServices::finalize() {
 
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "saving configuration";
     m_pSettingsManager->save();
+
+    m_pAudioTargetManager.reset();
 
     // SoundManager depend on Engine and Config
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "deleting SoundManager";

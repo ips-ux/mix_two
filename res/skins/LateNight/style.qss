@@ -51,6 +51,7 @@ WPushButton#GuiToggleButton,
 WLabel#RecFeedback, WLabel#RecDuration,
 WPushButton#BroadcastButton,
 WPushButton#SkinSettingsToggle,
+WPushButton#AudioTargetButton,
 #LibraryFeatureControls QPushButton,
 /* Passthrough label on overview waveform */
 WPushButton#EQKillButton,
@@ -73,6 +74,7 @@ QLabel#labelRecFilename {
 #RecFeedback, #RecDuration,
 #BroadcastButton,
 #SkinSettingsToggle,
+#AudioTargetButton,
 #LibraryFeatureControls QPushButton {
   text-transform: uppercase;
 }

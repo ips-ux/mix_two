@@ -61,6 +61,10 @@ SoundManagerConfig::SoundManagerConfig(SoundManager* pSoundManager)
     m_configFile = QFileInfo(QDir(CmdlineArgs::Instance().getSettingsPath()).filePath(SOUNDMANAGERCONFIG_FILENAME));
 }
 
+void SoundManagerConfig::setFileName(const QString& fileName) {
+    m_configFile = QFileInfo(QDir(CmdlineArgs::Instance().getSettingsPath()).filePath(fileName));
+}
+
 /**
  * Read the SoundManagerConfig xml serialization at the predetermined
  * path

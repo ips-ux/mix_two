@@ -3720,6 +3720,21 @@ WPushButton#PflButton[value="1"] {
   qproperty-alignment: 'AlignCenter';
 }
 
+/* Mix Two: HARDWARE AUDIO / PC AUDIO in the toolbar, next to REC. Both
+   states are "on": the same bright text, and the icon names the output. */
+#AudioTargetButton {
+  outline: none;
+  border-width: 2px;
+  border-image: url(skins:LateNight/palemoon/buttons/btn_embedded_library.svg) 2 2 2 2;
+  color: #bfbfbe;
+}
+#AudioTargetButton[displayValue="0"] {
+  image: url(skins:LateNight/palemoon/buttons/btn__audio_pc.svg) no-repeat left top;
+}
+#AudioTargetButton[displayValue="1"] {
+  image: url(skins:LateNight/palemoon/buttons/btn__audio_hardware.svg) no-repeat left top;
+}
+
 /* Mix Two: channel CUE (headphone cue) buttons, the same as MASTER CUE. */
 #ChannelCueButton {
   font-size: 11px;

@@ -540,6 +540,11 @@ SoundDeviceStatus SoundManager::setConfig(const SoundManagerConfig& config) {
     return status;
 }
 
+void SoundManager::setConfigBeforeSetup(const SoundManagerConfig& config) {
+    m_config = config;
+    checkConfig();
+}
+
 void SoundManager::checkConfig() {
     if (!m_config.checkAPI()) {
         m_config.setAPI(SoundManagerConfig::kAPINone);

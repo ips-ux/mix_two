@@ -56,7 +56,6 @@ To change the mapping settings, go to Preferences > Controllers, then select the
 - **Start in vinyl mode** (on).
 - **Jog resolution** (6480 ticks for each turn).
 - **Input selector controls passthrough** (off).
-- **MASTER, BOOTH and HEADPHONES knobs control Mix Two** (on).
 
 The jog display on the DDJ-800 does not operate yet.
 
@@ -205,20 +204,32 @@ on-screen knobs then agree with the controller. MASTER LEVEL, BOOTH LEVEL
 and the headphone knobs are not included: the DDJ-800 does not send them
 until you move them.
 
-Mix Two now keeps the positions of MASTER LEVEL, BOOTH LEVEL and the
-HEADPHONES MIXING and LEVEL knobs when it stops. When it starts again, it
-uses these positions. If you turned one of these knobs while Mix Two was
-off, turn it a small amount. The on-screen knob then agrees with the
-DDJ-800.
+Use the audio button in the top bar, next to REC, to select where the sound
+goes:
+- **HARDWARE AUDIO** (default): the sound goes through the DDJ-800. The
+  MASTER LEVEL, BOOTH LEVEL and HEADPHONES knobs on the DDJ-800 set the
+  levels, as in rekordbox. They are always correct.
+- **PC AUDIO**: the sound goes through the audio interface of the computer.
+  The MASTER LEVEL, BOOTH LEVEL and HEADPHONES knobs then set the Mix Two
+  levels. The DDJ-800 cannot send the positions of these knobs when Mix Two
+  starts. Turn each knob a small amount to send its position.
 
-MASTER LEVEL, BOOTH LEVEL and the HEADPHONES MIXING and LEVEL knobs now
-control the Mix Two knobs. The DDJ-800 changes these levels only on its own
-outputs. Thus, the knobs had no effect when the mix went through a different
-audio interface.
+Mix Two keeps a sound setup for each selection. If you change Preferences >
+Sound Hardware, the change applies to the current selection.
 
-CAUTION: If the mix goes through the DDJ-800 outputs, the level changes two
-times. Go to Preferences > Controllers > DDJ-800. Disable "MASTER, BOOTH and
-HEADPHONES knobs control Mix Two".
+If the DDJ-800 is not connected when Mix Two starts, Mix Two uses PC AUDIO.
+
+To select the audio driver, go to Preferences > Sound Hardware > Audio
+Routing:
+- **ASIO**: the lowest latency. Other apps cannot play sound through the
+  device.
+- **WASAPI**: other apps can play sound at the same time. The latency is
+  higher.
+
+NOTE: With WASAPI, Windows can give only two channels of the DDJ-800. Then
+the headphone cue and the booth output do not operate. To get all six
+channels, set the DDJ-800 "Line" device to 5.1 in the Windows sound
+settings.
 
 Push SHIFT and turn the jog wheel to move the beat grid, as in rekordbox.
 This is the same as GRID SLIDE and the jog wheel. The grid moves a small

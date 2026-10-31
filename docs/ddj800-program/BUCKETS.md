@@ -14,7 +14,7 @@ CDJ-verified rows; the others count Checked rows too.
 | [Bucket 03: Sound: deck*](buckets/03-sound-deck.md) | Critical | 18 | 0% | 2 | 6 | 8 | 0 | 0 | 0 | 2 |
 | [Bucket 04: Device export*](buckets/04-device-export.md) | Critical | 82 | 0% | 69 | 0 | 0 | 0 | 0 | 0 | 13 |
 | [Bucket 05: rekordbox import](buckets/05-rekordbox-import.md) | High | 26 | 0% | 13 | 2 | 8 | 0 | 0 | 0 | 3 |
-| [Bucket 06: Mixer & I/O*](buckets/06-mixer-io.md) | Critical (back to High when the doubled-audio rows are fixed) | 38 | 0% | 5 | 16 | 7 | 4 | 0 | 0 | 6 |
+| [Bucket 06: Mixer & I/O*](buckets/06-mixer-io.md) | Critical (back to High when the doubled-audio rows are fixed) | 38 | 0% | 5 | 15 | 12 | 0 | 0 | 0 | 6 |
 | [Bucket 07: Analysis](buckets/07-analysis.md) | Medium (rises only if grids block Device Library Plus) | 49 | 0% | 16 | 25 | 5 | 0 | 0 | 0 | 3 |
 | [Bucket 08: Library](buckets/08-library.md) | High | 96 | 0% | 36 | 27 | 25 | 0 | 0 | 0 | 8 |
 | [Bucket 09: Performance features*](buckets/09-performance-features.md) | Medium | 91 | 0% | 29 | 29 | 24 | 0 | 0 | 0 | 9 |
@@ -26,4 +26,4 @@ CDJ-verified rows; the others count Checked rows too.
 | [Bucket 13: STE-Document Handling](buckets/13-ste-documents.md) | Low, ongoing | 25 | 0% | 19 | 4 | 2 | 0 | 0 | 0 | 0 |
 | [Bucket 14: Portability](buckets/14-portability.md) | High, ongoing | 27 | 5% | 13 | 5 | 2 | 1 | 0 | 0 | 6 |
 | [Bucket 15: Streaming](buckets/15-streaming.md) | Low (far future) | 8 | 0% | 5 | 0 | 3 | 0 | 0 | 0 | 0 |
-| **All** | | 892 | | 427 | 206 | 176 | 11 | 0 | 0 | 72 |
+| **All** | | 892 | | 427 | 205 | 181 | 7 | 0 | 0 | 72 |

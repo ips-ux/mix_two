@@ -56,6 +56,37 @@
 
 ---
 
+## 2026-10-31: HARDWARE / PC audio target and Audio Routing
+
+- Owner chose "play through the DDJ-800" after the firmware trace (FW 2.7:
+  MASTER, BOOTH, HEADPHONES cannot be read at start). The persistence from
+  d01054873d is reverted (a saved value cannot follow a deck that was moved
+  while unplugged).
+- `src/soundio/audiotargetmanager.{h,cpp}`: `[Master],audio_target`
+  (1 = HARDWARE, 0 = PC; saved as `[Soundcard] audio_target`, default
+  HARDWARE). HARDWARE = the DJ unit (`kHardwareUnits`, now "DDJ-800") with
+  Main 1/2, Headphones 3/4, Booth 5/6 at the device's own sample rate; Mix
+  Two's gain / booth_gain / headGain at 1.0 and headMix -1 (cue only; the
+  deck blends master in hardware). PC = the previous interface (name kept
+  in `[Soundcard] audio_target_pc_device`, matched by maker under another
+  API). Each target has a file: `soundconfig_hardware.xml`,
+  `soundconfig_pc.xml`; `soundconfig.xml` is always the active one.
+  `prepareStartup()` (CoreServices, before setupDevices) falls back to PC
+  when no DJ unit is present. Hooks: `SoundManagerConfig::setFileName`,
+  `SoundManager::setConfigBeforeSetup`.
+- Audio Routing (Preferences > Sound Hardware, Windows): ASIO or WASAPI;
+  sets `[Soundcard],audio_routing`, and the manager moves the active target
+  to the new API at once. WASAPI is shared mode (other apps can play); the
+  DDJ-800's WASAPI endpoint is stereo unless Windows sets it to 5.1.
+- DDJ-800 mapping: the level knobs act only on PC; the
+  `levelKnobsSoftware` option is gone. Mock test: 36 checks pass.
+- Skin: "HARDWARE AUDIO" / "PC AUDIO" button with icons in the toolbar next
+  to REC (rekordbox's top-bar PC MASTER OUT position).
+- Verified: first start switched to DDJ-800 ASIO (44.1 kHz; a first try at
+  48 kHz failed with "Invalid sample rate", fixed by using the device's own
+  rate); the owner toggled PC and back (target files written). Not checked:
+  WASAPI on the deck, Linux, a start without the DDJ-800.
+
 ## 2026-10-30: MASTER / BOOTH / headphone knobs keep their last value
 
 - Owner: MASTER and BOOTH do not start at their hardware positions. Cause

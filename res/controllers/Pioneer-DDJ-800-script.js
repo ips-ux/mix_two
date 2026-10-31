@@ -382,25 +382,24 @@ PioneerDDJ800.initMixer = function() {
         engine.setParameter("[Master]", "crossfader", value);
     });
     // MASTER LEVEL, BOOTH LEVEL and HEADPHONES MIXING / LEVEL: the DDJ-800
-    // applies them in hardware to its own outputs only, and rekordbox leaves
-    // them unassigned. When the mix goes to another audio interface the knobs
-    // would do nothing, so they drive Mix Two's main, booth and headphone
-    // controls instead, over the on-screen knobs' full range. Default on
-    // (the owner's mix plays through another interface).
-    if (PioneerDDJ800.getSetting("levelKnobsSoftware", true)) {
-        PioneerDDJ800.bindHiRes(S.globalCC, 0x08, function(value) {
-            engine.setParameter("[Master]", "gain", value);
+    // applies them in hardware to its own outputs, and rekordbox leaves them
+    // unassigned. With the HARDWARE audio target ([Master],audio_target = 1)
+    // Mix Two plays through the DDJ-800 and leaves them to it. With the PC
+    // target the mix plays through another interface, so the knobs drive
+    // Mix Two's main, booth and headphone controls. The deck cannot report
+    // these four at start (FIRMWARE.md 2.7), so on PC they take effect when
+    // they first move.
+    const levelKnob = function(cc, key) {
+        PioneerDDJ800.bindHiRes(S.globalCC, cc, function(value) {
+            if (engine.getValue("[Master]", "audio_target") === 0) {
+                engine.setParameter("[Master]", key, value);
+            }
         });
-        PioneerDDJ800.bindHiRes(S.globalCC, 0x09, function(value) {
-            engine.setParameter("[Master]", "booth_gain", value);
-        });
-        PioneerDDJ800.bindHiRes(S.globalCC, 0x0C, function(value) {
-            engine.setParameter("[Master]", "headMix", value);
-        });
-        PioneerDDJ800.bindHiRes(S.globalCC, 0x0D, function(value) {
-            engine.setParameter("[Master]", "headGain", value);
-        });
-    }
+    };
+    levelKnob(0x08, "gain");
+    levelKnob(0x09, "booth_gain");
+    levelKnob(0x0C, "headMix");
+    levelKnob(0x0D, "headGain");
     PioneerDDJ800.bindHiRes(S.globalCC, 0x03, function(value) {
         const numSamplers = engine.getValue("[App]", "num_samplers");
         for (let i = 1; i <= numSamplers; i++) {
