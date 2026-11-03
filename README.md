@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-02: Legacy Design deck HUD: GRID / PHRASE and INFO pages (commit hash: see git log, "LateNight: GRID / PHRASE and INFO pages")
 - 2026-11-02: Legacy Design deck HUD: pad mode combo box and KEY SHIFT lights
 - 2026-11-02: Legacy Design deck HUD: lower panel tabs and the pad view
 - 2026-11-02: Legacy Design deck HUD: phase meter
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Legacy Design deck HUD: decks 3 / 4 and the 4-deck layout
 - 2026-11-02: Legacy Design deck HUD: HUD window for decks 1 and 2
 - 2026-11-02: Legacy Design deck HUD: deck-per-side skin controls
-- 2026-11-02: Device Library Plus export to a stick
 
 <!-- mixtwo-status:end -->
 
