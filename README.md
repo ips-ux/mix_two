@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-02: Legacy Design deck HUD: Color Saturated waveform type
 - 2026-11-02: Legacy Design deck HUD: shared band colour unit
 - 2026-11-02: Legacy Design deck HUD: decks 3 / 4 and the 4-deck layout
 - 2026-11-02: Legacy Design deck HUD: HUD window for decks 1 and 2
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: SOUND COLOR FX, proper DSP: DUB ECHO, SWEEP, NOISE, FILTER
 - 2026-11-02: CFX: none selected at start; NOISE centre-neutral
 - 2026-11-02: LEVEL/DEPTH knob dead after FX SELECT (owner): soft takeover
-- 2026-11-02: BEAT FX: ENIGMA JET, MOBIUS (SAW), MOBIUS (TRI); the set is complete
 
 <!-- mixtwo-status:end -->
 
