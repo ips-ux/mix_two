@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 427 | 205 | 181 | 10 | 0 | 0 | 72 |
+| Features | 423 | 207 | 182 | 16 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -26,7 +26,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 | Library | High | 96 | 0 % |  |
 | Performance features | Medium | 91 | 0 % | Yes |
 | Prepare UI | High | 43 | 0 % |  |
-| Legacy Design (performance) | High | 65 | 0 % | Yes |
+| Legacy Design (performance) | High | 70 | 0 % | Yes |
 | Hardware Design + skin system | Medium | 13 | 0 % | Yes |
 | Hardware link | Medium | 63 | 0 % | Yes |
 | AI-Truth Keeping | High | 66 | 3 % |  |
