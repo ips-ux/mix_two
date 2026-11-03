@@ -3348,6 +3348,15 @@ WPushButton#HudQuantizeButton {
 WPushButton#HudQuantizeButton[displayValue="1"] {
   border-color: #ff9d1c;
 }
+/* A.HOT CUE, AUTO CUE: a clear button on the cell; orange border while on */
+WPushButton#HudLoadSettingButton {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+}
+WPushButton#HudLoadSettingButton[displayValue="1"] {
+  border-color: #ff9d1c;
+}
 
 /* AI-generated (Claude Code). Start of AI-generated text. */
 /* Deck badge. A click changes the deck in the window (1 / 3, 2 / 4). While

@@ -23,6 +23,7 @@ class TrackCollectionManager;
 class Library;
 class SkinControls;
 class ControlPushButton;
+class LoadSettingsControls;
 struct LibraryScanResultSummary;
 
 namespace mixxx {
@@ -153,6 +154,7 @@ class CoreServices : public QObject {
 
     std::unique_ptr<SkinControls> m_pSkinControls;
     std::unique_ptr<ControlPushButton> m_pTouchShift;
+    std::unique_ptr<LoadSettingsControls> m_pLoadSettingsControls;
 
     Timer m_runtime_timer;
     const CmdlineArgs& m_cmdlineArgs;

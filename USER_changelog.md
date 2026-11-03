@@ -441,8 +441,6 @@ To change the HUD window, open the skin settings (SETTINGS):
 - Push Waveform in Deck to show or hide the zoomed waveform in the deck.
 - Push Platter to show or hide the platter.
 
-A.HOT CUE and AUTO CUE do not operate yet.
-
 Each side of the screen has one deck window. The left window shows deck 1
 or deck 3. The right window shows deck 2 or deck 4. To change the deck in a
 window, click the deck number in the window header. When the DDJ-800 is
@@ -494,6 +492,29 @@ beat grid or the cues.
 
 When there is no cue after the play position, the cell shows "-". The cell
 also shows "-" when the track has no beat grid.
+
+### A.HOT CUE and AUTO CUE
+
+The HUD window has two load settings: A.HOT CUE and AUTO CUE. A lit cell
+shows that the setting is on. The settings apply to all decks.
+
+To set A.HOT CUE or AUTO CUE on or off, right-click its cell. A left-click
+has no effect.
+
+When A.HOT CUE is on, the hot cues load with the track. This is the
+default. When it is off, the hot cue pads stay empty after a track loads.
+The track keeps its hot cues.
+
+To show the hidden hot cues, push a hot cue pad. All hot cues of the track
+show, then the pad operates as usual. If the pad has no hot cue, it sets a
+new hot cue.
+
+When AUTO CUE is on, the track starts at the first sound. When you set it
+off, the track starts at the cue point. AUTO CUE uses the "Track load point"
+setting in Preferences > Decks. When you change that setting, AUTO CUE
+changes too.
+
+When the hot cues are hidden, NEXT CUE does not count to them.
 
 ### Known problems
 

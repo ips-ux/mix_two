@@ -30,6 +30,7 @@
 #include "library/overviewcache.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
+#include "mixer/loadsettingscontrols.h"
 #include "mixer/playerinfo.h"
 #include "mixer/playermanager.h"
 #include "moc_coreservices.cpp"
@@ -817,6 +818,8 @@ void CoreServices::initialize(QApplication* pApp) {
     m_pPlayerManager->loadSamplers();
 
     m_pTouchShift = std::make_unique<ControlPushButton>(ConfigKey("[Controls]", "touch_shift"));
+    // Mix Two: [Controls],auto_cue and [Controls],auto_hotcue (AUTO CUE, A.HOT CUE).
+    m_pLoadSettingsControls = std::make_unique<LoadSettingsControls>(pConfig);
 
     // The UI controls must be created here so that controllers can bind to
     // them on startup.
@@ -1079,6 +1082,7 @@ void CoreServices::finalize() {
     m_pDbConnectionPool.reset(); // should drop the last reference
 
     m_pTouchShift.reset();
+    m_pLoadSettingsControls.reset();
 
     m_pSkinControls.reset();
 

@@ -299,6 +299,12 @@ class CueControl : public EngineControl {
     /// current position.
     void memoryCueDelete(double v);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// [ChannelN],hotcues_load: shows the hot cues of the loaded track on the
+    /// pads when A.HOT CUE ([Controls],auto_hotcue) kept them hidden.
+    void hotcuesLoad(double v);
+    // End of AI-generated text.
+
   private:
     enum class TrackAt {
         Cue,
@@ -315,6 +321,12 @@ class CueControl : public EngineControl {
     void detachCue(HotcueControl* pControl);
     void setCurrentSavedLoopControlAndActivate(HotcueControl* pControl);
     void loadCuesFromTrack();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// If the hot cues of the loaded track are hidden (A.HOT CUE off), shows
+    /// them. Every hotcue_N_* action calls this first, so that it acts on the
+    /// cue that the track has at that number.
+    void showHotcues();
+    // End of AI-generated text.
     void publishMemoryCues(const QList<CuePointer>& memoryCues);
     void callMemoryCue(const CuePointer& pCue, const TrackPointer& pTrack);
     mixxx::audio::FramePos quantizeCuePoint(mixxx::audio::FramePos position);
@@ -421,6 +433,15 @@ class CueControl : public EngineControl {
     /// Engine-thread scratch buffer: hot cue slots, then memory cue marks.
     std::array<double, kMaxNumberOfHotcues + kMaxNumberOfMemoryCueMarks>
             m_nextCueSamplePositions{};
+    // End of AI-generated text.
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    std::unique_ptr<ControlPushButton> m_pHotcuesLoad;
+    /// False while A.HOT CUE keeps the hot cues of the loaded track off the
+    /// pads. trackLoaded() sets it from [Controls],auto_hotcue; hotcues_load
+    /// and every hotcue_N_* action set it true. Atomic because hotcueGoto()
+    /// and its neighbours run without m_trackMutex.
+    std::atomic<bool> m_hotcuesShown{true};
     // End of AI-generated text.
 
     ControlValueAtomic<double> m_n60dBSoundStartPosition;

@@ -1565,6 +1565,7 @@ add_library(
   src/mixer/baseplayer.cpp
   src/mixer/basetrackplayer.cpp
   src/mixer/deck.cpp
+  src/mixer/loadsettingscontrols.cpp
   src/mixer/microphone.cpp
   src/mixer/playerinfo.cpp
   src/mixer/playermanager.cpp

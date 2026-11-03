@@ -3,7 +3,9 @@ AI-generated (Claude Code). Start of AI-generated text.
 
 Mix Two: HUD bottom strip (hud_waves.xml), 44 px.
   A.HOT CUE | AUTO CUE | QUANTIZE | NEXT CUE | REMAIN / TIME
-  * A.HOT CUE, AUTO CUE: placeholders without a function yet.
+  * A.HOT CUE, AUTO CUE: right-click = on / off ([Controls],auto_hotcue_toggle,
+    [Controls],auto_cue_toggle); left-click does nothing. The cell is lit (white
+    text, orange border) while the setting is on.
   * QUANTIZE: left-click = quantize on / off; right-click = next beat value
     (quantize_beats_cycle: 1 > 1/8 > 1/4 > 1/2 > 1). The value line shows
     quantize_beats. Legacy skins have no context menu, and the right button
@@ -24,33 +26,107 @@ End of AI-generated text.
     <Size>0me,44f</Size>
     <Children>
 
+      <!-- A.HOT CUE: right-click pushes [Controls],auto_hotcue_toggle (a WPushButton
+           does not toggle on the right button); the cell is lit while auto_hotcue is 1 -->
       <WidgetGroup>
-        <ObjectName>HudStripCell</ObjectName>
-        <Layout>vertical</Layout>
+        <Layout>stacked</Layout>
         <Size>66f,44f</Size>
         <Children>
-          <Label>
-            <ObjectName>HudStripLabelOff</ObjectName>
-            <Size>0me,0me</Size>
-            <Alignment>center</Alignment>
-            <Text>A.HOT CUE</Text>
-          </Label>
+          <PushButton>
+            <ObjectName>HudLoadSettingButton</ObjectName>
+            <Tooltip>A.HOT CUE: right-click to set on or off. When on, the hot cues load with the track.</Tooltip>
+            <Size>66f,44f</Size>
+            <NumberStates>2</NumberStates>
+            <Connection>
+              <ConfigKey>[Controls],auto_hotcue_toggle</ConfigKey>
+              <ButtonState>RightButton</ButtonState>
+            </Connection>
+            <Connection>
+              <ConfigKey>[Controls],auto_hotcue</ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+          </PushButton>
+          <WidgetGroup>
+            <ObjectName>HudStripCell</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>66f,44f</Size>
+            <Children>
+              <Label>
+                <ObjectName>HudStripLabel</ObjectName>
+                <Size>0me,0me</Size>
+                <Alignment>center</Alignment>
+                <Text>A.HOT CUE</Text>
+                <Connection>
+                  <ConfigKey>[Controls],auto_hotcue</ConfigKey>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Label>
+              <Label>
+                <ObjectName>HudStripLabelOff</ObjectName>
+                <Size>0me,0me</Size>
+                <Alignment>center</Alignment>
+                <Text>A.HOT CUE</Text>
+                <Connection>
+                  <ConfigKey>[Controls],auto_hotcue</ConfigKey>
+                  <Transform><Not/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Label>
+            </Children>
+          </WidgetGroup>
         </Children>
       </WidgetGroup>
 
       <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
 
+      <!-- AUTO CUE: right-click pushes [Controls],auto_cue_toggle; the cell is lit
+           while auto_cue is 1 -->
       <WidgetGroup>
-        <ObjectName>HudStripCell</ObjectName>
-        <Layout>vertical</Layout>
+        <Layout>stacked</Layout>
         <Size>66f,44f</Size>
         <Children>
-          <Label>
-            <ObjectName>HudStripLabelOff</ObjectName>
-            <Size>0me,0me</Size>
-            <Alignment>center</Alignment>
-            <Text>AUTO CUE</Text>
-          </Label>
+          <PushButton>
+            <ObjectName>HudLoadSettingButton</ObjectName>
+            <Tooltip>AUTO CUE: right-click to set on or off. When on, the track starts at the first sound.</Tooltip>
+            <Size>66f,44f</Size>
+            <NumberStates>2</NumberStates>
+            <Connection>
+              <ConfigKey>[Controls],auto_cue_toggle</ConfigKey>
+              <ButtonState>RightButton</ButtonState>
+            </Connection>
+            <Connection>
+              <ConfigKey>[Controls],auto_cue</ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+          </PushButton>
+          <WidgetGroup>
+            <ObjectName>HudStripCell</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>66f,44f</Size>
+            <Children>
+              <Label>
+                <ObjectName>HudStripLabel</ObjectName>
+                <Size>0me,0me</Size>
+                <Alignment>center</Alignment>
+                <Text>AUTO CUE</Text>
+                <Connection>
+                  <ConfigKey>[Controls],auto_cue</ConfigKey>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Label>
+              <Label>
+                <ObjectName>HudStripLabelOff</ObjectName>
+                <Size>0me,0me</Size>
+                <Alignment>center</Alignment>
+                <Text>AUTO CUE</Text>
+                <Connection>
+                  <ConfigKey>[Controls],auto_cue</ConfigKey>
+                  <Transform><Not/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Label>
+            </Children>
+          </WidgetGroup>
         </Children>
       </WidgetGroup>
 

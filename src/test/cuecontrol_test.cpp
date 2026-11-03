@@ -1,4 +1,6 @@
 #include "engine/controls/cuecontrol.h"
+#include "control/controlpushbutton.h"
+#include "mixer/loadsettingscontrols.h"
 #include "test/signalpathtest.h"
 
 class CueControlTest : public BaseSignalPathTest {
@@ -813,3 +815,242 @@ TEST_F(CueControlTest, UpdatesAfterGridChange) {
     ProcessBuffer();
     EXPECT_DOUBLE_EQ(4.0, pBeatsToNextCue->get());
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+
+namespace {
+
+int countHotcues(const TrackPointer& pTrack, int hotcueIndex) {
+    int count = 0;
+    for (const auto& pCue : pTrack->getCuePoints()) {
+        if (pCue->getType() == mixxx::CueType::HotCue && pCue->getHotCue() == hotcueIndex) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+const ConfigKey kCueRecallKey(QStringLiteral("[Controls]"), QStringLiteral("CueRecall"));
+const ConfigKey kAutoCueKey(QStringLiteral("[Controls]"), QStringLiteral("auto_cue"));
+const ConfigKey kAutoHotcueKey(QStringLiteral("[Controls]"), QStringLiteral("auto_hotcue"));
+
+} // namespace
+
+/// The A.HOT CUE controls of deck 1 that the tests use.
+struct AutoHotcuePads {
+    explicit AutoHotcuePads(const QString& group)
+            : autoHotcue(kAutoHotcueKey, false, 1.0),
+              hotcuesLoad(group, QStringLiteral("hotcues_load")),
+              hotcue3Set(group, QStringLiteral("hotcue_3_set")),
+              hotcue1Activate(group, QStringLiteral("hotcue_1_activate")),
+              hotcue1Clear(group, QStringLiteral("hotcue_1_clear")) {
+        for (int i = 1; i <= 3; ++i) {
+            positions.push_back(std::make_unique<ControlProxy>(
+                    group, QStringLiteral("hotcue_%1_position").arg(i)));
+        }
+    }
+
+    static void press(ControlProxy* pControl) {
+        pControl->set(1.0);
+        pControl->set(0.0);
+    }
+
+    ControlPushButton autoHotcue;
+    ControlProxy hotcuesLoad;
+    ControlProxy hotcue3Set;
+    ControlProxy hotcue1Activate;
+    ControlProxy hotcue1Clear;
+    std::vector<std::unique_ptr<ControlProxy>> positions;
+};
+
+constexpr auto kHotcue1Position = mixxx::audio::FramePos(1000);
+constexpr auto kHotcue2Position = mixxx::audio::FramePos(2000);
+
+TrackPointer addTwoHotcues(TrackPointer pTrack) {
+    pTrack->createAndAddCue(mixxx::CueType::HotCue,
+            0,
+            kHotcue1Position,
+            mixxx::audio::kInvalidFramePos);
+    pTrack->createAndAddCue(mixxx::CueType::HotCue,
+            1,
+            kHotcue2Position,
+            mixxx::audio::kInvalidFramePos);
+    return pTrack;
+}
+
+TEST_F(CueControlTest, AutoHotcueOnLoadsCues) {
+    m_pQuantizeEnabled->set(0);
+    AutoHotcuePads pads(m_sGroup1);
+    TrackPointer pTrack = addTwoHotcues(createTestTrack());
+    loadTrack(pTrack);
+
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue1Position, pads.positions[0]);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue2Position, pads.positions[1]);
+}
+
+TEST_F(CueControlTest, AutoHotcueOffHidesCues) {
+    m_pQuantizeEnabled->set(0);
+    AutoHotcuePads pads(m_sGroup1);
+    pads.autoHotcue.set(0.0);
+    TrackPointer pTrack = addTwoHotcues(createTestTrack());
+    loadTrack(pTrack);
+
+    EXPECT_DOUBLE_EQ(Cue::kNoPosition, pads.positions[0]->get());
+    EXPECT_DOUBLE_EQ(Cue::kNoPosition, pads.positions[1]->get());
+    // The track keeps its cues.
+    EXPECT_EQ(1, countHotcues(pTrack, 0));
+    EXPECT_EQ(1, countHotcues(pTrack, 1));
+}
+
+TEST_F(CueControlTest, HotcuesLoadAttaches) {
+    m_pQuantizeEnabled->set(0);
+    AutoHotcuePads pads(m_sGroup1);
+    pads.autoHotcue.set(0.0);
+    TrackPointer pTrack = addTwoHotcues(createTestTrack());
+    loadTrack(pTrack);
+    ASSERT_DOUBLE_EQ(Cue::kNoPosition, pads.positions[0]->get());
+
+    pads.press(&pads.hotcuesLoad);
+
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue1Position, pads.positions[0]);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue2Position, pads.positions[1]);
+}
+
+TEST_F(CueControlTest, AutoHotcueOffSetDoesNotWipe) {
+    m_pQuantizeEnabled->set(0);
+    AutoHotcuePads pads(m_sGroup1);
+    pads.autoHotcue.set(0.0);
+    TrackPointer pTrack = addTwoHotcues(createTestTrack());
+    loadTrack(pTrack);
+    const auto kHotcue3Position = mixxx::audio::FramePos(3000);
+    setCurrentFramePos(kHotcue3Position);
+
+    pads.press(&pads.hotcue3Set);
+    // Setting a hot cue shows the other hot cues at once.
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue1Position, pads.positions[0]);
+
+    pads.press(&pads.hotcuesLoad);
+
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue1Position, pads.positions[0]);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue2Position, pads.positions[1]);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue3Position, pads.positions[2]);
+    EXPECT_EQ(1, countHotcues(pTrack, 0));
+    EXPECT_EQ(1, countHotcues(pTrack, 1));
+    EXPECT_EQ(1, countHotcues(pTrack, 2));
+}
+
+TEST_F(CueControlTest, AutoHotcueOffActivateUsesHiddenCue) {
+    m_pQuantizeEnabled->set(0);
+    AutoHotcuePads pads(m_sGroup1);
+    pads.autoHotcue.set(0.0);
+    TrackPointer pTrack = addTwoHotcues(createTestTrack());
+    loadTrack(pTrack);
+    setCurrentFramePos(mixxx::audio::FramePos(5000));
+
+    // A hidden pad does not make a new cue: the pad shows the cues, then acts
+    // on the cue that the track has at that number.
+    pads.press(&pads.hotcue1Activate);
+    ProcessBuffer();
+
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue1Position, pads.positions[0]);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue2Position, pads.positions[1]);
+    EXPECT_EQ(1, countHotcues(pTrack, 0));
+}
+
+TEST_F(CueControlTest, AutoHotcueOffClearRemovesHiddenCue) {
+    m_pQuantizeEnabled->set(0);
+    AutoHotcuePads pads(m_sGroup1);
+    pads.autoHotcue.set(0.0);
+    TrackPointer pTrack = addTwoHotcues(createTestTrack());
+    loadTrack(pTrack);
+
+    pads.press(&pads.hotcue1Clear);
+
+    EXPECT_EQ(0, countHotcues(pTrack, 0));
+    EXPECT_DOUBLE_EQ(Cue::kNoPosition, pads.positions[0]->get());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue2Position, pads.positions[1]);
+}
+
+TEST_F(CueControlTest, AutoHotcueOffNextTrackHidden) {
+    m_pQuantizeEnabled->set(0);
+    AutoHotcuePads pads(m_sGroup1);
+    pads.autoHotcue.set(0.0);
+    loadTrack(addTwoHotcues(createTestTrack()));
+    pads.press(&pads.hotcuesLoad);
+    ASSERT_EQ(kHotcue1Position,
+            mixxx::audio::FramePos::fromEngineSamplePosMaybeInvalid(
+                    pads.positions[0]->get()));
+
+    // hotcues_load acts on the loaded track only.
+    loadTrack(addTwoHotcues(createTestTrack()));
+    EXPECT_DOUBLE_EQ(Cue::kNoPosition, pads.positions[0]->get());
+}
+
+class CueControlAutoCueTest : public MixxxTest {};
+
+TEST_F(CueControlAutoCueTest, StartsFromCueRecall) {
+    config()->setValue(kCueRecallKey, SeekOnLoadMode::FirstSound);
+    {
+        LoadSettingsControls controls(config());
+        EXPECT_DOUBLE_EQ(1.0, ControlObject::get(kAutoCueKey));
+    }
+    config()->setValue(kCueRecallKey, SeekOnLoadMode::IntroStart);
+    {
+        LoadSettingsControls controls(config());
+        EXPECT_DOUBLE_EQ(0.0, ControlObject::get(kAutoCueKey));
+    }
+}
+
+TEST_F(CueControlAutoCueTest, WritesCueRecall) {
+    config()->setValue(kCueRecallKey, SeekOnLoadMode::IntroStart);
+    LoadSettingsControls controls(config());
+    ControlProxy autoCue(kAutoCueKey);
+
+    autoCue.set(1.0);
+    EXPECT_EQ(SeekOnLoadMode::FirstSound,
+            config()->getValue(kCueRecallKey, SeekOnLoadMode::IntroStart));
+    autoCue.set(0.0);
+    EXPECT_EQ(SeekOnLoadMode::MainCue,
+            config()->getValue(kCueRecallKey, SeekOnLoadMode::IntroStart));
+
+    // 0 keeps a value from the deck preferences that is not First sound.
+    autoCue.set(1.0);
+    config()->setValue(kCueRecallKey, SeekOnLoadMode::Beginning);
+    autoCue.set(0.0);
+    EXPECT_EQ(SeekOnLoadMode::Beginning,
+            config()->getValue(kCueRecallKey, SeekOnLoadMode::IntroStart));
+}
+
+TEST_F(CueControlAutoCueTest, TogglePushesFlipTheSettings) {
+    config()->setValue(kCueRecallKey, SeekOnLoadMode::IntroStart);
+    LoadSettingsControls controls(config());
+    ControlProxy autoCueToggle(QStringLiteral("[Controls]"), QStringLiteral("auto_cue_toggle"));
+    ControlProxy autoHotcueToggle(
+            QStringLiteral("[Controls]"), QStringLiteral("auto_hotcue_toggle"));
+
+    // A push (1 then 0, as the skin's right button sends) flips the value once.
+    autoHotcueToggle.set(1.0);
+    autoHotcueToggle.set(0.0);
+    EXPECT_DOUBLE_EQ(0.0, ControlObject::get(kAutoHotcueKey));
+    autoHotcueToggle.set(1.0);
+    autoHotcueToggle.set(0.0);
+    EXPECT_DOUBLE_EQ(1.0, ControlObject::get(kAutoHotcueKey));
+
+    autoCueToggle.set(1.0);
+    autoCueToggle.set(0.0);
+    EXPECT_DOUBLE_EQ(1.0, ControlObject::get(kAutoCueKey));
+    EXPECT_EQ(SeekOnLoadMode::FirstSound,
+            config()->getValue(kCueRecallKey, SeekOnLoadMode::IntroStart));
+    autoCueToggle.set(1.0);
+    autoCueToggle.set(0.0);
+    EXPECT_DOUBLE_EQ(0.0, ControlObject::get(kAutoCueKey));
+    EXPECT_EQ(SeekOnLoadMode::MainCue,
+            config()->getValue(kCueRecallKey, SeekOnLoadMode::IntroStart));
+}
+
+TEST_F(CueControlAutoCueTest, AutoHotcueDefaultsOn) {
+    LoadSettingsControls controls(config());
+    EXPECT_DOUBLE_EQ(1.0, ControlObject::get(kAutoHotcueKey));
+}
+
+// End of AI-generated text.

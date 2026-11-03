@@ -53,6 +53,7 @@ class DlgPrefDeck : public DlgPreferencePage, public Ui::DlgPrefDeckDlg  {
     void slotSetTrackTimeDisplay(double);
     void slotCueModeCombobox(int);
     void slotSetTrackLoadMode(int comboboxIndex);
+    void slotAutoCueChanged(double value);
     void slotLoadWhenDeckPlayingIndexChanged(int comboboxIndex);
     void slotScratchAlgorithmIndexChanged(int comboboxIndex);
     void slotSyncTypeIndexChanged(int comboboxIndex);
@@ -118,6 +119,8 @@ class DlgPrefDeck : public DlgPreferencePage, public Ui::DlgPrefDeckDlg  {
     // Mix Two: Sync options ([App],sync_type and [App],sync_grid).
     std::unique_ptr<ControlProxy> m_pSyncType;
     std::unique_ptr<ControlProxy> m_pSyncGrid;
+    // Mix Two: [Controls],auto_cue (AUTO CUE); it writes CueRecall too.
+    std::unique_ptr<ControlProxy> m_pAutoCue;
     void selectSyncOptions(int syncType, double syncGrid);
 
     RateControl::RampMode m_bRateRamping;

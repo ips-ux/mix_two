@@ -167,6 +167,12 @@ DlgPrefDeck::DlgPrefDeck(QWidget* parent, UserSettingsPointer pConfig)
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             &DlgPrefDeck::slotSetTrackLoadMode);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // AUTO CUE ([Controls],auto_cue) also writes CueRecall: follow it.
+    m_pAutoCue = std::make_unique<ControlProxy>(
+            kControlsGroup, QStringLiteral("auto_cue"), this, ControlFlag::AllowMissingOrInvalid);
+    m_pAutoCue->connectValueChanged(this, &DlgPrefDeck::slotAutoCueChanged);
+    // End of AI-generated text.
 
     comboBoxLoadWhenDeckPlaying->addItem(
             tr("Reject"), static_cast<int>(LoadWhenDeckPlaying::Reject));
@@ -496,6 +502,13 @@ DlgPrefDeck::~DlgPrefDeck() {
 }
 
 void DlgPrefDeck::slotUpdate() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // AUTO CUE can have changed CueRecall since the last time.
+    comboBoxLoadPoint->setCurrentIndex(comboBoxLoadPoint->findData(
+            m_pConfig->getValue(ConfigKey(kControlsGroup, QStringLiteral("CueRecall")),
+                    static_cast<int>(SeekOnLoadMode::IntroStart))));
+    // End of AI-generated text.
+
     checkBoxIntroStartMove->setChecked(m_pConfig->getValue(
             ConfigKey(kControlsGroup, QStringLiteral("SetIntroStartAtMainCue")), false));
 
@@ -754,6 +767,20 @@ void DlgPrefDeck::slotSetTrackLoadMode(int comboboxIndex) {
             comboBoxLoadPoint->itemData(comboboxIndex).toInt());
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+void DlgPrefDeck::slotAutoCueChanged(double value) {
+    // The same rule as LoadSettingsControls: on = First sound; off changes
+    // First sound to Main cue and keeps the other values.
+    SeekOnLoadMode mode = m_seekOnLoadMode;
+    if (value > 0) {
+        mode = SeekOnLoadMode::FirstSound;
+    } else if (mode == SeekOnLoadMode::FirstSound) {
+        mode = SeekOnLoadMode::MainCue;
+    }
+    comboBoxLoadPoint->setCurrentIndex(comboBoxLoadPoint->findData(static_cast<int>(mode)));
+}
+// End of AI-generated text.
+
 void DlgPrefDeck::slotLoadWhenDeckPlayingIndexChanged(int comboboxIndex) {
     m_loadWhenDeckPlaying = static_cast<LoadWhenDeckPlaying>(
             comboBoxLoadWhenDeckPlaying->itemData(comboboxIndex).toInt());
@@ -814,6 +841,10 @@ void DlgPrefDeck::slotApply() {
     m_pSyncGrid->set(syncGrid);
 
     m_pConfig->setValue(ConfigKey(kControlsGroup, QStringLiteral("CueRecall")), m_seekOnLoadMode);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Keep AUTO CUE in line with the value that this page writes.
+    m_pAutoCue->set(m_seekOnLoadMode == SeekOnLoadMode::FirstSound ? 1.0 : 0.0);
+    // End of AI-generated text.
     m_pConfig->setValue(ConfigKey(kControlsGroup, QStringLiteral("CloneDeckOnLoadDoubleTap")),
             m_bCloneDeckOnLoadDoubleTap);
 

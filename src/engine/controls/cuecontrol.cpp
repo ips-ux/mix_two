@@ -21,6 +21,10 @@ namespace {
 /// This is the position of a fresh loaded tack without any seek
 constexpr int kNoHotCueNumber = 0;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+const ConfigKey kAutoHotcueKey(QStringLiteral("[Controls]"), QStringLiteral("auto_hotcue"));
+// End of AI-generated text.
+
 // Helper function to convert control values (i.e. doubles) into RgbColor
 // instances (or nullopt if value < 0). This happens by using the integer
 // component as RGB color codes (e.g. 0xFF0000).
@@ -338,6 +342,9 @@ void CueControl::createControls() {
         m_memoryCueMarkEndPositions.push_back(std::move(pEndPosition));
     }
 
+    m_pHotcuesLoad = std::make_unique<ControlPushButton>(
+            ConfigKey(m_group, QStringLiteral("hotcues_load")));
+
     m_pBeatsToNextCue = std::make_unique<ControlObject>(
             ConfigKey(m_group, QStringLiteral("beats_to_next_cue")));
     m_pBeatsToNextCue->set(-1.0);
@@ -499,6 +506,11 @@ void CueControl::connectControls() {
             this,
             &CueControl::memoryCueDelete,
             Qt::DirectConnection);
+    connect(m_pHotcuesLoad.get(),
+            &ControlObject::valueChanged,
+            this,
+            &CueControl::hotcuesLoad,
+            Qt::DirectConnection);
 
     connect(m_pHotcueFocusColorPrev.get(),
             &ControlObject::valueChanged,
@@ -604,6 +616,7 @@ void CueControl::disconnectControls() {
     disconnect(m_pMemoryCueNext.get(), nullptr, this, nullptr);
     disconnect(m_pMemoryCuePrev.get(), nullptr, this, nullptr);
     disconnect(m_pMemoryCueDelete.get(), nullptr, this, nullptr);
+    disconnect(m_pHotcuesLoad.get(), nullptr, this, nullptr);
 
     disconnect(m_pHotcueFocusColorPrev.get(), nullptr, this, nullptr);
     disconnect(m_pHotcueFocusColorNext.get(), nullptr, this, nullptr);
@@ -698,6 +711,15 @@ void CueControl::trackLoaded(TrackPointer pNewTrack) {
     }
     m_pLoadedTrack = pNewTrack;
     m_pBeats = pNewTrack->getBeats();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A.HOT CUE: [Controls],auto_hotcue = 0 keeps the hot cues off the pads.
+    // The control is missing in tests and in tools: then load them.
+    {
+        const ControlObject* pAutoHotcue = ControlObject::getControl(
+                kAutoHotcueKey, ControlFlag::AllowMissingOrInvalid);
+        m_hotcuesShown.store(!pAutoHotcue || pAutoHotcue->toBool());
+    }
+    // End of AI-generated text.
 
     connect(m_pLoadedTrack.get(),
             &Track::analyzed,
@@ -849,6 +871,13 @@ void CueControl::loadCuesFromTrack() {
             if (pCue->getHotCue() == Cue::kNoHotCue) {
                 continue;
             }
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // A.HOT CUE off: the pads stay empty (the cue stays in the
+            // track) until hotcues_load or a hot cue action.
+            if (!m_hotcuesShown.load()) {
+                continue;
+            }
+            // End of AI-generated text.
 
             int hotcue = pCue->getHotCue();
             HotcueControl* pControl = m_hotcueControls.value(hotcue, nullptr);
@@ -967,6 +996,22 @@ void CueControl::loadCuesFromTrack() {
     m_pCuePoint->set(quantizedMainCuePosition.toEngineSamplePosMaybeInvalid());
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+void CueControl::showHotcues() {
+    if (m_hotcuesShown.exchange(true)) {
+        return;
+    }
+    loadCuesFromTrack();
+}
+
+void CueControl::hotcuesLoad(double value) {
+    if (value <= 0) {
+        return;
+    }
+    showHotcues();
+}
+// End of AI-generated text.
+
 void CueControl::trackAnalyzed() {
     if (frameInfo().currentPosition != m_usedSeekOnLoadPosition.getValue()) {
         // the track is already manual cued, don't re-cue
@@ -1051,6 +1096,9 @@ mixxx::RgbColor CueControl::colorFromConfig(const ConfigKey& configKey) {
 };
 
 void CueControl::hotcueSet(HotcueControl* pControl, double value, HotcueSetMode mode) {
+    if (value != 0) {
+        showHotcues();
+    }
     // qDebug() << "CueControl::hotcueSet" << value;
 
     if (value <= 0) {
@@ -1194,6 +1242,9 @@ void CueControl::hotcueSet(HotcueControl* pControl, double value, HotcueSetMode 
 }
 
 void CueControl::hotcueGoto(HotcueControl* pControl, double value) {
+    if (value != 0) {
+        showHotcues();
+    }
     if (value <= 0) {
         return;
     }
@@ -1204,6 +1255,9 @@ void CueControl::hotcueGoto(HotcueControl* pControl, double value) {
 }
 
 void CueControl::hotcueGotoAndStop(HotcueControl* pControl, double value) {
+    if (value != 0) {
+        showHotcues();
+    }
     if (value <= 0) {
         return;
     }
@@ -1223,6 +1277,9 @@ void CueControl::hotcueGotoAndStop(HotcueControl* pControl, double value) {
 }
 
 void CueControl::hotcueGotoAndPlay(HotcueControl* pControl, double value) {
+    if (value != 0) {
+        showHotcues();
+    }
     if (value <= 0) {
         return;
     }
@@ -1243,6 +1300,9 @@ void CueControl::hotcueGotoAndPlay(HotcueControl* pControl, double value) {
 }
 
 void CueControl::hotcueGotoAndLoop(HotcueControl* pControl, double value) {
+    if (value != 0) {
+        showHotcues();
+    }
     if (value == 0) {
         return;
     }
@@ -1279,6 +1339,9 @@ void CueControl::hotcueGotoAndLoop(HotcueControl* pControl, double value) {
 }
 
 void CueControl::hotcueCueLoop(HotcueControl* pControl, double value) {
+    if (value != 0) {
+        showHotcues();
+    }
     if (value == 0) {
         return;
     }
@@ -1327,6 +1390,9 @@ void CueControl::hotcueCueLoop(HotcueControl* pControl, double value) {
 }
 
 void CueControl::hotcueActivate(HotcueControl* pControl, double value, HotcueSetMode mode) {
+    if (value != 0) {
+        showHotcues();
+    }
     // qDebug() << "CueControl::hotcueActivate" << value;
 
     CuePointer pCue = pControl->getCue();
@@ -1385,6 +1451,9 @@ void CueControl::hotcueActivate(HotcueControl* pControl, double value, HotcueSet
 }
 
 void CueControl::hotcueActivatePreview(HotcueControl* pControl, double value) {
+    if (value != 0) {
+        showHotcues();
+    }
     CuePointer pCue = pControl->getCue();
     int index = pControl->getHotcueIndex();
     if (value > 0) {
@@ -1437,6 +1506,9 @@ void CueControl::updateCurrentlyPreviewingIndex(int hotcueIndex) {
 }
 
 void CueControl::hotcueClear(HotcueControl* pControl, double value) {
+    if (value != 0) {
+        showHotcues();
+    }
     if (value <= 0) {
         return;
     }
@@ -1456,6 +1528,9 @@ void CueControl::hotcueClear(HotcueControl* pControl, double value) {
 }
 
 void CueControl::hotcueSwap(HotcueControl* pControl, double v) {
+    if (v != 0) {
+        showHotcues();
+    }
     // 1-based GUI/human index to 0-based internal index
     int newCuenum = static_cast<int>(v) - 1;
     if (newCuenum < mixxx::kFirstHotCueIndex || newCuenum >= kMaxNumberOfHotcues) {
