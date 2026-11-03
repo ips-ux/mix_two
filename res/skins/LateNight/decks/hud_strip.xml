@@ -1,0 +1,170 @@
+<!--
+AI-generated (Claude Code). Start of AI-generated text.
+
+Mix Two: HUD bottom strip (hud_waves.xml), 44 px.
+  A.HOT CUE | AUTO CUE | QUANTIZE | NEXT CUE | REMAIN / TIME
+  * A.HOT CUE, AUTO CUE: placeholders without a function yet.
+  * QUANTIZE: left-click = quantize on / off. The beat value shows 1 until
+    the beat value control exists.
+  * NEXT CUE: shows - until the next-cue countdown exists.
+  * REMAIN / TIME: the play position. Click it to change between elapsed,
+    remaining and both ([Controls],ShowDurationRemaining).
+The LOOP badge is in the phase meter row (hud_waves.xml).
+
+End of AI-generated text.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>HudStrip</ObjectName>
+    <Layout>horizontal</Layout>
+    <Size>0me,44f</Size>
+    <Children>
+
+      <WidgetGroup>
+        <ObjectName>HudStripCell</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>66f,44f</Size>
+        <Children>
+          <Label>
+            <ObjectName>HudStripLabelOff</ObjectName>
+            <Size>0me,0me</Size>
+            <Alignment>center</Alignment>
+            <Text>A.HOT CUE</Text>
+          </Label>
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>HudStripCell</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>66f,44f</Size>
+        <Children>
+          <Label>
+            <ObjectName>HudStripLabelOff</ObjectName>
+            <Size>0me,0me</Size>
+            <Alignment>center</Alignment>
+            <Text>AUTO CUE</Text>
+          </Label>
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
+
+      <!-- QUANTIZE: the button lies on top of the cell text -->
+      <WidgetGroup>
+        <Layout>stacked</Layout>
+        <Size>66f,44f</Size>
+        <Children>
+          <PushButton>
+            <ObjectName>HudQuantizeButton</ObjectName>
+            <TooltipId>quantize</TooltipId>
+            <Size>66f,44f</Size>
+            <NumberStates>2</NumberStates>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,quantize</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <WidgetGroup>
+            <ObjectName>HudStripCell</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>66f,44f</Size>
+            <Children>
+              <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+              <Label>
+                <ObjectName>HudStripLabel</ObjectName>
+                <Size>0me,12f</Size>
+                <Alignment>center</Alignment>
+                <Text>QUANTIZE</Text>
+              </Label>
+              <Label>
+                <ObjectName>HudStripValue</ObjectName>
+                <Size>0me,20f</Size>
+                <Alignment>center</Alignment>
+                <Text>1</Text>
+              </Label>
+              <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>HudStripCell</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>66f,44f</Size>
+        <Children>
+          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+          <Label>
+            <ObjectName>HudStripLabel</ObjectName>
+            <Size>0me,12f</Size>
+            <Alignment>center</Alignment>
+            <Text>NEXT CUE</Text>
+          </Label>
+          <Label>
+            <ObjectName>HudStripValue</ObjectName>
+            <Size>0me,20f</Size>
+            <Alignment>center</Alignment>
+            <Text>-</Text>
+          </Label>
+          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>HudStripCell</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>0me,44f</Size>
+        <Children>
+          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <Size>0me,12f</Size>
+            <Children>
+              <Label>
+                <ObjectName>HudStripLabel</ObjectName>
+                <Size>0me,12f</Size>
+                <Alignment>center</Alignment>
+                <Text>REMAIN</Text>
+                <Connection>
+                  <ConfigKey>[Controls],ShowDurationRemaining</ConfigKey>
+                  <Transform><IsEqual>1</IsEqual></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Label>
+              <Label>
+                <ObjectName>HudStripLabel</ObjectName>
+                <Size>0me,12f</Size>
+                <Alignment>center</Alignment>
+                <Text>TIME</Text>
+                <Connection>
+                  <ConfigKey>[Controls],ShowDurationRemaining</ConfigKey>
+                  <Transform><IsEqual>1</IsEqual><Not/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Label>
+            </Children>
+          </WidgetGroup>
+          <NumberPos>
+            <ObjectName>HudTimeText</ObjectName>
+            <TooltipId>track_time</TooltipId>
+            <Size>0me,24f</Size>
+            <Alignment>center</Alignment>
+            <Channel><Variable name="ChanNum"/></Channel>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,playposition</ConfigKey>
+            </Connection>
+          </NumberPos>
+          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup><!-- HudStrip -->
+</Template>

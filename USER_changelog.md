@@ -434,6 +434,25 @@ Small labels use a new pixel font, Silkscreen.
 
 The layout is not final. A rekordbox layout will follow.
 
+Each deck can now show as one HUD window, as on a CDJ-3000. The HUD window
+shows the deck number, the key, the track title, the artist and the cover
+art. It also shows the BPM, the tempo, the tempo range, MT and a MASTER
+badge.
+
+Under the track information, the HUD window shows the zoomed waveform, the
+track overview and a strip with QUANTIZE and the time. The platter, CUE and
+PLAY are on the mixer side of the window.
+
+The waveforms at the top of the screen stay.
+
+To change the HUD window, open the skin settings (SETTINGS):
+
+- Push HUD Deck to show the HUD window or the old deck rows.
+- Push Waveform in Deck to show or hide the zoomed waveform in the deck.
+- Push Platter to show or hide the platter.
+
+A.HOT CUE, AUTO CUE and NEXT CUE do not operate yet.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.

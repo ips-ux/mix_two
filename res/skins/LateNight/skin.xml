@@ -59,6 +59,21 @@
           See deck.xml and /helpers/skin_helper_deck_size.xml for documentation.
           0=mini 1=compact(default) 2=full deck -->
       <attribute persist="true" config_key="[LateNight],deck_size_without_mixer">1</attribute>
+      <!-- Mix Two (AI-generated, Claude Code): CDJ-style HUD deck window,
+          see decks/deck_hud.xml. deck_hud: 1 = HUD window, 0 = the old
+          LateNight deck rows. With the HUD, deck_size_without_mixer does not
+          apply. waveforms_in_deck: zoomed waveform shown in the HUD (the top
+          waveform band always stays). show_hub: platter shown. show_lower_panel: panel below
+          the HUD. lower_panel_page_N: tab per deck (0-3).
+          End of AI-generated text. -->
+      <attribute persist="true" config_key="[LateNight],deck_hud">1</attribute>
+      <attribute persist="true" config_key="[LateNight],waveforms_in_deck">1</attribute>
+      <attribute persist="true" config_key="[LateNight],show_hub">1</attribute>
+      <attribute persist="true" config_key="[LateNight],show_lower_panel">1</attribute>
+      <attribute persist="true" config_key="[LateNight],lower_panel_page_1">0</attribute>
+      <attribute persist="true" config_key="[LateNight],lower_panel_page_2">0</attribute>
+      <attribute persist="true" config_key="[LateNight],lower_panel_page_3">0</attribute>
+      <attribute persist="true" config_key="[LateNight],lower_panel_page_4">0</attribute>
       <!-- Full deck -->
       <attribute persist="true" config_key="[Skin],show_rate_controls">1</attribute>
       <attribute persist="true" config_key="[Skin],show_rate_control_buttons">1</attribute>
@@ -373,6 +388,25 @@
       <Children>
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">1</SetVariable>
+        <!-- Mix Two (AI-generated, Claude Code): HUD slots
+             (decks/deck_hud.xml), Mirror 0: side column and rate column on
+             the right (mixer) edge. End of AI-generated text. -->
+        <SetVariable name="Mirror">0</SetVariable>
+        <SetVariable name="HudHdrL">HudFx</SetVariable>
+        <SetVariable name="HudHdrR">HudDeckId</SetVariable>
+        <SetVariable name="HudIdL">HudHdrKey</SetVariable>
+        <SetVariable name="HudIdR">HudBadge</SetVariable>
+        <SetVariable name="HudInfoL">HudStats</SetVariable>
+        <SetVariable name="HudInfoR">HudArt</SetVariable>
+        <SetVariable name="HudStatsL">HudKey</SetVariable>
+        <SetVariable name="HudStatsR">HudBpm</SetVariable>
+        <SetVariable name="HudTitleAlign">right</SetVariable>
+        <SetVariable name="HudSideL">HudEmptyA</SetVariable>
+        <SetVariable name="HudSideR">HudSide</SetVariable>
+        <SetVariable name="HudSideGapL">0f</SetVariable>
+        <SetVariable name="HudSideGapR">5f</SetVariable>
+        <SetVariable name="HudRateL">HudEmptyB</SetVariable>
+        <SetVariable name="HudRateR">DeckRate</SetVariable>
         <SetVariable name="SlotLeft1">EmptyA</SetVariable>
         <SetVariable name="SlotLeft2">EmptyB</SetVariable>
         <SetVariable name="SlotRight1">Hub</SetVariable>
@@ -389,6 +423,25 @@
       <Children>
         <Template src="skins:LateNight/decks/deck.xml">
           <SetVariable name="ChanNum">2</SetVariable>
+        <!-- Mix Two (AI-generated, Claude Code): HUD slots
+             (decks/deck_hud.xml), Mirror 1: side column and rate column on
+             the left (mixer) edge. End of AI-generated text. -->
+        <SetVariable name="Mirror">1</SetVariable>
+        <SetVariable name="HudHdrL">HudDeckId</SetVariable>
+        <SetVariable name="HudHdrR">HudFx</SetVariable>
+        <SetVariable name="HudIdL">HudBadge</SetVariable>
+        <SetVariable name="HudIdR">HudHdrKey</SetVariable>
+        <SetVariable name="HudInfoL">HudArt</SetVariable>
+        <SetVariable name="HudInfoR">HudStats</SetVariable>
+        <SetVariable name="HudStatsL">HudBpm</SetVariable>
+        <SetVariable name="HudStatsR">HudKey</SetVariable>
+        <SetVariable name="HudTitleAlign">left</SetVariable>
+        <SetVariable name="HudSideL">HudSide</SetVariable>
+        <SetVariable name="HudSideR">HudEmptyA</SetVariable>
+        <SetVariable name="HudSideGapL">5f</SetVariable>
+        <SetVariable name="HudSideGapR">0f</SetVariable>
+        <SetVariable name="HudRateL">DeckRate</SetVariable>
+        <SetVariable name="HudRateR">HudEmptyB</SetVariable>
           <SetVariable name="SlotLeft1">Rate</SetVariable>
           <SetVariable name="SlotLeft2">Hub</SetVariable>
           <SetVariable name="SlotRight1">EmptyA</SetVariable>
@@ -405,6 +458,25 @@
       <Children>
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">3</SetVariable>
+        <!-- Mix Two (AI-generated, Claude Code): HUD slots
+             (decks/deck_hud.xml), Mirror 0: side column and rate column on
+             the right (mixer) edge. End of AI-generated text. -->
+        <SetVariable name="Mirror">0</SetVariable>
+        <SetVariable name="HudHdrL">HudFx</SetVariable>
+        <SetVariable name="HudHdrR">HudDeckId</SetVariable>
+        <SetVariable name="HudIdL">HudHdrKey</SetVariable>
+        <SetVariable name="HudIdR">HudBadge</SetVariable>
+        <SetVariable name="HudInfoL">HudStats</SetVariable>
+        <SetVariable name="HudInfoR">HudArt</SetVariable>
+        <SetVariable name="HudStatsL">HudKey</SetVariable>
+        <SetVariable name="HudStatsR">HudBpm</SetVariable>
+        <SetVariable name="HudTitleAlign">right</SetVariable>
+        <SetVariable name="HudSideL">HudEmptyA</SetVariable>
+        <SetVariable name="HudSideR">HudSide</SetVariable>
+        <SetVariable name="HudSideGapL">0f</SetVariable>
+        <SetVariable name="HudSideGapR">5f</SetVariable>
+        <SetVariable name="HudRateL">HudEmptyB</SetVariable>
+        <SetVariable name="HudRateR">DeckRate</SetVariable>
         <SetVariable name="SlotLeft1">EmptyA</SetVariable>
         <SetVariable name="SlotLeft2">EmptyB</SetVariable>
         <SetVariable name="SlotRight1">Hub</SetVariable>
@@ -421,6 +493,25 @@
       <Children>
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">4</SetVariable>
+        <!-- Mix Two (AI-generated, Claude Code): HUD slots
+             (decks/deck_hud.xml), Mirror 1: side column and rate column on
+             the left (mixer) edge. End of AI-generated text. -->
+        <SetVariable name="Mirror">1</SetVariable>
+        <SetVariable name="HudHdrL">HudDeckId</SetVariable>
+        <SetVariable name="HudHdrR">HudFx</SetVariable>
+        <SetVariable name="HudIdL">HudBadge</SetVariable>
+        <SetVariable name="HudIdR">HudHdrKey</SetVariable>
+        <SetVariable name="HudInfoL">HudArt</SetVariable>
+        <SetVariable name="HudInfoR">HudStats</SetVariable>
+        <SetVariable name="HudStatsL">HudBpm</SetVariable>
+        <SetVariable name="HudStatsR">HudKey</SetVariable>
+        <SetVariable name="HudTitleAlign">left</SetVariable>
+        <SetVariable name="HudSideL">HudSide</SetVariable>
+        <SetVariable name="HudSideR">HudEmptyA</SetVariable>
+        <SetVariable name="HudSideGapL">5f</SetVariable>
+        <SetVariable name="HudSideGapR">0f</SetVariable>
+        <SetVariable name="HudRateL">DeckRate</SetVariable>
+        <SetVariable name="HudRateR">HudEmptyB</SetVariable>
         <SetVariable name="SlotLeft1">Rate</SetVariable>
         <SetVariable name="SlotLeft2">Hub</SetVariable>
         <SetVariable name="SlotRight1">EmptyA</SetVariable>

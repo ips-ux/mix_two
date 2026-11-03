@@ -1,0 +1,123 @@
+<!--
+AI-generated (Claude Code). Start of AI-generated text.
+
+Mix Two: HUD header bar (deck_hud.xml).
+  Mirror 0:  FX assign | stretch | key | deck badge
+  Mirror 1:  deck badge | key | stretch | FX assign
+The FX group (HudFx<N>) and the deck group (HudDeckId<N>) swap places with
+the HudHdrL / HudHdrR slots; inside the deck group, key and badge swap with
+HudIdL / HudIdR. Slot values are set per deck in skin.xml.
+The source box (USB1 on a CDJ) is left out until the track has a property
+for it.
+The deck badge has no control yet (deck 1/3, 2/4 switching is not built yet).
+
+End of AI-generated text.
+-->
+<Template>
+
+  <SingletonDefinition>
+    <ObjectName>HudFx<Variable name="ChanNum"/></ObjectName>
+    <Children>
+      <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>HudFxBox</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/fx/assign_buttons.xml"/>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </SingletonDefinition>
+
+  <SingletonDefinition>
+    <ObjectName>HudHdrKey<Variable name="ChanNum"/></ObjectName>
+    <Children>
+      <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <Key>
+            <ObjectName>HudHeaderKey</ObjectName>
+            <TooltipId>visual_key</TooltipId>
+            <Channel><Variable name="ChanNum"/></Channel>
+            <Size>40min,20f</Size>
+            <Alignment>center</Alignment>
+            <Elide>right</Elide>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,visual_key</ConfigKey>
+            </Connection>
+          </Key>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </SingletonDefinition>
+
+  <SingletonDefinition>
+    <ObjectName>HudBadge<Variable name="ChanNum"/></ObjectName>
+    <Children>
+      <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <PushButton>
+            <ObjectName>HudDeckBadge</ObjectName>
+            <Size>24f,20f</Size>
+            <NumberStates>1</NumberStates>
+            <State>
+              <Number>0</Number>
+              <Text><Variable name="ChanNum"/></Text>
+              <Alignment>center</Alignment>
+            </State>
+          </PushButton>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </SingletonDefinition>
+
+  <SingletonDefinition>
+    <ObjectName>HudDeckId<Variable name="ChanNum"/></ObjectName>
+    <Children>
+      <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>HudDeckIdBox</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <SingletonContainer>
+                <ObjectName><Variable name="HudIdL"/><Variable name="ChanNum"/></ObjectName>
+              </SingletonContainer>
+              <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
+              <SingletonContainer>
+                <ObjectName><Variable name="HudIdR"/><Variable name="ChanNum"/></ObjectName>
+              </SingletonContainer>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </SingletonDefinition>
+
+  <WidgetGroup>
+    <ObjectName>HudHeader</ObjectName>
+    <Layout>horizontal</Layout>
+    <Size>0me,20f</Size>
+    <Children>
+      <SingletonContainer>
+        <ObjectName><Variable name="HudHdrL"/><Variable name="ChanNum"/></ObjectName>
+      </SingletonContainer>
+      <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
+      <SingletonContainer>
+        <ObjectName><Variable name="HudHdrR"/><Variable name="ChanNum"/></ObjectName>
+      </SingletonContainer>
+    </Children>
+  </WidgetGroup><!-- HudHeader -->
+</Template>

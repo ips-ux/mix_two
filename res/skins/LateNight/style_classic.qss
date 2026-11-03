@@ -3200,3 +3200,151 @@ WSearchLineEdit::indicator:unchecked:selected {
   background-color: #b8701a;
   border-color: #b8701a;
 }
+
+/************** Mix Two: HUD deck window ***********************************/
+/* AI-generated (Claude Code). Start of AI-generated text.
+   CDJ-style HUD deck window, see decks/deck_hud.xml.
+   The same rules are in style_classic.qss and style_palemoon.qss.
+   The rate column keeps its raised-module styles.
+   End of AI-generated text. */
+
+/* The screen face */
+#HudWindow {
+  background-color: #0b0c0e;
+  border: 1px solid #2b2e34;
+  border-radius: 6px;
+  qproperty-layoutContentsMargins: rect(6 6 6 6);
+}
+#HudDeck {
+  margin: 0px 2px 2px 2px;
+}
+
+/* Header bar */
+#HudHeader,
+#HudDeckIdBox {
+  qproperty-layoutAlignment: 'AlignVCenter';
+}
+WKey#HudHeaderKey {
+  font-size: 12px;
+  color: #cfd2d8;
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+  padding: 0px 8px;
+}
+WPushButton#HudDeckBadge {
+  font-size: 12px;
+  font-weight: bold;
+  color: #000000;
+  background-color: #ff9d1c;
+  border: none;
+  border-radius: 3px;
+}
+
+/* Track info */
+WTrackProperty#HudTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #e8e8ea;
+}
+WTrackProperty#HudArtist {
+  font-size: 13px;
+  color: #bfc3ca;
+}
+#HudBpmBlock,
+#HudKeyBox {
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+  qproperty-layoutContentsMargins: rect(8 2 8 2);
+}
+WLabel#HudStatLabel {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #8b8f98;
+}
+WLabel#HudMasterBadge {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #000000;
+  background-color: #ff5a2a;
+  border-radius: 2px;
+}
+WNumber#HudBpmValue,
+WKey#HudKeyValue {
+  font-size: 20px;
+  font-weight: bold;
+  color: #e8e8ea;
+}
+WNumber#HudRateText,
+WNumberRate#HudRateText,
+WRateRange#HudRateRange {
+  font-size: 11px;
+  color: #bfc3ca;
+}
+WLabel#HudMtLabel {
+  font-size: 11px;
+  font-weight: bold;
+  color: #ff2a2a;
+}
+
+/* Waveform grid */
+#HudWaveBox,
+#HudOverviewBox {
+  background-color: #050607;
+  border-radius: 3px;
+}
+#HudPhaseMeterSlot {
+  background-color: #050607;
+  border-radius: 2px;
+}
+#HudPlatter,
+#HudCueBox,
+#HudPlayBox {
+  qproperty-layoutAlignment: 'AlignCenter';
+}
+WNumber#HudLoopBadge {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #7dff7d;
+  background-color: #1b3d1b;
+  border: 1px solid #3a7a3a;
+  border-radius: 2px;
+}
+
+/* Bottom strip */
+#HudStripCell {
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+}
+WLabel#HudStripLabel,
+WLabel#HudStripLabelOff {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #e8e8ea;
+}
+/* placeholders without a function yet */
+WLabel#HudStripLabelOff {
+  color: #5c6068;
+}
+WLabel#HudStripValue {
+  font-size: 15px;
+  font-weight: bold;
+  color: #e8e8ea;
+}
+WNumberPos#HudTimeText {
+  font-size: 20px;
+  font-weight: bold;
+  color: #e8e8ea;
+}
+/* QUANTIZE: a clear button on the cell; orange border while on */
+WPushButton#HudQuantizeButton {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+}
+WPushButton#HudQuantizeButton[displayValue="1"] {
+  border-color: #ff9d1c;
+}

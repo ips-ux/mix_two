@@ -1,0 +1,379 @@
+<!--
+AI-generated (Claude Code). Start of AI-generated text.
+
+Mix Two: HUD waveform grid (deck_hud.xml).
+Main column (not mirrored, time flows left to right on every deck):
+  zoomed waveform   96 px   hidden when [LateNight],waveforms_in_deck = 0
+  phase meter row   14 px   empty slot HudPhaseMeterSlot (meter not built yet), with
+                            the LOOP badge on its right end
+  overview          34 px   DeckOverview<N> (deck_singletons.xml)
+  bottom strip      44 px   hud_strip.xml
+Side column (HudSide<N>, 92 px, on the mixer edge, HudSideL / HudSideR,
+5 px gap HudSideGapL / HudSideGapR):
+  platter (hidden when [LateNight],show_hub = 0, the row keeps its height)
+  next to the waveform, CUE next to the phase meter and the overview, PLAY
+  next to the strip.
+The LOOP badge is not drawn over the waveform: the waveform is an OpenGL
+window and no widget can show on top of it.
+
+End of AI-generated text.
+-->
+<Template>
+  <SetVariable name="BtnType"><Variable name="SubRegion_BtnType"/></SetVariable>
+  <SetVariable name="BtnSize">square</SetVariable>
+
+  <SingletonDefinition>
+    <ObjectName>HudSide<Variable name="ChanNum"/></ObjectName>
+    <Children>
+      <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>HudSideColumn</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>92f,203f</Size>
+            <Children>
+
+              <!-- platter, next to the zoomed waveform -->
+              <WidgetGroup>
+                <ObjectName>HudPlatter</ObjectName>
+                <Layout>horizontal</Layout>
+                <Size>92f,96f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <Size>92f,96f</Size>
+                    <Children>
+                      <Spinny>
+                        <TooltipId>spinny</TooltipId>
+                        <Size>92f,92f</Size>
+                        <Group><Variable name="Group"/></Group>
+                        <PathBackground scalemode="STRETCH_ASPECT">skins:LateNight/<Variable name="StyleScheme"/>/style/spinny_bg.svg</PathBackground>
+                        <PathMask scalemode="STRETCH_ASPECT">skins:LateNight/<Variable name="StyleScheme"/>/style/spinny_mask_<Variable name="DeckGroup"/>.svg</PathMask>
+                        <PathForeground>skins:LateNight/<Variable name="StyleScheme"/>/style/spinny_indicator.svg</PathForeground>
+                        <PathGhost>skins:LateNight/<Variable name="StyleScheme"/>/style/spinny_indicator_ghost.svg</PathGhost>
+                        <ShowCoverControl>[Skin],show_coverart</ShowCoverControl>
+                      </Spinny>
+                    </Children>
+                    <Connection>
+                      <ConfigKey persist="true">[LateNight],show_hub</ConfigKey>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup><!-- HudPlatter -->
+
+              <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
+
+              <!-- CUE, next to the phase meter and the overview -->
+              <WidgetGroup>
+                <ObjectName>HudCueBox</ObjectName>
+                <Layout>horizontal</Layout>
+                <Size>92f,53f</Size>
+                <Children>
+                  <CueButton>
+                    <TooltipId>cue_default_cue_gotoandstop</TooltipId>
+                    <ObjectName>CueDeck</ObjectName>
+                    <Size>72f,40f</Size>
+                    <NumberStates>2</NumberStates>
+                    <RightClickIsPushButton>true</RightClickIsPushButton>
+                    <Group><Variable name="Group"/></Group>
+                    <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                    <State>
+                      <Number>0</Number>
+                      <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_medium.svg</Unpressed>
+                      <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_medium_active.svg</Pressed>
+                    </State>
+                    <State>
+                      <Number>1</Number>
+                      <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_medium_set.svg</Unpressed>
+                      <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_medium_active.svg</Pressed>
+                    </State>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,cue_default</ConfigKey>
+                      <ButtonState>LeftButton</ButtonState>
+                    </Connection>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,cue_gotoandstop</ConfigKey>
+                      <ButtonState>RightButton</ButtonState>
+                    </Connection>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,cue_indicator</ConfigKey>
+                      <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                    </Connection>
+                  </CueButton>
+                </Children>
+              </WidgetGroup><!-- HudCueBox -->
+
+              <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
+
+              <!-- PLAY, next to the strip -->
+              <WidgetGroup>
+                <ObjectName>HudPlayBox</ObjectName>
+                <Layout>horizontal</Layout>
+                <Size>92f,44f</Size>
+                <Children>
+                  <WidgetGroup><!-- Play + PlayBlink + default dark background -->
+                    <Layout>stacked</Layout>
+                    <Size>72f,40f</Size>
+                    <Children>
+                      <Template src="skins:LateNight/controls/button_play_2state_right_display.xml">
+                        <SetVariable name="TooltipId">play_cue_set</SetVariable>
+                        <SetVariable name="ObjectName">PlayDeck</SetVariable>
+                        <SetVariable name="Size">72f,40f</SetVariable>
+                        <SetVariable name="BtnSize">play</SetVariable>
+                        <SetVariable name="ConfigKey"><Variable name="Group"/>,play</SetVariable>
+                        <SetVariable name="ConfigKeyRight"><Variable name="Group"/>,cue_set</SetVariable>
+                        <SetVariable name="ConfigKeyDisp"><Variable name="Group"/>,play_latched</SetVariable>
+                      </Template>
+                      <PushButton>
+                        <ObjectName>PreviewIndicator</ObjectName>
+                        <Size>72f,40f</Size>
+                        <NumberStates>2</NumberStates>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,play</ConfigKey>
+                        </Connection>
+                      </PushButton>
+                      <PushButton>
+                        <ObjectName>PlayIndicator</ObjectName>
+                        <Size>72f,40f</Size>
+                        <NumberStates>2</NumberStates>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,play_indicator</ConfigKey>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup><!-- HudPlayBox -->
+
+            </Children>
+          </WidgetGroup><!-- HudSideColumn -->
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </SingletonDefinition>
+
+  <WidgetGroup>
+    <ObjectName>HudWaves</ObjectName>
+    <Layout>horizontal</Layout>
+    <SizePolicy>me,min</SizePolicy>
+    <Children>
+
+      <SingletonContainer>
+        <ObjectName><Variable name="HudSideL"/><Variable name="ChanNum"/></ObjectName>
+      </SingletonContainer>
+      <WidgetGroup><Size><Variable name="HudSideGapL"/>,0min</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>HudMainColumn</ObjectName>
+        <Layout>vertical</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+
+          <!-- zoomed waveform -->
+          <WidgetGroup>
+            <ObjectName>HudWaveRow</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,101f</Size>
+            <Children>
+              <WidgetGroup>
+                <ObjectName>HudWaveBox</ObjectName>
+                <Layout>horizontal</Layout>
+                <Size>0me,96f</Size>
+                <Children>
+                  <Visual>
+                    <TooltipId>waveform_display</TooltipId>
+                    <Channel><Variable name="ChanNum"/></Channel>
+                    <BgColor>#050607</BgColor>
+                    <SignalColor><Variable name="SignalColor"/></SignalColor>
+                    <SignalHighColor></SignalHighColor>
+                    <SignalMidColor></SignalMidColor>
+                    <SignalLowColor></SignalLowColor>
+                    <SignalRGBHighColor></SignalRGBHighColor>
+                    <SignalRGBMidColor></SignalRGBMidColor>
+                    <SignalRGBLowColor></SignalRGBLowColor>
+                    <BeatColor><Variable name="BeatColor"/></BeatColor>
+                    <AxesColor><Variable name="AxesColor"/></AxesColor>
+                    <BeatHighlightColor></BeatHighlightColor>
+                    <PlayPosColor>#ffffff</PlayPosColor>
+                    <EndOfTrackColor><Variable name="EndOfTrackColor"/></EndOfTrackColor>
+                    <SlipBorderOutlineColor><Variable name="SlipBorderOutlineColor"/></SlipBorderOutlineColor>
+                    <SlipBorderTopOutlineSize>10</SlipBorderTopOutlineSize>
+                    <SlipBorderBottomOutlineSize>20</SlipBorderBottomOutlineSize>
+                    <PassthroughLabelColor><Variable name="PassthroughLabelColor"/></PassthroughLabelColor>
+                    <DimBrightThreshold><Variable name="DimBrightThresholdWaveform"/></DimBrightThreshold>
+                    <DefaultMark>
+                      <Align>bottom|right</Align>
+                      <Color>#FF0000</Color>
+                      <TextColor>#FFFFFF</TextColor>
+                      <EndIcon>skins:LateNight/classic/style/mark_jump_%1.svg</EndIcon>
+                      <DisabledOpacity>0.25</DisabledOpacity>
+                      <Text> %1 </Text>
+                    </DefaultMark>
+                    <Mark>
+                      <Control>cue_point</Control>
+                      <Text>CUE</Text>
+                      <Align>top|right</Align>
+                      <Color><Variable name="CueColor"/></Color>
+                      <TextColor>#FFFFFF</TextColor>
+                    </Mark>
+                    <MarkRange>
+                      <StartControl>loop_start_position</StartControl>
+                      <EndControl>loop_end_position</EndControl>
+                      <EnabledControl>loop_enabled</EnabledControl>
+                      <Color><Variable name="LoopColor"/></Color>
+                      <Opacity>0.8</Opacity>
+                      <DisabledColor>#FFFFFF</DisabledColor>
+                      <DisabledOpacity>0.5</DisabledOpacity>
+                    </MarkRange>
+                    <Mark>
+                      <Control>loop_start_position</Control>
+                      <Text>&#8635;</Text>
+                      <Icon>skins:LateNight/classic/style/mark_loop.svg</Icon>
+                      <Align>top|left</Align>
+                      <Color><Variable name="LoopColor"/></Color>
+                      <TextColor>#FFFFFF</TextColor>
+                    </Mark>
+                    <Mark>
+                      <Control>loop_end_position</Control>
+                      <Align>top|right</Align>
+                      <Color><Variable name="LoopColor"/></Color>
+                      <TextColor>#FFFFFF</TextColor>
+                    </Mark>
+                    <MarkRange>
+                      <StartControl>intro_start_position</StartControl>
+                      <EndControl>intro_end_position</EndControl>
+                      <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+                      <Color><Variable name="IntroOutroColor"/></Color>
+                      <Opacity>0.1</Opacity>
+                      <DurationTextColor>#ffffff</DurationTextColor>
+                      <DurationTextLocation>after</DurationTextLocation>
+                    </MarkRange>
+                    <Mark>
+                      <Control>intro_start_position</Control>
+                      <Text>&#9698;</Text>
+                      <Icon>skins:LateNight/classic/style/mark_intro.svg</Icon>
+                      <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+                      <Align>top|right</Align>
+                      <Color><Variable name="IntroOutroColor"/></Color>
+                      <TextColor>#FFFFFF</TextColor>
+                    </Mark>
+                    <Mark>
+                      <Control>intro_end_position</Control>
+                      <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+                      <Text>&#9698;</Text>
+                      <Icon>skins:LateNight/classic/style/mark_intro.svg</Icon>
+                      <Align>top|left</Align>
+                      <Color><Variable name="IntroOutroColor"/></Color>
+                      <TextColor>#FFFFFF</TextColor>
+                    </Mark>
+                    <MarkRange>
+                      <StartControl>outro_start_position</StartControl>
+                      <EndControl>outro_end_position</EndControl>
+                      <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+                      <Color><Variable name="IntroOutroColor"/></Color>
+                      <Opacity>0.1</Opacity>
+                      <DurationTextColor>#ffffff</DurationTextColor>
+                      <DurationTextLocation>before</DurationTextLocation>
+                    </MarkRange>
+                    <Mark>
+                      <Control>outro_start_position</Control>
+                      <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+                      <Text>&#9699;</Text>
+                      <Icon>skins:LateNight/classic/style/mark_outro.svg</Icon>
+                      <Align>top|right</Align>
+                      <Color><Variable name="IntroOutroColor"/></Color>
+                      <TextColor>#FFFFFF</TextColor>
+                    </Mark>
+                    <Mark>
+                      <Control>outro_end_position</Control>
+                      <Text>&#9699;</Text>
+                      <Icon>skins:LateNight/classic/style/mark_outro.svg</Icon>
+                      <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+                      <Align>top|left</Align>
+                      <Color><Variable name="IntroOutroColor"/></Color>
+                      <TextColor>#FFFFFF</TextColor>
+                    </Mark>
+                  </Visual>
+                </Children>
+              </WidgetGroup><!-- HudWaveBox -->
+              <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],waveforms_in_deck</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup><!-- HudWaveRow -->
+
+          <!-- phase meter row: the meter is not built yet.
+               The LOOP badge sits on top of its right end. -->
+          <WidgetGroup>
+            <ObjectName>HudPhaseRow</ObjectName>
+            <Layout>stacked</Layout>
+            <Size>0me,14f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>horizontal</Layout>
+                <Size>0me,14f</Size>
+                <Children>
+                  <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
+                  <Number>
+                    <ObjectName>HudLoopBadge</ObjectName>
+                    <TooltipId>beatloop_size</TooltipId>
+                    <Size>64f,14f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>LOOP %1</Text>
+                    <NumberOfDigits>2</NumberOfDigits>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,beatloop_size</ConfigKey>
+                    </Connection>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,loop_enabled</ConfigKey>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </Number>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup>
+                <ObjectName>HudPhaseMeterSlot</ObjectName>
+                <Layout>horizontal</Layout>
+                <Size>0me,14f</Size>
+                <Children/>
+              </WidgetGroup>
+            </Children>
+          </WidgetGroup><!-- HudPhaseRow -->
+
+          <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>HudOverviewBox</ObjectName>
+            <Layout>horizontal</Layout>
+            <Size>0me,34f</Size>
+            <Children>
+              <SingletonContainer>
+                <ObjectName>DeckOverview<Variable name="ChanNum"/></ObjectName>
+              </SingletonContainer>
+            </Children>
+          </WidgetGroup>
+
+          <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
+
+          <Template src="skins:LateNight/decks/hud_strip.xml"/>
+
+          <!-- With the zoomed waveform hidden, the main column is shorter
+               than the side column: keep it at the top. -->
+          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+
+        </Children>
+      </WidgetGroup><!-- HudMainColumn -->
+
+      <WidgetGroup><Size><Variable name="HudSideGapR"/>,0min</Size></WidgetGroup>
+      <SingletonContainer>
+        <ObjectName><Variable name="HudSideR"/><Variable name="ChanNum"/></ObjectName>
+      </SingletonContainer>
+
+    </Children>
+  </WidgetGroup><!-- HudWaves -->
+</Template>

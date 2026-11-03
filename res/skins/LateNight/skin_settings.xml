@@ -53,6 +53,107 @@ Description:
             </Children>
           </WidgetGroup>
 
+<!-- Mix Two (AI-generated, Claude Code): HUD deck window options
+     (decks/deck_hud.xml). Tooltips in ASD-STE100. End of AI-generated text. -->
+          <WidgetGroup>
+            <ObjectName>SkinSettingsCategory</ObjectName>
+            <SizePolicy>me,f</SizePolicy>
+            <Layout>vertical</Layout>
+            <Children>
+          <PushButton>
+            <Tooltip>Show the deck as one HUD window.</Tooltip>
+            <ObjectName>SkinSettingsButton</ObjectName>
+            <Size>-1me,18f</Size>
+            <NumberStates>2</NumberStates>
+            <State>
+              <Number>0</Number>
+              <Text>&#8202;&#8202;&#9744;  HUD Deck</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <State>
+              <Number>1</Number>
+              <Text>&#8202;&#8202;&#8202;&#10004;&#8202;&#8202; HUD Deck</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],deck_hud</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <WidgetGroup>
+            <ObjectName>SkinSettingsSubMenu</ObjectName>
+            <SizePolicy>me,f</SizePolicy>
+            <Layout>vertical</Layout>
+            <Children>
+          <PushButton>
+            <Tooltip>Show the zoomed waveform in the deck window.</Tooltip>
+            <ObjectName>SkinSettingsButton</ObjectName>
+            <Size>-1me,18f</Size>
+            <NumberStates>2</NumberStates>
+            <State>
+              <Number>0</Number>
+              <Text>&#8202;&#8202;&#9744;  Waveform in Deck</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <State>
+              <Number>1</Number>
+              <Text>&#8202;&#8202;&#8202;&#10004;&#8202;&#8202; Waveform in Deck</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],waveforms_in_deck</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <Tooltip>Show the platter.</Tooltip>
+            <ObjectName>SkinSettingsButton</ObjectName>
+            <Size>-1me,18f</Size>
+            <NumberStates>2</NumberStates>
+            <State>
+              <Number>0</Number>
+              <Text>&#8202;&#8202;&#9744;  Platter</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <State>
+              <Number>1</Number>
+              <Text>&#8202;&#8202;&#8202;&#10004;&#8202;&#8202; Platter</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],show_hub</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <Tooltip>Show the panel below the deck.</Tooltip>
+            <ObjectName>SkinSettingsButton</ObjectName>
+            <Size>-1me,18f</Size>
+            <NumberStates>2</NumberStates>
+            <State>
+              <Number>0</Number>
+              <Text>&#8202;&#8202;&#9744;  Lower Panel</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <State>
+              <Number>1</Number>
+              <Text>&#8202;&#8202;&#8202;&#10004;&#8202;&#8202; Lower Panel</Text>
+              <Alignment>left</Alignment>
+            </State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],show_lower_panel</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],deck_hud</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+            </Children>
+          </WidgetGroup>
+
 <!-- Deck size selector -->
           <WidgetGroup>
             <ObjectName>DeckSizeSettings</ObjectName>
