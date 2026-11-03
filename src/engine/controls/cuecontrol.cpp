@@ -341,6 +341,13 @@ void CueControl::createControls() {
         pEndPosition->setReadOnly();
         m_memoryCueMarkEndPositions.push_back(std::move(pEndPosition));
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_memoryCueActivate.reserve(kMaxNumberOfMemoryCueMarks);
+    for (int i = 1; i <= kMaxNumberOfMemoryCueMarks; ++i) {
+        m_memoryCueActivate.push_back(std::make_unique<ControlPushButton>(
+                ConfigKey(m_group, QStringLiteral("memory_cue_%1_activate").arg(i))));
+    }
+    // End of AI-generated text.
 
     m_pHotcuesLoad = std::make_unique<ControlPushButton>(
             ConfigKey(m_group, QStringLiteral("hotcues_load")));
@@ -506,6 +513,17 @@ void CueControl::connectControls() {
             this,
             &CueControl::memoryCueDelete,
             Qt::DirectConnection);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    for (int i = 0; i < static_cast<int>(m_memoryCueActivate.size()); ++i) {
+        connect(m_memoryCueActivate[i].get(),
+                &ControlObject::valueChanged,
+                this,
+                [this, i](double value) {
+                    memoryCueActivate(i, value);
+                },
+                Qt::DirectConnection);
+    }
+    // End of AI-generated text.
     connect(m_pHotcuesLoad.get(),
             &ControlObject::valueChanged,
             this,
@@ -616,6 +634,9 @@ void CueControl::disconnectControls() {
     disconnect(m_pMemoryCueNext.get(), nullptr, this, nullptr);
     disconnect(m_pMemoryCuePrev.get(), nullptr, this, nullptr);
     disconnect(m_pMemoryCueDelete.get(), nullptr, this, nullptr);
+    for (const auto& pActivate : m_memoryCueActivate) {
+        disconnect(pActivate.get(), nullptr, this, nullptr);
+    }
     disconnect(m_pHotcuesLoad.get(), nullptr, this, nullptr);
 
     disconnect(m_pHotcueFocusColorPrev.get(), nullptr, this, nullptr);
@@ -2460,6 +2481,27 @@ void CueControl::memoryCueNext(double value) {
         }
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void CueControl::memoryCueActivate(int index, double value) {
+    if (value <= 0) {
+        return;
+    }
+
+    auto lock = lockMutex(&m_trackMutex);
+    TrackPointer pLoadedTrack = m_pLoadedTrack;
+    lock.unlock();
+    if (!pLoadedTrack) {
+        return;
+    }
+
+    const QList<CuePointer> memoryCues = sortedMemoryCues(pLoadedTrack);
+    if (index < 0 || index >= memoryCues.size()) {
+        return;
+    }
+    callMemoryCue(memoryCues.at(index), pLoadedTrack);
+}
+// End of AI-generated text.
 
 void CueControl::memoryCuePrev(double value) {
     if (value <= 0) {

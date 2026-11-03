@@ -3,7 +3,8 @@ AI-generated (Claude Code). Start of AI-generated text.
 
 Mix Two: pad view of the HUD lower panel (deck_lower_panel.xml), 80 px.
   header  PAGE A-H | I-P ([LateNight],pad_page_<ChanNum>) on the left
-          (hidden in BEAT JUMP and BEAT LOOP), the pad mode combo box on
+          (hidden in BEAT JUMP and BEAT LOOP, and in MEMORY CUE with 8 or
+          fewer memory cues), the pad mode combo box on
           the right
   pads    two rows of four pads, one page per pad mode
           ([LateNight],pad_mode_<ChanNum>):
@@ -16,7 +17,10 @@ Mix Two: pad view of the HUD lower panel (deck_lower_panel.xml), 80 px.
                           semitones (pitch is a -6 ... +6 potmeter with no
                           clamp: parameter = (semitones + 6) / 12). A pad
                           is lit while key_shift_semitones is its value.
-            9 MEMORY CUE  empty, the pads come later
+            9 MEMORY CUE  memory_cue_N_activate, memory cues 1-8 / 9-16 in
+                          time order, lit while the memory cue is set.
+                          Page I-P shows 9-16 only when memory cue 9 is
+                          set; else it shows 1-8 and PAGE is hidden.
 The pages show and hide with visible bindings: a WidgetStack currentpage
 attribute cannot contain a template variable.
 
@@ -33,7 +37,8 @@ End of AI-generated text.
         <Layout>horizontal</Layout>
         <Size>0me,20f</Size>
         <Children>
-          <!-- PAGE buttons: hidden in BEAT JUMP (3) and BEAT LOOP (4) -->
+          <!-- PAGE buttons: hidden in BEAT JUMP (3) and BEAT LOOP (4), and in
+               MEMORY CUE (9) while memory cue 9 is not set -->
           <WidgetGroup>
             <Layout>horizontal</Layout>
             <SizePolicy>min,min</SizePolicy>
@@ -42,42 +47,112 @@ End of AI-generated text.
                 <Layout>horizontal</Layout>
                 <SizePolicy>min,min</SizePolicy>
                 <Children>
-                  <Label>
-                    <ObjectName>HudPadHeaderLabel</ObjectName>
-                    <Size>34f,20f</Size>
-                    <Text>PAGE</Text>
-                  </Label>
-                  <PushButton>
-                    <ObjectName>HudPadPageButton</ObjectName>
-                    <Tooltip>Show the pads A to H.</Tooltip>
-                    <Size>40f,20f</Size>
-                    <NumberStates>2</NumberStates>
-                    <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                    <State><Number>0</Number><Text>A-H</Text><Alignment>center</Alignment></State>
-                    <State><Number>1</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <Label>
+                        <ObjectName>HudPadHeaderLabel</ObjectName>
+                        <Size>34f,20f</Size>
+                        <Text>PAGE</Text>
+                      </Label>
+                      <PushButton>
+                        <ObjectName>HudPadPageButton</ObjectName>
+                        <Tooltip>Show the pads A to H.</Tooltip>
+                        <Size>40f,20f</Size>
+                        <NumberStates>2</NumberStates>
+                        <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                        <State><Number>0</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                          <Transform><IsEqual>0</IsEqual></Transform>
+                          <ButtonState>LeftButton</ButtonState>
+                          <EmitOnDownPress>true</EmitOnDownPress>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPadPageButton</ObjectName>
+                        <Tooltip>Show the pads I to P.</Tooltip>
+                        <Size>40f,20f</Size>
+                        <NumberStates>2</NumberStates>
+                        <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                        <State><Number>0</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                          <Transform><IsEqual>1</IsEqual></Transform>
+                          <ButtonState>LeftButton</ButtonState>
+                          <EmitOnDownPress>true</EmitOnDownPress>
+                        </Connection>
+                      </PushButton>
+                    </Children>
                     <Connection>
-                      <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
-                      <Transform><IsEqual>0</IsEqual></Transform>
-                      <ButtonState>LeftButton</ButtonState>
-                      <EmitOnDownPress>true</EmitOnDownPress>
+                      <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                      <Transform><IsEqual>9</IsEqual><Not/></Transform>
+                      <BindProperty>visible</BindProperty>
                     </Connection>
-                  </PushButton>
-                  <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
-                  <PushButton>
-                    <ObjectName>HudPadPageButton</ObjectName>
-                    <Tooltip>Show the pads I to P.</Tooltip>
-                    <Size>40f,20f</Size>
-                    <NumberStates>2</NumberStates>
-                    <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                    <State><Number>0</Number><Text>I-P</Text><Alignment>center</Alignment></State>
-                    <State><Number>1</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+                  </WidgetGroup>
+                  <!-- MEMORY CUE: PAGE only with more than 8 memory cues -->
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <SizePolicy>min,min</SizePolicy>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadHeaderLabel</ObjectName>
+                            <Size>34f,20f</Size>
+                            <Text>PAGE</Text>
+                          </Label>
+                          <PushButton>
+                            <ObjectName>HudPadPageButton</ObjectName>
+                            <Tooltip>Show the pads A to H.</Tooltip>
+                            <Size>40f,20f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                              <Transform><IsEqual>0</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPadPageButton</ObjectName>
+                            <Tooltip>Show the pads I to P.</Tooltip>
+                            <Size>40f,20f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                              <Transform><IsEqual>1</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_9_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <BindProperty>visible</BindProperty>
+                        </Connection>
+                      </WidgetGroup>
+                    </Children>
                     <Connection>
-                      <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
-                      <Transform><IsEqual>1</IsEqual></Transform>
-                      <ButtonState>LeftButton</ButtonState>
-                      <EmitOnDownPress>true</EmitOnDownPress>
+                      <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                      <Transform><IsEqual>9</IsEqual></Transform>
+                      <BindProperty>visible</BindProperty>
                     </Connection>
-                  </PushButton>
+                  </WidgetGroup>
                 </Children>
                 <Connection>
                   <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
@@ -1551,12 +1626,544 @@ End of AI-generated text.
               <BindProperty>visible</BindProperty>
             </Connection>
           </WidgetGroup>
-          <!-- MEMORY CUE: empty, the pads come later -->
+          <!-- MEMORY CUE: memory_cue_N_activate, 1-8 (A-H) or 9-16 (I-P). A pad
+               is lit while its memory cue is set. Page I-P shows 9-16 only
+               when there are more than 8 memory cues, else 1-8 again. -->
           <WidgetGroup>
             <ObjectName>HudPadPageMemoryCue</ObjectName>
             <Layout>vertical</Layout>
             <Size>0me,56f</Size>
-            <Children/>
+            <Children>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <Size>0me,26f</Size>
+                    <Children>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 1. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>1</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>1</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_1_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_1_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 2. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>2</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>2</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_2_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_2_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 3. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>3</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>3</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_3_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_3_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 4. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>4</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>4</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_4_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_4_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                  <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <Size>0me,26f</Size>
+                    <Children>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 5. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>5</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>5</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_5_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_5_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 6. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>6</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>6</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_6_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_6_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 7. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>7</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>7</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_7_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_7_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>MEMORY CUE: go to memory cue 8. The pad is lit when the memory cue is set.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>8</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>8</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_8_activate</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,memory_cue_8_position</ConfigKey>
+                          <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+              <WidgetGroup>
+                <Layout>stacked</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 1. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>1</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>1</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_1_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_1_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 2. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>2</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>2</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_2_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_2_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 3. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>3</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>3</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_3_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_3_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 4. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>4</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>4</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_4_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_4_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 5. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>5</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>5</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_5_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_5_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 6. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>6</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>6</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_6_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_6_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 7. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>7</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>7</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_7_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_7_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 8. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>8</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>8</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_8_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_8_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                  <WidgetGroup>
+                    <ObjectName>HudPadPageMemoryCueUpper</ObjectName>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 9. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>9</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>9</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_9_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_9_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 10. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>10</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>10</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_10_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_10_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 11. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>11</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>11</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_11_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_11_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 12. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>12</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>12</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_12_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_12_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 13. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>13</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>13</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_13_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_13_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 14. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>14</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>14</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_14_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_14_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 15. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>15</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>15</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_15_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_15_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>MEMORY CUE: go to memory cue 16. The pad is lit when the memory cue is set.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State><Number>0</Number><Text>16</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>16</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_16_activate</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,memory_cue_16_position</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,memory_cue_9_position</ConfigKey>
+                      <Transform><IsEqual>-1</IsEqual><Not/></Transform>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </WidgetGroup>
+                </Children>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>1</IsEqual></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+            </Children>
             <Connection>
               <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
               <Transform><IsEqual>9</IsEqual></Transform>

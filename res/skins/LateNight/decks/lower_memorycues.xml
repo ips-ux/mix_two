@@ -1,0 +1,75 @@
+<!--
+AI-generated (Claude Code). Start of AI-generated text.
+
+Mix Two: MEMORY CUE page of the HUD lower panel (deck_lower_panel.xml), 80 px.
+  list     MemoryCueList: the memory cues and memory loops of the track in
+           time order (colour, TIME mm:ss.mmm, LOOP length, COMMENT).
+           Click: go to the memory cue (memory_cue_N_activate).
+           Right click: go to the memory cue, then delete it.
+           Double click on the comment: edit the comment.
+  buttons  CALL < (memory_cue_prev), CALL > (memory_cue_next),
+           MEMORY (memory_cue_set).
+Variables: Group.
+
+End of AI-generated text.
+-->
+<Template>
+<WidgetGroup>
+<ObjectName>HudMemoryCuePage</ObjectName>
+<Layout>horizontal</Layout>
+<Size>0me,80f</Size>
+<Children>
+<MemoryCueList>
+  <ObjectName>HudMemoryCueList</ObjectName>
+  <Tooltip>Memory cues of the track. Click: go to the memory cue. Right-click: delete the memory cue. Double-click on the comment: change the comment.</Tooltip>
+  <Size>0me,80f</Size>
+  <Group><Variable name="Group"/></Group>
+</MemoryCueList>
+<WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+<WidgetGroup>
+<Layout>vertical</Layout>
+<Size>72f,80f</Size>
+<Children>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Go to the previous memory cue.</Tooltip>
+  <Size>72f,24f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>CALL &lt;</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>CALL &lt;</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,memory_cue_prev</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Go to the next memory cue.</Tooltip>
+  <Size>72f,24f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>CALL &gt;</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>CALL &gt;</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,memory_cue_next</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Save the play position as a memory cue. When a loop is on, save the loop as a memory loop.</Tooltip>
+  <Size>72f,24f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>MEMORY</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>MEMORY</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,memory_cue_set</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+</Children>
+</WidgetGroup>
+</Children>
+</WidgetGroup>
+</Template>

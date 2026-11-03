@@ -60,6 +60,7 @@
 #include "widget/wlabel.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
+#include "widget/wmemorycuelist.h"
 #include "widget/wnumber.h"
 #include "widget/wnumberdb.h"
 #include "widget/wnumberpos.h"
@@ -660,6 +661,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parsePhaseMeter(node));
     } else if (nodeName == "BeatCount") {
         result = wrapWidget(parseLabelWidget<WBeatCount>(node));
+    } else if (nodeName == "MemoryCueList") {
+        result = wrapWidget(parseMemoryCueList(node));
     } else if (nodeName == "Battery") {
         result = wrapWidget(parseBattery(node));
     } else if (nodeName == "SetVariable") {
@@ -1392,6 +1395,33 @@ QWidget* LegacySkinParser::parsePhaseMeter(const QDomElement& node) {
     pPhaseMeter->setup(node, *m_pContext);
     return pPhaseMeter;
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+QWidget* LegacySkinParser::parseMemoryCueList(const QDomElement& node) {
+    QString group = lookupNodeGroup(node);
+    BaseTrackPlayer* pPlayer = m_pPlayerManager->getPlayer(group);
+    if (!pPlayer) {
+        SKIN_WARNING(node, *m_pContext, QStringLiteral("No player found for group: %1").arg(group));
+        return nullptr;
+    }
+    WMemoryCueList* pList = new WMemoryCueList(group, m_pParent);
+    commonWidgetSetup(node, pList);
+    pList->setup(node, *m_pContext);
+    connect(pPlayer,
+            &BaseTrackPlayer::newTrackLoaded,
+            pList,
+            &WMemoryCueList::slotTrackLoaded);
+    connect(pPlayer,
+            &BaseTrackPlayer::loadingTrack,
+            pList,
+            &WMemoryCueList::slotLoadingTrack);
+    TrackPointer pTrack = pPlayer->getLoadedTrack();
+    if (pTrack) {
+        pList->slotTrackLoaded(pTrack);
+    }
+    return pList;
+}
+// End of AI-generated text.
 
 QWidget* LegacySkinParser::parseBeatSpinBox(const QDomElement& node) {
     ControlObject* valueControl = controlFromConfigNode(node.toElement(), "Value");

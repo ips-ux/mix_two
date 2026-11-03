@@ -4250,6 +4250,69 @@ WStarRating#HudInfoStars {
 /* AI-generated (Claude Code). End of AI-generated text. */
 
 /* AI-generated (Claude Code). Start of AI-generated text. */
+/* MEMORY CUE page of the lower panel (decks/lower_memorycues.xml) and the
+   MEMORY CUE pads (lower_pads.xml). The list has the dark face of the
+   panel; the selected row is orange as in the pad mode list. The pads 9-16
+   cover the pads 1-8 under them, so they have the panel background. */
+WMemoryCueList#HudMemoryCueList {
+  font-size: 10px;
+  color: #cfd2d8;
+  background-color: #101114;
+  alternate-background-color: #101114;
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+  selection-color: #000000;
+  selection-background-color: #ff9d1c;
+  outline: none;
+}
+WMemoryCueList#HudMemoryCueList::item {
+  padding: 0px 2px;
+  border: 0px;
+}
+WMemoryCueList#HudMemoryCueList QHeaderView::section {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #8b8f98;
+  background-color: #17181b;
+  border: 0px;
+  border-bottom: 1px solid #3b3f47;
+  padding: 1px 4px;
+}
+WMemoryCueList#HudMemoryCueList QLineEdit {
+  font-size: 10px;
+  color: #e8e8ea;
+  background-color: #0b0c0e;
+  border: 1px solid #2f8cff;
+  selection-color: #000000;
+  selection-background-color: #ff9d1c;
+}
+WMemoryCueList#HudMemoryCueList QScrollBar:vertical {
+  width: 6px;
+  background-color: #101114;
+  border: 0px;
+  margin: 0px;
+}
+WMemoryCueList#HudMemoryCueList QScrollBar::handle:vertical {
+  min-height: 12px;
+  background-color: #3b3f47;
+  border-radius: 3px;
+}
+WMemoryCueList#HudMemoryCueList QScrollBar::add-line:vertical,
+WMemoryCueList#HudMemoryCueList QScrollBar::sub-line:vertical {
+  height: 0px;
+  border: 0px;
+}
+WMemoryCueList#HudMemoryCueList QScrollBar::add-page:vertical,
+WMemoryCueList#HudMemoryCueList QScrollBar::sub-page:vertical {
+  background: none;
+}
+#HudPadPageMemoryCueUpper {
+  background-color: #0b0c0e;
+}
+/* AI-generated (Claude Code). End of AI-generated text. */
+
+/* AI-generated (Claude Code). Start of AI-generated text. */
 /* Deck badge. A click changes the deck in the window (1 / 3, 2 / 4). While
    a DDJ-800 is connected the badge is disabled (the controller selects the
    deck), but it keeps its colours. */

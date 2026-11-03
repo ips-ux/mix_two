@@ -1855,6 +1855,7 @@ add_library(
   src/widget/wlibrarytextbrowser.cpp
   src/widget/wloadprompt.cpp
   src/widget/wmainmenubar.cpp
+  src/widget/wmemorycuelist.cpp
   src/widget/wmenucheckbox.cpp
   src/widget/wnumber.cpp
   src/widget/wnumberdb.cpp
@@ -3104,6 +3105,7 @@ if(BUILD_TESTING)
     src/test/uuid_test.cpp
     src/test/wbatterytest.cpp
     src/test/wcombobox_test.cpp
+    src/test/wmemorycuelist_test.cpp
     src/test/wpushbutton_test.cpp
     src/test/wwidgetstack_test.cpp
     src/util/moc_included_test.cpp

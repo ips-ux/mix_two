@@ -554,8 +554,7 @@ These pad modes operate:
   +12 semitones (I-P). The pad of the current key shift comes on.
 
 PAD FX, SLICER, KEYBOARD, SEQ. CALL and ACT. CENSR do not operate yet. The
-page shows "This mode is not available yet." The MEMORY CUE pad page and the
-MEMORY CUE tab are empty for now.
+page shows "This mode is not available yet."
 
 ### GRID / PHRASE and INFO pages
 
@@ -586,6 +585,27 @@ rating, click a star.
 
 Mix Two keeps the tab, the pad mode and the pad page of each deck when you
 start it again.
+
+### MEMORY CUE tab and pads
+
+The MEMORY CUE tab shows a list of the memory cues and memory loops of the
+track. The list is in time order. Each row shows the color, the time
+(minutes:seconds.milliseconds), the loop length and the comment.
+
+- Click a row to go to that memory cue.
+- Right-click a row to delete that memory cue. The deck goes to the memory cue
+  first.
+- Double-click the comment to change it. Push Enter to keep the new comment.
+
+The buttons on the right of the list are:
+
+- **CALL <** and **CALL >**: go to the previous or the next memory cue.
+- **MEMORY**: save the play position as a memory cue. If a loop is on, save
+  the loop as a memory loop.
+
+In the MEMORY CUE pad mode, the pads go to memory cues 1-8 in time order. A
+pad comes on when its memory cue is set. When the track has more than 8
+memory cues, PAGE shows. Push I-P to use memory cues 9-16.
 
 ### Known problems
 

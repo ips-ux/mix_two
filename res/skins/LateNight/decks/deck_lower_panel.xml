@@ -6,7 +6,7 @@ Mix Two: HUD lower panel (deck_hud.xml, HudLowerPanelSlot).
            ([LateNight],lower_panel_page_<ChanNum>, 0-3). The first tab shows
            the name of the pad mode ([LateNight],pad_mode_<ChanNum>).
   page     80 px. Tab 0: the pad view (lower_pads.xml). Tab 1: GRID / PHRASE
-           (lower_grid.xml). Tab 2: an empty page (HudLowerPageMemoryCue).
+           (lower_grid.xml). Tab 2: MEMORY CUE (lower_memorycues.xml).
            Tab 3: INFO (lower_info.xml).
 A tab push sets the page; the tab of the current page is lit. The pages
 show and hide with visible bindings (a WidgetStack currentpage attribute
@@ -298,12 +298,14 @@ End of AI-generated text.
           <BindProperty>visible</BindProperty>
         </Connection>
       </WidgetGroup>
-      <!-- Tab 2: MEMORY CUE, empty -->
+      <!-- Tab 2: MEMORY CUE -->
       <WidgetGroup>
         <ObjectName>HudLowerPageMemoryCue</ObjectName>
         <Layout>vertical</Layout>
         <Size>0me,80f</Size>
-        <Children/>
+        <Children>
+          <Template src="skins:LateNight/decks/lower_memorycues.xml"/>
+        </Children>
         <Connection>
           <ConfigKey persist="true">[LateNight],lower_panel_page_<Variable name="ChanNum"/></ConfigKey>
           <Transform><IsEqual>2</IsEqual></Transform>

@@ -793,6 +793,89 @@ TEST_F(MemoryCueControlTest, DeleteRemovesCalledMemoryCue) {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
+// memory_cue_N_activate calls the N-th memory cue in time order, from any
+// play position (also backwards), and makes it the cue point.
+// End of AI-generated text.
+TEST_F(CueControlTest, MemoryCueActivateJumps) {
+    m_pQuantizeEnabled->set(0);
+    constexpr auto kFirst = mixxx::audio::FramePos(44100);
+    constexpr auto kSecond = mixxx::audio::FramePos(88200);
+    constexpr auto kThird = mixxx::audio::FramePos(132300);
+    TrackPointer pTrack = createTestTrack();
+    // Added out of time order: the index follows the position.
+    for (const auto position : {kThird, kFirst, kSecond}) {
+        pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+                Cue::kNoHotCue,
+                position,
+                mixxx::audio::kInvalidFramePos);
+    }
+    loadTrack(pTrack);
+    setCurrentFramePos(mixxx::audio::kStartFramePos);
+
+    auto pActivate2 = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_2_activate");
+    auto pActivate1 = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_1_activate");
+    ASSERT_TRUE(pActivate2->valid());
+
+    pActivate2->set(1);
+    pActivate2->set(0);
+    ProcessBuffer();
+    EXPECT_FRAMEPOS_EQ(kSecond, getCurrentFramePos());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kSecond, m_pCuePoint);
+
+    // Back to the first one, which memory_cue_next cannot do.
+    pActivate1->set(1);
+    pActivate1->set(0);
+    ProcessBuffer();
+    EXPECT_FRAMEPOS_EQ(kFirst, getCurrentFramePos());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kFirst, m_pCuePoint);
+
+    // The activated memory cue is the one memory_cue_delete removes.
+    auto pDelete = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_delete");
+    pDelete->set(1);
+    pDelete->set(0);
+    ProcessBuffer();
+    auto pCount = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_count");
+    EXPECT_EQ(2.0, pCount->get());
+    auto pPosition1 = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_1_position");
+    EXPECT_FRAMEPOS_EQ_CONTROL(kSecond, pPosition1);
+}
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// memory_cue_N_activate does nothing when there is no N-th memory cue.
+// End of AI-generated text.
+TEST_F(CueControlTest, MemoryCueActivateOutOfRangeIgnored) {
+    m_pQuantizeEnabled->set(0);
+    constexpr auto kOnly = mixxx::audio::FramePos(44100);
+    constexpr auto kStart = mixxx::audio::FramePos(1000);
+    TrackPointer pTrack = createTestTrack();
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+            Cue::kNoHotCue,
+            kOnly,
+            mixxx::audio::kInvalidFramePos);
+    loadTrack(pTrack);
+    setCurrentFramePos(kStart);
+    const double cuePointBefore = m_pCuePoint->get();
+
+    for (const int index : {2, kMaxNumberOfMemoryCueMarks}) {
+        auto pActivate = std::make_unique<ControlProxy>(
+                m_sGroup1, QStringLiteral("memory_cue_%1_activate").arg(index));
+        ASSERT_TRUE(pActivate->valid());
+        pActivate->set(1);
+        pActivate->set(0);
+        ProcessBuffer();
+        EXPECT_FRAMEPOS_EQ(kStart, getCurrentFramePos());
+        EXPECT_EQ(cuePointBefore, m_pCuePoint->get());
+    }
+
+    // No track: nothing happens and nothing crashes.
+    unloadTrack();
+    auto pActivate1 = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_1_activate");
+    pActivate1->set(1);
+    pActivate1->set(0);
+    EXPECT_EQ(Cue::kNoPosition, m_pCuePoint->get());
+}
+
+// AI-generated (Claude Code). Start of AI-generated text.
 // beats_to_next_cue follows a new beat grid without a track reload.
 // End of AI-generated text.
 TEST_F(CueControlTest, UpdatesAfterGridChange) {

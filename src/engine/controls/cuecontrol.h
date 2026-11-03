@@ -298,6 +298,11 @@ class CueControl : public EngineControl {
     /// Deletes the memory cue last set or called, or else the one at the
     /// current position.
     void memoryCueDelete(double v);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Calls the memory cue with this 0-based index in time order, as
+    /// memoryCueNext() calls the next one. Does nothing without that cue.
+    void memoryCueActivate(int index, double v);
+    // End of AI-generated text.
 
     // AI-generated (Claude Code). Start of AI-generated text.
     /// [ChannelN],hotcues_load: shows the hot cues of the loaded track on the
@@ -416,6 +421,10 @@ class CueControl : public EngineControl {
     /// Positions of the first kMaxNumberOfMemoryCueMarks memory cues, sorted.
     std::vector<std::unique_ptr<ControlObject>> m_memoryCueMarkPositions;
     std::vector<std::unique_ptr<ControlObject>> m_memoryCueMarkEndPositions;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// memory_cue_N_activate, one per memory cue mark.
+    std::vector<std::unique_ptr<ControlPushButton>> m_memoryCueActivate;
+    // End of AI-generated text.
     /// The memory cue last set or called; memory_cue_delete removes it.
     /// Guarded by m_trackMutex.
     CuePointer m_pCalledMemoryCue;
