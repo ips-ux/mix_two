@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "control/controlobject.h"
 #include "control/controlproxy.h"
 #include "defs_urls.h"
 #include "engine/enginebuffer.h"
@@ -138,6 +139,18 @@ DlgPrefSound::DlgPrefSound(QWidget* pParent,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             &DlgPrefSound::apiChanged);
+    // Mix Two: Audio Routing selects the sound API in plain words: ASIO
+    // (exclusive, lowest latency) or WASAPI (shared, other apps can play).
+    // It only sets apiComboBox; both HARDWARE / PC targets follow it.
+    updateAudioRouting();
+    connect(audioRoutingComboBox,
+            QOverload<int>::of(&QComboBox::activated),
+            this,
+            &DlgPrefSound::audioRoutingChanged);
+    connect(apiComboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &DlgPrefSound::updateAudioRouting);
     apiLabel->setText(apiLabel->text() + QChar(' ') +
             coloredLinkString(
                     m_pLinkColor,
@@ -893,6 +906,55 @@ void DlgPrefSound::apiChanged(int index) {
     deviceSyncComboBox->setEnabled(enable);
     engineClockComboBox->setEnabled(enable);
     updateAudioBufferSizes(sampleRateComboBox->currentIndex());
+}
+
+namespace {
+const QString kAudioRoutingWasapi = QStringLiteral("Windows WASAPI");
+} // namespace
+
+/// Mix Two: fills Audio Routing (Windows: ASIO / WASAPI, when present) and
+/// selects the entry for the current sound API. Other APIs show as "Other".
+void DlgPrefSound::updateAudioRouting() {
+    const QList<QString> apis = m_pSoundManager->getHostAPIList();
+    audioRoutingComboBox->blockSignals(true);
+    audioRoutingComboBox->clear();
+    if (apis.contains(SoundManagerConfig::kAPIAsio)) {
+        audioRoutingComboBox->addItem(
+                tr("ASIO (lowest latency, other apps cannot play)"),
+                SoundManagerConfig::kAPIAsio);
+    }
+    if (apis.contains(kAudioRoutingWasapi)) {
+        audioRoutingComboBox->addItem(
+                tr("WASAPI (other apps can play at the same time)"),
+                kAudioRoutingWasapi);
+    }
+    const QString api = apiComboBox->itemData(apiComboBox->currentIndex()).toString();
+    int index = audioRoutingComboBox->findData(api);
+    if (index < 0) {
+        audioRoutingComboBox->addItem(tr("Other (see Sound API)"), QString());
+        index = audioRoutingComboBox->count() - 1;
+    }
+    audioRoutingComboBox->setCurrentIndex(index);
+    audioRoutingComboBox->blockSignals(false);
+    const bool show = audioRoutingComboBox->count() > 1;
+    audioRoutingLabel->setVisible(show);
+    audioRoutingComboBox->setVisible(show);
+}
+
+void DlgPrefSound::audioRoutingChanged(int index) {
+    const QString api = audioRoutingComboBox->itemData(index).toString();
+    if (api.isEmpty()) {
+        return;
+    }
+    // AudioTargetManager moves the active HARDWARE / PC target to the new
+    // API at once and keeps its device; then the page shows the result.
+    {
+        ScopedWaitCursor cursor;
+        ControlObject::set(ConfigKey(QStringLiteral("[Soundcard]"),
+                                   QStringLiteral("audio_routing")),
+                api == SoundManagerConfig::kAPIAsio ? 0.0 : 1.0);
+    }
+    slotUpdate();
 }
 
 /// Updates the list of APIs, trying to keep the API and device selections

@@ -9,6 +9,7 @@
 #include <djinterop/djinterop.hpp>
 
 #include "library/export/engineprimeexportrequest.h"
+#include "library/export/trackselectionlists.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackset/crate/crate.h"
@@ -23,34 +24,6 @@ namespace mixxx {
 namespace {
 const QString kDefaultMixxxExportDirName = QStringLiteral("mixxx-export");
 const QString kLastDirConfigItemName = QStringLiteral("LastLibraryExportDirectory");
-
-void populateCrates(
-        QListWidget* pListWidget,
-        const TrackCollection& trackCollection) {
-    // Populate list of crates.
-    CrateSelectResult crates = trackCollection.crates().selectCrates();
-    Crate crate;
-    pListWidget->clear();
-    while (crates.populateNext(&crate)) {
-        auto pItem = std::make_unique<QListWidgetItem>(crate.getName());
-        pItem->setData(Qt::UserRole, crate.getId().toVariant());
-        pListWidget->addItem(pItem.release());
-    }
-}
-
-void populatePlaylists(
-        QListWidget* pListWidget,
-        TrackCollection& trackCollection) {
-    const auto playlistIdAndNamePairs =
-            trackCollection.getPlaylistDAO().getPlaylists(
-                    PlaylistDAO::PLHT_NOT_HIDDEN);
-    pListWidget->clear();
-    for (const auto& [playlistId, playlistName] : playlistIdAndNamePairs) {
-        auto pItem = std::make_unique<QListWidgetItem>(playlistName);
-        pItem->setData(Qt::UserRole, playlistId);
-        pListWidget->addItem(pItem.release());
-    }
-}
 } // namespace
 
 DlgLibraryExport::DlgLibraryExport(
@@ -174,8 +147,8 @@ DlgLibraryExport::DlgLibraryExport(
 
 void DlgLibraryExport::refresh() {
     // Refresh the list of crates and playlists.
-    populateCrates(m_pCratesList, *m_pTrackCollectionManager->internalCollection());
-    populatePlaylists(m_pPlaylistsList, *m_pTrackCollectionManager->internalCollection());
+    populateCrateList(m_pCratesList, *m_pTrackCollectionManager->internalCollection());
+    populatePlaylistList(m_pPlaylistsList, *m_pTrackCollectionManager->internalCollection());
 
     // Check whether a database already exists in the specified directory.
     checkExistingDatabase();
@@ -194,27 +167,7 @@ void DlgLibraryExport::setInitialSelection(
     m_pCratesList->setEnabled(true);
     m_pPlaylistsList->setEnabled(true);
 
-    if (crateId) {
-        for (auto i = 0; i < m_pCratesList->count(); ++i) {
-            auto* pItem = m_pCratesList->item(i);
-            const auto currCrateId = CrateId(pItem->data(Qt::UserRole));
-            if (currCrateId == crateId) {
-                m_pCratesList->setCurrentItem(pItem);
-                return;
-            }
-        }
-    }
-
-    if (playlistId) {
-        for (auto i = 0; i < m_pPlaylistsList->count(); ++i) {
-            auto* pItem = m_pPlaylistsList->item(i);
-            const auto currPlaylistId = pItem->data(Qt::UserRole).toInt();
-            if (currPlaylistId == playlistId) {
-                m_pPlaylistsList->setCurrentItem(pItem);
-                return;
-            }
-        }
-    }
+    selectInitialListItems(m_pCratesList, m_pPlaylistsList, crateId, playlistId);
 }
 
 void DlgLibraryExport::browseExportDirectory() {

@@ -660,18 +660,40 @@ void Tooltips::addStandardTooltips() {
 
     // Awesome-Sync (TM)
     add("sync_enabled")
-            << tr("Enable Sync Lock")
-            << tr("Tap to sync the tempo to other playing tracks or the sync leader.")
-            << tr("Hold for at least a second to enable sync lock for this deck.")
-            << tr("Decks with sync locked will all play at the same tempo, and decks that also have "
-                  "quantize enabled will always have their beats lined up.");
+            << tr("Sync")
+            << QString("%1: %2").arg(leftClick,
+                       tr("Turns sync on or off. Blue: synced. Red-orange: this deck is the "
+                          "master."))
+            << QString("%1: %2").arg(rightClick, tr("Makes this deck the master, or hands it back."))
+            << tr("GRID LOCK matches the tempo and the beats, BPM SYNC the tempo only "
+                  "(Preferences > Decks > Sync options).");
 
     // TODO(owen): find a better phrase for "the other deck"
     add("sync_reset_key")
-            << tr("Sync and Reset Key")
-            << QString("%1: %2").arg(leftClick, tr("Sets the pitch to a key that allows a harmonic transition "
-                                                   "from the other track. Requires a detected key on both involved decks."))
+            << tr("Key Sync and Reset Key")
+            << QString("%1: %2").arg(leftClick, tr("Turns key sync on or off. While on, the key follows the "
+                                                   "master deck's key. Requires a detected key on both involved decks."))
             << QString("%1: %2").arg(rightClick, tr("Resets the key to the original track key."));
+
+    add("tempo_slider_bpm")
+            << tr("Tempo Slider BPM")
+            << tr("The BPM the controller's tempo slider is set to. Shown in orange while the "
+                  "deck plays at another tempo, e.g. because it follows the master deck. Move the "
+                  "slider until it turns white to take over the tempo.");
+
+    add("rate_range_next")
+            << tr("Tempo Range")
+            << tr("Steps through the tempo ranges: ±6%, ±10%, ±16% and WIDE.")
+            << tr("While synced, the range widens on its own when the master's tempo needs it.");
+
+    add("main_cue")
+            << tr("Master Cue")
+            << tr("Sends the master output to the headphone cue, so it is heard in the "
+                  "headphones at any MIXING position.");
+
+    add("master_tempo")
+            << tr("Master Tempo")
+            << tr("When lit, tempo changes do not change the pitch (key lock).");
 
     add("sync_leader")
             << tr("Enable Sync Leader")

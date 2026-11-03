@@ -5,6 +5,8 @@
 #include <QAtomicInt>
 #include <QAtomicPointer>
 #include <QList>
+#include <memory>
+#include <vector>
 
 #include "engine/controls/enginecontrol.h"
 #include "preferences/colorpalettesettings.h"
@@ -280,6 +282,17 @@ class CueControl : public EngineControl {
     void outroEndClear(double v);
     void outroEndActivate(double v);
 
+    /// Stores the active loop as a memory loop, otherwise the current
+    /// (quantized) position as a memory cue.
+    void memoryCueSet(double v);
+    /// Calls the next / previous memory cue: seeks there and makes it the
+    /// cue point, or sets and enables a memory loop.
+    void memoryCueNext(double v);
+    void memoryCuePrev(double v);
+    /// Deletes the memory cue last set or called, or else the one at the
+    /// current position.
+    void memoryCueDelete(double v);
+
   private:
     enum class TrackAt {
         Cue,
@@ -296,6 +309,8 @@ class CueControl : public EngineControl {
     void detachCue(HotcueControl* pControl);
     void setCurrentSavedLoopControlAndActivate(HotcueControl* pControl);
     void loadCuesFromTrack();
+    void publishMemoryCues(const QList<CuePointer>& memoryCues);
+    void callMemoryCue(const CuePointer& pCue, const TrackPointer& pTrack);
     mixxx::audio::FramePos quantizeCuePoint(mixxx::audio::FramePos position);
     mixxx::audio::FramePos getQuantizedCurrentPosition();
     TrackAt getTrackAt() const;
@@ -365,6 +380,19 @@ class CueControl : public EngineControl {
     std::unique_ptr<ControlPushButton> m_pOutroEndSet;
     std::unique_ptr<ControlPushButton> m_pOutroEndClear;
     std::unique_ptr<ControlPushButton> m_pOutroEndActivate;
+
+    // Memory cues and memory loops (rekordbox MEMORY / CALL / DELETE)
+    std::unique_ptr<ControlPushButton> m_pMemoryCueSet;
+    std::unique_ptr<ControlPushButton> m_pMemoryCueNext;
+    std::unique_ptr<ControlPushButton> m_pMemoryCuePrev;
+    std::unique_ptr<ControlPushButton> m_pMemoryCueDelete;
+    std::unique_ptr<ControlObject> m_pMemoryCueCount;
+    /// Positions of the first kMaxNumberOfMemoryCueMarks memory cues, sorted.
+    std::vector<std::unique_ptr<ControlObject>> m_memoryCueMarkPositions;
+    std::vector<std::unique_ptr<ControlObject>> m_memoryCueMarkEndPositions;
+    /// The memory cue last set or called; memory_cue_delete removes it.
+    /// Guarded by m_trackMutex.
+    CuePointer m_pCalledMemoryCue;
 
     ControlValueAtomic<double> m_n60dBSoundStartPosition;
 

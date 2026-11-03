@@ -85,6 +85,10 @@ class PortMidiController : public MidiController {
         return std::nullopt;
     }
 
+    /// Closes the controller and drops its PortMidi devices so that it stays
+    /// safe to query after PortMidi is restarted. It cannot be opened again.
+    void detachFromPortMidi();
+
   private slots:
     bool poll() override;
 

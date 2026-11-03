@@ -38,6 +38,7 @@
 #include "library/library.h"
 #include "library/library_decl.h"
 #include "library/library_prefs.h"
+#include "library/export/deviceexporter.h"
 #ifdef __ENGINEPRIME__
 #include "library/export/libraryexporter.h"
 #endif
@@ -209,6 +210,22 @@ void MixxxMainWindow::initialize() {
             m_pLibraryExporter.get(),
             &mixxx::LibraryExporter::slotRequestExportWithInitialPlaylist);
 #endif
+
+    // Mix Two: initialise the exporter of the Device Library Plus (export to a
+    // stick). It exists in every build.
+    m_pDeviceExporter = m_pCoreServices->getLibrary()->makeDeviceExporter(this);
+    connect(m_pCoreServices->getLibrary().get(),
+            &Library::exportLibraryToDevice,
+            m_pDeviceExporter.get(),
+            &mixxx::DeviceExporter::slotRequestExport);
+    connect(m_pCoreServices->getLibrary().get(),
+            &Library::exportCrateToDevice,
+            m_pDeviceExporter.get(),
+            &mixxx::DeviceExporter::slotRequestExportWithInitialCrate);
+    connect(m_pCoreServices->getLibrary().get(),
+            &Library::exportPlaylistToDevice,
+            m_pDeviceExporter.get(),
+            &mixxx::DeviceExporter::slotRequestExportWithInitialPlaylist);
 
     // Turn on fullscreen mode
     // if we were told to start in fullscreen mode on the command-line
@@ -459,6 +476,12 @@ void MixxxMainWindow::initialize() {
 MixxxMainWindow::~MixxxMainWindow() {
     Timer t("~MixxxMainWindow");
     t.start();
+
+    // Mix Two: a running export to a stick uses the library. Stop it first,
+    // while the window and the library are complete. This waits in a local
+    // event loop for up to 10 seconds.
+    qDebug() << t.elapsed(false).debugMillisWithUnit() << "deleting DeviceExporter";
+    m_pDeviceExporter.reset();
 
     // Save the current window state (position, maximized, etc)
     // Note(ronso0): Unfortunately saveGeometry() also stores the fullscreen state.
@@ -1001,6 +1024,13 @@ void MixxxMainWindow::connectMenuBar() {
             &mixxx::LibraryExporter::slotRequestExport,
             Qt::UniqueConnection);
 #endif
+
+    DEBUG_ASSERT(m_pDeviceExporter);
+    connect(m_pMenuBar,
+            &WMainMenuBar::exportLibraryToDevice,
+            m_pDeviceExporter.get(),
+            &mixxx::DeviceExporter::slotRequestExport,
+            Qt::UniqueConnection);
 }
 
 /// Enable/disable listening to Alt key press for toggling the menubar.

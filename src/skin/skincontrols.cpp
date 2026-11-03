@@ -42,6 +42,15 @@ SkinControls::SkinControls()
                   true),
           m_showVinylControl(ConfigKey(kSkinGroup, QStringLiteral("show_vinylcontrol")),
                   true,
+                  false),
+          m_ddj800Connected(ConfigKey(kSkinGroup, QStringLiteral("ddj800_connected")),
+                  false,
+                  false),
+          m_leftDeckAlt(ConfigKey(kSkinGroup, QStringLiteral("left_deck_alt")),
+                  false,
+                  false),
+          m_rightDeckAlt(ConfigKey(kSkinGroup, QStringLiteral("right_deck_alt")),
+                  false,
                   false) {
     m_showEffectRack.setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_showLibraryCoverArt.setButtonMode(mixxx::control::ButtonMode::Toggle);
@@ -55,6 +64,9 @@ SkinControls::SkinControls()
     m_showSettings.setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_showSpinnies.setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_showVinylControl.setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_ddj800Connected.setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_leftDeckAlt.setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_rightDeckAlt.setButtonMode(mixxx::control::ButtonMode::Toggle);
 
     m_showEffectRack.addAlias(ConfigKey(QStringLiteral("[EffectRack1]"), QStringLiteral("show")));
     m_showLibraryCoverArt.addAlias(ConfigKey(

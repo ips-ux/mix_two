@@ -65,6 +65,13 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     void exportPlaylist(int playlistId);
 #endif
 
+  signals:
+    /// Mix Two: the export of the whole library to a stick (Device Library
+    /// Plus) was requested.
+    void exportAllPlaylistsToDevice();
+    /// Mix Two: the export of a playlist to a stick was requested.
+    void exportPlaylistToDevice(int playlistId);
+
   protected slots:
     virtual void slotDeletePlaylist();
     void slotDuplicatePlaylist();
@@ -93,6 +100,10 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     /// borrows pChild which must not be null, TODO: use gsl::not_null
     virtual void decorateChild(TreeItem* pChild, int playlistId) = 0;
     virtual void addToAutoDJ(PlaylistDAO::AutoDJSendLoc loc);
+    /// The folder "Create New Playlist" puts the new playlist in.
+    virtual int folderIdForNewPlaylist() const {
+        return kInvalidPlaylistFolderId;
+    }
 
     int playlistIdFromIndex(const QModelIndex& index) const;
     // Get the QModelIndex of a playlist based on its id.  Returns QModelIndex()
@@ -125,6 +136,8 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     parented_ptr<QAction> m_pExportAllPlaylistsToEngineAction;
     parented_ptr<QAction> m_pExportPlaylistToEngineAction;
 #endif
+    parented_ptr<QAction> m_pExportAllPlaylistsToDeviceAction;
+    parented_ptr<QAction> m_pExportPlaylistToDeviceAction;
 
     PlaylistTableModel* m_pPlaylistTableModel;
     QSet<int> m_playlistIdsOfSelectedTrack;

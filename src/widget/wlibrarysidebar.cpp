@@ -436,6 +436,26 @@ void WLibrarySidebar::selectChildIndex(const QModelIndex& index, bool selectItem
     scrollTo(translated, EnsureVisible);
 }
 
+bool WLibrarySidebar::isChildIndexExpanded(const QModelIndex& index) {
+    SidebarModel* pSidebarModel = qobject_cast<SidebarModel*>(model());
+    VERIFY_OR_DEBUG_ASSERT(pSidebarModel) {
+        return false;
+    }
+    const QModelIndex translated = pSidebarModel->translateChildIndex(index);
+    return translated.isValid() && isExpanded(translated);
+}
+
+void WLibrarySidebar::setChildIndexExpanded(const QModelIndex& index, bool expanded) {
+    SidebarModel* pSidebarModel = qobject_cast<SidebarModel*>(model());
+    VERIFY_OR_DEBUG_ASSERT(pSidebarModel) {
+        return;
+    }
+    const QModelIndex translated = pSidebarModel->translateChildIndex(index);
+    if (translated.isValid()) {
+        setExpanded(translated, expanded);
+    }
+}
+
 QModelIndex WLibrarySidebar::selectedIndex() {
     QModelIndexList selectedIndices = selectionModel()->selectedRows();
     if (selectedIndices.isEmpty()) {

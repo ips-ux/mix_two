@@ -18,6 +18,7 @@
 #include "track/serato/cueinfoimporter.h"
 #include "track/taglib/trackmetadata_file.h"
 #include "util/color/predefinedcolorpalettes.h"
+#include "util/mp3timingshift.h"
 
 namespace {
 
@@ -97,7 +98,8 @@ double SeratoTags::guessTimingOffsetMillis(
             DEBUG_ASSERT(timingOffset == 0);
 
             Q_UNUSED(signalInfo)
-            int timingShiftCase = mp3guessenc_timing_shift_case(filePath.toStdString().c_str());
+            // Mix Two: through the wrapper, which serialises mp3guessenc calls.
+            int timingShiftCase = mixxx::mp3guessencTimingShiftCase(filePath);
 
             // TODO: Find missing timing offsets
             switch (timingShiftCase) {

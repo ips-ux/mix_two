@@ -27,7 +27,7 @@
           <Template src="skins:LateNight/controls/knob.xml">
             <SetVariable name="TooltipId">talkover_duck_strength</SetVariable>
             <SetVariable name="Size">35f,30f</SetVariable>
-            <SetVariable name="KnobColor">red</SetVariable>
+            <SetVariable name="KnobColor">white</SetVariable>
             <SetVariable name="ArcColor"><Variable name="ArcColorFxMix"/></SetVariable>
             <SetVariable name="ArcReversed">true</SetVariable>
             <SetVariable name="Group">[Master]</SetVariable>

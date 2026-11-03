@@ -108,6 +108,52 @@
       </Children>
     </SingletonDefinition>
 
+    <!-- Mix Two: empty placeholders for the full deck's unused slots -->
+    <SingletonDefinition>
+      <ObjectName>DeckEmptyA<Variable name="ChanNum"/></ObjectName>
+      <Children>
+        <WidgetGroup><Size>0f,0min</Size></WidgetGroup>
+      </Children>
+    </SingletonDefinition>
+    <SingletonDefinition>
+      <ObjectName>DeckEmptyB<Variable name="ChanNum"/></ObjectName>
+      <Children>
+        <WidgetGroup><Size>0f,0min</Size></WidgetGroup>
+      </Children>
+    </SingletonDefinition>
+
+    <!-- Mix Two: the rate column and the deck hub, see deck_full.xml -->
+    <SingletonDefinition>
+      <ObjectName>DeckRate<Variable name="ChanNum"/></ObjectName>
+      <Children>
+        <WidgetGroup>
+          <Layout>horizontal</Layout>
+          <SizePolicy>min,me</SizePolicy>
+          <Children>
+            <WidgetGroup>
+              <ObjectName>DeckRateSpacer</ObjectName>
+              <SizePolicy>min,min</SizePolicy>
+              <Children/>
+              <!-- this is sized and styled in css -->
+              <Connection>
+                <ConfigKey persist="true">[Skin],show_rate_controls</ConfigKey>
+                <Transform><Not/></Transform>
+                <BindProperty>visible</BindProperty>
+              </Connection>
+            </WidgetGroup>
+            <Template src="skins:LateNight/decks/rate_controls.xml"/>
+          </Children>
+        </WidgetGroup>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>DeckHub<Variable name="ChanNum"/></ObjectName>
+      <Children>
+        <Template src="skins:LateNight/decks/deck_hub.xml"/>
+      </Children>
+    </SingletonDefinition>
+
     <!-- Minimal deck, used in deck stack and above library -->
     <SingletonDefinition>
       <ObjectName>Deck<Variable name="ChanNum"/>_Full</ObjectName>

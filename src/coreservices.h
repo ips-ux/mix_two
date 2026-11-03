@@ -11,6 +11,7 @@ class KeyboardEventFilter;
 class EffectsManager;
 class EngineMixer;
 class SoundManager;
+class AudioTargetManager;
 class PlayerManager;
 class RecordingManager;
 #ifdef __BROADCAST__
@@ -112,6 +113,9 @@ class CoreServices : public QObject {
 
   private:
     bool initializeDatabase();
+    /// If rekordbox is running, asks the user to quit it (Retry), to start
+    /// anyway, or to quit Mix Two.
+    void askToCloseRekordbox();
     void initializeKeyboard();
     void initializeSettings();
     void initializeScreensaverManager();
@@ -128,6 +132,8 @@ class CoreServices : public QObject {
     std::shared_ptr<EffectsManager> m_pEffectsManager;
     std::shared_ptr<EngineMixer> m_pEngine;
     std::shared_ptr<SoundManager> m_pSoundManager;
+    // Mix Two: HARDWARE / PC audio target ([Master],audio_target).
+    std::unique_ptr<AudioTargetManager> m_pAudioTargetManager;
     std::shared_ptr<PlayerManager> m_pPlayerManager;
     std::shared_ptr<RecordingManager> m_pRecordingManager;
 #ifdef __BROADCAST__

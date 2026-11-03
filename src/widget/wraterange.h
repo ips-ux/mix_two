@@ -12,7 +12,9 @@ enum class VerticalPosition {
 enum class DisplayType {
     Default,
     Prefix,
-    Range
+    Range,
+    // Mix Two: "±6%", or "WIDE" for ±100 % as in rekordbox.
+    Symmetric
 };
 
 class WRateRange : public WNumber {

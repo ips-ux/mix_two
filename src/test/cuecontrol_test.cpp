@@ -588,3 +588,204 @@ TEST_F(CueControlTest, OutroCue_SetStartEnd_ClearStartEnd) {
 
     EXPECT_EQ(nullptr, pTrack->findCueByType(mixxx::CueType::Outro));
 }
+
+class MemoryCueControlTest : public CueControlTest {
+  protected:
+    void SetUp() override {
+        CueControlTest::SetUp();
+        m_pMemoryCueSet = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_set");
+        m_pMemoryCueNext = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_next");
+        m_pMemoryCuePrev = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_prev");
+        m_pMemoryCueDelete = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_delete");
+        m_pMemoryCueCount = std::make_unique<ControlProxy>(m_sGroup1, "memory_cue_count");
+        m_pMemoryCue1Position = std::make_unique<ControlProxy>(
+                m_sGroup1, "memory_cue_1_position");
+        m_pMemoryCue1EndPosition = std::make_unique<ControlProxy>(
+                m_sGroup1, "memory_cue_1_end_position");
+        m_pMemoryCue2Position = std::make_unique<ControlProxy>(
+                m_sGroup1, "memory_cue_2_position");
+        m_pLoopStartPosition = std::make_unique<ControlProxy>(m_sGroup1, "loop_start_position");
+        m_pLoopEndPosition = std::make_unique<ControlProxy>(m_sGroup1, "loop_end_position");
+        m_pLoopEnabled = std::make_unique<ControlProxy>(m_sGroup1, "loop_enabled");
+        m_pReloopToggle = std::make_unique<ControlProxy>(m_sGroup1, "reloop_toggle");
+        m_pQuantizeEnabled->set(0);
+    }
+
+    static QList<CuePointer> memoryCues(const TrackPointer& pTrack) {
+        QList<CuePointer> cues;
+        const QList<CuePointer> cuePoints = pTrack->getCuePoints();
+        for (const CuePointer& pCue : cuePoints) {
+            if (pCue->getType() == mixxx::CueType::MemoryCue) {
+                cues.append(pCue);
+            }
+        }
+        return cues;
+    }
+
+    void trigger(const std::unique_ptr<ControlProxy>& pControl) {
+        pControl->set(1);
+        pControl->set(0);
+        ProcessBuffer();
+    }
+
+    std::unique_ptr<ControlProxy> m_pMemoryCueSet;
+    std::unique_ptr<ControlProxy> m_pMemoryCueNext;
+    std::unique_ptr<ControlProxy> m_pMemoryCuePrev;
+    std::unique_ptr<ControlProxy> m_pMemoryCueDelete;
+    std::unique_ptr<ControlProxy> m_pMemoryCueCount;
+    std::unique_ptr<ControlProxy> m_pMemoryCue1Position;
+    std::unique_ptr<ControlProxy> m_pMemoryCue1EndPosition;
+    std::unique_ptr<ControlProxy> m_pMemoryCue2Position;
+    std::unique_ptr<ControlProxy> m_pLoopStartPosition;
+    std::unique_ptr<ControlProxy> m_pLoopEndPosition;
+    std::unique_ptr<ControlProxy> m_pLoopEnabled;
+    std::unique_ptr<ControlProxy> m_pReloopToggle;
+};
+
+TEST_F(MemoryCueControlTest, SetStoresMemoryCueOnce) {
+    constexpr auto kPosition = mixxx::audio::FramePos(1000);
+    TrackPointer pTrack = createTestTrack();
+    loadTrack(pTrack);
+
+    setCurrentFramePos(kPosition);
+    trigger(m_pMemoryCueSet);
+
+    QList<CuePointer> cues = memoryCues(pTrack);
+    ASSERT_EQ(1, cues.size());
+    EXPECT_FRAMEPOS_EQ(kPosition, cues.first()->getPosition());
+    EXPECT_FALSE(cues.first()->getEndPosition().isValid());
+    EXPECT_EQ(Cue::kNoHotCue, cues.first()->getHotCue());
+    EXPECT_EQ(1.0, m_pMemoryCueCount->get());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kPosition, m_pMemoryCue1Position);
+    EXPECT_FRAMEPOS_EQ_CONTROL(mixxx::audio::kInvalidFramePos, m_pMemoryCue1EndPosition);
+
+    // Storing the same position again keeps a single memory cue.
+    trigger(m_pMemoryCueSet);
+    EXPECT_EQ(1, memoryCues(pTrack).size());
+}
+
+TEST_F(MemoryCueControlTest, SetStoresActiveLoopAsMemoryLoop) {
+    constexpr auto kLoopStart = mixxx::audio::FramePos(1000);
+    constexpr auto kLoopEnd = mixxx::audio::FramePos(5000);
+    TrackPointer pTrack = createTestTrack();
+    loadTrack(pTrack);
+
+    setCurrentFramePos(kLoopStart);
+    m_pLoopStartPosition->set(kLoopStart.toEngineSamplePos());
+    m_pLoopEndPosition->set(kLoopEnd.toEngineSamplePos());
+    trigger(m_pReloopToggle);
+    ASSERT_TRUE(m_pLoopEnabled->toBool());
+
+    trigger(m_pMemoryCueSet);
+
+    const QList<CuePointer> cues = memoryCues(pTrack);
+    ASSERT_EQ(1, cues.size());
+    EXPECT_FRAMEPOS_EQ(kLoopStart, cues.first()->getPosition());
+    EXPECT_FRAMEPOS_EQ(kLoopEnd, cues.first()->getEndPosition());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kLoopEnd, m_pMemoryCue1EndPosition);
+}
+
+TEST_F(MemoryCueControlTest, ControlsAreSortedByPosition) {
+    constexpr auto kFirst = mixxx::audio::FramePos(1000);
+    constexpr auto kSecond = mixxx::audio::FramePos(3000);
+    TrackPointer pTrack = createTestTrack();
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+            Cue::kNoHotCue,
+            kSecond,
+            mixxx::audio::kInvalidFramePos);
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+            Cue::kNoHotCue,
+            kFirst,
+            mixxx::audio::kInvalidFramePos);
+    loadTrack(pTrack);
+
+    EXPECT_EQ(2.0, m_pMemoryCueCount->get());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kFirst, m_pMemoryCue1Position);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kSecond, m_pMemoryCue2Position);
+
+    unloadTrack();
+    EXPECT_EQ(0.0, m_pMemoryCueCount->get());
+    EXPECT_FRAMEPOS_EQ_CONTROL(mixxx::audio::kInvalidFramePos, m_pMemoryCue1Position);
+}
+
+TEST_F(MemoryCueControlTest, CallNextAndPrev) {
+    constexpr auto kFirst = mixxx::audio::FramePos(1000);
+    constexpr auto kSecond = mixxx::audio::FramePos(3000);
+    TrackPointer pTrack = createTestTrack();
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+            Cue::kNoHotCue,
+            kFirst,
+            mixxx::audio::kInvalidFramePos);
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+            Cue::kNoHotCue,
+            kSecond,
+            mixxx::audio::kInvalidFramePos);
+    loadTrack(pTrack);
+    setCurrentFramePos(mixxx::audio::kStartFramePos);
+
+    // Calling a memory cue seeks to it and makes it the cue point.
+    trigger(m_pMemoryCueNext);
+    EXPECT_FRAMEPOS_EQ(kFirst, getCurrentFramePos());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kFirst, m_pCuePoint);
+
+    trigger(m_pMemoryCueNext);
+    EXPECT_FRAMEPOS_EQ(kSecond, getCurrentFramePos());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kSecond, m_pCuePoint);
+
+    // There is no memory cue after the last one.
+    trigger(m_pMemoryCueNext);
+    EXPECT_FRAMEPOS_EQ(kSecond, getCurrentFramePos());
+
+    // Just after the called memory cue, calling the previous one goes to the
+    // one before it.
+    setCurrentFramePos(kSecond + 100);
+    trigger(m_pMemoryCuePrev);
+    EXPECT_FRAMEPOS_EQ(kFirst, getCurrentFramePos());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kFirst, m_pCuePoint);
+}
+
+TEST_F(MemoryCueControlTest, CallMemoryLoopEnablesLoop) {
+    constexpr auto kLoopStart = mixxx::audio::FramePos(1000);
+    constexpr auto kLoopEnd = mixxx::audio::FramePos(5000);
+    TrackPointer pTrack = createTestTrack();
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue, Cue::kNoHotCue, kLoopStart, kLoopEnd);
+    loadTrack(pTrack);
+    setCurrentFramePos(mixxx::audio::kStartFramePos);
+
+    trigger(m_pMemoryCueNext);
+
+    EXPECT_FRAMEPOS_EQ(kLoopStart, getCurrentFramePos());
+    EXPECT_TRUE(m_pLoopEnabled->toBool());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kLoopStart, m_pLoopStartPosition);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kLoopEnd, m_pLoopEndPosition);
+}
+
+TEST_F(MemoryCueControlTest, DeleteRemovesCalledMemoryCue) {
+    // Further apart than the delete tolerance (50 ms) from the track start.
+    constexpr auto kFirst = mixxx::audio::FramePos(44100);
+    constexpr auto kSecond = mixxx::audio::FramePos(88200);
+    TrackPointer pTrack = createTestTrack();
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+            Cue::kNoHotCue,
+            kFirst,
+            mixxx::audio::kInvalidFramePos);
+    pTrack->createAndAddCue(mixxx::CueType::MemoryCue,
+            Cue::kNoHotCue,
+            kSecond,
+            mixxx::audio::kInvalidFramePos);
+    loadTrack(pTrack);
+    setCurrentFramePos(mixxx::audio::kStartFramePos);
+
+    // Nothing to delete away from any memory cue.
+    trigger(m_pMemoryCueDelete);
+    EXPECT_EQ(2, memoryCues(pTrack).size());
+
+    trigger(m_pMemoryCueNext);
+    trigger(m_pMemoryCueDelete);
+
+    const QList<CuePointer> cues = memoryCues(pTrack);
+    ASSERT_EQ(1, cues.size());
+    EXPECT_FRAMEPOS_EQ(kSecond, cues.first()->getPosition());
+    EXPECT_EQ(1.0, m_pMemoryCueCount->get());
+    EXPECT_FRAMEPOS_EQ_CONTROL(kSecond, m_pMemoryCue1Position);
+}

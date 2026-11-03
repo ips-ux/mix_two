@@ -179,6 +179,20 @@ void WMainMenuBar::initialize() {
     pLibraryMenu->addAction(pLibraryExport);
 #endif
 
+    // Mix Two: the export to a stick (Device Library Plus).
+    QString exportToDeviceTitle = tr("Export to a USB stick...");
+    QString exportToDeviceText =
+            tr("Export tracks and playlists to a USB stick or SD card for Pioneer DJ players.");
+    auto* pLibraryExportToDevice = new QAction(exportToDeviceTitle, this);
+    pLibraryExportToDevice->setStatusTip(exportToDeviceText);
+    pLibraryExportToDevice->setWhatsThis(buildWhatsThis(exportToDeviceTitle, exportToDeviceText));
+    pLibraryExportToDevice->setCheckable(false);
+    connect(pLibraryExportToDevice,
+            &QAction::triggered,
+            this,
+            &WMainMenuBar::exportLibraryToDevice);
+    pLibraryMenu->addAction(pLibraryExportToDevice);
+
     pLibraryMenu->addSeparator();
 
     QString searchHereTitle = tr("Search in Current View...");

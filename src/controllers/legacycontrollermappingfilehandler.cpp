@@ -1,5 +1,6 @@
 #include "controllers/legacycontrollermappingfilehandler.h"
 
+#include <QXmlStreamAttributes>
 #include <algorithm>
 #include <functional>
 
@@ -266,6 +267,31 @@ void LegacyControllerMappingFileHandler::parseMappingInfo(
     mapping->setManualPage(manualPage.isNull() ? "" : manualPage.text());
     QDomElement wiki = info.firstChildElement("wiki");
     mapping->setWikiLink(wiki.isNull() ? "" : wiki.text());
+
+    // Keep the declared devices, so that saving the mapping preserves them.
+    const QDomElement devices = info.firstChildElement("devices");
+    for (QDomElement product = devices.firstChildElement("product");
+            !product.isNull();
+            product = product.nextSiblingElement("product")) {
+        QXmlStreamAttributes attributes;
+        const QDomNamedNodeMap domAttributes = product.attributes();
+        for (int i = 0; i < domAttributes.count(); ++i) {
+            const QDomAttr attribute = domAttributes.item(i).toAttr();
+            attributes.append(attribute.name(), attribute.value());
+        }
+        const QString protocol = product.attribute("protocol");
+        ProductInfo productInfo;
+        if (protocol == QStringLiteral("hid")) {
+            productInfo = MappingInfo::parseHIDProduct(attributes);
+        } else if (protocol == QStringLiteral("bulk")) {
+            productInfo = MappingInfo::parseBulkProduct(attributes);
+        } else if (protocol == QStringLiteral("midi")) {
+            productInfo = MappingInfo::parseMidiProduct(attributes);
+        }
+        if (!productInfo.protocol.isEmpty()) {
+            mapping->addProductMatch(productInfo);
+        }
+    }
 }
 
 void LegacyControllerMappingFileHandler::parseMappingSettings(
@@ -540,6 +566,14 @@ QDomDocument LegacyControllerMappingFileHandler::buildRootWithScripts(
         if (productInfo.protocol == "hid") {
             element.setAttribute("usage_page", productInfo.usage_page);
             element.setAttribute("usage", productInfo.usage);
+        }
+        if (productInfo.protocol == "midi") {
+            if (!productInfo.device_name.isEmpty()) {
+                element.setAttribute("device_name", productInfo.device_name);
+            }
+            if (!productInfo.device_name_regex.isEmpty()) {
+                element.setAttribute("device_name_regex", productInfo.device_name_regex);
+            }
         }
         devices.appendChild(element);
     }

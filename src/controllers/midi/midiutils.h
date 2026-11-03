@@ -67,6 +67,12 @@ class MidiUtils {
                               const QByteArray& data,
                               mixxx::Duration timestamp = mixxx::Duration::fromMillis(0));
 
+    /// Strips the decorations that MIDI APIs add to a device's port name so
+    /// the same hardware gets the same name on every platform, e.g.
+    /// "2- DDJ-800" (Windows, second instance), "DDJ-800 MIDI 1" and
+    /// "DDJ-800:DDJ-800 MIDI 1 20:0" (ALSA) all become "DDJ-800".
+    static QString canonicalDeviceName(const QString& deviceName);
+
     template<class... Ts>
     struct overloaded : Ts... {
         using Ts::operator()...;

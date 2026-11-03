@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <array>
+#include <atomic>
 
 #include "control/pollingcontrolproxy.h"
 #include "engine/controls/enginecontrol.h"
@@ -83,6 +85,8 @@ public slots:
   void slotRateRangeChanged(double);
   void slotRateSliderChanged(double);
   void slotRateRatioChanged(double);
+  void slotRatePhysicalChanged(double);
+  void slotRateRangeNext(double);
   void slotReverseRollActivate(double);
   void slotControlRatePermDown(double);
   void slotControlRatePermDownSmall(double);
@@ -96,6 +100,32 @@ private:
   double getJogFactor() const;
   double getWheelFactor() const;
   SyncMode getSyncMode() const;
+  // Mix Two: the BPM the hardware tempo slider stands for, and whether the
+  // deck plays at it.
+  void updateTempoSlider();
+  // Mix Two: the rekordbox-style platter. Returns the scratch rate
+  // while the platter is touched.
+  double calculatePlatterRate(double baserate, std::size_t samplesPerBuffer, double turn);
+  // Starts a scratch's position lock and touch dead zone; the anchor is
+  // taken in the next calculatePlatterRate().
+  void startPlatterScratch();
+  // Mix Two: runs the platter states for one buffer. Returns true with
+  // *pRate set while the platter drives the track (scratch or spin);
+  // otherwise the deck plays normally, with m_platterBend applied.
+  bool processPlatter(double baserate,
+          double tempoRatio,
+          bool paused,
+          std::size_t samplesPerBuffer,
+          double* pRate);
+  // rekordbox's jog input stage: rebuilds
+  // the 1 ms jog entries from the stamped turns, takes one buffer's worth and
+  // applies the dead band. Returns the revolutions for this buffer; sets
+  // *pJogFinished when the jog has been quiet for 56 ms.
+  double takePlatterTurn(double bufferSeconds, bool touched, bool* pJogFinished);
+  void clearPlatterQueue();
+  // rekordbox's spin test: whether a spin at this buffer's speed goes on.
+  bool platterSpinGoesOn(bool playing, double playRate, double speed);
+  void setPlatterState(int state);
 
   // Set rate change of the temporary pitch rate
   void setRateTemp(double v);
@@ -117,6 +147,65 @@ private:
   std::unique_ptr<ControlObject> m_pRateRange;
   std::unique_ptr<ControlPotmeter> m_pRateSlider;
   std::unique_ptr<ControlPotmeter> m_pRateSearch;
+  // Mix Two: position of the controller's tempo slider, -1..1 like "rate".
+  // It can differ from "rate" while SYNC holds the tempo or before the
+  // slider has caught up (soft takeover).
+  std::unique_ptr<ControlObject> m_pRatePhysical;
+  // Mix Two: steps through the rekordbox ranges (±6, ±10, ±16 %, WIDE).
+  std::unique_ptr<ControlPushButton> m_pRateRangeNext;
+  std::unique_ptr<ControlObject> m_pTempoSliderBpm;
+  std::unique_ptr<ControlObject> m_pTempoSliderMatched;
+  std::unique_ptr<ControlProxy> m_pLocalBpm;
+  bool m_ratePhysicalKnown;
+  // [ChannelN],platter_touch: the platter is touched (scratching).
+  std::unique_ptr<ControlPushButton> m_pPlatterTouch;
+  // [ChannelN],platter_turn: each set adds that many revolutions turned
+  // (negative backwards). The value itself stays 0.
+  std::unique_ptr<ControlObject> m_pPlatterTurn;
+  // Turns by arrival millisecond (any thread adds, the engine takes them as
+  // rekordbox's 1 ms ticks would).
+  static constexpr int kPlatterTurnBins = 256; // as platterTurnBin()
+  std::array<std::atomic<double>, kPlatterTurnBins> m_platterTurnBins;
+  // [ChannelN],platter_state (read-only): 0 idle, 1 scratch, 2 spin,
+  // 3 disable, 4 bend.
+  std::unique_ptr<ControlObject> m_pPlatterState;
+  int m_platterState;
+  // The jog input stage: a queue of 1 ms entries (no allocations).
+  struct PlatterEntry {
+      double turn; // revolutions
+      double ms;   // how long the entry lasts
+  };
+  static constexpr int kPlatterQueueSize = 100;
+  std::array<PlatterEntry, kPlatterQueueSize> m_platterQueue;
+  int m_platterQueueHead;
+  int m_platterQueueCount;
+  qint64 m_platterLastTickMs;      // last 1 ms tick taken; -1 before the first
+  bool m_platterJogActive;         // ticks are queued (until 56 ms quiet)
+  int m_platterLastEntryDirection; // of the last queued entry; 0 none
+  double m_platterCarry;           // dead band: revolutions held back
+  bool m_platterPassedLast;        // the previous buffer passed the dead band
+  double m_platterLastPassClock;   // m_platterClock when steps last passed
+  double m_platterClock;           // seconds of audio processed
+  double m_platterSpeed;           // speed of the last buffer that moved
+  int m_platterDirection;          // direction of the last movement (+1 / -1)
+  bool m_platterReversed;          // the last movement reversed direction
+  int m_platterSpinDirection;
+  int m_platterSlowCount;        // spin: buffers slower than play, in a row
+  int m_platterSpinEmpty;        // spin: buffers without movement, in a row
+  double m_platterAgainstSpin;   // disable: revolutions against the spin
+  bool m_platterPlayingAtTouch;
+  bool m_platterUntouchedScratch; // the jog on a paused deck, not a touch
+  double m_platterBend;          // fraction of the tempo added by a bend
+  double m_platterBendClock;     // m_platterClock at the last bend update
+  bool m_platterActive;
+  bool m_platterDeadZone;
+  // The renderer eases into the stop over the first touched buffer; the
+  // anchor is taken after that, where the track came to rest.
+  bool m_platterAnchorPending;
+  double m_platterAnchor;     // track frames at touch
+  double m_platterTurned;     // revolutions applied since touch
+  double m_platterDeadTurn;   // revolutions discarded in the dead zone
+  double m_platterSinceTouch; // seconds since touch
 
   std::unique_ptr<ControlPushButton> m_pButtonRateTempDown;
   std::unique_ptr<ControlPushButton> m_pButtonRateTempDownSmall;

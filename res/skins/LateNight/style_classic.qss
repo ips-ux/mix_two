@@ -1428,6 +1428,7 @@ WPushButton#VinylStatus[displayValue="2"],
 WPushButton#VinylStatus[displayValue="3"],
 WPushButton#FxAssignButton1[displayValue="1"],
 #KeyMatchReset[pressed="true"],
+#KeyMatchReset[displayValue="1"],
 #GuiToggleButton[displayValue="1"],
 #SyncDeck[displayValue="1"],
 #RecFeedback[displayValue="1"],
@@ -2938,3 +2939,264 @@ WSearchLineEdit::indicator:unchecked:selected {
 }
 /************** common styles for WEffectSelector ******************************
 *************** QSpinBox, QMenu, QToolTip *************************************/
+
+/************** Mix Two: deck hub and MT button ****************************/
+#HubBpmContainer:hover,
+#HubRateRangeButton:hover {
+  background-color: #151517;
+  border-radius: 1px;
+}
+
+/* Slider BPM: white while the deck plays at the slider's tempo, red-orange
+   while it does not (SYNC follows the master, or the slider has not caught
+   up yet). */
+#HubSliderBpmText {
+  color: #ffffff;
+}
+#HubSliderBpmText[highlight="1"] {
+  color: #ff5a1f;
+}
+
+#HubRateText,
+#HubRateRangeText,
+#MasterTempoLabel {
+  color: #bfbfbe;
+}
+
+
+/************** Mix Two: MASTER and HEADPHONES sections ********************/
+/* The headphones section sits left of the channels: mirror the margin. */
+#MixerHeadphonesSide #MixerMainHeadphone {
+  margin: 2px 0px 2px 2px;
+}
+
+#MixerSectionHeader,
+#KnobEndLabel {
+  color: #bfbfbe;
+}
+
+/* MASTER CUE: a short orange-framed button, lit while on (DDJ-800). */
+#MainCueButton {
+  color: #ff9a1f;
+  background-color: #1a1a1a;
+  border: 1px solid #ff9a1f;
+  border-radius: 2px;
+}
+#MainCueButton[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+}
+
+/* Mix Two: MASTER CUE. Off: grey and dim, so off reads as off. */
+#MainCueButton {
+  color: #6f6a65;
+  border-color: #454240;
+}
+#MainCueButton[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+
+/* Mix Two: end values at a knob's bottom corners (TRIM -inf / +12,
+   COLOR LOW / HI, levels -inf / 0). Open Sans has the infinity sign;
+   Silkscreen does not. */
+#KnobCornerLabel {
+  font-family: "Open Sans";
+  font-size: 9px;
+  font-weight: bold;
+  color: #a39a90;
+}
+
+/* Mix Two: SOUND COLOR FX set apart from the EQ: a line across the mixer
+   and the band's name between the COLOR knobs, as on the DDJ-800. */
+#SoundColorFxDivider {
+  background-color: #3a3a3e;
+}
+#SoundColorFxLabel {
+  font-family: "Open Sans";
+  font-size: 10px;
+  font-weight: bold;
+  color: #bfbfbe;
+  qproperty-alignment: 'AlignCenter';
+}
+
+/* Mix Two: AUDIO: HARDWARE | PC in the toolbar, next to REC. The side
+   that is not in use looks like the other toolbar buttons when off; the
+   side in use is lit: HARDWARE in our orange, PC in our blue. */
+#AudioTargetLabel {
+  color: #bfbfbe;
+  image: url(skins:LateNight/classic/buttons/btn__audio_jack.svg) no-repeat left center;
+}
+#AudioTargetHardware,
+#AudioTargetPc {
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 2px;
+  color: #777;
+}
+#AudioTargetHardware[displayValue="1"] {
+  border-image: none;
+  border: 1px solid #ff9a1f;
+  border-radius: 2px;
+  background-color: #ff9a1f;
+  color: #1a1000;
+}
+#AudioTargetPc[displayValue="1"] {
+  border-image: none;
+  border: 1px solid #3d9be9;
+  border-radius: 2px;
+  background-color: #3d9be9;
+  color: #06121e;
+}
+
+/* Mix Two: channel CUE (headphone cue) buttons, the same as MASTER CUE. */
+#ChannelCueButton {
+  font-size: 11px;
+  font-weight: bold;
+  color: #6f6a65;
+  background-color: #1a1a1a;
+  border: 1px solid #454240;
+  border-radius: 2px;
+}
+#ChannelCueButton[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+
+/* Sound Color FX (DUB ECHO, SWEEP, NOISE, FILTER) under HEADPHONES:
+   rectangular grey buttons, lit blue while selected. */
+#SoundColorFxButton {
+  color: #bfbfbe;
+  background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4a4a4e, stop:1 #38383c);
+  border: 1px solid #0a0a0a;
+  border-top-color: #5a5a60;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: bold;
+}
+#SoundColorFxButton[displayValue="1"] {
+  color: #06121e;
+  background-color: #3d9be9;
+  border-color: #1b5a8c;
+  border-top-color: #7cc0f5;
+}
+
+/************** Mix Two: mixer modules, round SYNC / KEY SYNC **************/
+/* Raised module: soft gradient face, light top edge, dark bottom edge. */
+#MixerModule {
+  background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222224, stop:1 #18181a);
+  border: 1px solid #0a0a0a;
+  border-top-color: #34343a;
+  border-radius: 4px;
+  padding: 0px 4px 5px 4px;
+}
+/* The title sits in an inset bar at the top of its module. */
+#MixerSectionHeader {
+  color: #cfcfce;
+  background-color: #121213;
+  border: 1px solid #0a0a0a;
+  border-bottom-color: #34343a;
+  border-radius: 3px;
+  margin: 3px 0px 4px 0px;
+  padding: 0px 6px;
+}
+
+/* Round SYNC / KEY SYNC: a domed cap with a ring light. */
+#SyncRoundClick {
+  background: transparent;
+  border: none;
+}
+#SyncRound,
+#KeySyncRound,
+#MasterTempoRound {
+  color: #8a8a8a;
+  background-color: qradialgradient(cx:0.4, cy:0.35, radius:0.75, fx:0.4, fy:0.3,
+      stop:0 #3a3a3a, stop:1 #141414);
+  border: 1px solid #2a2a2a;
+  border-radius: 17px;
+}
+/* synced: tech blue */
+#SyncRound[displayValue="1"],
+#SyncRound[displayValue="4"],
+#KeySyncRound[displayValue="1"] {
+  color: #d6eeff;
+  border-color: #1fa3ff;
+}
+/* MASTER: red-orange */
+#SyncRound[displayValue="2"],
+#SyncRound[displayValue="5"] {
+  color: #ffe0d2;
+  border-color: #ff5a1f;
+}
+
+/* MT: the same domed cap, with a centre light that is vivid red while on. */
+/* Mix Two: MT is smaller than SYNC and KEY (24 px), as on the DDJ-800. */
+#MasterTempoRound {
+  border-radius: 12px;
+}
+#MasterTempoRound[displayValue="0"] {
+  image: url(skins:LateNight/classic/buttons/btn__mt_light.svg) no-repeat center center;
+}
+#MasterTempoRound[displayValue="1"] {
+  image: url(skins:LateNight/classic/buttons/btn__mt_light_on.svg) no-repeat center center;
+}
+
+/* Mix Two: EFFECTS module under MASTER (Beat FX). */
+/* S 1 2 3 4 M: DJM-900NXS2-style segments, lit orange while assigned. */
+#FxChannelRow {
+  qproperty-layoutSpacing: 1;
+}
+#FxChannelSegment {
+  font-family: "Open Sans";
+  font-size: 9px;
+  font-weight: bold;
+  color: #5e5a56;
+  background-color: #161616;
+  border: 1px solid #3a3836;
+  border-radius: 1px;
+}
+#FxChannelSegment[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+#FxModuleSelector {
+  font-size: 9px;
+}
+/* ENABLED / DISABLED, the same as CUE. */
+#FxEnabledButton {
+  font-size: 9px;
+  font-weight: bold;
+  color: #6f6a65;
+  background-color: #161616;
+  border: 1px solid #454240;
+  border-radius: 2px;
+}
+#FxEnabledButton[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+
+/* Mix Two: BEAT selector in the EFFECTS module: a data display with an
+   arrow at each end; the segments go grey while a DDJ-800 owns them. */
+#FxBeatSelector {
+  font-family: "Open Sans";
+  font-size: 9px;
+  font-weight: bold;
+  color: #d2d2d1;
+  background-color: #161616;
+  border: 1px solid #454240;
+  border-radius: 2px;
+}
+#FxChannelSegment:disabled {
+  color: #4a4744;
+  border-color: #2e2c2a;
+}
+#FxChannelSegment:disabled[displayValue="1"] {
+  color: #1a1000;
+  background-color: #b8701a;
+  border-color: #b8701a;
+}

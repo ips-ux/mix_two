@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QLoggingCategory>
+#include <QRegularExpression>
 #include <QXmlStreamReader>
 
 Q_LOGGING_CATEGORY(kLogger, "controllers.mappinginfo")
@@ -29,7 +30,9 @@ bool operator==(const ProductInfo& a, const ProductInfo& b) {
             a.usage_page == b.usage_page &&
             a.usage == b.usage &&
             a.in_epaddr == b.in_epaddr &&
-            a.out_epaddr == b.out_epaddr;
+            a.out_epaddr == b.out_epaddr &&
+            a.device_name == b.device_name &&
+            a.device_name_regex == b.device_name_regex;
 }
 
 size_t qHash(const ProductInfo& product) {
@@ -40,18 +43,23 @@ size_t qHash(const ProductInfo& product) {
             qHash(product.usage_page) +
             qHash(product.usage) +
             qHash(product.in_epaddr) +
-            qHash(product.out_epaddr);
+            qHash(product.out_epaddr) +
+            qHash(product.device_name) +
+            qHash(product.device_name_regex);
 }
 
 QDebug operator<<(QDebug dbg, const ProductInfo& product) {
     dbg << QStringLiteral(
             "ProductInfo<protocol=%1, friendlyName=%2, vendor_id=%3, "
-            "product_id=%4, interface_number=%5>")
+            "product_id=%4, interface_number=%5, device_name=%6, "
+            "device_name_regex=%7>")
                     .arg(product.protocol,
                             product.friendlyName,
                             product.vendor_id,
                             product.product_id,
-                            product.interface_number);
+                            product.interface_number,
+                            product.device_name,
+                            product.device_name_regex);
     return dbg;
 }
 
@@ -128,7 +136,7 @@ MappingInfo::MappingInfo(const QFileInfo& fileInfo) {
                     } else if (protocol == QStringLiteral("bulk")) {
                         product = parseBulkProduct(xml.attributes());
                     } else if (protocol == QStringLiteral("midi")) {
-                        qCInfo(kLogger) << "MIDI product info parsing not yet implemented";
+                        product = parseMidiProduct(xml.attributes());
                     } else {
                         qCCritical(kLogger)
                                 << "Product info element contains missing or "
@@ -232,5 +240,38 @@ ProductInfo MappingInfo::parseHIDProduct(const QXmlStreamAttributes& xmlElementA
     productInfo.interface_number =
             xmlElementAttributes.value(QStringLiteral("interface_number"))
                     .toString();
+    return productInfo;
+}
+
+ProductInfo MappingInfo::parseMidiProduct(const QXmlStreamAttributes& xmlElementAttributes) {
+    // MIDI device <product> element parsing. Examples of valid elements:
+    //   <product protocol="midi" device_name="DDJ-800" />
+    //   <product protocol="midi" device_name_regex="^DDJ-800( MIDI \d+)?$" />
+    // MIDI APIs do not expose USB identifiers, so only names are matched.
+
+    ProductInfo productInfo;
+    productInfo.protocol = xmlElementAttributes.value(QStringLiteral("protocol")).toString();
+    productInfo.device_name =
+            xmlElementAttributes.value(QStringLiteral("device_name")).toString().trimmed();
+    productInfo.device_name_regex =
+            xmlElementAttributes.value(QStringLiteral("device_name_regex")).toString();
+    productInfo.friendlyName = xmlElementAttributes.value("friendly_name").toString();
+    productInfo.visualUrl = QUrl(xmlElementAttributes.value("image").toString());
+    if (productInfo.device_name.isEmpty() && productInfo.device_name_regex.isEmpty()) {
+        // Some mappings declare MIDI devices by USB IDs only, which MIDI APIs
+        // do not expose, so such entries cannot be matched.
+        qCDebug(kLogger) << "Ignoring midi product info without device_name "
+                            "or device_name_regex in"
+                         << xmlElementAttributes.value(QStringLiteral("vendor_id"))
+                         << xmlElementAttributes.value(QStringLiteral("product_id"));
+        return ProductInfo();
+    }
+    if (!productInfo.device_name_regex.isEmpty() &&
+            !QRegularExpression(productInfo.device_name_regex).isValid()) {
+        qCCritical(kLogger) << "Product info element for midi contains an "
+                               "invalid device_name_regex"
+                            << productInfo.device_name_regex;
+        return ProductInfo();
+    }
     return productInfo;
 }

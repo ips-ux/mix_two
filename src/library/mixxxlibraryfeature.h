@@ -33,9 +33,7 @@ class MixxxLibraryFeature final : public LibraryFeature {
     TreeItemModel* sidebarModel() const override;
     void bindLibraryWidget(WLibrary* pLibrary,
                     KeyboardEventFilter* pKeyboard) override;
-#ifdef __ENGINEPRIME__
     void bindSidebarWidget(WLibrarySidebar* pSidebarWidget) override;
-#endif
 
     bool hasTrackTable() override {
         return true;
@@ -51,16 +49,17 @@ class MixxxLibraryFeature final : public LibraryFeature {
     void activate() override;
     void activateChild(const QModelIndex& index) override;
     void slotUpdateTrackCount();
-#ifdef __ENGINEPRIME__
     void onRightClick(const QPoint& globalPos) override;
-#endif
     void refreshLibraryModels();
 
-#ifdef __ENGINEPRIME__
   signals:
+#ifdef __ENGINEPRIME__
     /// Inform that a request has been made to export the whole Mixxx library.
     void exportLibrary();
 #endif
+    /// Mix Two: inform that a request has been made to export the whole
+    /// library to a stick (Device Library Plus).
+    void exportLibraryToDevice();
 
   private:
     const QString kMissingTitle;
@@ -79,7 +78,8 @@ class MixxxLibraryFeature final : public LibraryFeature {
 
 #ifdef __ENGINEPRIME__
     parented_ptr<QAction> m_pExportLibraryAction;
+#endif
+    parented_ptr<QAction> m_pExportLibraryToDeviceAction;
 
     QPointer<WLibrarySidebar> m_pSidebarWidget;
-#endif
 };

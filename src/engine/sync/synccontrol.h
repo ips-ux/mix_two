@@ -130,6 +130,9 @@ class SyncControl : public EngineControl, public Syncable {
     // The amount we should multiply the leader BPM by to find a good sync match.
     // Sometimes this is 2 or 0.5.
     double m_leaderBpmAdjustFactor;
+    // Mix Two: set while the deck has just turned sync on, so half / double
+    // is chosen once from the track's own BPM (see reinitLeaderParams).
+    bool m_joiningSync;
     // It is handy to store the raw reported target beat distance in case the
     // multiplier changes and we need to recalculate the target distance.
     double m_unmultipliedTargetBeatDistance;
@@ -139,6 +142,16 @@ class SyncControl : public EngineControl, public Syncable {
     QScopedPointer<ControlPushButton> m_pSyncMode;
     QScopedPointer<ControlPushButton> m_pSyncLeaderEnabled;
     QScopedPointer<ControlPushButton> m_pSyncEnabled;
+    // Mix Two: [ChannelN],sync_indicator for the round SYNC button, read-only.
+    // Light 0 = off, 1 = synced (blue), 2 = the playing or chosen MASTER
+    // (red-orange), plus 3 when Sync mode is BPM Sync (label "BPM SYNC"
+    // instead of "GRID LOCK").
+    QScopedPointer<ControlObject> m_pSyncIndicator;
+    // Mix Two: [ChannelN],sync_leader_toggle, a push button: makes the deck
+    // MASTER, or hands MASTER back when it already is (right-click on SYNC).
+    QScopedPointer<ControlPushButton> m_pSyncLeaderToggle;
+    QScopedPointer<ControlProxy> m_pSyncType;
+    void updateSyncIndicator();
     QScopedPointer<ControlObject> m_pBeatDistance;
 
     // Button for sync'ing with the other EngineBuffer

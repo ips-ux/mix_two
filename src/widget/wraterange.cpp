@@ -28,6 +28,8 @@ void WRateRange::setup(const QDomNode& node, const SkinContext& context) {
         m_nodeDisplay = DisplayType::Prefix;
     } else if (RateRangeType.text() == "range") {
         m_nodeDisplay = DisplayType::Range;
+    } else if (RateRangeType.text() == "symmetric") {
+        m_nodeDisplay = DisplayType::Symmetric;
     } else {
         m_nodeDisplay = DisplayType::Default;
     }
@@ -61,6 +63,10 @@ void WRateRange::setValue(double range) {
         m_nodeText = prefix;
     } else if (m_nodeDisplay == DisplayType::Range) {
         m_nodeText = QString::number(range * 100);
+    } else if (m_nodeDisplay == DisplayType::Symmetric) {
+        m_nodeText = range >= 1.0
+                ? QStringLiteral("WIDE")
+                : QStringLiteral("±%1%").arg(QString::number(range * 100));
     } else {
         m_nodeText = prefix.append(QString::number(range * 100));
     }

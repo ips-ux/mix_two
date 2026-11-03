@@ -415,6 +415,11 @@ QmlApplication::~QmlApplication() {
     // owned by the engine may still reference QML waveform renderers and the
     // factory while the engine is tearing down its object tree.
     m_pAppEngine.reset();
+    // QmlCoreServices is a child of this object; destroy it explicitly so the
+    // singleton does not keep a dangling instance after we are gone.
+    if (QmlCoreServices::isCreated()) {
+        QmlCoreServices::destroy();
+    }
     // Delete all the QML singletons in order to prevent leak detection in CoreService
     QmlRecordingProxy::s_pRecordingManager.reset();
     QmlDlgPreferencesProxy::s_pInstance.reset();

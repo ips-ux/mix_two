@@ -1297,6 +1297,18 @@ add_library(
   src/effects/backends/builtin/bitcrushereffect.cpp
   src/effects/backends/builtin/builtinbackend.cpp
   src/effects/backends/builtin/distortioneffect.cpp
+  src/effects/backends/builtin/beatfxechoeffect.cpp
+  src/effects/backends/builtin/colorfxdubechoeffect.cpp
+  src/effects/backends/builtin/colorfxfiltereffect.cpp
+  src/effects/backends/builtin/colorfxsweepeffect.cpp
+  src/effects/backends/builtin/beatfxenigmajeteffect.cpp
+  src/effects/backends/builtin/beatfxmobiuseffect.cpp
+  src/effects/backends/builtin/beatfxflangereffect.cpp
+  src/effects/backends/builtin/beatfxmtdelayeffect.cpp
+  src/effects/backends/builtin/beatfxreverbeffect.cpp
+  src/effects/backends/builtin/beatfxrolleffect.cpp
+  src/effects/backends/builtin/beatfxspiraleffect.cpp
+  src/effects/backends/builtin/beatfxtranseffect.cpp
   src/effects/backends/builtin/echoeffect.cpp
   src/effects/backends/builtin/filtereffect.cpp
   src/effects/backends/builtin/flangereffect.cpp
@@ -1354,6 +1366,7 @@ add_library(
   src/encoder/encoderwave.cpp
   src/encoder/encoderwavesettings.cpp
   src/engine/bufferscalers/enginebufferscale.cpp
+  src/engine/bufferscalers/enginebufferscalehalfbandlagrange.cpp
   src/engine/bufferscalers/enginebufferscalelinear.cpp
   src/engine/bufferscalers/enginebufferscalest.cpp
   src/engine/cachingreader/cachingreader.cpp
@@ -1453,10 +1466,14 @@ add_library(
   src/library/dlgtrackinfomulti.ui
   src/library/dlgtrackmetadataexport.cpp
   src/library/export/coverartcopyworker.cpp
+  src/library/export/deviceexporter.cpp
+  src/library/export/devicelibraryplusexportjob.cpp
+  src/library/export/dlgdeviceexport.cpp
   src/library/export/dlgtrackexport.ui
   src/library/export/trackexportdlg.cpp
   src/library/export/trackexportwizard.cpp
   src/library/export/trackexportworker.cpp
+  src/library/export/trackselectionlists.cpp
   src/library/externaltrackcollection.cpp
   src/library/itunes/itunesdao.cpp
   src/library/itunes/itunesfeature.cpp
@@ -1469,6 +1486,7 @@ add_library(
   src/library/librarycontrol.cpp
   src/library/libraryfeature.cpp
   src/library/librarytablemodel.cpp
+  src/library/loadprompt.cpp
   src/library/missing_hidden/dlghidden.cpp
   src/library/missing_hidden/dlghidden.ui
   src/library/missing_hidden/dlgmissing.cpp
@@ -1486,7 +1504,20 @@ add_library(
   src/library/recording/dlgrecording.cpp
   src/library/recording/dlgrecording.ui
   src/library/recording/recordingfeature.cpp
+  src/library/rekordbox/devicelibraryplusdb.cpp
+  src/library/rekordbox/devicelibraryplusdbrows.cpp
+  src/library/rekordbox/devicelibraryplusexportcleanup.cpp
+  src/library/rekordbox/devicelibraryplusexporter.cpp
+  src/library/rekordbox/devicelibraryplusmapping.cpp
+  src/library/rekordbox/devicelibrarypluskey.cpp
+  src/library/rekordbox/devicelibraryplusschema.cpp
+  src/library/rekordbox/devicelibraryplusstick.cpp
+  src/library/rekordbox/rekordboxbeats.cpp
   src/library/rekordbox/rekordboxfeature.cpp
+  src/library/rekordbox/sqlciphercodec.cpp
+  src/library/rekordbox/anlzwaveform.cpp
+  src/library/rekordbox/anlzwriter.cpp
+  src/library/rekordbox/anlztrackdata.cpp
   src/library/rhythmbox/rhythmboxfeature.cpp
   src/library/scanner/importfilestask.cpp
   src/library/scanner/libraryscanner.cpp
@@ -1618,6 +1649,7 @@ add_library(
   src/soundio/sounddevice.cpp
   src/soundio/sounddevicenetwork.cpp
   src/soundio/sounddeviceportaudio.cpp
+  src/soundio/audiotargetmanager.cpp
   src/soundio/soundmanager.cpp
   src/soundio/soundmanagerconfig.cpp
   src/soundio/soundmanagerutil.cpp
@@ -1705,6 +1737,7 @@ add_library(
   src/util/mac.cpp
   src/util/moc_included_test.cpp
   src/util/movinginterquartilemean.cpp
+  src/util/mp3timingshift.cpp
   src/util/rangelist.cpp
   src/util/readaheadsamplebuffer.cpp
   src/util/ringdelaybuffer.cpp
@@ -1816,6 +1849,7 @@ add_library(
   src/widget/wlibrarysidebar.cpp
   src/widget/wlibrarytableview.cpp
   src/widget/wlibrarytextbrowser.cpp
+  src/widget/wloadprompt.cpp
   src/widget/wmainmenubar.cpp
   src/widget/wmenucheckbox.cpp
   src/widget/wnumber.cpp
@@ -1830,6 +1864,8 @@ add_library(
   src/widget/wstarratingaction.cpp
   src/widget/wrecordingduration.cpp
   src/widget/wscrollable.cpp
+  src/widget/wbeatfxbeatselector.cpp
+  src/widget/wsoundcolorfxbutton.cpp
   src/widget/wsearchlineedit.cpp
   src/widget/wsearchrelatedtracksmenu.cpp
   src/widget/wsettingscheckboxlabel.cpp
@@ -2966,6 +3002,7 @@ if(BUILD_TESTING)
     src/test/durationutiltest.cpp
     #TODO: write useful tests for refactored effects system
     #src/test/effectchainslottest.cpp
+    src/test/enginebufferscalehalfbandlagrange_test.cpp
     src/test/enginebufferscalelineartest.cpp
     src/test/enginebuffertest.cpp
     src/test/enginefilterbiquadtest.cpp
@@ -2981,11 +3018,26 @@ if(BUILD_TESTING)
     src/test/indexrange_test.cpp
     src/test/itunesxmlimportertest.cpp
     src/test/keyfactorytest.cpp
+    src/test/keysync_test.cpp
+    src/test/platter_test.cpp
+    src/test/platterrender_test.cpp
+    src/test/rekordboxanlz_test.cpp
+    src/test/rekordboxbeats_test.cpp
+    src/test/sqlciphercodec_test.cpp
+    src/test/devicelibraryplusdb_test.cpp
+    src/test/devicelibraryplusexporter_test.cpp
+    src/test/devicelibraryplusexportjob_test.cpp
+    src/test/devicelibraryplusmapping_test.cpp
+    src/test/devicelibraryplusstick_test.cpp
+    src/test/anlzwaveform_test.cpp
+    src/test/anlzwriter_test.cpp
+    src/test/anlztrackdata_test.cpp
     src/test/keyutilstest.cpp
     src/test/lcstest.cpp
     src/test/learningutilstest.cpp
     src/test/libraryscannertest.cpp
     src/test/librarytest.cpp
+    src/test/loadprompt_test.cpp
     src/test/looping_control_test.cpp
     src/test/main.cpp
     src/test/mathutiltest.cpp
@@ -2994,12 +3046,15 @@ if(BUILD_TESTING)
     #TODO: make this build again
     #src/test/metaknob_link_test.cpp
     src/test/midicontrollertest.cpp
+    src/test/midiportwatcher_test.cpp
+    src/test/midiproductmatch_test.cpp
     src/test/mixxxtest.cpp
     src/test/mock_networkaccessmanager.cpp
     src/test/musicbrainzrecordingstasktest.cpp
     src/test/performancetimer_test.cpp
     src/test/playcountertest.cpp
     src/test/playermanagertest.cpp
+    src/test/playlistfolders_test.cpp
     src/test/playlisttest.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp
@@ -3019,6 +3074,7 @@ if(BUILD_TESTING)
     src/test/seratomarkers2test.cpp
     src/test/seratotagstest.cpp
     src/test/signalpathtest.cpp
+    src/test/soundcolorfxtest.cpp
     src/test/skincontext_test.cpp
     src/test/softtakeover_test.cpp
     src/test/soundproxy_test.cpp
@@ -3110,6 +3166,11 @@ if(BUILD_TESTING)
     mixxx-test
     PRIVATE mixxx-lib mixxx-gitinfostore mixxx-xwax GTest::gtest GTest::gmock
   )
+  # Mix Two: sqlciphercodec_test opens the decrypted fixture with sqlite3_open_v2.
+  # mixxx-lib links SQLite privately, so the test links it itself.
+  target_link_libraries(mixxx-test PRIVATE SQLite3::SQLite3)
+  # Mix Two: the ANLZ writer tests parse the written files with the Kaitai reader.
+  target_link_libraries(mixxx-test PRIVATE rekordbox_metadata Kaitai)
 
   if(BUILD_BENCH)
     add_compile_definitions(USE_BENCH)
@@ -3302,7 +3363,9 @@ endif()
 target_link_libraries(mixxx-lib PRIVATE Chromaprint::Chromaprint)
 
 # Locale Aware Compare for SQLite
-find_package(SQLite3)
+# Mix Two: version 3.32 or later; DeviceLibraryPlusDb needs
+# SQLITE_FCNTL_RESERVE_BYTES.
+find_package(SQLite3 3.32 REQUIRED)
 if(NOT TARGET SQLite3::SQLite3) # CMake < 4.3
   # This will allow to use the new name while still permitting it to
   # compile with older versions of CMake.
@@ -3360,6 +3423,11 @@ elseif(SQLite3_FOUND)
   # we still need to link SQLite3 unconditionally
   target_link_libraries(mixxx-lib PRIVATE SQLite3::SQLite3)
 endif()
+
+# Mix Two: the Device Library Plus codec (src/library/rekordbox/sqlciphercodec.cpp)
+# reads and writes rekordbox's SQLCipher 4 pages with OpenSSL's libcrypto.
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+target_link_libraries(mixxx-lib PRIVATE OpenSSL::Crypto)
 
 # Denon Engine Prime library export support (using libdjinterop)
 option(ENGINEPRIME "Support for library export to Denon Engine Prime" ON)
@@ -3845,9 +3913,16 @@ if(PORTMIDI)
   target_sources(
     mixxx-lib
     PRIVATE
+      src/controllers/midi/midiportwatcher.cpp
       src/controllers/midi/portmidicontroller.cpp
       src/controllers/midi/portmidienumerator.cpp
   )
+  # MIDI hotplug detection reads the live port list from the platform API.
+  if(WIN32)
+    target_link_libraries(mixxx-lib PRIVATE winmm)
+  elseif(APPLE AND NOT IOS)
+    target_link_libraries(mixxx-lib PRIVATE "-weak_framework CoreMIDI")
+  endif()
 endif()
 
 # Protobuf
@@ -4885,6 +4960,7 @@ if(RUBBERBAND)
   target_sources(
     mixxx-lib
     PRIVATE
+      src/effects/backends/builtin/beatfxpitcheffect.cpp
       src/effects/backends/builtin/pitchshifteffect.cpp
       src/engine/bufferscalers/enginebufferscalerubberband.cpp
       src/engine/bufferscalers/rubberbandwrapper.cpp

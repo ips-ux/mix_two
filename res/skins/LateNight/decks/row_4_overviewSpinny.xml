@@ -7,20 +7,7 @@
     <SizePolicy>me,me</SizePolicy>
     <Children>
 
-      <WidgetGroup>
-        <ObjectName>SpinnyCoverContainer_Small</ObjectName>
-        <Layout>horizontal</Layout>
-        <SizePolicy>f,f</SizePolicy>
-        <Children>
-          <SingletonContainer>
-            <ObjectName>SpinnyCoverart<Variable name="ChanNum"/></ObjectName>
-          </SingletonContainer>
-        </Children>
-        <Connection>
-          <ConfigKey>[Skin],show_small_spinny_or_cover</ConfigKey>
-          <BindProperty>visible</BindProperty>
-        </Connection>
-      </WidgetGroup><!-- SpinnyCoverContainer_Small -->
+      <!-- Mix Two: the small spinny moved into the deck hub. -->
 
       <WidgetGroup>
         <ObjectName>OverviewBox</ObjectName>

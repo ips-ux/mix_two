@@ -1,10 +1,13 @@
 #pragma once
 
 #include <QObject>
+#include <QPointer>
 #include <memory>
 
 #include "control/controlproxy.h"
 #include "library/library_decl.h"
+#include "library/loadprompt.h"
+#include "widget/wloadprompt.h"
 #ifdef __STEM__
 #include "engine/engine.h"
 #endif
@@ -236,4 +239,8 @@ class LibraryControl : public QObject {
     ControlProxy m_numSamplers;
     ControlProxy m_numPreviewDecks;
     std::map<QString, std::unique_ptr<LoadToGroupController>> m_loadToGroupControllers;
+
+    // rekordbox "Load to the Deck" prompt (Load Method: Rotary Selector (Push))
+    std::unique_ptr<LoadPrompt> m_pLoadPrompt;
+    QPointer<WLoadPrompt> m_pLoadPromptWidget;
 };

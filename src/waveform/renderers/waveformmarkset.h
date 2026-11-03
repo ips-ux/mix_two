@@ -80,6 +80,12 @@ class WaveformMarkSet {
             const WaveformSignalColors& signalColors = {});
 
   private:
+    /// Below the priorities of skin-defined marks and hotcues.
+    static constexpr int kMemoryCueMarkPriority = -1000;
+
+    /// Adds marks for the memory_cue_N_position controls.
+    void addMemoryCueMarks(const QString& group, const WaveformSignalColors& signalColors);
+
     WaveformMarkPointer m_pDefaultMark;
     QList<WaveformMarkPointer> m_marks;
     // List of visible WaveformMarks sorted by the order they appear in the track

@@ -50,6 +50,12 @@ class MixxxTest : public testing::Test {
         return s_pApplication.data();
     }
 
+    // CoreServices takes over the process-wide logging (log file, level and
+    // message handler). Call this after destroying a CoreServices instance so
+    // that later tests, and later CoreServices instances, start from the
+    // test logging setup again.
+    static void restoreTestLogging();
+
     UserSettingsPointer config() const {
         return m_pConfig;
     }

@@ -12,6 +12,8 @@ class AutoDJProcessor;
 class QSqlDatabase;
 
 constexpr int kInvalidPlaylistId = -1;
+/// Also means "the top level" wherever a folder is the parent.
+constexpr int kInvalidPlaylistFolderId = -1;
 
 class PlaylistDAO : public QObject, public virtual DAO {
     Q_OBJECT
@@ -27,6 +29,13 @@ class PlaylistDAO : public QObject, public virtual DAO {
         TOP,
         BOTTOM,
         REPLACE,
+    };
+
+    struct PlaylistFolder {
+        int id;
+        QString name;
+        /// kInvalidPlaylistFolderId for a top-level folder
+        int parentId;
     };
 
     PlaylistDAO();
@@ -127,6 +136,29 @@ class PlaylistDAO : public QObject, public virtual DAO {
 
     void getPlaylistsTrackIsIn(TrackId trackId, QSet<int>* playlistSet) const;
 
+    // Playlist folders (Mix Two). Folder names are unique among siblings.
+    /// Returns kInvalidPlaylistFolderId if the name is empty or taken.
+    int createFolder(const QString& name, int parentFolderId = kInvalidPlaylistFolderId);
+    bool renameFolder(int folderId, const QString& newName);
+    /// Deletes the folder, its subfolders and every playlist in them.
+    /// Fails without deleting anything if one of the playlists is locked.
+    bool deleteFolder(int folderId);
+    /// Fails if the new parent is the folder itself or inside it.
+    bool moveFolder(int folderId, int newParentFolderId);
+    QList<PlaylistFolder> getFolders() const;
+    QString getFolderName(int folderId) const;
+    /// Returns kInvalidPlaylistFolderId if no folder has that name there.
+    int getFolderIdFromName(const QString& name, int parentFolderId) const;
+    /// Moves a playlist into a folder, or to the top level.
+    bool setPlaylistFolder(int playlistId, int folderId);
+    int getPlaylistFolderId(int playlistId) const;
+    /// playlist id -> folder id, for the playlists that are in a folder
+    QHash<int, int> getPlaylistFolderIds(HiddenType hidden) const;
+    /// The ids of the folder and all folders below it.
+    QSet<int> getFolderAndSubfolderIds(int folderId) const;
+    /// The ids of the playlists in the folder and all folders below it.
+    QList<int> getPlaylistIdsInFolder(int folderId) const;
+
     void setCurrentHistoryPlaylistId(int id) {
         m_currentHistoryPlaylist = id;
     }
@@ -147,6 +179,9 @@ class PlaylistDAO : public QObject, public virtual DAO {
     void tracksMoved(const QSet<int>& playlistIds);
     void tracksRemoved(const QSet<int>& playlistIds);
     void tracksRemovedFromPlayedHistory(const QSet<TrackId>& playedTrackIds);
+    /// A folder was created, renamed, moved or deleted, or a playlist moved
+    /// between folders.
+    void foldersChanged();
 
   private:
     bool removeTracksFromPlaylist(int playlistId, int startIndex);

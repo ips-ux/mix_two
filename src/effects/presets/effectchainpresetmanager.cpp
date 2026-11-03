@@ -565,6 +565,11 @@ void EffectChainPresetManager::importDefaultPresets() {
 
         EffectChainPresetPointer pEffectChainPreset = loadPresetFromFile(copiedFileName);
         if (pEffectChainPreset && !pEffectChainPreset->isEmpty()) {
+            // Mix Two: this also runs on later starts, to add shipped
+            // presets that an existing profile does not have yet.
+            if (m_effectChainPresets.contains(pEffectChainPreset->name())) {
+                continue;
+            }
             m_effectChainPresets.insert(pEffectChainPreset->name(), pEffectChainPreset);
             m_effectChainPresetsSorted.append(pEffectChainPreset);
         } else {
@@ -770,14 +775,12 @@ EffectsXmlData EffectChainPresetManager::readEffectsXml(
         }
     }
 
-    if (m_effectChainPresetsSorted.isEmpty()) {
-        // On first run of Mixxx, copy chain presets from the resource folder to the
-        // user settings folder. This allows us to ship default chain presets with
-        // Mixxx while letting the user delete our defaults if they do not want them.
-        // The user can always copy the files again manually or use the Import
-        // button in DlgPrefEffects.
-        importDefaultPresets();
-    }
+    // On first run of Mixxx, copy chain presets from the resource folder to the
+    // user settings folder. This allows us to ship default chain presets with
+    // Mixxx while letting the user delete our defaults if they do not want them.
+    // Mix Two: also on later runs, for shipped presets the profile lacks
+    // (importDefaultPresets skips names that are already loaded).
+    importDefaultPresets();
 
     // Reload order of QuickEffect chain presets
     QDomElement quickEffectChainPresetsElement =

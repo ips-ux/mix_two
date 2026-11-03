@@ -11,6 +11,7 @@
 #include "library/banshee/bansheefeature.h"
 #include "library/browse/browsefeature.h"
 #include "library/dateformatbroadcaster.h"
+#include "library/export/deviceexporter.h"
 #ifdef __ENGINEPRIME__
 #include "library/export/libraryexporter.h"
 #endif
@@ -97,6 +98,11 @@ Library::Library(
             &Library::exportLibrary,
             Qt::DirectConnection /* signal-to-signal */);
 #endif
+    connect(m_pMixxxLibraryFeature,
+            &MixxxLibraryFeature::exportLibraryToDevice,
+            this,
+            &Library::exportLibraryToDevice,
+            Qt::DirectConnection /* signal-to-signal */);
 
     m_pAutoDJFeature = make_parented<AutoDJFeature>(this, m_pConfig, pPlayerManager);
     addFeature(m_pAutoDJFeature);
@@ -115,6 +121,16 @@ Library::Library(
             &Library::exportPlaylist, // signal-to-signal
             Qt::DirectConnection);
 #endif
+    connect(m_pPlaylistFeature,
+            &PlaylistFeature::exportAllPlaylistsToDevice,
+            this,
+            &Library::exportLibraryToDevice, // signal-to-signal
+            Qt::DirectConnection);
+    connect(m_pPlaylistFeature,
+            &PlaylistFeature::exportPlaylistToDevice,
+            this,
+            &Library::exportPlaylistToDevice, // signal-to-signal
+            Qt::DirectConnection);
 
     m_pCrateFeature = make_parented<CrateFeature>(this, m_pConfig);
     addFeature(m_pCrateFeature);
@@ -130,6 +146,16 @@ Library::Library(
             &Library::exportCrate, // signal-to-signal
             Qt::DirectConnection);
 #endif
+    connect(m_pCrateFeature,
+            &CrateFeature::exportAllCratesToDevice,
+            this,
+            &Library::exportLibraryToDevice, // signal-to-signal
+            Qt::DirectConnection);
+    connect(m_pCrateFeature,
+            &CrateFeature::exportCrateToDevice,
+            this,
+            &Library::exportCrateToDevice, // signal-to-signal
+            Qt::DirectConnection);
 
     m_pBrowseFeature = make_parented<BrowseFeature>(
             this, m_pConfig, pRecordingManager);
@@ -796,6 +822,12 @@ std::unique_ptr<mixxx::LibraryExporter> Library::makeLibraryExporter(
             parent, m_pConfig, m_pTrackCollectionManager);
 }
 #endif
+
+std::unique_ptr<mixxx::DeviceExporter> Library::makeDeviceExporter(
+        QWidget* parent) {
+    return std::make_unique<mixxx::DeviceExporter>(
+            parent, m_pConfig, m_pTrackCollectionManager);
+}
 
 bool Library::isTrackIdInCurrentLibraryView(const TrackId& trackId) {
     VERIFY_OR_DEBUG_ASSERT(trackId.isValid()) {

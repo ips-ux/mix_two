@@ -62,6 +62,11 @@ class SettingsPathGuard final {
 class QmlStartupSmokeTest : public MixxxTest,
                             public testing::WithParamInterface<QmlSkin> {
   protected:
+    void TearDown() override {
+        // The test's CoreServices instance is gone by now.
+        restoreTestLogging();
+    }
+
     static CmdlineArgs makeCmdlineArgs(const QString& settingsPath) {
         CmdlineArgs args;
         args.setSettingsPath(settingsPath);

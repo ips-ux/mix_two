@@ -201,6 +201,13 @@ bool SoundSourceProxy::registerProviders() {
     // providers to ensure that they are only after the specialized
     // provider failed to open a file. But the order of registration
     // only matters among providers with equal priority.
+    if (!getSupportedFileTypes().isEmpty()) {
+        // Providers can't be unregistered, so a repeated call (e.g. a
+        // second CoreServices instance in the same process) is a no-op.
+        kLogger.debug()
+                << "SoundSource providers are already registered";
+        return true;
+    }
     kLogger.debug()
             << "Registering SoundSource providers";
     // Register the platform and fallback providers BEFORE all other

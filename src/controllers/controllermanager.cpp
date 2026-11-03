@@ -1,5 +1,7 @@
 #include "controllers/controllermanager.h"
 
+#include <QCoreApplication>
+#include <QPointer>
 #include <QSet>
 #include <QThread>
 
@@ -17,6 +19,7 @@
 #include "util/time.h"
 
 #ifdef __PORTMIDI__
+#include "controllers/midi/midiportwatcher.h"
 #include "controllers/midi/portmidienumerator.h"
 #endif
 
@@ -71,6 +74,14 @@ QFileInfo findMappingFile(const QString& pathOrFilename, const QStringList& path
 // kept for backwards compatibility.
 const QString kSettingsGroup = QLatin1String("[ControllerPreset]");
 
+// How often the platform's MIDI port list is compared for hotplug detection.
+// A change is acted on once it is stable for two checks, so that a device's
+// input and output ports are both present.
+const mixxx::Duration kHotplugCheckInterval = mixxx::Duration::fromMillis(1000);
+
+// How many hotplug checks a controller that failed to open is retried for.
+constexpr int kOpenRetryChecks = 30;
+
 } // anonymous namespace
 
 QString firstAvailableFilename(QSet<QString>& filenames,
@@ -100,7 +111,12 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
                   std::make_unique<ControllerLearningEventFilter>()),
           m_pollTimer(this),
           m_pThread(std::make_unique<QThread>()),
-          m_skipPoll(false) {
+          m_skipPoll(false),
+          m_hotplugTimer(this),
+          m_pPortMidiEnumerator(nullptr),
+          m_midiHotplugAvailable(false),
+          m_rescanGeneration(0),
+          m_openRetryChecksLeft(0) {
     qRegisterMetaType<std::shared_ptr<LegacyControllerMapping>>(
             "std::shared_ptr<LegacyControllerMapping>");
 
@@ -113,6 +129,11 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
 
     m_pollTimer.setInterval(kPollInterval.toIntegerMillis());
     connect(&m_pollTimer, &QTimer::timeout, this, &ControllerManager::slotPollDevices);
+    m_hotplugTimer.setInterval(kHotplugCheckInterval.toIntegerMillis());
+    connect(&m_hotplugTimer,
+            &QTimer::timeout,
+            this,
+            &ControllerManager::slotCheckMidiHotplug);
 
     m_pThread->setObjectName("ControllerManager");
 
@@ -171,7 +192,16 @@ void ControllerManager::slotInitialize() {
     {
         auto locker = lockMutex(&m_mutex);
 #ifdef __PORTMIDI__
+        // Read before PortMidi initializes so that a device connected while
+        // it does is seen as a change.
+        const std::optional<QStringList> midiPortNames = mixxx::midi::currentPortNames();
         m_enumerators.push_back(std::make_unique<PortMidiEnumerator>(m_pConfig));
+        m_pPortMidiEnumerator = m_enumerators.back().get();
+        if (midiPortNames && m_pConfig->getValue(kMidiHotplugEnabledCfgKey, true)) {
+            // The timer starts after the first slotSetUpDevices().
+            m_midiPortNames = *midiPortNames;
+            m_midiHotplugAvailable = true;
+        }
 #endif
 #ifdef __HSS1394__
         m_enumerators.push_back(std::make_unique<Hss1394Enumerator>());
@@ -189,6 +219,9 @@ void ControllerManager::slotInitialize() {
 void ControllerManager::slotShutdown() {
     DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
     stopPolling();
+    m_hotplugTimer.stop();
+    m_openRetryControllers.clear();
+    slotReleaseRetiredControllers(m_rescanGeneration);
 
     // Clear m_enumerators before deleting the enumerators to prevent other code
     // paths from accessing them during teardown.
@@ -273,11 +306,25 @@ void ControllerManager::slotSetUpDevices() {
     qDebug() << "ControllerManager: Setting up devices";
 
     updateControllerList();
-    const QList<Controller*> deviceList = getControllerList(false, true);
-    QStringList mappingPaths(getMappingPaths(m_pConfig));
+    setUpDevices(getControllerList(false, true));
 
-    for (Controller* pController : deviceList) {
+    // Only after the initial enumeration: a rescan before it would hand out
+    // controllers that updateControllerList() then deletes.
+    if (m_midiHotplugAvailable && !m_hotplugTimer.isActive()) {
+        m_hotplugTimer.start();
+    }
+}
+
+void ControllerManager::setUpDevices(const QList<Controller*>& devices) {
+    DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
+    QStringList mappingPaths(getMappingPaths(m_pConfig));
+    // Created on first use. The main-thread enumerators must not be used here.
+    std::unique_ptr<MappingInfoEnumerator> pUserMappingEnumerator;
+    std::unique_ptr<MappingInfoEnumerator> pSystemMappingEnumerator;
+
+    for (Controller* pController : devices) {
         QString name = pController->getName();
+        m_openRetryControllers.removeAll(pController);
 
         if (pController->isOpen()) {
             pController->close();
@@ -285,6 +332,23 @@ void ControllerManager::slotSetUpDevices() {
 
         // The filename for this device name.
         QString deviceName = sanitizeDeviceName(name);
+
+        // Plug and play: a device that has never been configured is enabled
+        // with a mapping that declares it. Devices the user configured or
+        // disabled keep their settings.
+        if (!m_pConfig->exists(ConfigKey("[Controller]", deviceName)) &&
+                !m_pConfig->exists(ConfigKey(kSettingsGroup, deviceName)) &&
+                m_pConfig->getValue(kAutoEnableMatchingMappingsCfgKey, true)) {
+            if (!pSystemMappingEnumerator) {
+                pUserMappingEnumerator = std::make_unique<MappingInfoEnumerator>(
+                        userMappingsPath(m_pConfig));
+                pSystemMappingEnumerator = std::make_unique<MappingInfoEnumerator>(
+                        resourceMappingsPath(m_pConfig));
+            }
+            autoConfigureDevice(pController,
+                    deviceName,
+                    {pUserMappingEnumerator.get(), pSystemMappingEnumerator.get()});
+        }
 
         // Check if device is enabled
         if (!m_pConfig->getValue(ConfigKey("[Controller]", deviceName), 0)) {
@@ -328,11 +392,179 @@ void ControllerManager::slotSetUpDevices() {
         int value = pController->open(m_pConfig->getResourcePath());
         if (value != 0) {
             qWarning() << "There was a problem opening" << name;
+            if (m_midiHotplugAvailable) {
+                qInfo() << "ControllerManager: retrying to open" << name
+                        << "for" << kOpenRetryChecks << "checks";
+                m_openRetryControllers.append(pController);
+                m_openRetryChecksLeft = kOpenRetryChecks;
+            }
             continue;
         }
     }
 
     pollIfAnyControllersOpen();
+}
+
+void ControllerManager::retryFailedOpens() {
+    DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
+    if (m_openRetryControllers.isEmpty()) {
+        return;
+    }
+    if (--m_openRetryChecksLeft < 0) {
+        for (Controller* pController : std::as_const(m_openRetryControllers)) {
+            qWarning() << "ControllerManager: giving up opening" << pController->getName();
+        }
+        m_openRetryControllers.clear();
+        return;
+    }
+
+    bool anyOpened = false;
+    const QList<Controller*> controllers = m_openRetryControllers;
+    for (Controller* pController : controllers) {
+        const QString deviceName = sanitizeDeviceName(pController->getName());
+        // Opened from the preferences meanwhile, or disabled by the user.
+        if (pController->isOpen() ||
+                !m_pConfig->getValue(ConfigKey("[Controller]", deviceName), 0)) {
+            m_openRetryControllers.removeAll(pController);
+            continue;
+        }
+        if (pController->open(m_pConfig->getResourcePath()) == 0) {
+            qInfo() << "ControllerManager: opened" << pController->getName() << "on retry";
+            m_openRetryControllers.removeAll(pController);
+            anyOpened = true;
+        }
+    }
+    if (anyOpened) {
+        pollIfAnyControllersOpen();
+    }
+}
+
+bool ControllerManager::autoConfigureDevice(Controller* pController,
+        const QString& deviceName,
+        const QList<MappingInfoEnumerator*>& enumerators) {
+    // Enumerators are in priority order, so user mappings win over system ones.
+    for (MappingInfoEnumerator* pEnumerator : enumerators) {
+        const QList<MappingInfo> mappings =
+                pEnumerator->getMappingsByExtension(pController->mappingExtension());
+        for (const MappingInfo& mapping : mappings) {
+            if (!pController->matchMapping(mapping)) {
+                continue;
+            }
+            qInfo() << "ControllerManager: auto-enabling" << pController->getName()
+                    << "with matching mapping" << mapping.getPath();
+            m_pConfig->set(ConfigKey(kSettingsGroup, deviceName), mapping.getPath());
+            m_pConfig->setValue(ConfigKey("[Controller]", deviceName), 1);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ControllerManager::isKnownController(Controller* pController) const {
+    const auto locker = lockMutex(&m_mutex);
+    return m_controllers.contains(pController);
+}
+
+void ControllerManager::slotCheckMidiHotplug() {
+    DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
+    retryFailedOpens();
+#ifdef __PORTMIDI__
+    const std::optional<QStringList> portNames = mixxx::midi::currentPortNames();
+    if (!portNames || *portNames == m_midiPortNames) {
+        m_pendingMidiPortNames.reset();
+        return;
+    }
+    if (m_pendingMidiPortNames != portNames) {
+        // Wait until the port list stops changing.
+        m_pendingMidiPortNames = portNames;
+        return;
+    }
+    // The learning wizard holds on to its controller, so wait until it ends.
+    for (Controller* pController : std::as_const(m_controllers)) {
+        if (pController->isLearning()) {
+            return;
+        }
+    }
+    m_pendingMidiPortNames.reset();
+    m_midiPortNames = *portNames;
+    rescanMidiDevices();
+#endif
+}
+
+void ControllerManager::rescanMidiDevices() {
+    DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
+#ifdef __PORTMIDI__
+    VERIFY_OR_DEBUG_ASSERT(m_pPortMidiEnumerator) {
+        return;
+    }
+    auto* pEnumerator = static_cast<PortMidiEnumerator*>(m_pPortMidiEnumerator);
+    qInfo() << "ControllerManager: MIDI devices changed, rescanning."
+            << "Open MIDI controllers are reopened.";
+
+    // PortMidi can only see new devices after a restart, which invalidates
+    // every PortMidi controller, so all of them are replaced.
+    const QList<Controller*> retired = pEnumerator->releaseDevicesForRescan();
+    m_openRetryControllers.removeIf([&retired](Controller* pController) {
+        return retired.contains(pController);
+    });
+    const QList<Controller*> midiDevices = pEnumerator->queryDevices();
+
+    auto locker = lockMutex(&m_mutex);
+    QList<Controller*> controllers;
+    for (Controller* pController : std::as_const(m_controllers)) {
+        if (!retired.contains(pController)) {
+            controllers.append(pController);
+        }
+    }
+    controllers.append(midiDevices);
+    m_controllers = std::move(controllers);
+    locker.unlock();
+
+    // The main thread may still hold pointers to the retired controllers
+    // (preference pages, QML proxies) until it handles devicesChanged().
+    // Delete them only after that: events posted to the main thread are
+    // handled in order, so the round trip below runs after those handlers.
+    const int generation = ++m_rescanGeneration;
+    for (Controller* pController : retired) {
+        m_retiredControllers.append(std::make_pair(generation, pController));
+    }
+    emit devicesChanged();
+    QMetaObject::invokeMethod(
+            qApp,
+            [pManager = QPointer<ControllerManager>(this), generation]() {
+                if (pManager) {
+                    QMetaObject::invokeMethod(
+                            pManager,
+                            [pManager, generation]() {
+                                pManager->slotReleaseRetiredControllers(generation);
+                            },
+                            Qt::QueuedConnection);
+                }
+            },
+            Qt::QueuedConnection);
+
+    // Same selection as getControllerList(false, true) in slotSetUpDevices().
+    QList<Controller*> newDevices;
+    for (Controller* pController : midiDevices) {
+        if (!pController->isOutputDevice() || pController->isInputDevice()) {
+            newDevices.append(pController);
+        }
+    }
+    setUpDevices(newDevices);
+#endif
+}
+
+void ControllerManager::slotReleaseRetiredControllers(int rescanGeneration) {
+    DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
+    auto it = m_retiredControllers.begin();
+    while (it != m_retiredControllers.end()) {
+        if (it->first <= rescanGeneration) {
+            delete it->second;
+            it = m_retiredControllers.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void ControllerManager::pollIfAnyControllersOpen() {
@@ -421,6 +653,10 @@ void ControllerManager::openController(Controller* pController) {
     if (!pController) {
         return;
     }
+    if (!isKnownController(pController)) {
+        qWarning() << "openController: controller was replaced by a device rescan";
+        return;
+    }
     if (pController->isOpen()) {
         pController->close();
     }
@@ -456,6 +692,13 @@ void ControllerManager::slotApplyMapping(Controller* pController,
     DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
     VERIFY_OR_DEBUG_ASSERT(pController) {
         qWarning() << "slotApplyMapping got invalid controller!";
+        return;
+    }
+    // The preferences may still show a controller that a MIDI rescan has
+    // just replaced.
+    if (!isKnownController(pController)) {
+        qWarning() << "slotApplyMapping: controller was replaced by a device rescan";
+        emit mappingApplied(false);
         return;
     }
 

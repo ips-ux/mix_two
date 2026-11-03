@@ -2,7 +2,9 @@
 
   <WidgetGroup>
     <Layout>vertical</Layout>
-    <MaximumSize>,230</MaximumSize>
+    <!-- Mix Two: taller than LateNight (230) for the deck hub and the
+         round SYNC / KEY SYNC buttons. -->
+    <MaximumSize>,290</MaximumSize>
     <Children>
 
       <Template src="skins:LateNight/decks/deck_singletons.xml">

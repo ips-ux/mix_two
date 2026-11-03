@@ -13,6 +13,9 @@
         <Layout>horizontal</Layout>
         <Children>
 
+          <!-- Mix Two: HEADPHONES | channels | MASTER, as on the DDJ-800. -->
+          <Template src="skins:LateNight/mixer/mixer_headphones.xml"/>
+
           <WidgetGroup>
             <ObjectName>MixerDecks</ObjectName>
             <SizePolicy>max,min</SizePolicy>
@@ -27,7 +30,7 @@
             </Connection>
           </WidgetGroup>
 
-          <Template src="skins:LateNight/mixer/mixer_main_headphone.xml"/>
+          <Template src="skins:LateNight/mixer/mixer_main.xml"/>
 
         </Children>
       </WidgetGroup><!-- MixerContainer -->

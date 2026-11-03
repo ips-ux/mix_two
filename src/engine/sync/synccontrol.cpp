@@ -34,6 +34,7 @@ SyncControl::SyncControl(const QString& group,
           m_pRateControl(nullptr),
           m_bOldScratching(false),
           m_leaderBpmAdjustFactor(kBpmUnity),
+          m_joiningSync(false),
           m_unmultipliedTargetBeatDistance(0.0),
           m_pBpm(nullptr),
           m_pLocalBpm(nullptr),
@@ -60,9 +61,29 @@ SyncControl::SyncControl(const QString& group,
 
     m_pSyncEnabled.reset(
             new ControlPushButton(ConfigKey(group, "sync_enabled")));
-    m_pSyncEnabled->setButtonMode(mixxx::control::ButtonMode::LongPressLatching);
+    // Mix Two (rekordbox "Sync On/Off"): every press turns sync on or off,
+    // from the screen as from the controller, no press-and-hold.
+    m_pSyncEnabled->setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_pSyncEnabled->connectValueChangeRequest(
             this, &SyncControl::slotSyncEnabledChangeRequest, Qt::DirectConnection);
+
+    m_pSyncIndicator.reset(new ControlObject(ConfigKey(group, QStringLiteral("sync_indicator"))));
+    m_pSyncIndicator->setReadOnly();
+    m_pSyncLeaderToggle.reset(
+            new ControlPushButton(ConfigKey(group, QStringLiteral("sync_leader_toggle"))));
+    m_pSyncLeaderToggle->connectValueChangeRequest(
+            this,
+            [this](double value) {
+                if (value > 0) {
+                    const bool explicitLeader = getSyncMode() == SyncMode::LeaderExplicit;
+                    m_pSyncLeaderEnabled->set(explicitLeader ? 0.0 : 1.0);
+                }
+            },
+            Qt::DirectConnection);
+    m_pSyncType.reset(new ControlProxy(kSyncTypeConfigKey, this, ControlFlag::NoAssertIfMissing));
+    if (m_pSyncType->valid()) {
+        m_pSyncType->connectValueChanged(this, [this] { updateSyncIndicator(); });
+    }
 
     // Beat sync (scale buffer tempo relative to tempo of other buffer)
     m_pButtonSync = new ControlPushButton(ConfigKey(group, "beatsync"));
@@ -147,11 +168,14 @@ void SyncControl::setSyncMode(SyncMode mode) {
     if (kLogger.traceEnabled()) {
         kLogger.trace() << "setSyncMode" << getGroup() << mode;
     }
+    const bool wasSynchronized = getSyncMode() != SyncMode::None;
+    m_joiningSync = !wasSynchronized && mode != SyncMode::None;
     // SyncControl has absolutely no say in the matter. This is what EngineSync
     // requires. Bypass confirmation by using setAndConfirm.
     m_pSyncMode->setAndConfirm(static_cast<double>(mode));
     m_pSyncEnabled->setAndConfirm(mode != SyncMode::None);
     m_pSyncLeaderEnabled->setAndConfirm(static_cast<double>(SyncModeToLeaderLight(mode)));
+    updateSyncIndicator();
     if (mode == SyncMode::Follower) {
         if (m_pVCEnabled && m_pVCEnabled->toBool()) {
             // If follower mode is enabled, disable vinyl control.
@@ -274,6 +298,8 @@ void SyncControl::updateLeaderBpm(mixxx::Bpm bpm) {
 
 void SyncControl::notifyLeaderParamSource() {
     m_leaderBpmAdjustFactor = kBpmUnity;
+    // The source's tempo defines the leader's; it keeps it.
+    m_joiningSync = false;
 }
 
 void SyncControl::reinitLeaderParams(
@@ -282,7 +308,13 @@ void SyncControl::reinitLeaderParams(
         kLogger.trace() << "reinitLeaderParams" << getGroup()
                         << beatDistance << baseBpm << bpm;
     }
-    m_leaderBpmAdjustFactor = determineBpmMultiplier(mixxx::Bpm(m_pBpm->get()), bpm);
+    // Mix Two (rekordbox SYNC): a deck that just turned sync on chooses half /
+    // double from the track's own BPM, not from where its tempo slider has it.
+    // A 128 BPM track slowed to 60 syncs to a 128 BPM master at 128, not 64.
+    // Decks already in sync keep their relation, as upstream.
+    const mixxx::Bpm myBpm = m_joiningSync ? getLocalBpm() : mixxx::Bpm(m_pBpm->get());
+    m_joiningSync = false;
+    m_leaderBpmAdjustFactor = determineBpmMultiplier(myBpm, bpm);
     updateLeaderBpm(bpm);
     updateLeaderBeatDistance(beatDistance);
 }
@@ -453,6 +485,23 @@ void SyncControl::slotControlPlay(double play) {
         kLogger.trace() << "slotControlPlay" << getGroup() << getSyncMode() << play;
     }
     m_pEngineSync->notifyPlayingAudible(this, play > 0.0 && m_audible);
+    updateSyncIndicator();
+}
+
+void SyncControl::updateSyncIndicator() {
+    const SyncMode mode = getSyncMode();
+    int light = 0;
+    if (mode != SyncMode::None) {
+        // Blue while synced; red-orange for the MASTER once it plays, or
+        // straight away when it was chosen as MASTER.
+        const bool master = isLeader(mode) &&
+                (m_pPlayButton->toBool() || mode == SyncMode::LeaderExplicit);
+        light = master ? 2 : 1;
+    }
+    const int type = m_pSyncType && m_pSyncType->valid()
+            ? static_cast<int>(m_pSyncType->get())
+            : 0;
+    m_pSyncIndicator->forceSet(light + 3 * (type == 1 ? 1 : 0));
 }
 
 void SyncControl::slotVinylControlChanged(double enabled) {
@@ -491,16 +540,19 @@ void SyncControl::slotSyncLeaderEnabledChangeRequest(double state) {
             qDebug() << "Disallowing enabling of sync mode when passthrough active";
             return;
         }
-        // NOTE: This branch would normally activate Explicit Leader mode. Due to the large number
-        // of side effects and bugs, this mode is disabled. For now, requesting explicit leader mode
-        // only activates the chosen deck as the soft leader. See:
-        // https://github.com/mixxxdj/mixxx/issues/11788
-        m_pChannel->getEngineBuffer()->requestSyncMode(SyncMode::LeaderSoft);
+        // Mix Two: rekordbox's MASTER makes this deck the tempo master, also
+        // while it is stopped, so request an explicit leader. (Upstream Mixxx
+        // requests only a soft leader here, see
+        // https://github.com/mixxxdj/mixxx/issues/11788; EngineSync keeps
+        // full support for explicit leaders.)
+        m_pChannel->getEngineBuffer()->requestSyncMode(SyncMode::LeaderExplicit);
     } else {
         // Turning off leader goes back to follower mode.
         switch (mode) {
         case SyncMode::LeaderExplicit:
-            m_pChannel->getEngineBuffer()->requestSyncMode(SyncMode::LeaderSoft);
+            // Mix Two: give up MASTER entirely; EngineSync then picks a
+            // (soft) leader automatically, which may be this deck again.
+            m_pChannel->getEngineBuffer()->requestSyncMode(SyncMode::Follower);
             break;
         case SyncMode::LeaderSoft:
             m_pChannel->getEngineBuffer()->requestSyncMode(SyncMode::Follower);
@@ -579,6 +631,14 @@ void SyncControl::slotRateChanged() {
 
     // BPM may be invalid if rateRatio is NaN or infinity.
     if (!bpm.isValid() || !isSynchronized()) {
+        return;
+    }
+
+    // Mix Two (rekordbox SYNC): only the MASTER's tempo slider sets the
+    // tempo. A follower ignores its own slider and stays on the master.
+    EngineChannel* pLeaderChannel = m_pEngineSync->getLeaderChannel();
+    if (isFollower(getSyncMode()) && pLeaderChannel && pLeaderChannel != m_pChannel) {
+        m_pEngineSync->requestBpmUpdate(this, bpm);
         return;
     }
 

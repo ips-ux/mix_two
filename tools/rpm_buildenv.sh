@@ -56,6 +56,7 @@ case "$1" in
             mesa-libGLU-devel \
             mold \
             ninja-build \
+            openssl-devel \
             opus-devel \
             opusfile-devel \
             portaudio-devel \

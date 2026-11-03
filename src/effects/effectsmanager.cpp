@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QMetaType>
+#include <QTimer>
 
 #include "effects/chains/equalizereffectchain.h"
 #include "effects/chains/outputeffectchain.h"
@@ -10,6 +11,7 @@
 #include "effects/effectslot.h"
 #include "effects/effectsmessenger.h"
 #include "effects/presets/effectchainpreset.h"
+#include "effects/presets/effectpreset.h"
 #include "effects/presets/effectpresetmanager.h"
 #include "effects/presets/effectxmlelements.h"
 #include "effects/visibleeffectslist.h"
@@ -19,6 +21,7 @@
 namespace {
 const unsigned int kEffectMessagePipeFifoSize = 2048;
 const QString kEffectsXmlFile = QStringLiteral("effects.xml");
+const QString kSoundColorFxGroup = QStringLiteral("[SoundColorFX]");
 } // anonymous namespace
 
 EffectsManager::EffectsManager(
@@ -47,6 +50,174 @@ EffectsManager::EffectsManager(
             new EffectChainPresetManager(pConfig, m_pBackendManager));
 
     m_pVisibleEffectsList = VisibleEffectsListPointer(new VisibleEffectsList());
+
+    // Mix Two: the Sound Color FX buttons, as on Pioneer mixers.
+    // cfxN (toggle) is each button's state; the selected effects run in
+    // every deck's QuickEffect chain, which is on while any button is on.
+    // cfxN_press / cfxN_press_shift apply the press rules (see
+    // pressSoundColorFx()).
+    for (int i = 0; i < kNumSoundColorFx; ++i) {
+        auto pButton = std::make_unique<ControlPushButton>(
+                ConfigKey(kSoundColorFxGroup, QStringLiteral("cfx%1").arg(i + 1)));
+        pButton->setButtonMode(mixxx::control::ButtonMode::Toggle);
+        ControlPushButton* pRawButton = pButton.get();
+        QObject::connect(pRawButton,
+                &ControlObject::valueChanged,
+                pRawButton,
+                [this](double) { soundColorFxChanged(); });
+        m_soundColorFxButtons[i] = std::move(pButton);
+
+        for (const bool shift : {false, true}) {
+            auto pPress = std::make_unique<ControlPushButton>(ConfigKey(kSoundColorFxGroup,
+                    QStringLiteral("cfx%1_press%2")
+                            .arg(i + 1)
+                            .arg(shift ? QStringLiteral("_shift") : QString())));
+            ControlPushButton* pRawPress = pPress.get();
+            QObject::connect(pRawPress,
+                    &ControlObject::valueChanged,
+                    pRawPress,
+                    [this, i, shift](double value) {
+                        if (value > 0) {
+                            pressSoundColorFx(i, shift);
+                        }
+                    });
+            if (shift) {
+                m_soundColorFxPressShift[i] = std::move(pPress);
+            } else {
+                m_soundColorFxPress[i] = std::move(pPress);
+            }
+        }
+    }
+}
+
+// static
+QString EffectsManager::soundColorFxName(int index) {
+    static const std::array<QString, kNumSoundColorFx> kNames = {
+            QStringLiteral("DUB ECHO"),
+            QStringLiteral("SWEEP"),
+            QStringLiteral("NOISE"),
+            QStringLiteral("FILTER")};
+    return index >= 0 && index < kNumSoundColorFx ? kNames[index] : QString();
+}
+
+QString EffectsManager::soundColorFxPreset(int index) const {
+    // The DDJ-800's own set (shipped chains over org.mixtwo.colorfx.*).
+    static const std::array<QString, kNumSoundColorFx> kDefaults = {
+            QStringLiteral("DUB ECHO"),
+            QStringLiteral("SWEEP"),
+            QStringLiteral("NOISE"),
+            QStringLiteral("FILTER")};
+    if (index < 0 || index >= kNumSoundColorFx) {
+        return QString();
+    }
+    const QString saved = m_pConfig->getValue(
+            ConfigKey(kSoundColorFxGroup, QStringLiteral("cfx%1_preset").arg(index + 1)),
+            QString());
+    // The Mixxx stand-ins used before the Pioneer set existed: a profile
+    // that still names one moves to the Pioneer effect of that button.
+    static const QStringList kStandIns = {
+            QStringLiteral("Filter Echo"),
+            QStringLiteral("Dub Echo"),
+            QStringLiteral("Moog Filter"),
+            QStringLiteral("Pitch Shift"),
+            QStringLiteral("White Noise"),
+            QStringLiteral("Noise"),
+            QStringLiteral("Filter")};
+    if (saved.isEmpty() || kStandIns.contains(saved)) {
+        return kDefaults[index];
+    }
+    return saved;
+}
+
+void EffectsManager::setSoundColorFxPreset(int index, const QString& presetName) {
+    if (index < 0 || index >= kNumSoundColorFx) {
+        return;
+    }
+    m_pConfig->setValue(
+            ConfigKey(kSoundColorFxGroup, QStringLiteral("cfx%1_preset").arg(index + 1)),
+            presetName);
+    if (m_soundColorFxButtons[index]->get() > 0) {
+        soundColorFxChanged();
+    }
+}
+
+void EffectsManager::pressSoundColorFx(int index, bool shift) {
+    if (index < 0 || index >= kNumSoundColorFx) {
+        return;
+    }
+    const bool wasOn = m_soundColorFxButtons[index]->get() > 0;
+    if (shift) {
+        m_soundColorFxButtons[index]->set(wasOn ? 0.0 : 1.0);
+    } else {
+        for (int i = 0; i < kNumSoundColorFx; ++i) {
+            m_soundColorFxButtons[i]->set(!wasOn && i == index ? 1.0 : 0.0);
+        }
+    }
+    // Set by their owner, so the buttons do not call soundColorFxChanged().
+    soundColorFxChanged();
+}
+
+void EffectsManager::soundColorFxChanged() {
+    // One apply for several button changes in a row.
+    if (m_soundColorFxApplyPending) {
+        return;
+    }
+    m_soundColorFxApplyPending = true;
+    QTimer::singleShot(0, m_soundColorFxButtons[0].get(), [this]() {
+        m_soundColorFxApplyPending = false;
+        applySoundColorFx();
+    });
+}
+
+void EffectsManager::applySoundColorFx() {
+    QList<EffectChainPresetPointer> selected;
+    QStringList names;
+    bool on = false;
+    for (int i = 0; i < kNumSoundColorFx; ++i) {
+        if (m_soundColorFxButtons[i]->get() <= 0) {
+            continue;
+        }
+        on = true;
+        EffectChainPresetPointer pPreset =
+                m_pChainPresetManager->getPreset(soundColorFxPreset(i));
+        if (pPreset) {
+            selected.append(pPreset);
+            names.append(soundColorFxName(i));
+        }
+    }
+
+    // One effect: its own preset. Several: their effects in button order
+    // (DUB ECHO, SWEEP, NOISE, FILTER) in one chain, as many as the chain
+    // has slots.
+    EffectChainPresetPointer pPreset;
+    if (selected.size() == 1) {
+        pPreset = selected.first();
+    } else if (selected.size() > 1) {
+        QList<EffectPresetPointer> effects;
+        for (const auto& pChainPreset : std::as_const(selected)) {
+            for (const auto& pEffect : pChainPreset->effectPresets()) {
+                if (pEffect && !pEffect->isEmpty() && effects.size() < kNumEffectsPerUnit) {
+                    effects.append(pEffect);
+                }
+            }
+        }
+        pPreset = EffectChainPresetPointer::create(names.join(QStringLiteral(" + ")),
+                selected.first()->mixMode(),
+                selected.first()->superKnob(),
+                effects);
+    }
+
+    for (const auto& pChain : std::as_const(m_quickEffectChains)) {
+        if (pPreset && pChain->presetName() != pPreset->name()) {
+            // Keep the COLOR knob where it is: the knob on the deck does not
+            // move when the effect changes.
+            const double superValue = pChain->getSuperParameter();
+            pChain->loadChainPreset(pPreset);
+            pChain->setSuperParameter(superValue, true);
+        }
+        ControlObject::set(ConfigKey(pChain->group(), QStringLiteral("enabled")),
+                on ? 1.0 : 0.0);
+    }
 }
 
 EffectsManager::~EffectsManager() {
@@ -80,6 +251,10 @@ void EffectsManager::setup() {
     // readEffectsXml() is running is also initialized.
     m_initializedFromEffectsXml = true;
     readEffectsXml();
+    // Mix Two: the Sound Color FX buttons own the QuickEffect chains. Put
+    // the chains in the buttons' state now (all off at start), so a chain
+    // restored from effects.xml does not stay on with a stale effect.
+    applySoundColorFx();
 }
 
 void EffectsManager::registerInputChannel(const ChannelHandleAndGroup& handle_group) {

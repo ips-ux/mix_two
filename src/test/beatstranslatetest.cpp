@@ -126,3 +126,30 @@ TEST_F(BeatsTranslateTest, BeatsUndoTest) {
     pBeats = m_pTrack1->getBeats();
     EXPECT_FRAMEPOS_EQ(origin123, pBeats->findClosestBeat(mixxx::audio::kStartFramePos));
 }
+
+// Mix Two: beats_translate_ms moves the grid by fractions of a millisecond,
+// and repeating the same amount moves it again (the DDJ-800 grid slide).
+TEST_F(BeatsTranslateTest, TranslateByMilliseconds) {
+    auto grid = mixxx::Beats::fromConstTempo(
+            m_pTrack1->getSampleRate(), mixxx::audio::kStartFramePos, mixxx::Bpm(60.0));
+    m_pTrack1->trySetBeats(grid);
+    ProcessBuffer();
+
+    auto pTranslateMs = std::make_unique<ControlProxy>(m_sGroup1, "beats_translate_ms");
+    pTranslateMs->set(0.05);
+    pTranslateMs->set(0.05);
+    pTranslateMs->set(-0.025);
+
+    // The grid sits on whole frames; the fraction waits for the next move.
+    const double frames = m_pTrack1->getSampleRate().value() * 0.075 / 1000.0;
+    mixxx::BeatsPointer pBeats = m_pTrack1->getBeats();
+    EXPECT_DOUBLE_EQ(std::round(frames),
+            pBeats->findClosestBeat(mixxx::audio::kStartFramePos).value());
+
+    // Back by the same amount, in small steps: exactly where it started.
+    for (int i = 0; i < 3; ++i) {
+        pTranslateMs->set(-0.025);
+    }
+    pBeats = m_pTrack1->getBeats();
+    EXPECT_DOUBLE_EQ(0.0, pBeats->findClosestBeat(mixxx::audio::kStartFramePos).value());
+}

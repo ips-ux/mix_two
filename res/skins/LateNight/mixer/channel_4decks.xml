@@ -19,13 +19,34 @@
         <Layout>horizontal</Layout>
         <SizePolicy>min,max</SizePolicy>
         <Children>
-          <Template src="skins:LateNight/controls/knob.xml">
-            <SetVariable name="Size">40f,34f</SetVariable>
-            <SetVariable name="KnobColor">orange</SetVariable>
-            <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
-            <SetVariable name="Control">pregain</SetVariable>
-            <SetVariable name="TooltipId">pregain</SetVariable>
-          </Template>
+          <!-- Mix Two: TRIM with its scale (in the knob image) and the end
+               values at the bottom corners: -inf and +12 dB (Mix Two's range;
+               the DDJ-800 stops at +9). -->
+          <WidgetGroup>
+            <Size>40f,41f</Size>
+            <Children>
+            <Template src="skins:LateNight/controls/knob.xml">
+              <SetVariable name="Size">40f,34f</SetVariable>
+              <SetVariable name="KnobColor">white</SetVariable>
+              <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
+              <SetVariable name="KnobBg">regular_trim</SetVariable>
+              <SetVariable name="Control">pregain</SetVariable>
+              <SetVariable name="TooltipId">pregain</SetVariable>
+            </Template>
+              <WidgetGroup><!-- -inf -->
+                <Pos>0,32</Pos>
+                <Size>18f,10f</Size>
+                <BackPath scalemode="STRETCH">skins:LateNight/<Variable name="KnobScheme"/>/knobs/label_minus_inf.svg</BackPath>
+              </WidgetGroup>
+              <Label>
+                <ObjectName>KnobCornerLabel</ObjectName>
+                <Pos>22,32</Pos>
+                <Size>18f,9f</Size>
+                <Text>+12</Text>
+                <Alignment>right</Alignment>
+              </Label>
+            </Children>
+          </WidgetGroup>
           <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
         </Children>
       </WidgetGroup>
@@ -58,36 +79,33 @@
 
       <Template src="skins:LateNight/mixer/quick_effect_knob_4decks.xml"/>
 
-      <WidgetGroup>
-        <SizePolicy>i,f</SizePolicy>
-        <MinimumSize>,18</MinimumSize>
-        <MaximumSize>,18</MaximumSize>
-        <Layout>vertical</Layout>
-        <Children>
-          <EffectChainPresetSelector>
-            <ObjectName>QuickEffectSelectorLeft</ObjectName>
-            <Size>40min,18f</Size>
-            <EffectUnitGroup>[QuickEffectRack1_<Variable name="Group"/>]</EffectUnitGroup>
-          </EffectChainPresetSelector>
-        </Children>
-        <Connection>
-          <ConfigKey persist="true">[Skin],show_eq_knobs</ConfigKey>
-          <BindProperty>visible</BindProperty>
-        </Connection>
-      </WidgetGroup>
+      <!-- Mix Two: no QuickEffect selector; the Sound Color FX buttons under
+           HEADPHONES select the effect. -->
+      <WidgetGroup><Size>1min,3f</Size></WidgetGroup>
 
       <WidgetGroup>
         <ObjectName>PflBox_4Decks</ObjectName>
         <Layout>horizontal</Layout>
         <SizePolicy>min,min</SizePolicy>
         <Children>
-          <Template src="skins:LateNight/controls/button_2state.xml">
-            <SetVariable name="TooltipId">pfl</SetVariable>
-            <SetVariable name="ObjectName">PflButton</SetVariable>
-            <SetVariable name="Size">26,26</SetVariable>
-            <SetVariable name="BtnSize">square</SetVariable>
-            <SetVariable name="ConfigKey"><Variable name="Group"/>,pfl</SetVariable>
-          </Template>
+          <PushButton>
+            <TooltipId>pfl</TooltipId>
+            <ObjectName>ChannelCueButton</ObjectName>
+            <Size>42f,16f</Size>
+            <NumberStates>2</NumberStates>
+            <State>
+              <Number>0</Number>
+              <Text>CUE</Text>
+            </State>
+            <State>
+              <Number>1</Number>
+              <Text>CUE</Text>
+            </State>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,pfl</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
         </Children>
       </WidgetGroup>
 

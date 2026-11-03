@@ -145,6 +145,23 @@ void CrateFeature::initActions() {
                 }
             });
 #endif
+
+    // Mix Two: the export to a stick (Device Library Plus).
+    m_pExportAllCratesToDeviceAction = make_parented<QAction>(tr("Export to a USB stick"), this);
+    connect(m_pExportAllCratesToDeviceAction.get(),
+            &QAction::triggered,
+            this,
+            &CrateFeature::exportAllCratesToDevice);
+    m_pExportCrateToDeviceAction = make_parented<QAction>(tr("Export to a USB stick"), this);
+    connect(m_pExportCrateToDeviceAction.get(),
+            &QAction::triggered,
+            this,
+            [this]() {
+                CrateId crateId = crateIdFromIndex(m_lastRightClickedIndex);
+                if (crateId.isValid()) {
+                    emit exportCrateToDevice(crateId);
+                }
+            });
 }
 
 void CrateFeature::connectLibrary(Library* pLibrary) {
@@ -365,8 +382,9 @@ void CrateFeature::onRightClick(const QPoint& globalPos) {
     menu.addAction(m_pCreateCrateAction.get());
     menu.addSeparator();
     menu.addAction(m_pCreateImportPlaylistAction.get());
-#ifdef __ENGINEPRIME__
     menu.addSeparator();
+    menu.addAction(m_pExportAllCratesToDeviceAction.get());
+#ifdef __ENGINEPRIME__
     menu.addAction(m_pExportAllCratesAction.get());
 #endif
     menu.exec(globalPos);
@@ -409,6 +427,7 @@ void CrateFeature::onRightClickChild(
     menu.addAction(m_pImportPlaylistAction.get());
     menu.addAction(m_pExportPlaylistAction.get());
     menu.addAction(m_pExportTrackFilesAction.get());
+    menu.addAction(m_pExportCrateToDeviceAction.get());
 #ifdef __ENGINEPRIME__
     menu.addAction(m_pExportCrateAction.get());
 #endif

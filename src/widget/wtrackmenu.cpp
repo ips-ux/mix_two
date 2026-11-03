@@ -7,6 +7,7 @@
 #include <QListWidget>
 #include <QModelIndex>
 #include <QVBoxLayout>
+#include <algorithm>
 
 #include "analyzer/analyzerscheduledtrack.h"
 #include "analyzer/analyzersilence.h"
@@ -1571,29 +1572,71 @@ void WTrackMenu::slotPopulatePlaylistMenu() {
         return;
     }
     m_pPlaylistMenu->clear();
+    // clear() keeps the folder submenus of the previous population.
+    qDeleteAll(m_pPlaylistMenu->findChildren<QMenu*>(QString(), Qt::FindDirectChildrenOnly));
     const PlaylistDAO& playlistDao = m_pLibrary->trackCollectionManager()
                                              ->internalCollection()
                                              ->getPlaylistDAO();
     const QList<QPair<int, QString>> playlists =
             playlistDao.getPlaylists(PlaylistDAO::PLHT_NOT_HIDDEN);
 
-    for (const auto& [id, name] : playlists) {
-        // No leak because making the menu the parent means they will be
-        // auto-deleted
-        int plId = id;
-        auto pAction = make_parented<QAction>(
-                mixxx::escapeTextPropertyWithoutShortcuts(name),
-                m_pPlaylistMenu);
-        bool locked = playlistDao.isPlaylistLocked(plId);
-        pAction->setEnabled(!locked);
-        m_pPlaylistMenu->addAction(pAction);
-        connect(pAction,
-                &QAction::triggered,
-                this,
-                [this, plId] {
-                    addSelectionToPlaylist(plId);
-                });
+    // Playlists in folders go into a submenu per folder, as in the sidebar.
+    QList<PlaylistDAO::PlaylistFolder> folders = playlistDao.getFolders();
+    std::sort(folders.begin(),
+            folders.end(),
+            [](const PlaylistDAO::PlaylistFolder& a, const PlaylistDAO::PlaylistFolder& b) {
+                return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
+            });
+    const QHash<int, int> folderIdOfPlaylist =
+            playlistDao.getPlaylistFolderIds(PlaylistDAO::PLHT_NOT_HIDDEN);
+    QSet<int> folderIds;
+    for (const auto& folder : std::as_const(folders)) {
+        folderIds.insert(folder.id);
     }
+    QHash<int, QList<PlaylistDAO::PlaylistFolder>> subfoldersOf;
+    for (const auto& folder : std::as_const(folders)) {
+        subfoldersOf[folderIds.contains(folder.parentId) ? folder.parentId
+                                                         : kInvalidPlaylistFolderId]
+                .append(folder);
+    }
+    QHash<int, QList<QPair<int, QString>>> playlistsIn;
+    for (const auto& playlist : playlists) {
+        const int folderId = folderIdOfPlaylist.value(playlist.first, kInvalidPlaylistFolderId);
+        playlistsIn[folderIds.contains(folderId) ? folderId : kInvalidPlaylistFolderId]
+                .append(playlist);
+    }
+
+    QSet<int> addedFolderIds;
+    const auto addItems = [&](const auto& self, QMenu* pMenu, int folderId) -> void {
+        for (const auto& subfolder : subfoldersOf.value(folderId)) {
+            if (addedFolderIds.contains(subfolder.id) ||
+                    playlistDao.getPlaylistIdsInFolder(subfolder.id).isEmpty()) {
+                continue;
+            }
+            addedFolderIds.insert(subfolder.id);
+            QMenu* pSubmenu = pMenu->addMenu(
+                    mixxx::escapeTextPropertyWithoutShortcuts(subfolder.name));
+            self(self, pSubmenu, subfolder.id);
+        }
+        for (const auto& [id, name] : playlistsIn.value(folderId)) {
+            // No leak because making the menu the parent means they will be
+            // auto-deleted
+            int plId = id;
+            auto pAction = make_parented<QAction>(
+                    mixxx::escapeTextPropertyWithoutShortcuts(name),
+                    pMenu);
+            bool locked = playlistDao.isPlaylistLocked(plId);
+            pAction->setEnabled(!locked);
+            pMenu->addAction(pAction);
+            connect(pAction,
+                    &QAction::triggered,
+                    this,
+                    [this, plId] {
+                        addSelectionToPlaylist(plId);
+                    });
+        }
+    };
+    addItems(addItems, m_pPlaylistMenu, kInvalidPlaylistFolderId);
     m_pPlaylistMenu->addSeparator();
     auto newPlaylistAction = make_parented<QAction>(tr("Create New Playlist"), m_pPlaylistMenu);
     m_pPlaylistMenu->addAction(newPlaylistAction);
@@ -1622,7 +1665,7 @@ void WTrackMenu::addSelectionToPlaylist(int iPlaylistId) {
                     tr("Create New Playlist"),
                     tr("Enter name for new playlist:"),
                     QLineEdit::Normal,
-                    tr("New Playlist"),
+                    tr("Untitled Playlist"),
                     &ok)
                            .trimmed();
             if (!ok) {

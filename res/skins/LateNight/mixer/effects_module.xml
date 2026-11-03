@@ -1,0 +1,190 @@
+<!DOCTYPE template>
+<!--
+  Mix Two: the EFFECTS module under MASTER (DDJ-800 Beat FX, effect unit 1,
+  slot 1). Top: the channel indicator in the DDJ-800 selector's order S 3 1 2 4 M, each
+  segment lit while Beat FX is assigned to it (the DDJ-800 selector knob
+  sets one; on screen a segment also toggles). Then the effect selector
+  and the LEVEL/DEPTH knob, and ENABLED / DISABLED, styled as CUE.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>MixerModule</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>min,min</SizePolicy>
+    <Children>
+      <Label>
+        <ObjectName>MixerSectionHeader</ObjectName>
+        <Text>Effects</Text>
+      </Label>
+      <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>FxChannelRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <PushButton>
+            <Tooltip>Beat FX on the sampler. Push to assign or remove it.</Tooltip>
+            <ObjectName>FxChannelSegment</ObjectName>
+            <Size>13f,14f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>S</Text></State>
+            <State><Number>1</Number><Text>S</Text></State>
+            <Connection>
+              <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>enabled</BindProperty>
+            </Connection>
+            <Connection>
+              <ConfigKey>[EffectRack1_EffectUnit1],group_[Sampler1]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <Tooltip>Beat FX on channel 3. Push to assign or remove it.</Tooltip>
+            <ObjectName>FxChannelSegment</ObjectName>
+            <Size>13f,14f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>3</Text></State>
+            <State><Number>1</Number><Text>3</Text></State>
+            <Connection>
+              <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>enabled</BindProperty>
+            </Connection>
+            <Connection>
+              <ConfigKey>[EffectRack1_EffectUnit1],group_[Channel3]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <Tooltip>Beat FX on channel 1. Push to assign or remove it.</Tooltip>
+            <ObjectName>FxChannelSegment</ObjectName>
+            <Size>13f,14f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>1</Text></State>
+            <State><Number>1</Number><Text>1</Text></State>
+            <Connection>
+              <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>enabled</BindProperty>
+            </Connection>
+            <Connection>
+              <ConfigKey>[EffectRack1_EffectUnit1],group_[Channel1]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <Tooltip>Beat FX on channel 2. Push to assign or remove it.</Tooltip>
+            <ObjectName>FxChannelSegment</ObjectName>
+            <Size>13f,14f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>2</Text></State>
+            <State><Number>1</Number><Text>2</Text></State>
+            <Connection>
+              <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>enabled</BindProperty>
+            </Connection>
+            <Connection>
+              <ConfigKey>[EffectRack1_EffectUnit1],group_[Channel2]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <Tooltip>Beat FX on channel 4. Push to assign or remove it.</Tooltip>
+            <ObjectName>FxChannelSegment</ObjectName>
+            <Size>13f,14f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>4</Text></State>
+            <State><Number>1</Number><Text>4</Text></State>
+            <Connection>
+              <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>enabled</BindProperty>
+            </Connection>
+            <Connection>
+              <ConfigKey>[EffectRack1_EffectUnit1],group_[Channel4]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <Tooltip>Beat FX on the master. Push to assign or remove it.</Tooltip>
+            <ObjectName>FxChannelSegment</ObjectName>
+            <Size>13f,14f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>M</Text></State>
+            <State><Number>1</Number><Text>M</Text></State>
+            <Connection>
+              <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>enabled</BindProperty>
+            </Connection>
+            <Connection>
+              <ConfigKey>[EffectRack1_EffectUnit1],group_[Master]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+
+      <!-- BEAT: the effect's beat fraction. Arrows step it (as the
+           DDJ-800's BEAT buttons); a click on the value opens the list. -->
+      <BeatFxBeatSelector>
+        <Tooltip>The beat fraction of the Beat FX. Click the arrows to change it. Click the value for the list.</Tooltip>
+        <ObjectName>FxBeatSelector</ObjectName>
+        <Size>78f,16f</Size>
+        <Group>[EffectRack1_EffectUnit1_Effect1]</Group>
+      </BeatFxBeatSelector>
+
+      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+
+      <EffectSelector>
+        <Tooltip>Select the Beat FX. The BEAT FX selector on the DDJ-800 selects it also.</Tooltip>
+        <ObjectName>FxModuleSelector</ObjectName>
+        <Size>78f,18f</Size>
+        <EffectRack>1</EffectRack>
+        <EffectUnit>1</EffectUnit>
+        <Effect>1</Effect>
+      </EffectSelector>
+
+      <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+
+      <Template src="skins:LateNight/controls/knob_label_above.xml">
+        <SetVariable name="TooltipId">EffectSlot_metaknob</SetVariable>
+        <SetVariable name="Size">35f,30f</SetVariable>
+        <SetVariable name="KnobColor">white</SetVariable>
+        <SetVariable name="KnobBg">main_scale</SetVariable>
+        <SetVariable name="ArcColor"><Variable name="ArcColorFx34"/></SetVariable>
+        <SetVariable name="ArcUnipolar">true</SetVariable>
+        <SetVariable name="Group">[EffectRack1_EffectUnit1_Effect1]</SetVariable>
+        <SetVariable name="Control">meta</SetVariable>
+        <SetVariable name="Label">Level/Depth</SetVariable>
+      </Template>
+
+      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>AlignCenter</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <PushButton>
+            <TooltipId>EffectSlot_enabled</TooltipId>
+            <ObjectName>FxEnabledButton</ObjectName>
+            <Size>64f,16f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>DISABLED</Text></State>
+            <State><Number>1</Number><Text>ENABLED</Text></State>
+            <Connection>
+              <ConfigKey>[EffectRack1_EffectUnit1_Effect1],enabled</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </WidgetGroup>
+</Template>

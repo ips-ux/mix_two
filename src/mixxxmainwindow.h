@@ -22,6 +22,7 @@ struct LibraryScanResultSummary;
 namespace mixxx {
 
 class CoreServices;
+class DeviceExporter;
 
 namespace skin {
 class SkinLoader;
@@ -156,6 +157,9 @@ class MixxxMainWindow : public QMainWindow {
     // Library exporter
     std::unique_ptr<mixxx::LibraryExporter> m_pLibraryExporter;
 #endif
+
+    // Mix Two: the exporter of the Device Library Plus (export to a stick)
+    std::unique_ptr<mixxx::DeviceExporter> m_pDeviceExporter;
 
     mixxx::preferences::Tooltips m_toolTipsCfg;
 

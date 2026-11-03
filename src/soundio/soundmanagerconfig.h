@@ -71,6 +71,9 @@ class SoundManagerConfig {
     static const unsigned int kDefaultDeckCount;
     static const int kDefaultSyncBuffers;
 
+    /// Mix Two: read and write `fileName` in the settings folder instead of
+    /// soundconfig.xml (the HARDWARE / PC targets keep one file each).
+    void setFileName(const QString& fileName);
     bool readFromDisk();
     // NOTE(pri-yan-shu) separate config reading and device validation, to allow
     // asynchronous API's like PipeWire to validate the devices

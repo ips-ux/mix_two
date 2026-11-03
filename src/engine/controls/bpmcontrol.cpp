@@ -1,11 +1,14 @@
 #include "engine/controls/bpmcontrol.h"
 
+#include <cmath>
+
 #include "control/controlencoder.h"
 #include "control/controllinpotmeter.h"
 #include "control/controlproxy.h"
 #include "control/controlpushbutton.h"
 #include "engine/effects/groupfeaturestate.h"
 #include "engine/enginebuffer.h"
+#include "engine/sync/enginesync.h"
 #include "moc_bpmcontrol.cpp"
 #include "track/beatutils.h"
 #include "track/track.h"
@@ -66,6 +69,8 @@ BpmControl::BpmControl(const QString& group,
           // Measures distance from last beat in percentage: 0.5 = half-beat away.
           m_pThisBeatDistance(group, QStringLiteral("beat_distance")),
           m_pSyncMode(group, QStringLiteral("sync_mode")),
+          m_syncType(kSyncTypeConfigKey, ControlFlag::NoAssertIfMissing),
+          m_syncGrid(kSyncGridConfigKey, ControlFlag::NoAssertIfMissing),
           m_bpmTapFilter(this, kBpmTapFilterLength, kBpmTapMaxInterval),
           m_tempoTapFilter(this, kBpmTapFilterLength, kBpmTapMaxInterval),
           m_dSyncInstantaneousBpm(0.0),
@@ -123,6 +128,13 @@ BpmControl::BpmControl(const QString& group,
             &ControlObject::valueChanged,
             this,
             &BpmControl::slotTranslateBeatsMove,
+            Qt::DirectConnection);
+    m_pTranslateBeatsMs = std::make_unique<ControlEncoder>(
+            ConfigKey(group, "beats_translate_ms"), false);
+    connect(m_pTranslateBeatsMs.get(),
+            &ControlObject::valueChanged,
+            this,
+            &BpmControl::slotTranslateBeatsMs,
             Qt::DirectConnection);
 
     m_pBeatsHalve = std::make_unique<ControlPushButton>(ConfigKey(group, "beats_set_halve"), false);
@@ -386,6 +398,33 @@ void BpmControl::slotTranslateBeatsMove(double v) {
     }
 }
 
+void BpmControl::slotTranslateBeatsMs(double v) {
+    if (v == 0 || !std::isfinite(v)) {
+        return;
+    }
+    const TrackPointer pTrack = getEngineBuffer()->getLoadedTrack();
+    if (!pTrack) {
+        return;
+    }
+    const mixxx::BeatsPointer pBeats = pTrack->getBeats();
+    if (pBeats) {
+        // The grid sits on whole frames (Beats::tryTranslate() rounds down),
+        // so move to the nearest whole frame and keep the rest for the next
+        // move: small moves add up evenly in both directions.
+        const double frames =
+                m_translateBeatsMsRemainder + frameInfo().sampleRate * v / 1000.0;
+        const mixxx::audio::FrameDiff_t frameOffset = std::round(frames);
+        m_translateBeatsMsRemainder = frames - frameOffset;
+        if (frameOffset == 0) {
+            return;
+        }
+        const auto translatedBeats = pBeats->tryTranslate(frameOffset);
+        if (translatedBeats) {
+            pTrack->trySetBeats(*translatedBeats);
+        }
+    }
+}
+
 void BpmControl::slotBeatsUndoAdjustment(double v) {
     if (v <= 0) {
         return;
@@ -525,7 +564,9 @@ double BpmControl::calcSyncedRate(double userTweak) {
 
     // If we are not quantized, or there are no beats, or we're leader,
     // or we're in reverse, just return the rate as-is.
-    if (!m_quantize.toBool() || !m_pBeats || m_reverseButton.toBool()) {
+    // Mix Two (Pioneer Sync mode): Grid Lock keeps the beats locked whether
+    // or not quantize is on; BPM Sync matches the tempo only.
+    if (isBpmSyncOnly() || !m_pBeats || m_reverseButton.toBool()) {
         m_resetSyncAdjustment = true;
         return rate + userTweak;
     }
@@ -592,7 +633,13 @@ double BpmControl::calcSyncAdjustment(bool userTweakingSync) {
 
     const double syncTargetBeatDistance = m_dSyncTargetBeatDistance.getValue();
     const double thisBeatDistance = m_pThisBeatDistance.get();
-    const double error = shortestPercentageChange(syncTargetBeatDistance, thisBeatDistance);
+    double error = shortestPercentageChange(syncTargetBeatDistance, thisBeatDistance);
+    // Mix Two (Grid Lock): in phase means on the beat grid, e.g. any
+    // multiple of 1/4 beat from the master, not only whole beats.
+    const double grid = syncGridBeats();
+    if (grid < 1.0) {
+        error -= grid * std::round(error / grid);
+    }
     const double curUserOffset = m_dUserOffset.getValue();
 
     double adjustment = 1.0;
@@ -873,6 +920,20 @@ mixxx::audio::FramePos BpmControl::getNearestPositionInPhase(
     }
     newPlayPosition += (otherBeatFraction + m_dUserOffset.getValue()) * thisBeatLengthFrames;
 
+    if (syncMode != SyncMode::None) {
+        if (isBpmSyncOnly()) {
+            // Mix Two (BPM Sync): the tempo is matched, the beats are not.
+            return thisPosition;
+        }
+        // Mix Two (Grid Lock): snap to the nearest point of the beat grid
+        // that is in phase with the master, not always a whole beat.
+        const double grid = syncGridBeats();
+        if (grid < 1.0) {
+            const double step = grid * thisBeatLengthFrames;
+            newPlayPosition += step * std::round((thisPosition - newPlayPosition) / step);
+        }
+    }
+
     if (!respectLoops) {
         return newPlayPosition;
     }
@@ -929,6 +990,10 @@ mixxx::audio::FramePos BpmControl::getBeatMatchPosition(
         mixxx::audio::FramePos thisPosition, bool respectLoops, bool playing) {
     // Without a beatgrid, we don't know the phase offset.
     if (!m_pBeats) {
+        return thisPosition;
+    }
+    if (getSyncMode() != SyncMode::None && isBpmSyncOnly()) {
+        // Mix Two (BPM Sync): the tempo is matched, the beats are not.
         return thisPosition;
     }
     const double thisRateRatio = m_pRateRatio->get();
@@ -1078,6 +1143,13 @@ mixxx::audio::FramePos BpmControl::getBeatMatchPosition(
             // seek to beat after next, because of shorter distance
             seekMatch += thisBeatLengthFrames;
         }
+        // Mix Two (Grid Lock): only move to the nearest point of the beat
+        // grid that is in phase with the master, e.g. a 1/4 beat apart.
+        const double grid = syncGridBeats();
+        if (getSyncMode() != SyncMode::None && grid < 1.0) {
+            const double step = grid * thisBeatLengthFrames;
+            seekMatch -= step * std::round(seekMatch / step);
+        }
     }
     mixxx::audio::FramePos newPlayPosition = thisPosition + seekMatch;
 
@@ -1131,6 +1203,20 @@ mixxx::audio::FramePos BpmControl::getBeatMatchPosition(
     // Note: Syncing to before the loop beginning is allowed, because
     // loops are catching
     return newPlayPosition;
+}
+
+bool BpmControl::syncLocksPhase() const {
+    return getSyncMode() != SyncMode::None && !isBpmSyncOnly();
+}
+
+bool BpmControl::isBpmSyncOnly() const {
+    return static_cast<EngineSync::SyncType>(static_cast<int>(m_syncType.get())) ==
+            EngineSync::SyncType::BpmSync;
+}
+
+double BpmControl::syncGridBeats() const {
+    const double grid = m_syncGrid.get();
+    return grid > 0.0 && grid < 1.0 ? grid : 1.0;
 }
 
 mixxx::audio::FrameDiff_t BpmControl::getPhaseOffset(mixxx::audio::FramePos thisPosition) {

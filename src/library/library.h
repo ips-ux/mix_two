@@ -35,6 +35,10 @@ class WLibrarySidebar;
 class WLibrary;
 class QAbstractItemModel;
 
+namespace mixxx {
+class DeviceExporter;
+} // namespace mixxx
+
 #ifdef __ENGINEPRIME__
 namespace mixxx {
 class LibraryExporter;
@@ -118,6 +122,10 @@ class Library: public QObject {
     std::unique_ptr<mixxx::LibraryExporter> makeLibraryExporter(QWidget* parent);
 #endif
 
+    /// Mix Two: makes the exporter of the Device Library Plus (the export to a
+    /// stick). It exists in every build.
+    std::unique_ptr<mixxx::DeviceExporter> makeDeviceExporter(QWidget* parent);
+
   public slots:
     void slotShowTrackModel(QAbstractItemModel* model);
     void slotSwitchToView(const QString& view);
@@ -168,6 +176,10 @@ class Library: public QObject {
     void exportCrate(CrateId crateId);
     void exportPlaylist(int playlistId);
 #endif
+    // Mix Two: the export to a stick (Device Library Plus).
+    void exportLibraryToDevice();
+    void exportCrateToDevice(CrateId crateId);
+    void exportPlaylistToDevice(int playlistId);
     void saveModelState();
     void restoreModelState();
 

@@ -69,6 +69,8 @@ class WMainMenuBar : public QMenuBar {
 #ifdef __ENGINEPRIME__
     void exportLibrary();
 #endif
+    // Mix Two: the export to a stick (Device Library Plus).
+    void exportLibraryToDevice();
     void searchInCurrentView();
     void searchInAllTracks();
     void showAutoDJ();

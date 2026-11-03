@@ -56,6 +56,13 @@ class CrateFeature : public BaseTrackSetFeature {
     void exportCrate(CrateId crateId);
 #endif
 
+  signals:
+    /// Mix Two: the export of the whole library to a stick (Device Library
+    /// Plus) was requested.
+    void exportAllCratesToDevice();
+    /// Mix Two: the export of a crate to a stick was requested.
+    void exportCrateToDevice(CrateId crateId);
+
   private slots:
     void slotDeleteCrate();
     void slotRenameCrate();
@@ -129,6 +136,8 @@ class CrateFeature : public BaseTrackSetFeature {
     parented_ptr<QAction> m_pExportAllCratesAction;
     parented_ptr<QAction> m_pExportCrateAction;
 #endif
+    parented_ptr<QAction> m_pExportAllCratesToDeviceAction;
+    parented_ptr<QAction> m_pExportCrateToDeviceAction;
     parented_ptr<QAction> m_pAnalyzeCrateAction;
 
     QPointer<WLibrarySidebar> m_pSidebarWidget;

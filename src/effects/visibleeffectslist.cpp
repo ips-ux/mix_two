@@ -70,7 +70,43 @@ void VisibleEffectsList::readEffectsXml(
             visibleEffects.prepend(pManifest);
         }
     }
-    setList(visibleEffects);
+
+    // Mix Two: the first 14 visible effects are the DDJ-800 BEAT FX selector
+    // positions, in its printed order (LOW CUT ECHO, ECHO, MT DELAY, SPIRAL,
+    // REVERB, TRANS, ENIGMA JET, FLANGER, PHASER, PITCH, SLIP ROLL, ROLL,
+    // MOBIUS SAW, MOBIUS TRI). Where Mixxx has no such effect yet (bucket
+    // 02) the position holds a stand-in, marked below; the rest follow.
+    static const QStringList kDdj800Order = {
+            QStringLiteral("org.mixtwo.beatfx.lowcutecho"),   // LOW CUT ECHO
+            QStringLiteral("org.mixtwo.beatfx.echo"),         // ECHO
+            QStringLiteral("org.mixtwo.beatfx.mtdelay"),      // MT DELAY
+            QStringLiteral("org.mixtwo.beatfx.spiral"),       // SPIRAL
+            QStringLiteral("org.mixtwo.beatfx.reverb"),       // REVERB
+            QStringLiteral("org.mixtwo.beatfx.trans"),        // TRANS
+            QStringLiteral("org.mixtwo.beatfx.enigmajet"),    // ENIGMA JET
+            QStringLiteral("org.mixtwo.beatfx.flanger"),      // FLANGER
+            QStringLiteral("org.mixtwo.beatfx.phaser"),       // PHASER
+            QStringLiteral("org.mixtwo.beatfx.pitch"),        // PITCH
+            QStringLiteral("org.mixtwo.beatfx.sliproll"),     // SLIP ROLL
+            QStringLiteral("org.mixtwo.beatfx.roll"),         // ROLL
+            QStringLiteral("org.mixtwo.beatfx.mobiussaw"),    // MOBIUS SAW
+            QStringLiteral("org.mixtwo.beatfx.mobiustri"),    // MOBIUS TRI
+    };
+    QList<EffectManifestPointer> ordered;
+    for (const QString& id : kDdj800Order) {
+        for (const EffectManifestPointer& pManifest : std::as_const(visibleEffects)) {
+            if (pManifest->id() == id && !ordered.contains(pManifest)) {
+                ordered.append(pManifest);
+                break;
+            }
+        }
+    }
+    for (const EffectManifestPointer& pManifest : std::as_const(visibleEffects)) {
+        if (!ordered.contains(pManifest)) {
+            ordered.append(pManifest);
+        }
+    }
+    setList(ordered);
 }
 
 QList<EffectManifestPointer> VisibleEffectsList::readEffectsList(

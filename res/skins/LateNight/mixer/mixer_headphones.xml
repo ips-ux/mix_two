@@ -1,0 +1,238 @@
+<Template>
+  <SetVariable name="BtnType"><Variable name="SubRegion_BtnType"/></SetVariable>
+  <SetVariable name="Group">[Master]</SetVariable>
+  <SetVariable name="KnobBg">main</SetVariable>
+  <SetVariable name="KnobIndicator">main</SetVariable>
+  <SetVariable name="ArcRadius"><Variable name="ArcRadiusCompact"/></SetVariable>
+  <SetVariable name="ArcThickness"><Variable name="ArcThicknessBig"/></SetVariable>
+
+  <!-- Mix Two: the HEADPHONES section, left of the channels, mirroring the
+       MASTER section on the right: MIXING (cue to master) on top, LEVEL
+       below. Under it are the four Sound Color FX buttons (DUB ECHO, SWEEP,
+       NOISE, FILTER; [SoundColorFX],cfx1..cfx4, shared with the DDJ-800). -->
+  <WidgetGroup>
+    <SizePolicy>max,min</SizePolicy>
+    <Layout>horizontal</Layout>
+    <Children>
+
+      <WidgetGroup>
+        <ObjectName>MixerHeadphonesSide</ObjectName>
+        <SizePolicy>min,min</SizePolicy>
+        <Layout>vertical</Layout>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>MixerMainHeadphone</ObjectName>
+            <SizePolicy>min,me</SizePolicy>
+            <Layout>vertical</Layout>
+            <Children>
+
+              <WidgetGroup>
+                <ObjectName>HeadphoneControls</ObjectName>
+                <SizePolicy>min,me</SizePolicy>
+                <Layout>vertical</Layout>
+                <Children>
+
+                  <!-- the module's frame -->
+                  <WidgetGroup>
+                    <ObjectName>MixerModule</ObjectName>
+                    <Layout>vertical</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <!-- the module title, as printed on the mixer -->
+                      <Label>
+                        <ObjectName>MixerSectionHeader</ObjectName>
+                        <Text>Headphones</Text>
+                      </Label>
+                    <WidgetGroup><Size>0min,2f</Size></WidgetGroup>
+                    <Template src="skins:LateNight/controls/knob_label_above.xml">
+                      <SetVariable name="KnobBg">main_scale</SetVariable>
+                      <SetVariable name="TooltipId">headMix</SetVariable>
+                      <SetVariable name="Size">35f,30f</SetVariable>
+                      <SetVariable name="KnobColor">white</SetVariable>
+                      <SetVariable name="ArcColor"><Variable name="ArcColorMstBal"/></SetVariable>
+                      <SetVariable name="Control">headMix</SetVariable>
+                      <SetVariable name="Label">Mixing</SetVariable>
+                    </Template>
+                    <WidgetGroup>
+                      <ObjectName>KnobEndLabels</ObjectName>
+                      <Layout>horizontal</Layout>
+                      <SizePolicy>min,min</SizePolicy>
+                      <Children>
+                        <Label>
+                          <ObjectName>KnobEndLabel</ObjectName>
+                          <Text>Cue</Text>
+                        </Label>
+                        <WidgetGroup><Size>6f,0min</Size></WidgetGroup>
+                        <Label>
+                          <ObjectName>KnobEndLabel</ObjectName>
+                          <Text>Master</Text>
+                        </Label>
+                      </Children>
+                    </WidgetGroup>
+                    <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+                    <Template src="skins:LateNight/controls/knob_label_above_level.xml">
+                      <SetVariable name="KnobBg">main_level</SetVariable>
+                      <SetVariable name="TooltipId">headphone_gain</SetVariable>
+                      <SetVariable name="Size">35f,30f</SetVariable>
+                      <SetVariable name="KnobColor">white</SetVariable>
+                      <SetVariable name="ArcColor"><Variable name="ArcColorGainLow"/></SetVariable>
+                      <SetVariable name="ArcUnipolar">true</SetVariable>
+                      <SetVariable name="Control">headGain</SetVariable>
+                      <SetVariable name="Label">Level</SetVariable>
+                    </Template>
+                    <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
+                    <WidgetGroup><!-- HeadSplit button -->
+                      <Layout>horizontal</Layout>
+                      <SizePolicy>me,min</SizePolicy>
+                      <Children>
+                        <PushButton>
+                          <TooltipId>headSplit</TooltipId>
+                          <ObjectName>SplitCue</ObjectName>
+                          <Size>48f,22f</Size>
+                          <NumberStates>2</NumberStates>
+                          <RightClickIsPushButton>false</RightClickIsPushButton>
+                          <State>
+                            <Number>0</Number>
+                            <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit.svg</Unpressed>
+                            <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit.svg</Pressed>
+                          </State>
+                          <State>
+                            <Number>1</Number>
+                            <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit_active.svg</Unpressed>
+                            <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn_<Variable name="BtnType"/>_headsplit_active.svg</Pressed>
+                          </State>
+                          <Connection>
+                            <ConfigKey>[Master],headSplit</ConfigKey>
+                            <ButtonState>LeftButton</ButtonState>
+                          </Connection>
+                        </PushButton>
+                      </Children>
+                    </WidgetGroup>
+                    </Children>
+                  </WidgetGroup><!-- MixerModule -->
+
+                  <!-- Sound Color FX: one on at a time (the engine keeps it so) -->
+                  <WidgetGroup><Size>0min,6f</Size></WidgetGroup>
+                  <!-- 2 x 2, as on the DDJ-800: DUB ECHO, SWEEP (PITCH on the
+                       hardware; rb6 maps SWEEP) / NOISE, FILTER -->
+                  <WidgetGroup>
+                    <ObjectName>SoundColorFxButtons</ObjectName>
+                    <Layout>vertical</Layout>
+                    <SizePolicy>min,min</SizePolicy>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <SizePolicy>min,min</SizePolicy>
+                        <Children>
+                          <SoundColorFxButton>
+                            <SoundColorFx>1</SoundColorFx>
+                            <Tooltip>Push to use DUB ECHO with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
+                            <ObjectName>SoundColorFxButton</ObjectName>
+                            <Size>36f,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State>
+                              <Number>0</Number>
+                              <Text>DUB&#10;ECHO</Text>
+                            </State>
+                            <State>
+                              <Number>1</Number>
+                              <Text>DUB&#10;ECHO</Text>
+                            </State>
+                            <Connection>
+                              <ConfigKey>[SoundColorFX],cfx1</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                            </Connection>
+                          </SoundColorFxButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <SoundColorFxButton>
+                            <SoundColorFx>2</SoundColorFx>
+                            <Tooltip>Push to use SWEEP with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
+                            <ObjectName>SoundColorFxButton</ObjectName>
+                            <Size>36f,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State>
+                              <Number>0</Number>
+                              <Text>SWEEP</Text>
+                            </State>
+                            <State>
+                              <Number>1</Number>
+                              <Text>SWEEP</Text>
+                            </State>
+                            <Connection>
+                              <ConfigKey>[SoundColorFX],cfx2</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                            </Connection>
+                          </SoundColorFxButton>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <SizePolicy>min,min</SizePolicy>
+                        <Children>
+                          <SoundColorFxButton>
+                            <SoundColorFx>3</SoundColorFx>
+                            <Tooltip>Push to use NOISE with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
+                            <ObjectName>SoundColorFxButton</ObjectName>
+                            <Size>36f,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State>
+                              <Number>0</Number>
+                              <Text>NOISE</Text>
+                            </State>
+                            <State>
+                              <Number>1</Number>
+                              <Text>NOISE</Text>
+                            </State>
+                            <Connection>
+                              <ConfigKey>[SoundColorFX],cfx3</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                            </Connection>
+                          </SoundColorFxButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <SoundColorFxButton>
+                            <SoundColorFx>4</SoundColorFx>
+                            <Tooltip>Push to use FILTER with the COLOR knobs. Push again to stop all effects. Hold SHIFT and push to use more than one effect. Right-click to select the effect.</Tooltip>
+                            <ObjectName>SoundColorFxButton</ObjectName>
+                            <Size>36f,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <State>
+                              <Number>0</Number>
+                              <Text>FILTER</Text>
+                            </State>
+                            <State>
+                              <Number>1</Number>
+                              <Text>FILTER</Text>
+                            </State>
+                            <Connection>
+                              <ConfigKey>[SoundColorFX],cfx4</ConfigKey>
+                              <ButtonState>LeftButton</ButtonState>
+                            </Connection>
+                          </SoundColorFxButton>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup><!-- SoundColorFxButtons -->
+
+                  <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+                </Children>
+              </WidgetGroup><!-- HeadphoneControls -->
+
+            </Children>
+          </WidgetGroup><!-- MixerMainHeadphone -->
+        </Children>
+      </WidgetGroup><!-- MixerHeadphonesSide -->
+
+      <WidgetGroup><!--sized and styled in css -->
+        <ObjectName>MainMixerSeparator</ObjectName>
+        <Layout>horizontal</Layout>
+        <Children/>
+      </WidgetGroup>
+
+    </Children>
+    <Connection>
+      <ConfigKey persist="true">[Skin],show_main_head_mixer</ConfigKey>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</Template>

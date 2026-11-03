@@ -192,10 +192,130 @@ You can always drag-and-drop tracks on screen to clone a deck.</string>
         </property>
        </widget>
       </item>
+      <item row="7" column="0" colspan="3">
+       <widget class="QGroupBox" name="groupBoxSyncOptions">
+        <property name="title">
+         <string>Sync options</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayoutSyncOptions">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="labelSyncType">
+           <property name="text">
+            <string>Sync mode</string>
+           </property>
+           <property name="buddy">
+            <cstring>comboBoxSyncType</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" colspan="2">
+          <widget class="QComboBox" name="comboBoxSyncType"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="labelSyncGrid">
+           <property name="text">
+            <string>Beat grid</string>
+           </property>
+           <property name="buddy">
+            <cstring>comboBoxSyncGrid</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="comboBoxSyncGrid">
+           <property name="toolTip">
+            <string>With Grid Lock: the beat grid a synced track snaps to when it starts, relative to the master. Whole keeps the beats on top of each other.</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+           <widget class="QLabel" name="labelSyncMode">
+            <property name="text">
+             <string>Dynamic tempo handling</string>
+            </property>
+            <property name="openExternalLinks">
+             <bool>true</bool>
+            </property>
+           </widget>
+         </item>
+         <item row="2" column="1">
+           <widget class="QRadioButton" name="radioButtonSoftLeader">
+            <property name="toolTip">
+             <string>Apply tempo changes from a soft-leading track (usually the leaving track in a transition) to the follower tracks. After the transition, the follower track will continue with the previous leader's very last tempo. Changes from explicit selected leaders are always applied.</string>
+            </property>
+            <property name="text">
+             <string>Follow soft leader's tempo</string>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">buttonGroupSyncMode</string>
+            </attribute>
+           </widget>
+         </item>
+         <item row="2" column="2">
+           <widget class="QRadioButton" name="radioButtonLockBpm">
+            <property name="toolTip">
+             <string>The tempo of a previous soft leader track at the beginning of the transition is kept steady. After the transition, the follower track will maintain this original tempo. This technique serves as a workaround to avoid dynamic tempo changes, as seen during the outro of rubato-style tracks. For instance, it prevents the follower track from continuing with a slowed-down tempo of the soft leader. This corresponds to the behavior before Mixxx 2.4. Changes from explicit selected leaders are always applied.</string>
+            </property>
+            <property name="text">
+             <string>Use steady tempo</string>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">buttonGroupSyncMode</string>
+            </attribute>
+           </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
    <item row="1" column="0">
+    <widget class="QGroupBox" name="groupBoxPlatterOptions">
+     <property name="title">
+      <string>Platter options</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayoutPlatterOptions">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelScratchAlgorithm">
+        <property name="text">
+         <string>Scratch algorithm</string>
+        </property>
+        <property name="buddy">
+         <cstring>comboBoxScratchAlgorithm</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="comboBoxScratchAlgorithm">
+        <property name="toolTip">
+         <string>How a deck renders the track when you scratch, and whenever key lock is off.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <spacer name="horizontalSpacerPlatter">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="2" column="0">
     <widget class="QGroupBox" name="groupBoxSpeedPitchOptions">
      <property name="title">
       <string>Speed (Tempo) and Key (Pitch) options</string>
@@ -355,16 +475,6 @@ You can always drag-and-drop tracks on screen to clone a deck.</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="labelSyncMode">
-          <property name="text">
-           <string>Sync mode (Dynamic tempo tracks)</string>
-          </property>
-          <property name="openExternalLinks">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
         <item row="3" column="0">
          <widget class="QLabel" name="labelKeylockMode">
           <property name="text">
@@ -458,19 +568,6 @@ You can always drag-and-drop tracks on screen to clone a deck.</string>
           <property name="text">
            <string>Adjustment buttons:</string>
           </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QRadioButton" name="radioButtonSoftLeader">
-          <property name="toolTip">
-           <string>Apply tempo changes from a soft-leading track (usually the leaving track in a transition) to the follower tracks. After the transition, the follower track will continue with the previous leader's very last tempo. Changes from explicit selected leaders are always applied.</string>
-          </property>
-          <property name="text">
-           <string>Follow soft leader's tempo</string>
-          </property>
-          <attribute name="buttonGroup">
-           <string notr="true">buttonGroupSyncMode</string>
-          </attribute>
          </widget>
         </item>
         <item row="9" column="2">
@@ -612,19 +709,6 @@ You can always drag-and-drop tracks on screen to clone a deck.</string>
           </attribute>
          </widget>
         </item>
-        <item row="2" column="2">
-         <widget class="QRadioButton" name="radioButtonLockBpm">
-          <property name="toolTip">
-           <string>The tempo of a previous soft leader track at the beginning of the transition is kept steady. After the transition, the follower track will maintain this original tempo. This technique serves as a workaround to avoid dynamic tempo changes, as seen during the outro of rubato-style tracks. For instance, it prevents the follower track from continuing with a slowed-down tempo of the soft leader. This corresponds to the behavior before Mixxx 2.4. Changes from explicit selected leaders are always applied.</string>
-          </property>
-          <property name="text">
-           <string>Use steady tempo</string>
-          </property>
-          <attribute name="buttonGroup">
-           <string notr="true">buttonGroupSyncMode</string>
-          </attribute>
-         </widget>
-        </item>
         <item row="5" column="0">
          <spacer name="verticalSpacer1">
           <property name="orientation">
@@ -643,7 +727,7 @@ You can always drag-and-drop tracks on screen to clone a deck.</string>
      </layout>
     </widget>
    </item>
-   <item row="2" column="0">
+   <item row="3" column="0">
     <spacer name="verticalSpacer2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -669,6 +753,9 @@ You can always drag-and-drop tracks on screen to clone a deck.</string>
   <tabstop>comboBoxLoadPoint</tabstop>
   <tabstop>comboBoxLoadWhenDeckPlaying</tabstop>
   <tabstop>checkBoxCloneDeckOnLoadDoubleTap</tabstop>
+  <tabstop>comboBoxSyncType</tabstop>
+  <tabstop>comboBoxSyncGrid</tabstop>
+  <tabstop>comboBoxScratchAlgorithm</tabstop>
   <tabstop>ComboBoxRateRange</tabstop>
   <tabstop>checkBoxInvertSpeedSlider</tabstop>
   <tabstop>checkBoxResetPitch</tabstop>

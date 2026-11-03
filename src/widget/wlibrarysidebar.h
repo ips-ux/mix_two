@@ -28,6 +28,9 @@ class WLibrarySidebar : public QTreeView, public WBaseWidget {
     void renameSelectedItem();
     bool isLeafNodeSelected();
     bool isChildIndexSelected(const QModelIndex& index);
+    /// Expanded state of a feature's child index.
+    bool isChildIndexExpanded(const QModelIndex& index);
+    void setChildIndexExpanded(const QModelIndex& index, bool expanded);
     bool isFeatureRootIndexSelected(LibraryFeature* pFeature);
 
   public slots:

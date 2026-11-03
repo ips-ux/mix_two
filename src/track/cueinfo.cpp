@@ -22,6 +22,7 @@ void assertEndPosition(
         break;
     case CueType::Intro:
     case CueType::Outro:
+    case CueType::MemoryCue: // memory cue or memory loop
     case CueType::Invalid:
         break;
     case CueType::Beat: // unused
@@ -147,6 +148,9 @@ QDebug operator<<(QDebug debug, const CueType& cueType) {
         break;
     case CueType::N60dBSound:
         debug << "CueType::N60dBSound";
+        break;
+    case CueType::MemoryCue:
+        debug << "CueType::MemoryCue";
         break;
     }
     return debug;

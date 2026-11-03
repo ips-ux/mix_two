@@ -29,6 +29,23 @@
 #ifdef __RUBBERBAND__
 #include "effects/backends/builtin/pitchshifteffect.h"
 #endif
+#include "effects/backends/builtin/beatfxechoeffect.h"
+#include "effects/backends/builtin/colorfxdubechoeffect.h"
+#include "effects/backends/builtin/colorfxfiltereffect.h"
+#include "effects/backends/builtin/colorfxsweepeffect.h"
+#include "effects/backends/builtin/beatfxenigmajeteffect.h"
+#include "effects/backends/builtin/beatfxmobiuseffect.h"
+#include "effects/backends/builtin/beatfxflangereffect.h"
+#include "effects/backends/builtin/beatfxmtdelayeffect.h"
+#ifdef __RUBBERBAND__
+#include "effects/backends/builtin/beatfxpitcheffect.h"
+#endif
+#ifndef __MACAPPSTORE__
+#include "effects/backends/builtin/beatfxreverbeffect.h"
+#endif
+#include "effects/backends/builtin/beatfxrolleffect.h"
+#include "effects/backends/builtin/beatfxspiraleffect.h"
+#include "effects/backends/builtin/beatfxtranseffect.h"
 #include "effects/backends/builtin/gaineffect.h"
 #include "effects/backends/builtin/tremoloeffect.h"
 #include "effects/backends/builtin/whitenoiseeffect.h"
@@ -68,6 +85,30 @@ BuiltInBackend::BuiltInBackend() {
     registerEffect<DistortionEffect>();
     registerEffect<GlitchEffect>();
     registerEffect<CompressorEffect>();
+    // Mix Two: Pioneer-style SOUND COLOR FX (DDJ-800 button order)
+    registerEffect<ColorFxDubEchoEffect>();
+    registerEffect<ColorFxSweepEffect>();
+    registerEffect<ColorFxNoise>();
+    registerEffect<ColorFxFilter>();
+    // Mix Two: Pioneer-style BEAT FX (DDJ-800 selector order)
+    registerEffect<BeatFxLowCutEcho>();
+    registerEffect<BeatFxEcho>();
+    registerEffect<BeatFxMtDelayEffect>();
+    registerEffect<BeatFxSpiralEffect>();
+    registerEffect<BeatFxTransEffect>();
+    registerEffect<BeatFxEnigmaJetEffect>();
+    registerEffect<BeatFxFlanger>();
+    registerEffect<BeatFxPhaser>();
+#ifndef __MACAPPSTORE__
+    registerEffect<BeatFxReverbEffect>();
+#endif
+#ifdef __RUBBERBAND__
+    registerEffect<BeatFxPitchEffect>();
+#endif
+    registerEffect<BeatFxSlipRoll>();
+    registerEffect<BeatFxRoll>();
+    registerEffect<BeatFxMobiusSaw>();
+    registerEffect<BeatFxMobiusTri>();
     registerEffect<AutoGainControlEffect>();
     registerEffect<GainEffect>();
 }

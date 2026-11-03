@@ -12,6 +12,12 @@ class PortMidiEnumerator : public MidiEnumerator {
 
     QList<Controller*> queryDevices() override;
 
+    /// Hands the current devices to the caller and restarts PortMidi, whose
+    /// device list is otherwise fixed at initialization, so that the next
+    /// queryDevices() sees devices connected since then. The returned
+    /// controllers are closed and no longer usable; the caller deletes them.
+    QList<Controller*> releaseDevicesForRescan();
+
   private:
     QList<Controller*> m_devices;
     UserSettingsPointer m_pConfig;

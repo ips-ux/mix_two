@@ -1,9 +1,7 @@
 #include "library/mixxxlibraryfeature.h"
 
-#include <QtDebug>
-#ifdef __ENGINEPRIME__
 #include <QMenu>
-#endif
+#include <QtDebug>
 
 #include "library/basetrackcache.h"
 #include "library/dao/trackschema.h"
@@ -20,9 +18,7 @@
 #include "sources/soundsourceproxy.h"
 #include "util/dnd.h"
 #include "widget/wlibrary.h"
-#ifdef __ENGINEPRIME__
 #include "widget/wlibrarysidebar.h"
-#endif
 
 MixxxLibraryFeature::MixxxLibraryFeature(Library* pLibrary,
         UserSettingsPointer pConfig)
@@ -137,6 +133,13 @@ MixxxLibraryFeature::MixxxLibraryFeature(Library* pLibrary,
             this,
             &MixxxLibraryFeature::exportLibrary);
 #endif
+
+    // Mix Two: the export to a stick (Device Library Plus).
+    m_pExportLibraryToDeviceAction = make_parented<QAction>(tr("Export to a USB stick"), this);
+    connect(m_pExportLibraryToDeviceAction.get(),
+            &QAction::triggered,
+            this,
+            &MixxxLibraryFeature::exportLibraryToDevice);
 }
 
 void MixxxLibraryFeature::bindLibraryWidget(WLibrary* pLibraryWidget,
@@ -201,12 +204,10 @@ void MixxxLibraryFeature::searchAndActivate(const QString& query) {
     selectAndActivate();
 }
 
-#ifdef __ENGINEPRIME__
 void MixxxLibraryFeature::bindSidebarWidget(WLibrarySidebar* pSidebarWidget) {
     // store the sidebar widget pointer for later use in onRightClick
     m_pSidebarWidget = pSidebarWidget;
 }
-#endif
 
 void MixxxLibraryFeature::slotUpdateTrackCount() {
     m_trackCount = m_pLibraryTableModel->rowCount();
@@ -261,10 +262,11 @@ bool MixxxLibraryFeature::dragMoveAccept(const QList<QUrl>& urls) {
     return DragAndDropHelper::urlsContainSupportedTrackFiles(urls, true);
 }
 
-#ifdef __ENGINEPRIME__
 void MixxxLibraryFeature::onRightClick(const QPoint& globalPos) {
     QMenu menu(m_pSidebarWidget);
+    menu.addAction(m_pExportLibraryToDeviceAction.get());
+#ifdef __ENGINEPRIME__
     menu.addAction(m_pExportLibraryAction.get());
+#endif
     menu.exec(globalPos);
 }
-#endif

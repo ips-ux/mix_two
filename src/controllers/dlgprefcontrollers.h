@@ -8,6 +8,7 @@
 #include "util/parented_ptr.h"
 
 class ControlProxy;
+class Controller;
 class DlgPreferences;
 class DlgPrefController;
 class ControllerManager;
@@ -60,6 +61,10 @@ class DlgPrefControllers : public DlgPreferencePage, public Ui::DlgPrefControlle
     std::shared_ptr<ControllerManager> m_pControllerManager;
     QTreeWidgetItem* m_pControllersRootItem;
     QList<DlgPrefController*> m_controllerPages;
+    /// Controllers the pages were created for. A MIDI rescan may already have
+    /// removed them from ControllerManager, which keeps them alive until
+    /// rescanControllers() has run.
+    QList<Controller*> m_pageControllers;
     QList<QTreeWidgetItem*> m_controllerTreeItems;
 
     const parented_ptr<ControlProxy> m_pNumDecks;
