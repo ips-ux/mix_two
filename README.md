@@ -38,7 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
-- 2026-11-02: Legacy Design deck HUD: memory cue list and the MEMORY CUE pad mode (commit hash: see git log, "Memory cues: list widget, activate controls and the pad mode")
+- 2026-11-02: Legacy Design deck HUD: memory cue list and the MEMORY CUE pad mode
 - 2026-11-02: Legacy Design deck HUD: GRID / PHRASE and INFO pages (commit hash: see git log, "LateNight: GRID / PHRASE and INFO pages")
 - 2026-11-02: Legacy Design deck HUD: pad mode combo box and KEY SHIFT lights
 - 2026-11-02: Legacy Design deck HUD: lower panel tabs and the pad view
