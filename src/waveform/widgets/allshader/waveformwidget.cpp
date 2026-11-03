@@ -8,6 +8,7 @@
 #include "rendergraph/opacitynode.h"
 #include "waveform/renderers/allshader/waveformrenderbackground.h"
 #include "waveform/renderers/allshader/waveformrenderbeat.h"
+#include "waveform/renderers/allshader/waveformrenderercolorsaturated.h"
 #include "waveform/renderers/allshader/waveformrendererendoftrack.h"
 #include "waveform/renderers/allshader/waveformrendererfiltered.h"
 #include "waveform/renderers/allshader/waveformrendererhsv.h"
@@ -133,6 +134,9 @@ WaveformWidget::addWaveformSignalRenderer(WaveformWidgetType::Type type,
     case ::WaveformWidgetType::Stacked:
         return addWaveformSignalRenderer<WaveformRendererFiltered>(
                 true, options); // true for RGB Stacked
+    case ::WaveformWidgetType::ColorSaturated:
+        return addWaveformSignalRenderer<WaveformRendererColorSaturated>(
+                positionSource, options);
     default:
         break;
     }

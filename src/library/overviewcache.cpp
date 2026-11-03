@@ -13,6 +13,7 @@
 #include "waveform/renderers/waveformoverviewrenderer.h"
 #include "waveform/renderers/waveformsignalcolors.h"
 #include "waveform/waveformfactory.h"
+#include "waveform/waveformwidgetfactory.h"
 
 namespace {
 
@@ -178,6 +179,7 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
                     pLoadedTrackWaveformSummary,
                     type,
                     signalColors,
+                    WaveformWidgetFactory::colorSaturatedBaseColorFromConfig(pConfig),
                     true /* mono, bottom-aligned */);
 
             if (!image.isNull()) {

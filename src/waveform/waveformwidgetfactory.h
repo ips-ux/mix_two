@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QObject>
 #include <QSurfaceFormat>
 #include <QVector>
@@ -189,6 +190,20 @@ class WaveformWidgetFactory : public QObject,
     void setStemOpacity(float value);
     void setStemSplitTracks(bool value);
 
+    // <!-- AI-generated (Claude Code, 2026-11-02). Start of AI-generated text. -->
+    /// The base colour of the Color Saturated waveform and overview, stored
+    /// as "#rrggbb" in [Waveform],ColorSaturatedBaseColor.
+    QColor getColorSaturatedBaseColor() const {
+        return m_colorSaturatedBaseColor;
+    }
+    /// Writes the config key and makes the Color Saturated waveforms again.
+    void setColorSaturatedBaseColor(const QColor& color);
+    static QColor colorSaturatedBaseColorDefault();
+    /// Reads the base colour from the config; the default if it is not set
+    /// or not valid. Safe to call from a worker thread.
+    static QColor colorSaturatedBaseColorFromConfig(const UserSettingsPointer& pConfig);
+    // <!-- End of AI-generated text. -->
+
     bool getUntilMarkShowBeats() const {
         return m_untilMarkShowBeats;
     }
@@ -308,6 +323,8 @@ class WaveformWidgetFactory : public QObject,
     void stemOpacityChanged(float value);
     void stemSplitTracksChanged(bool value);
 
+    void colorSaturatedBaseColorChanged(const QColor& color);
+
   public slots:
     void slotSkinLoaded();
 
@@ -380,6 +397,8 @@ class WaveformWidgetFactory : public QObject,
     bool m_stemSplitTracks;
     std::unique_ptr<ControlObject> m_pStemSplitTracksControl;
 
+    QColor m_colorSaturatedBaseColor;
+
     bool m_openGlAvailable;
 #ifdef MIXXX_USE_QOPENGL
     bool m_openGlesAvailable;
@@ -401,6 +420,7 @@ class WaveformWidgetFactory : public QObject,
     WaveformWidgetAbstract* createRGBWaveformWidget(WWaveformViewer* viewer,
             WaveformRendererSignalBase::Options option);
     WaveformWidgetAbstract* createStackedWaveformWidget(WWaveformViewer* viewer);
+    WaveformWidgetAbstract* createColorSaturatedWaveformWidget(WWaveformViewer* viewer);
     WaveformWidgetAbstract* createSimpleWaveformWidget(WWaveformViewer* viewer);
     WaveformWidgetAbstract* createVSyncTestWaveformWidget(WWaveformViewer* viewer);
 

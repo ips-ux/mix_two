@@ -452,6 +452,20 @@ With 4 DECKS on, the four deck windows show in the order 3, 1, mixer, 2, 4.
 When the DDJ-800 is connected, the deck that a side controls has a blue
 outline and a lit deck number. The other deck on that side is darker.
 
+### Waveform type: Color Saturated
+
+There is a new waveform type, **Color Saturated**. It shows each part of the
+track in one colour. Bass parts show in the base colour. Loud high sounds
+show nearer to white.
+
+To use it, open Preferences > Waveforms. Set **Type** to Color Saturated.
+Set the overview **Type** to Color Saturated too.
+
+To change the base colour, click the **Color Saturated base colour** button.
+The default colour is blue. The waveforms change immediately.
+
+Color Saturated needs "Use acceleration". Without it, the waveform is empty.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.

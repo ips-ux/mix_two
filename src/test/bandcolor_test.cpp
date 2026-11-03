@@ -35,5 +35,15 @@ TEST(BandColorTest, ColorSaturatedBlendsToWhite) {
     EXPECT_EQ(QColor(255, 255, 255), mixxx::bandcolor::colorSaturated(base, 9));
 }
 
+TEST(BandColorTest, ColorSaturatedMidIsBase) {
+    // The Color Saturated renderers use this mapping: a column where the mid
+    // band is the loudest band shows the base colour.
+    const QColor base(0, 104, 255);
+    const Bands b{200, 200, 10};
+    EXPECT_EQ(base,
+            mixxx::bandcolor::colorSaturated(
+                    base, mixxx::bandcolor::whiteness3(b)));
+}
+
 } // namespace
 // <!-- End of AI-generated text. -->

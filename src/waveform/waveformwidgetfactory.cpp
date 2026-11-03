@@ -90,6 +90,8 @@ const ConfigKey kFrameRateKey =
         ConfigKey(kWaveformGroup, QStringLiteral("FrameRate"));
 const ConfigKey kVSyncKey = ConfigKey(kWaveformGroup, QStringLiteral("VSync"));
 const ConfigKey kBeatGridAlpha = ConfigKey(kWaveformGroup, QStringLiteral("beatGridAlpha"));
+const ConfigKey kColorSaturatedBaseColorKey =
+        ConfigKey(kWaveformGroup, QStringLiteral("ColorSaturatedBaseColor"));
 
 ConfigKey visualGainKey(int index) {
     return ConfigKey(kWaveformGroup, QStringLiteral("VisualGain_") + QString::number(index));
@@ -142,6 +144,7 @@ WaveformWidgetFactory::WaveformWidgetFactory()
           m_untilMarkTextPointSize(24),
           m_untilMarkTextHeightLimit(toUntilMarkTextHeightLimit(0)),
           m_stemSplitTracks(false),
+          m_colorSaturatedBaseColor(colorSaturatedBaseColorDefault()),
           m_openGlAvailable(false),
           m_openGlesAvailable(false),
           m_openGLShaderAvailable(false),
@@ -450,6 +453,8 @@ bool WaveformWidgetFactory::setConfig(UserSettingsPointer config) {
                     WaveformWidgetRenderer::s_defaultPlayMarkerPosition);
     setPlayMarkerPosition(m_playMarkerPosition);
 
+    m_colorSaturatedBaseColor = colorSaturatedBaseColorFromConfig(m_config);
+
     int untilMarkShowBeats =
             m_config->getValueString(
                             ConfigKey(kWaveformGroup, QStringLiteral("UntilMarkShowBeats")))
@@ -626,6 +631,7 @@ bool WaveformWidgetFactory::widgetTypeSupportsUntilMark() const {
     case WaveformWidgetType::Simple:
     case WaveformWidgetType::HSV:
     case WaveformWidgetType::Stacked:
+    case WaveformWidgetType::ColorSaturated:
         return true;
     default:
         break;
@@ -640,6 +646,7 @@ bool WaveformWidgetFactory::widgetTypeSupportsStems() const {
     case WaveformWidgetType::Simple:
     case WaveformWidgetType::HSV:
     case WaveformWidgetType::Stacked:
+    case WaveformWidgetType::ColorSaturated:
         return true;
     default:
         break;
@@ -1147,6 +1154,15 @@ void WaveformWidgetFactory::evaluateWidgets() {
                             type, useGles);
 #endif
             break;
+        case WaveformWidgetType::ColorSaturated:
+            // Allshader only, as Stacked.
+#ifdef MIXXX_USE_QOPENGL
+            addHandle(collectedHandles, type, allshader::WaveformWidget::vars());
+            supportedOptions[type] =
+                    allshader::WaveformWidget::supportedOptions(
+                            type, useGles);
+#endif
+            break;
         default:
             DEBUG_ASSERT(!"Unexpected WaveformWidgetType");
             continue;
@@ -1246,6 +1262,23 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createStackedWaveformWidget(
     }
 }
 
+WaveformWidgetAbstract* WaveformWidgetFactory::createColorSaturatedWaveformWidget(
+        WWaveformViewer* viewer) {
+    WaveformWidgetBackend backend = getBackendFromConfig();
+
+    switch (backend) {
+    case WaveformWidgetBackend::AllShader:
+#ifdef MIXXX_USE_QOPENGL
+        return createAllshaderWaveformWidget(WaveformWidgetType::Type::ColorSaturated, viewer);
+#endif
+    case WaveformWidgetBackend::None:
+    case WaveformWidgetBackend::GL:
+    case WaveformWidgetBackend::GLSL:
+    default:
+        return new EmptyWaveformWidget(viewer->getGroup(), viewer);
+    }
+}
+
 WaveformWidgetAbstract* WaveformWidgetFactory::createSimpleWaveformWidget(
         WWaveformViewer* viewer) {
     WaveformWidgetBackend backend = getBackendFromConfig();
@@ -1302,6 +1335,9 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createWaveformWidget(
             break;
         case WaveformWidgetType::Stacked:
             pWidget = createStackedWaveformWidget(pViewer);
+            break;
+        case WaveformWidgetType::ColorSaturated:
+            pWidget = createColorSaturatedWaveformWidget(pViewer);
             break;
         default:
             pWidget = new EmptyWaveformWidget(pViewer->getGroup(), pViewer);
@@ -1542,6 +1578,8 @@ QString WaveformWidgetAbstractHandle::getDisplayName(WaveformWidgetType::Type ty
         return QObject::tr("RGB");
     case WaveformWidgetType::Stacked:
         return QObject::tr("Stacked");
+    case WaveformWidgetType::ColorSaturated:
+        return QObject::tr("Color Saturated");
     default:
         return QObject::tr("Unknown");
     }
@@ -1700,6 +1738,40 @@ void WaveformWidgetFactory::setStemSplitTracks(bool value) {
     m_pStemSplitTracksControl->set(value ? 1.0 : 0.0);
     emit stemSplitTracksChanged(value);
 }
+
+// <!-- AI-generated (Claude Code, 2026-11-02). Start of AI-generated text. -->
+// static
+QColor WaveformWidgetFactory::colorSaturatedBaseColorDefault() {
+    return QColor(0x00, 0x68, 0xff);
+}
+
+// static
+QColor WaveformWidgetFactory::colorSaturatedBaseColorFromConfig(
+        const UserSettingsPointer& pConfig) {
+    if (!pConfig) {
+        return colorSaturatedBaseColorDefault();
+    }
+    const QColor color(pConfig->getValueString(kColorSaturatedBaseColorKey));
+    return color.isValid() ? color : colorSaturatedBaseColorDefault();
+}
+
+void WaveformWidgetFactory::setColorSaturatedBaseColor(const QColor& color) {
+    if (!color.isValid() || color.rgb() == m_colorSaturatedBaseColor.rgb()) {
+        return;
+    }
+    m_colorSaturatedBaseColor = QColor(color.rgb());
+    if (m_config) {
+        m_config->setValue(kColorSaturatedBaseColorKey,
+                m_colorSaturatedBaseColor.name(QColor::HexRgb));
+    }
+    // The renderers read the colour when they are set up, so make the
+    // waveform widgets again if they show this type.
+    if (m_type == WaveformWidgetType::ColorSaturated) {
+        setWidgetTypeFromHandle(findHandleIndexFromType(m_type), true);
+    }
+    emit colorSaturatedBaseColorChanged(m_colorSaturatedBaseColor);
+}
+// <!-- End of AI-generated text. -->
 
 // static
 Qt::Alignment WaveformWidgetFactory::toUntilMarkAlign(int index) {

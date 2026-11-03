@@ -1,7 +1,9 @@
 #include "preferences/dialog/dlgprefwaveform.h"
 
+#include <QColorDialog>
 #include <QLocale>
 #include <QMetaEnum>
+#include <QPixmap>
 #include <QtGlobal>
 #ifdef MIXXX_USE_QML
 #include <QQuickWindow>
@@ -85,6 +87,8 @@ DlgPrefWaveform::DlgPrefWaveform(
             tr("Filtered"), QVariant::fromValue(OverviewType::Filtered));
     waveformOverviewComboBox->addItem(tr("HSV"), QVariant::fromValue(OverviewType::HSV));
     waveformOverviewComboBox->addItem(tr("RGB"), QVariant::fromValue(OverviewType::RGB));
+    waveformOverviewComboBox->addItem(
+            tr("Color Saturated"), QVariant::fromValue(OverviewType::ColorSaturated));
     if (!ControlObject::exists(kOverviewTypeCfgKey)) {
         m_pTypeControl = std::make_unique<ControlPushButton>(kOverviewTypeCfgKey);
         m_pTypeControl->setStates(QMetaEnum::fromType<OverviewType>().keyCount());
@@ -276,6 +280,10 @@ DlgPrefWaveform::DlgPrefWaveform(
             &QAbstractButton::clicked,
             this,
             &DlgPrefWaveform::slotClearCachedWaveforms);
+    connect(colorSaturatedBaseColorButton,
+            &QAbstractButton::clicked,
+            this,
+            &DlgPrefWaveform::slotChooseColorSaturatedBaseColor);
     connect(playMarkerPositionSlider,
             &QSlider::valueChanged,
             this,
@@ -419,6 +427,8 @@ void DlgPrefWaveform::slotUpdate() {
     stemOutlineOpacitySpinBox->setValue(pFactory->getStemOutlineOpacity());
     stemDisplayModeComboBox->setCurrentIndex(pFactory->isStemSplitTracks() ? 1 : 0);
 
+    updateColorSaturatedBaseColorButton(pFactory->getColorSaturatedBaseColor());
+
     OverviewType cfgOverviewType =
             m_pConfig->getValue<OverviewType>(kOverviewTypeCfgKey, OverviewType::RGB);
     // Assumes the combobox index is in sync with the ControlPushButton
@@ -530,7 +540,35 @@ void DlgPrefWaveform::slotResetToDefaults() {
     playMarkerPositionSlider->setValue(50);
 
     stemDisplayModeComboBox->setCurrentIndex(0);
+
+    pFactory->setColorSaturatedBaseColor(WaveformWidgetFactory::colorSaturatedBaseColorDefault());
+    updateColorSaturatedBaseColorButton(pFactory->getColorSaturatedBaseColor());
 }
+
+// <!-- AI-generated (Claude Code, 2026-11-02). Start of AI-generated text. -->
+void DlgPrefWaveform::slotChooseColorSaturatedBaseColor() {
+    auto* pFactory = WaveformWidgetFactory::instance();
+    const QColor color = QColorDialog::getColor(
+            pFactory->getColorSaturatedBaseColor(),
+            this,
+            tr("Color Saturated base colour"));
+    if (!color.isValid()) {
+        // The dialog was cancelled.
+        return;
+    }
+    // Writes the config key and makes the waveforms again.
+    pFactory->setColorSaturatedBaseColor(color);
+    updateColorSaturatedBaseColorButton(pFactory->getColorSaturatedBaseColor());
+    notifyQmlWaveformSettingsChanged();
+}
+
+void DlgPrefWaveform::updateColorSaturatedBaseColorButton(const QColor& color) {
+    QPixmap swatch(16, 16);
+    swatch.fill(color);
+    colorSaturatedBaseColorButton->setIcon(QIcon(swatch));
+    colorSaturatedBaseColorButton->setText(color.name(QColor::HexRgb));
+}
+// <!-- End of AI-generated text. -->
 
 void DlgPrefWaveform::notifyQmlWaveformSettingsChanged() {
 #ifdef MIXXX_USE_QML

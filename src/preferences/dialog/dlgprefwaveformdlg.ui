@@ -87,6 +87,30 @@ Select from different types of displays for the waveform, which differ primarily
       </layout>
      </item>
 
+     <item row="3" column="0">
+      <widget class="QLabel" name="colorSaturatedBaseColorLabel">
+       <property name="toolTip">
+        <string>Set the colour of the Color Saturated waveform. Loud high sounds show nearer to white.</string>
+       </property>
+       <property name="text">
+        <string>Color Saturated base colour</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+       <property name="buddy">
+        <cstring>colorSaturatedBaseColorButton</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPushButton" name="colorSaturatedBaseColorButton">
+       <property name="toolTip">
+        <string>Set the colour of the Color Saturated waveform. Loud high sounds show nearer to white.</string>
+       </property>
+      </widget>
+     </item>
+
      <item row="4" column="0">
       <widget class="QLabel" name="frameRateLabel">
        <property name="text">
@@ -908,6 +932,7 @@ Select from different types of displays for the waveform overview, which differ 
   <tabstop>useAccelerationCheckBox</tabstop>
   <tabstop>splitLeftRightCheckBox</tabstop>
   <tabstop>highDetailCheckBox</tabstop>
+  <tabstop>colorSaturatedBaseColorButton</tabstop>
   <tabstop>frameRateSlider</tabstop>
   <tabstop>frameRateSpinBox</tabstop>
   <tabstop>endOfTrackWarningTimeSlider</tabstop>

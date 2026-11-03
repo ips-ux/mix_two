@@ -71,6 +71,7 @@ class WOverview : public WWidget, public TrackDropTarget {
     void slotStereoControlChanged(double v);
     void slotMinuteMarkersChanged(bool v);
     void slotScalingChanged();
+    void slotColorSaturatedBaseColorChanged(const QColor& color);
 
   private:
     // Append the waveform overview pixmap according to available data
@@ -198,6 +199,7 @@ class WOverview : public WWidget, public TrackDropTarget {
     QImage m_waveformImageScaled;
 
     WaveformSignalColors m_signalColors;
+    QColor m_colorSaturatedBaseColor;
 
     parented_ptr<ControlProxy> m_endOfTrackControl;
     parented_ptr<ControlProxy> m_pRateRatioControl;

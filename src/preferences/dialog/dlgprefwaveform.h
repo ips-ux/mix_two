@@ -68,6 +68,7 @@ class DlgPrefWaveform : public DlgPreferencePage, public Ui::DlgPrefWaveformDlg 
     void slotSetOverviewStereoMode(bool mono);
     void slotSetOverviewMinuteMarkers(bool minuteMarkers);
     void slotSetOverviewScaling();
+    void slotChooseColorSaturatedBaseColor();
 
   private:
     void initWaveformControl();
@@ -80,6 +81,7 @@ class DlgPrefWaveform : public DlgPreferencePage, public Ui::DlgPrefWaveformDlg 
     void updateWaveformGainEnabled();
     void updateStemOptionsEnabled();
     void notifyQmlWaveformSettingsChanged();
+    void updateColorSaturatedBaseColorButton(const QColor& color);
 
     std::unique_ptr<ControlPushButton> m_pTypeControl;
     std::unique_ptr<ControlObject> m_pOverviewMinuteMarkersControl;

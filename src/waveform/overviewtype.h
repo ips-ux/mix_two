@@ -10,6 +10,8 @@ enum class OverviewType {
     Filtered,
     HSV,
     RGB,
+    // Persisted by number: add new types at the end only.
+    ColorSaturated,
 };
 Q_ENUM_NS(OverviewType);
 

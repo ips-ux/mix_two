@@ -14,6 +14,7 @@ namespace waveformOverviewRenderer {
 QImage render(ConstWaveformPointer pWaveform,
         mixxx::OverviewType type,
         const WaveformSignalColors& signalColors,
+        const QColor& colorSaturatedBase,
         bool mono = false);
 
 /// These paint methods return the fullsize image
@@ -40,5 +41,16 @@ void drawWaveformPartHSV(
         int* start,
         int end,
         const WaveformSignalColors& signalColors,
+        bool mono = false);
+// <!-- AI-generated (Claude Code, 2026-11-02). Start of AI-generated text. -->
+/// Color Saturated: the height is the loudest band, the colour goes from
+/// `baseColor` to white as the mid band gets smaller (see bandcolor.h).
+// <!-- End of AI-generated text. -->
+void drawWaveformPartColorSaturated(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const QColor& baseColor,
         bool mono = false);
 } // namespace waveformOverviewRenderer

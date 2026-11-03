@@ -1,10 +1,12 @@
 #include "waveformoverviewrenderer.h"
 
 #include <QPainter>
+#include <algorithm>
 
 #include "util/colorcomponents.h"
 #include "util/math.h"
 #include "util/timer.h"
+#include "waveform/bandcolor.h"
 #include "waveform/renderers/waveformsignalcolors.h"
 
 namespace waveformOverviewRenderer {
@@ -12,6 +14,7 @@ namespace waveformOverviewRenderer {
 QImage render(ConstWaveformPointer pWaveform,
         mixxx::OverviewType type,
         const WaveformSignalColors& signalColors,
+        const QColor& colorSaturatedBase,
         bool mono) {
     const int dataSize = pWaveform->getDataSize();
     if (dataSize <= 0) {
@@ -37,6 +40,13 @@ QImage render(ConstWaveformPointer pWaveform,
                 nullptr,
                 dataSize,
                 signalColors,
+                mono);
+    } else if (type == mixxx::OverviewType::ColorSaturated) {
+        drawWaveformPartColorSaturated(&painter,
+                pWaveform,
+                nullptr,
+                dataSize,
+                colorSaturatedBase,
                 mono);
     } else {
         drawWaveformPartRGB(&painter,
@@ -325,5 +335,70 @@ void drawWaveformPartHSV(
         *start = end;
     }
 }
+
+// <!-- AI-generated (Claude Code, 2026-11-02). Start of AI-generated text. -->
+void drawWaveformPartColorSaturated(
+        QPainter* pPainter,
+        ConstWaveformPointer pWaveform,
+        int* start,
+        int end,
+        const QColor& baseColor,
+        bool mono) {
+    ScopedTimer t(QStringLiteral("waveformOverviewRenderer::drawNextPixmapPartColorSaturated"));
+    int startVal = 0;
+    if (start) {
+        startVal = *start;
+    }
+
+    // One colour for each whiteness value (0-7), made once for this part.
+    QColor colors[8];
+    for (int w = 0; w < 8; ++w) {
+        colors[w] = mixxx::bandcolor::colorSaturated(baseColor, static_cast<quint8>(w));
+    }
+
+    if (mono) {
+        // Mono means we're going to paint from bottom to top with l+r.
+        const qreal dy = pPainter->deviceTransform().dy();
+        pPainter->resetTransform();
+        // shift y0 to bottom
+        pPainter->translate(0, 2 * dy);
+        // flip y-axis
+        pPainter->scale(1, -1);
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            const int low = pWaveform->getLow(i) + pWaveform->getLow(i + 1);
+            const int mid = pWaveform->getMid(i) + pWaveform->getMid(i + 1);
+            const int high = pWaveform->getHigh(i) + pWaveform->getHigh(i + 1);
+            const int height = std::max({low, mid, high});
+            if (height <= 0) {
+                continue;
+            }
+            const mixxx::bandcolor::Bands bands{static_cast<quint8>(low / 2),
+                    static_cast<quint8>(mid / 2),
+                    static_cast<quint8>(high / 2)};
+            pPainter->setPen(colors[mixxx::bandcolor::whiteness3(bands)]);
+            pPainter->drawLine(x, height, x, 0);
+        }
+    } else { // stereo
+        for (int i = startVal, x = startVal / 2; i < end; i += 2, ++x) {
+            // Left goes up, right goes down.
+            for (int chn = 0; chn < 2; ++chn) {
+                const mixxx::bandcolor::Bands bands{pWaveform->getLow(i + chn),
+                        pWaveform->getMid(i + chn),
+                        pWaveform->getHigh(i + chn)};
+                const int height = std::max({bands.low, bands.mid, bands.high});
+                if (height <= 0) {
+                    continue;
+                }
+                pPainter->setPen(colors[mixxx::bandcolor::whiteness3(bands)]);
+                pPainter->drawLine(x, chn == 0 ? -height : height, x, 0);
+            }
+        }
+    }
+
+    if (start) {
+        *start = end;
+    }
+}
+// <!-- End of AI-generated text. -->
 
 } // namespace waveformOverviewRenderer

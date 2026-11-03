@@ -120,6 +120,11 @@ WOverview::WOverview(
             &WaveformWidgetFactory::overviewScalingChanged,
             this,
             &WOverview::slotScalingChanged);
+    m_colorSaturatedBaseColor = pWidgetFactory->getColorSaturatedBaseColor();
+    connect(pWidgetFactory,
+            &WaveformWidgetFactory::colorSaturatedBaseColorChanged,
+            this,
+            &WOverview::slotColorSaturatedBaseColorChanged);
     // Also update when the ReplayGain and related options have been changed
     m_pReplayGain = make_parented<ControlProxy>(m_group, QStringLiteral("replaygain"), this);
     m_pReplayGainEnabled = make_parented<ControlProxy>(
@@ -486,6 +491,21 @@ void WOverview::slotTypeControlChanged(double v) {
     m_waveformSourceImage = QImage();
     slotWaveformSummaryUpdated();
 }
+
+// <!-- AI-generated (Claude Code, 2026-11-02). Start of AI-generated text. -->
+void WOverview::slotColorSaturatedBaseColorChanged(const QColor& color) {
+    if (color == m_colorSaturatedBaseColor) {
+        return;
+    }
+    m_colorSaturatedBaseColor = color;
+    if (m_type != OverviewType::ColorSaturated) {
+        return;
+    }
+    // Make the source image again with the new colour.
+    m_waveformSourceImage = QImage();
+    slotWaveformSummaryUpdated();
+}
+// <!-- End of AI-generated text. -->
 
 void WOverview::slotStereoControlChanged(double v) {
     bool stereo = v > 0;
@@ -1540,6 +1560,14 @@ bool WOverview::drawNextPixmapPart() {
                 &m_actualCompletion,
                 nextCompletion,
                 m_signalColors,
+                !m_stereo);
+    } else if (m_type == OverviewType::ColorSaturated) {
+        waveformOverviewRenderer::drawWaveformPartColorSaturated(
+                &painter,
+                pWaveform,
+                &m_actualCompletion,
+                nextCompletion,
+                m_colorSaturatedBaseColor,
                 !m_stereo);
     } else { // OverviewType::RGB:
         waveformOverviewRenderer::drawWaveformPartRGB(
