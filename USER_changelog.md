@@ -36,16 +36,6 @@ operates. The Pioneer audio driver can also stop Mix Two.
 If rekordbox operates when Mix Two starts, a message shows. Quit rekordbox,
 then click **Retry**. Click **Start Anyway** only if you accept the risk.
 
-### Project roadmap and task manager
-
-The roadmap page shows the status of the work on Mix Two. To open it with
-the task manager, run `tools\mixtwo_windows.bat manager`. The Manager tab
-opens in the browser.
-
-Put the tasks for the day in **Today**. Then tell an agent: "Take today's
-tasks from the manager." The agent writes its result or its question on
-each task. Answer a question in the Manager tab.
-
 ### Pioneer DDJ-800
 
 Mix Two now has a mapping for the Pioneer DDJ-800.
