@@ -2,14 +2,17 @@
 AI-generated (Claude Code). Start of AI-generated text.
 
 Mix Two: HUD header bar (deck_hud.xml).
-  Mirror 0:  FX assign | stretch | key | deck badge
-  Mirror 1:  deck badge | key | stretch | FX assign
+  Decks 1, 3:  FX assign | stretch | key | deck badge
+  Decks 2, 4:  deck badge | key | stretch | FX assign
 The FX group (HudFx<N>) and the deck group (HudDeckId<N>) swap places with
 the HudHdrL / HudHdrR slots; inside the deck group, key and badge swap with
 HudIdL / HudIdR. Slot values are set per deck in skin.xml.
 The source box (USB1 on a CDJ) is left out until the track has a property
 for it.
-The deck badge has no control yet (deck 1/3, 2/4 switching is not built yet).
+The deck badge: a click toggles DeckAltKey ([Skin],left_deck_alt or
+[Skin],right_deck_alt), so the window changes between deck 1 and 3 (2 and 4).
+While a DDJ-800 is connected ([Skin],ddj800_connected = 1), the badge is
+disabled: the controller's DECK buttons set the value.
 
 End of AI-generated text.
 -->
@@ -67,13 +70,28 @@ End of AI-generated text.
         <Children>
           <PushButton>
             <ObjectName>HudDeckBadge</ObjectName>
+            <Tooltip>Deck number. Push to show the other deck of this side in this window.</Tooltip>
             <Size>24f,20f</Size>
-            <NumberStates>1</NumberStates>
+            <NumberStates>2</NumberStates>
             <State>
               <Number>0</Number>
               <Text><Variable name="ChanNum"/></Text>
               <Alignment>center</Alignment>
             </State>
+            <State>
+              <Number>1</Number>
+              <Text><Variable name="ChanNum"/></Text>
+              <Alignment>center</Alignment>
+            </State>
+            <Connection>
+              <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>enabled</BindProperty>
+            </Connection>
+            <Connection>
+              <ConfigKey><Variable name="DeckAltKey"/></ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
           </PushButton>
         </Children>
       </WidgetGroup>

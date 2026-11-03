@@ -1,3 +1,23 @@
+<!--
+AI-generated (Claude Code). Start of AI-generated text.
+
+Mix Two: the right deck windows (decks 2 and 4).
+Each deck (Deck2_Src, Deck4_Src) is defined once, in skin.xml. A singleton
+moves to the SingletonContainer that is shown, so each layout below has its
+own containers, and only one of them is visible at a time.
+
+  2-deck ([Skin],show_4decks = 0): one window. [Skin],right_deck_alt selects
+    the page: 0 = deck 2, 1 = deck 4.
+  4-deck, HUD ([LateNight],deck_hud = 1): 2 | 4, each HUD with its rate
+    column on its mixer side. While a DDJ-800 is connected
+    ([Skin],ddj800_connected = 1), the deck that the side does not control
+    (right_deck_alt) is in the HudDeckDimmed group; the QSS makes it darker.
+    A singleton that moves to a new parent gets the new parent's styles.
+  4-deck, old deck rows ([LateNight],deck_hud = 0): deck 4 under deck 2, as
+    in LateNight.
+
+End of AI-generated text.
+-->
 <Template>
   <SetVariable name="Type">deck</SetVariable>
   <WidgetGroup>
@@ -6,17 +26,174 @@
     <SizePolicy>me,min</SizePolicy>
     <Children>
 
-      <SingletonContainer>
-        <ObjectName>Deck2_Src</ObjectName>
-      </SingletonContainer>
-
+      <!-- 2-deck: deck 2 or deck 4 -->
       <WidgetGroup>
-        <Layout>horizontal</Layout>
+        <Layout>vertical</Layout>
         <SizePolicy>me,min</SizePolicy>
         <Children>
-          <SingletonContainer>
-            <ObjectName>Deck4_Src</ObjectName>
-          </SingletonContainer>
+          <WidgetStack currentpage="[Skin],right_deck_alt">
+            <SizePolicy>me,min</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,min</SizePolicy>
+                <Children>
+                  <SingletonContainer>
+                    <ObjectName>Deck2_Src</ObjectName>
+                  </SingletonContainer>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,min</SizePolicy>
+                <Children>
+                  <SingletonContainer>
+                    <ObjectName>Deck4_Src</ObjectName>
+                  </SingletonContainer>
+                </Children>
+              </WidgetGroup>
+            </Children>
+          </WidgetStack>
+        </Children>
+        <Connection>
+          <ConfigKey>[Skin],show_4decks</ConfigKey>
+          <Transform><Not/></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+      <!-- 4-deck -->
+      <WidgetGroup>
+        <Layout>vertical</Layout>
+        <SizePolicy>me,min</SizePolicy>
+        <Children>
+          <WidgetStack currentpage="[LateNight],deck_hud">
+            <SizePolicy>me,min</SizePolicy>
+            <Children>
+
+              <!-- old deck rows: deck 4 under deck 2 -->
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,min</SizePolicy>
+                <Children>
+                  <SingletonContainer>
+                    <ObjectName>Deck2_Src</ObjectName>
+                  </SingletonContainer>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <SizePolicy>me,min</SizePolicy>
+                    <Children>
+                      <SingletonContainer>
+                        <ObjectName>Deck4_Src</ObjectName>
+                      </SingletonContainer>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+
+              <!-- HUD: 2 | 4 -->
+              <WidgetGroup>
+                <Layout>horizontal</Layout>
+                <SizePolicy>me,min</SizePolicy>
+                <Children>
+
+                  <!-- deck 2: dimmed while connected and right_deck_alt = 1 -->
+                  <WidgetStack currentpage="[Skin],ddj800_connected">
+                    <SizePolicy>me,min</SizePolicy>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>vertical</Layout>
+                        <SizePolicy>me,min</SizePolicy>
+                        <Children>
+                          <SingletonContainer>
+                            <ObjectName>Deck2_Src</ObjectName>
+                          </SingletonContainer>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>vertical</Layout>
+                        <SizePolicy>me,min</SizePolicy>
+                        <Children>
+                          <WidgetStack currentpage="[Skin],right_deck_alt">
+                            <SizePolicy>me,min</SizePolicy>
+                            <Children>
+                              <WidgetGroup>
+                                <Layout>vertical</Layout>
+                                <SizePolicy>me,min</SizePolicy>
+                                <Children>
+                                  <SingletonContainer>
+                                    <ObjectName>Deck2_Src</ObjectName>
+                                  </SingletonContainer>
+                                </Children>
+                              </WidgetGroup>
+                              <WidgetGroup>
+                                <ObjectName>HudDeckDimmed</ObjectName>
+                                <Layout>vertical</Layout>
+                                <SizePolicy>me,min</SizePolicy>
+                                <Children>
+                                  <SingletonContainer>
+                                    <ObjectName>Deck2_Src</ObjectName>
+                                  </SingletonContainer>
+                                </Children>
+                              </WidgetGroup>
+                            </Children>
+                          </WidgetStack>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetStack>
+
+                  <!-- deck 4: dimmed while connected and right_deck_alt = 0 -->
+                  <WidgetStack currentpage="[Skin],ddj800_connected">
+                    <SizePolicy>me,min</SizePolicy>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>vertical</Layout>
+                        <SizePolicy>me,min</SizePolicy>
+                        <Children>
+                          <SingletonContainer>
+                            <ObjectName>Deck4_Src</ObjectName>
+                          </SingletonContainer>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>vertical</Layout>
+                        <SizePolicy>me,min</SizePolicy>
+                        <Children>
+                          <WidgetStack currentpage="[Skin],right_deck_alt">
+                            <SizePolicy>me,min</SizePolicy>
+                            <Children>
+                              <WidgetGroup>
+                                <ObjectName>HudDeckDimmed</ObjectName>
+                                <Layout>vertical</Layout>
+                                <SizePolicy>me,min</SizePolicy>
+                                <Children>
+                                  <SingletonContainer>
+                                    <ObjectName>Deck4_Src</ObjectName>
+                                  </SingletonContainer>
+                                </Children>
+                              </WidgetGroup>
+                              <WidgetGroup>
+                                <Layout>vertical</Layout>
+                                <SizePolicy>me,min</SizePolicy>
+                                <Children>
+                                  <SingletonContainer>
+                                    <ObjectName>Deck4_Src</ObjectName>
+                                  </SingletonContainer>
+                                </Children>
+                              </WidgetGroup>
+                            </Children>
+                          </WidgetStack>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetStack>
+
+                </Children>
+              </WidgetGroup>
+
+            </Children>
+          </WidgetStack>
         </Children>
         <Connection>
           <ConfigKey>[Skin],show_4decks</ConfigKey>

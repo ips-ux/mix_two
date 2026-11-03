@@ -453,6 +453,15 @@ To change the HUD window, open the skin settings (SETTINGS):
 
 A.HOT CUE, AUTO CUE and NEXT CUE do not operate yet.
 
+Each side of the screen has one deck window. The left window shows deck 1
+or deck 3. The right window shows deck 2 or deck 4. To change the deck in a
+window, click the deck number in the window header. When the DDJ-800 is
+connected, the deck number does not change on a click.
+
+With 4 DECKS on, the four deck windows show in the order 3, 1, mixer, 2, 4.
+When the DDJ-800 is connected, the deck that a side does not control is
+darker.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.

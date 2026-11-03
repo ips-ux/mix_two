@@ -389,9 +389,10 @@
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">1</SetVariable>
         <!-- Mix Two (AI-generated, Claude Code): HUD slots
-             (decks/deck_hud.xml), Mirror 0: side column and rate column on
-             the right (mixer) edge. End of AI-generated text. -->
-        <SetVariable name="Mirror">0</SetVariable>
+             (decks/deck_hud.xml): side column and rate column on the right
+             (mixer) edge. DeckAltKey: the control that the deck badge
+             toggles. End of AI-generated text. -->
+        <SetVariable name="DeckAltKey">[Skin],left_deck_alt</SetVariable>
         <SetVariable name="HudHdrL">HudFx</SetVariable>
         <SetVariable name="HudHdrR">HudDeckId</SetVariable>
         <SetVariable name="HudIdL">HudHdrKey</SetVariable>
@@ -424,9 +425,10 @@
         <Template src="skins:LateNight/decks/deck.xml">
           <SetVariable name="ChanNum">2</SetVariable>
         <!-- Mix Two (AI-generated, Claude Code): HUD slots
-             (decks/deck_hud.xml), Mirror 1: side column and rate column on
-             the left (mixer) edge. End of AI-generated text. -->
-        <SetVariable name="Mirror">1</SetVariable>
+             (decks/deck_hud.xml): side column and rate column on the left
+             (mixer) edge. DeckAltKey: the control that the deck badge
+             toggles. End of AI-generated text. -->
+        <SetVariable name="DeckAltKey">[Skin],right_deck_alt</SetVariable>
         <SetVariable name="HudHdrL">HudDeckId</SetVariable>
         <SetVariable name="HudHdrR">HudFx</SetVariable>
         <SetVariable name="HudIdL">HudBadge</SetVariable>
@@ -459,9 +461,10 @@
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">3</SetVariable>
         <!-- Mix Two (AI-generated, Claude Code): HUD slots
-             (decks/deck_hud.xml), Mirror 0: side column and rate column on
-             the right (mixer) edge. End of AI-generated text. -->
-        <SetVariable name="Mirror">0</SetVariable>
+             (decks/deck_hud.xml): side column and rate column on the right
+             (mixer) edge. DeckAltKey: the control that the deck badge
+             toggles. End of AI-generated text. -->
+        <SetVariable name="DeckAltKey">[Skin],left_deck_alt</SetVariable>
         <SetVariable name="HudHdrL">HudFx</SetVariable>
         <SetVariable name="HudHdrR">HudDeckId</SetVariable>
         <SetVariable name="HudIdL">HudHdrKey</SetVariable>
@@ -494,9 +497,10 @@
       <Template src="skins:LateNight/decks/deck.xml">
         <SetVariable name="ChanNum">4</SetVariable>
         <!-- Mix Two (AI-generated, Claude Code): HUD slots
-             (decks/deck_hud.xml), Mirror 1: side column and rate column on
-             the left (mixer) edge. End of AI-generated text. -->
-        <SetVariable name="Mirror">1</SetVariable>
+             (decks/deck_hud.xml): side column and rate column on the left
+             (mixer) edge. DeckAltKey: the control that the deck badge
+             toggles. End of AI-generated text. -->
+        <SetVariable name="DeckAltKey">[Skin],right_deck_alt</SetVariable>
         <SetVariable name="HudHdrL">HudDeckId</SetVariable>
         <SetVariable name="HudHdrR">HudFx</SetVariable>
         <SetVariable name="HudIdL">HudBadge</SetVariable>

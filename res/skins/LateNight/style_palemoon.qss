@@ -4047,3 +4047,49 @@ WPushButton#HudQuantizeButton {
 WPushButton#HudQuantizeButton[displayValue="1"] {
   border-color: #ff9d1c;
 }
+
+/* AI-generated (Claude Code). Start of AI-generated text. */
+/* Deck badge. A click changes the deck in the window (1 / 3, 2 / 4). While
+   a DDJ-800 is connected the badge is disabled (the controller selects the
+   deck), but it keeps its colours. */
+WPushButton#HudDeckBadge:disabled {
+  color: #000000;
+  background-color: #ff9d1c;
+}
+
+/* 4-deck layout with a DDJ-800 connected: the deck that its side does not
+   control is in the HudDeckDimmed group (decks/decks_left.xml,
+   decks_right.xml). Qt style sheets have no opacity for widgets, so the
+   text, borders and badges get darker colours. */
+#HudDeckDimmed #HudWindow {
+  background-color: #070809;
+  border-color: #1c1e22;
+}
+#HudDeckDimmed WTrackProperty,
+#HudDeckDimmed WNumber,
+#HudDeckDimmed WNumberPos,
+#HudDeckDimmed WNumberRate,
+#HudDeckDimmed WRateRange,
+#HudDeckDimmed WKey,
+#HudDeckDimmed WLabel {
+  color: #4a4d54;
+}
+#HudDeckDimmed WKey#HudHeaderKey,
+#HudDeckDimmed #HudBpmBlock,
+#HudDeckDimmed #HudKeyBox,
+#HudDeckDimmed #HudStripCell {
+  border-color: #23262b;
+}
+#HudDeckDimmed WPushButton#HudDeckBadge,
+#HudDeckDimmed WPushButton#HudDeckBadge:disabled {
+  color: #0b0c0e;
+  background-color: #5a3a10;
+}
+#HudDeckDimmed WLabel#HudMasterBadge {
+  color: #0b0c0e;
+  background-color: #5a2414;
+}
+#HudDeckDimmed WLabel#HudMtLabel {
+  color: #5a1414;
+}
+/* AI-generated (Claude Code). End of AI-generated text. */
