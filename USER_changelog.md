@@ -459,8 +459,8 @@ window, click the deck number in the window header. When the DDJ-800 is
 connected, the deck number does not change on a click.
 
 With 4 DECKS on, the four deck windows show in the order 3, 1, mixer, 2, 4.
-When the DDJ-800 is connected, the deck that a side does not control is
-darker.
+When the DDJ-800 is connected, the deck that a side controls has a blue
+outline and a lit deck number. The other deck on that side is darker.
 
 ### Known problems
 
