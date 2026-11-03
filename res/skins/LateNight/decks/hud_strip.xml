@@ -4,8 +4,10 @@ AI-generated (Claude Code). Start of AI-generated text.
 Mix Two: HUD bottom strip (hud_waves.xml), 44 px.
   A.HOT CUE | AUTO CUE | QUANTIZE | NEXT CUE | REMAIN / TIME
   * A.HOT CUE, AUTO CUE: placeholders without a function yet.
-  * QUANTIZE: left-click = quantize on / off. The beat value shows 1 until
-    the beat value control exists.
+  * QUANTIZE: left-click = quantize on / off; right-click = next beat value
+    (quantize_beats_cycle: 1 > 1/8 > 1/4 > 1/2 > 1). The value line shows
+    quantize_beats. Legacy skins have no context menu, and the right button
+    of a PushButton is always a push, so a push control does the cycle.
   * NEXT CUE: shows - until the next-cue countdown exists.
   * REMAIN / TIME: the play position. Click it to change between elapsed,
     remaining and both ([Controls],ShowDurationRemaining).
@@ -59,12 +61,16 @@ End of AI-generated text.
         <Children>
           <PushButton>
             <ObjectName>HudQuantizeButton</ObjectName>
-            <TooltipId>quantize</TooltipId>
+            <Tooltip>Left-click: set quantize on or off. Right-click: change the beat value.</Tooltip>
             <Size>66f,44f</Size>
             <NumberStates>2</NumberStates>
             <Connection>
               <ConfigKey><Variable name="Group"/>,quantize</ConfigKey>
               <ButtonState>LeftButton</ButtonState>
+            </Connection>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,quantize_beats_cycle</ConfigKey>
+              <ButtonState>RightButton</ButtonState>
             </Connection>
           </PushButton>
           <WidgetGroup>
@@ -79,12 +85,56 @@ End of AI-generated text.
                 <Alignment>center</Alignment>
                 <Text>QUANTIZE</Text>
               </Label>
-              <Label>
-                <ObjectName>HudStripValue</ObjectName>
+              <WidgetGroup>
+                <Layout>horizontal</Layout>
                 <Size>0me,20f</Size>
-                <Alignment>center</Alignment>
-                <Text>1</Text>
-              </Label>
+                <Children>
+                  <Label>
+                    <ObjectName>HudStripValue</ObjectName>
+                    <Size>0me,20f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>1/8</Text>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,quantize_beats</ConfigKey>
+                      <Transform><IsEqual>0.125</IsEqual></Transform>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </Label>
+                  <Label>
+                    <ObjectName>HudStripValue</ObjectName>
+                    <Size>0me,20f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>1/4</Text>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,quantize_beats</ConfigKey>
+                      <Transform><IsEqual>0.25</IsEqual></Transform>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </Label>
+                  <Label>
+                    <ObjectName>HudStripValue</ObjectName>
+                    <Size>0me,20f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>1/2</Text>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,quantize_beats</ConfigKey>
+                      <Transform><IsEqual>0.5</IsEqual></Transform>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </Label>
+                  <Label>
+                    <ObjectName>HudStripValue</ObjectName>
+                    <Size>0me,20f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>1</Text>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,quantize_beats</ConfigKey>
+                      <Transform><IsEqual>1</IsEqual></Transform>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </Label>
+                </Children>
+              </WidgetGroup>
               <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
             </Children>
           </WidgetGroup>

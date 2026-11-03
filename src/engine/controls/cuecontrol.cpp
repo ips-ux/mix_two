@@ -3,6 +3,7 @@
 #include "control/controlindicator.h"
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
+#include "engine/controls/quantizecontrol.h"
 #include "engine/enginebuffer.h"
 #include "mixer/playermanager.h"
 #include "moc_cuecontrol.cpp"
@@ -137,6 +138,17 @@ CueControl::CueControl(const QString& group,
             Qt::DirectConnection);
 
     m_pClosestBeat = ControlObject::getControl(ConfigKey(group, "beat_closest"));
+    // Mix Two: the beat value of QuantizeControl (missing in some tests).
+    m_pQuantizeBeats = ControlObject::getControl(
+            ConfigKey(group, "quantize_beats"), ControlFlag::AllowMissingOrInvalid);
+    if (m_pQuantizeBeats) {
+        // A new beat value moves the quantized cues as a quantize change does.
+        connect(m_pQuantizeBeats,
+                &ControlObject::valueChanged,
+                this,
+                &CueControl::quantizeChanged,
+                Qt::DirectConnection);
+    }
     m_pLoopStartPosition = make_parented<ControlProxy>(group, "loop_start_position", this);
     m_pLoopEndPosition = make_parented<ControlProxy>(group, "loop_end_position", this);
     m_pLoopEnabled = make_parented<ControlProxy>(group, "loop_enabled", this);
@@ -2713,7 +2725,19 @@ mixxx::audio::FramePos CueControl::quantizeCuePoint(mixxx::audio::FramePos posit
         return position;
     }
 
-    const auto quantizedPosition = pBeats->findClosestBeat(position);
+    // Mix Two: snap to the quantize beat value (1/8 to 1 beat). With a value
+    // of 1 this gives the same point as Beats::findClosestBeat().
+    mixxx::audio::FramePos quantizedPosition;
+    mixxx::audio::FramePos prevBeatPosition;
+    mixxx::audio::FramePos nextBeatPosition;
+    if (pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false)) {
+        quantizedPosition = quantizeSubdivided(prevBeatPosition,
+                nextBeatPosition,
+                position,
+                m_pQuantizeBeats ? m_pQuantizeBeats->get() : 1.0);
+    } else {
+        quantizedPosition = pBeats->findClosestBeat(position);
+    }
     // The closest beat can be an unreachable interpolated beat past the end of
     // the track.
     if (quantizedPosition.isValid() && quantizedPosition <= trackEndPosition) {

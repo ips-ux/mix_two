@@ -466,6 +466,23 @@ The default colour is blue. The waveforms change immediately.
 
 Color Saturated needs "Use acceleration". Without it, the waveform is empty.
 
+### QUANTIZE beat value
+
+Each deck has a QUANTIZE beat value: 1/8, 1/4, 1/2 or 1 beat. The default
+is 1. Mix Two keeps the value of each deck when you quit.
+
+When QUANTIZE is on, cues, hot cues and loops move to the nearest point of
+that value. Example: with 1/4, a hot cue moves to the nearest quarter beat.
+
+To set QUANTIZE on or off, click the QUANTIZE cell in the HUD window.
+
+To change the beat value, right-click the QUANTIZE cell. The value changes
+in this sequence: 1, 1/8, 1/4, 1/2, 1. The cell shows the value.
+
+BEAT JUMP does not use the beat value. It moves by full beats.
+
+When QUANTIZE is off, the beat value has no effect.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.

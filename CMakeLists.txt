@@ -3061,6 +3061,7 @@ if(BUILD_TESTING)
     src/test/playlisttest.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp
+    src/test/quantizebeats_test.cpp
     src/test/queryutiltest.cpp
     src/test/rangelist_test.cpp
     src/test/readaheadmanager_test.cpp

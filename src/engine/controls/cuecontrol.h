@@ -330,6 +330,7 @@ class CueControl : public EngineControl {
     ControlObject* m_pStopButton;
     ControlObject* m_pQuantizeEnabled;
     ControlObject* m_pClosestBeat;
+    ControlObject* m_pQuantizeBeats;
     parented_ptr<ControlProxy> m_pLoopStartPosition;
     parented_ptr<ControlProxy> m_pLoopEndPosition;
     parented_ptr<ControlProxy> m_pLoopEnabled;

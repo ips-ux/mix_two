@@ -6,6 +6,7 @@
 #include "control/controlpushbutton.h"
 #include "engine/controls/bpmcontrol.h"
 #include "engine/controls/enginecontrol.h"
+#include "engine/controls/quantizecontrol.h"
 #include "engine/controls/ratecontrol.h"
 #include "engine/enginebuffer.h"
 #include "moc_loopingcontrol.cpp"
@@ -123,6 +124,9 @@ LoopingControl::LoopingControl(const QString& group,
             Qt::DirectConnection);
 
     m_pQuantizeEnabled = ControlObject::getControl(ConfigKey(group, "quantize"));
+    // Mix Two: the beat value of QuantizeControl (missing in some tests).
+    m_pQuantizeBeats = ControlObject::getControl(
+            ConfigKey(group, "quantize_beats"), ControlFlag::AllowMissingOrInvalid);
     m_pSlipEnabled = ControlObject::getControl(ConfigKey(group, "slip_enabled"));
 
     // DEPRECATED: Use beatloop_size and beatloop_set instead.
@@ -734,10 +738,9 @@ void LoopingControl::setLoopInToCurrentPosition() {
         mixxx::audio::FramePos nextBeatPosition;
         if (pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false)) {
             // both beat positions are valid
-            mixxx::audio::FramePos closestBeatPosition =
-                    (nextBeatPosition - position > position - prevBeatPosition)
-                    ? prevBeatPosition
-                    : nextBeatPosition;
+            // Mix Two: snap to the quantize beat value (1/8 to 1 beat).
+            mixxx::audio::FramePos closestBeatPosition = quantizeSubdivided(
+                    prevBeatPosition, nextBeatPosition, position, quantizeBeats());
             quantizedBeatPosition =
                     (closestBeatPosition > info.trackEndPosition)
                     ? prevBeatPosition
@@ -875,10 +878,9 @@ void LoopingControl::setLoopOutToCurrentPosition() {
         mixxx::audio::FramePos nextBeatPosition;
         if (pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false)) {
             // both beat positions are valid
-            const mixxx::audio::FramePos closestBeatPosition =
-                    (nextBeatPosition - position > position - prevBeatPosition)
-                    ? prevBeatPosition
-                    : nextBeatPosition;
+            // Mix Two: snap to the quantize beat value (1/8 to 1 beat).
+            const mixxx::audio::FramePos closestBeatPosition = quantizeSubdivided(
+                    prevBeatPosition, nextBeatPosition, position, quantizeBeats());
             quantizedBeatPosition =
                     (closestBeatPosition > info.trackEndPosition)
                     ? prevBeatPosition
@@ -1457,6 +1459,10 @@ bool LoopingControl::quantizeEnabledAndHasTrueTrackBeats() const {
     return m_pQuantizeEnabled->toBool() && m_trueTrackBeats;
 }
 
+double LoopingControl::quantizeBeats() const {
+    return m_pQuantizeBeats ? m_pQuantizeBeats->get() : 1.0;
+}
+
 double LoopingControl::findBeatloopSizeForLoop(
         mixxx::audio::FramePos startPosition,
         mixxx::audio::FramePos endPosition) const {
@@ -1510,8 +1516,11 @@ mixxx::audio::FramePos LoopingControl::findQuantizedBeatloopStart(
     }
 
     const mixxx::audio::FrameDiff_t beatLength = nextBeatPosition - prevBeatPosition;
-    double loopLength = beatLength * beats;
-    if (beats >= 1.0) {
+    // Mix Two: the start snaps to the smaller of the loop size and the
+    // quantize beat value. With a beat value of 1 this is Mixxx's behaviour.
+    const double stepBeats = math_min(beats, quantizeBeats());
+    double loopLength = beatLength * stepBeats;
+    if (stepBeats >= 1.0) {
         const mixxx::audio::FramePos closestBeatPosition =
                 (nextBeatPosition - currentPosition >
                         currentPosition - prevBeatPosition)
