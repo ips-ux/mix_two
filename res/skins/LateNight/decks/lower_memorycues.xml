@@ -4,8 +4,9 @@ AI-generated (Claude Code). Start of AI-generated text.
 Mix Two: MEMORY CUE page of the HUD lower panel (deck_lower_panel.xml), 80 px.
   list     MemoryCueList: the memory cues and memory loops of the track in
            time order (colour, TIME mm:ss.mmm, LOOP length, COMMENT).
-           Click: go to the memory cue (memory_cue_N_activate).
-           Right click: go to the memory cue, then delete it.
+           Click on the time or the loop length: go to the memory cue
+           (memory_cue_N_activate). A click on the comment does not.
+           Right click: delete the memory cue. The deck does not move.
            Double click on the comment: edit the comment.
   buttons  CALL < (memory_cue_prev), CALL > (memory_cue_next),
            MEMORY (memory_cue_set).
@@ -21,7 +22,7 @@ End of AI-generated text.
 <Children>
 <MemoryCueList>
   <ObjectName>HudMemoryCueList</ObjectName>
-  <Tooltip>Memory cues of the track. Click: go to the memory cue. Right-click: delete the memory cue. Double-click on the comment: change the comment.</Tooltip>
+  <Tooltip>Memory cues of the track. Click the time: go to the memory cue. Right-click: delete the memory cue. Double-click on the comment: change the comment.</Tooltip>
   <Size>0me,80f</Size>
   <Group><Variable name="Group"/></Group>
 </MemoryCueList>

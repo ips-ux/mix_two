@@ -592,9 +592,9 @@ The MEMORY CUE tab shows a list of the memory cues and memory loops of the
 track. The list is in time order. Each row shows the color, the time
 (minutes:seconds.milliseconds), the loop length and the comment.
 
-- Click a row to go to that memory cue.
-- Right-click a row to delete that memory cue. The deck goes to the memory cue
-  first.
+- Click the time or the loop length of a row to go to that memory cue. A
+  click on the comment does not move the deck.
+- Right-click a row to delete that memory cue. The deck does not move.
 - Double-click the comment to change it. Push Enter to keep the new comment.
 
 The buttons on the right of the list are:

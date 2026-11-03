@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QString>
+#include <QAbstractItemDelegate>
 #include <QTableWidget>
 #include <memory>
 #include <vector>
@@ -26,10 +27,12 @@ QString formatMemoryCueTime(double seconds);
 
 // AI-generated (Claude Code). Start of AI-generated text.
 /// The memory cues and memory loops of the track on a deck, in time order:
-/// time (mm:ss.mmm) with a colour swatch, loop length and comment. A click calls the
-/// memory cue (memory_cue_N_activate). A right click calls it and then
-/// deletes it. A double click on the comment edits it. The rows follow
-/// Track::cuesUpdated. GUI thread only.
+/// time (mm:ss.mmm) with a colour swatch, loop length and comment. A click
+/// on the time or the loop length calls the memory cue
+/// (memory_cue_N_activate); a click on the comment does not. A right click
+/// deletes the memory cue and does not move the deck. A double click on the
+/// comment edits it. The rows follow Track::cuesUpdated, but not while the
+/// comment editor is open. GUI thread only.
 // End of AI-generated text.
 class WMemoryCueList : public QTableWidget, public WBaseWidget {
     Q_OBJECT
@@ -45,7 +48,7 @@ class WMemoryCueList : public QTableWidget, public WBaseWidget {
     }
     /// Calls the memory cue of this row (click).
     void activateMemoryCue(int row);
-    /// Calls the memory cue of this row, then deletes it (right click).
+    /// Deletes the memory cue of this row (right click). The deck stays.
     void deleteMemoryCue(int row);
 
   public slots:
@@ -55,6 +58,7 @@ class WMemoryCueList : public QTableWidget, public WBaseWidget {
   protected:
     bool event(QEvent* pEvent) override;
     void mousePressEvent(QMouseEvent* pEvent) override;
+    void closeEditor(QWidget* pEditor, QAbstractItemDelegate::EndEditHint hint) override;
     void contextMenuEvent(QContextMenuEvent* pEvent) override;
 
   private slots:
@@ -80,4 +84,6 @@ class WMemoryCueList : public QTableWidget, public WBaseWidget {
     std::vector<std::unique_ptr<ControlProxy>> m_activateControls;
     /// True while the rows are rebuilt: item changes are not edits then.
     bool m_updating;
+    /// True when cuesUpdated came while the comment editor was open.
+    bool m_rebuildPending;
 };

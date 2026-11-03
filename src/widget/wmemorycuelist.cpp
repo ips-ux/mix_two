@@ -9,6 +9,7 @@
 #include <QTableWidgetItem>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "control/controlproxy.h"
 #include "moc_wmemorycuelist.cpp"
@@ -16,10 +17,18 @@
 #include "util/color/rgbcolor.h"
 #include "util/defs.h"
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// WMemoryCueList: written by Claude Code. All comments in this file are
+// AI-generated text.
+// End of AI-generated text.
+
 namespace {
 const QString kActivateKey = QStringLiteral("memory_cue_%1_activate");
 constexpr int kRowHeight = 16;
 constexpr int kSwatchWidth = 4;
+// Item data of the comment item: the address of its Cue, so that an edit
+// writes to that cue even when the rows moved.
+constexpr int kCueRole = Qt::UserRole + 1;
 } // namespace
 
 namespace mixxx {
@@ -45,7 +54,8 @@ WMemoryCueList::WMemoryCueList(const QString& group, QWidget* pParent)
           WBaseWidget(this),
           m_group(group),
           m_activateControls(kMaxNumberOfMemoryCueMarks),
-          m_updating(false) {
+          m_updating(false),
+          m_rebuildPending(false) {
     setHorizontalHeaderLabels({tr("TIME"), tr("LOOP"), tr("COMMENT")});
     verticalHeader()->hide();
     verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
@@ -118,6 +128,15 @@ double WMemoryCueList::framesToSeconds(double frames) const {
 }
 
 void WMemoryCueList::slotCuesUpdated() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Do not replace the items under an open comment editor: closeEditor()
+    // rebuilds the rows after the edit.
+    // End of AI-generated text.
+    if (state() == QAbstractItemView::EditingState) {
+        m_rebuildPending = true;
+        return;
+    }
+    m_rebuildPending = false;
     // The same filter and order as the memory_cue_N_* controls.
     QList<CuePointer> memoryCues;
     if (m_pTrack) {
@@ -162,6 +181,8 @@ void WMemoryCueList::slotCuesUpdated() {
 
         auto* pCommentItem = new QTableWidgetItem(pCue->getLabel());
         pCommentItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable);
+        pCommentItem->setData(kCueRole,
+                QVariant::fromValue(reinterpret_cast<quintptr>(pCue.get())));
         setItem(row, kColumnComment, pCommentItem);
     }
     if (selected >= 0 && selected < rowCount()) {
@@ -187,17 +208,23 @@ void WMemoryCueList::deleteMemoryCue(int row) {
     if (!m_pTrack || row < 0 || row >= m_memoryCues.size()) {
         return;
     }
-    // Keep the cue: activating it can update the rows.
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Remove this cue directly. The deck does not go to it: no seek, no
+    // change of the cue point, no loop. memory_cue_delete is not used because
+    // it removes the memory cue at the play position.
+    // End of AI-generated text.
     const CuePointer pCue = m_memoryCues.at(row);
-    activateMemoryCue(row);
-    // memory_cue_delete removes the memory cue at the play position, but the
-    // seek of the activate is done by the engine later. Remove this cue
-    // directly, so that only the clicked one is deleted.
     m_pTrack->removeCue(pCue);
 }
 
 void WMemoryCueList::slotCellClicked(int row, int column) {
-    Q_UNUSED(column);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A click on the comment does not call the cue: the first click of a
+    // double click to edit the comment must not move a playing deck.
+    // End of AI-generated text.
+    if (column == kColumnComment) {
+        return;
+    }
     activateMemoryCue(row);
 }
 
@@ -205,11 +232,20 @@ void WMemoryCueList::slotItemChanged(QTableWidgetItem* pItem) {
     if (m_updating || !pItem || pItem->column() != kColumnComment) {
         return;
     }
-    const int row = pItem->row();
-    if (row < 0 || row >= m_memoryCues.size()) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Find the cue of the item, not of the row index.
+    // End of AI-generated text.
+    const auto cueAddress = pItem->data(kCueRole).value<quintptr>();
+    CuePointer pCue;
+    for (const CuePointer& pMemoryCue : std::as_const(m_memoryCues)) {
+        if (reinterpret_cast<quintptr>(pMemoryCue.get()) == cueAddress) {
+            pCue = pMemoryCue;
+            break;
+        }
+    }
+    if (!pCue) {
         return;
     }
-    const CuePointer& pCue = m_memoryCues.at(row);
     const QString label = pItem->text().trimmed();
     if (pCue->getLabel() != label) {
         pCue->setLabel(label);
@@ -227,6 +263,16 @@ void WMemoryCueList::mousePressEvent(QMouseEvent* pEvent) {
         return;
     }
     QTableWidget::mousePressEvent(pEvent);
+}
+
+void WMemoryCueList::closeEditor(
+        QWidget* pEditor, QAbstractItemDelegate::EndEditHint hint) {
+    // The delegate commits the data before it closes the editor.
+    QTableWidget::closeEditor(pEditor, hint);
+    if (m_rebuildPending) {
+        QMetaObject::invokeMethod(
+                this, &WMemoryCueList::slotCuesUpdated, Qt::QueuedConnection);
+    }
 }
 
 void WMemoryCueList::contextMenuEvent(QContextMenuEvent* pEvent) {
