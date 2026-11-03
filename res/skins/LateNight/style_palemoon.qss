@@ -4093,3 +4093,18 @@ WPushButton#HudDeckBadge:disabled {
   color: #5a1414;
 }
 /* AI-generated (Claude Code). End of AI-generated text. */
+
+/* AI-generated (Claude Code). Start of AI-generated text. */
+/* 4-deck layout with a DDJ-800 connected: the deck that its side controls
+   is in the HudDeckActive group. It gets a blue outline and a lit deck
+   badge with a light ring. */
+#HudDeckActive #HudWindow {
+  border: 2px solid #2f8cff;
+}
+#HudDeckActive WPushButton#HudDeckBadge,
+#HudDeckActive WPushButton#HudDeckBadge:disabled {
+  color: #000000;
+  background-color: #ffb040;
+  border: 2px solid #ffe6c0;
+}
+/* AI-generated (Claude Code). End of AI-generated text. */

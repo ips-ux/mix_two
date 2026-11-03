@@ -11,7 +11,9 @@ own containers, and only one of them is visible at a time.
   4-deck, HUD ([LateNight],deck_hud = 1): 2 | 4, each HUD with its rate
     column on its mixer side. While a DDJ-800 is connected
     ([Skin],ddj800_connected = 1), the deck that the side does not control
-    (right_deck_alt) is in the HudDeckDimmed group; the QSS makes it darker.
+    (right_deck_alt) is in the HudDeckDimmed group (the QSS makes it darker),
+    and the deck that it controls is in the HudDeckActive group (blue
+    outline, lit badge).
     A singleton that moves to a new parent gets the new parent's styles.
   4-deck, old deck rows ([LateNight],deck_hud = 0): deck 4 under deck 2, as
     in LateNight.
@@ -118,6 +120,7 @@ End of AI-generated text.
                             <SizePolicy>me,min</SizePolicy>
                             <Children>
                               <WidgetGroup>
+                                <ObjectName>HudDeckActive</ObjectName>
                                 <Layout>vertical</Layout>
                                 <SizePolicy>me,min</SizePolicy>
                                 <Children>
@@ -174,6 +177,7 @@ End of AI-generated text.
                                 </Children>
                               </WidgetGroup>
                               <WidgetGroup>
+                                <ObjectName>HudDeckActive</ObjectName>
                                 <Layout>vertical</Layout>
                                 <SizePolicy>me,min</SizePolicy>
                                 <Children>
