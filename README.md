@@ -38,7 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
-- 2026-11-02: Legacy Design deck HUD, task 13 fix: memory cue list safe for a live set (commit hash: see git log, "Memory cue list: delete and edit without moving the deck")
+- 2026-11-02: Legacy Design deck HUD, task 13 fix: memory cue list safe for a live set
 - 2026-11-02: Legacy Design deck HUD: memory cue list and the MEMORY CUE pad mode
 - 2026-11-02: Legacy Design deck HUD: GRID / PHRASE and INFO pages (commit hash: see git log, "LateNight: GRID / PHRASE and INFO pages")
 - 2026-11-02: Legacy Design deck HUD: pad mode combo box and KEY SHIFT lights
