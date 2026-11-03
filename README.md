@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-02: Legacy Design deck HUD: A.HOT CUE and AUTO CUE
 - 2026-11-02: Legacy Design deck HUD: NEXT CUE countdown
 - 2026-11-02: Legacy Design deck HUD: QUANTIZE beat value
 - 2026-11-02: Legacy Design deck HUD: Color Saturated waveform type
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Device Library Plus ANLZ writer
 - 2026-11-02: Device Library Plus container
 - 2026-11-02: CFX presets never reached the profile (case-insensitive FS)
-- 2026-11-02: SOUND COLOR FX, proper DSP: DUB ECHO, SWEEP, NOISE, FILTER
 
 <!-- mixtwo-status:end -->
 
