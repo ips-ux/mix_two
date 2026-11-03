@@ -1155,7 +1155,9 @@ void WaveformWidgetFactory::evaluateWidgets() {
 #endif
             break;
         case WaveformWidgetType::ColorSaturated:
+            // AI-generated (Claude Code). Start of AI-generated text.
             // Allshader only, as Stacked.
+            // End of AI-generated text.
 #ifdef MIXXX_USE_QOPENGL
             addHandle(collectedHandles, type, allshader::WaveformWidget::vars());
             supportedOptions[type] =

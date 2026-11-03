@@ -43,6 +43,8 @@ class WPhaseMeter : public WWidget {
 
   protected:
     void paintEvent(QPaintEvent* pEvent) override;
+    void showEvent(QShowEvent* pEvent) override;
+    void hideEvent(QHideEvent* pEvent) override;
 
   private slots:
     void update30Hz();

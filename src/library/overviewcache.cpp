@@ -19,12 +19,23 @@ namespace {
 
 mixxx::Logger kLogger("OverviewCache");
 
-QString pixmapCacheKey(TrackId trackId, QSize size, mixxx::OverviewType type) {
-    return QString("Overview_%1_%2_%3_%4")
-            .arg(QString::number(static_cast<int>(type)),
-                    trackId.toString(),
-                    QString::number(size.width()),
-                    QString::number(size.height()));
+QString pixmapCacheKey(TrackId trackId,
+        QSize size,
+        mixxx::OverviewType type,
+        const QColor& colorSaturatedBaseColor) {
+    QString key = QString("Overview_%1_%2_%3_%4")
+                          .arg(QString::number(static_cast<int>(type)),
+                                  trackId.toString(),
+                                  QString::number(size.width()),
+                                  QString::number(size.height()));
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The Color Saturated image depends on the base colour: a new colour
+    // must not find the image of the old one.
+    if (type == mixxx::OverviewType::ColorSaturated) {
+        key += QChar('_') + colorSaturatedBaseColor.name(QColor::HexRgb);
+    }
+    // End of AI-generated text.
+    return key;
 }
 
 // The transformation mode when scaling images
@@ -85,7 +96,10 @@ QPixmap OverviewCache::requestCachedOverview(
 
     // kLogger.info() << "requestCachedOverview()" << trackId << pRequester << desiredSize;
 
-    const QString cacheKey = pixmapCacheKey(trackId, desiredSize, type);
+    const QString cacheKey = pixmapCacheKey(trackId,
+            desiredSize,
+            type,
+            WaveformWidgetFactory::colorSaturatedBaseColorFromConfig(m_pConfig));
     QPixmap pixmap;
     QPixmapCache::find(cacheKey, &pixmap);
     return pixmap;
@@ -111,7 +125,9 @@ QPixmap OverviewCache::requestUncachedOverview(
 
     // kLogger.info() << "requestUncachedOverview()" << trackId << pRequester << desiredSize;
 
-    const QString cacheKey = pixmapCacheKey(trackId, desiredSize, type);
+    const QColor colorSaturatedBaseColor =
+            WaveformWidgetFactory::colorSaturatedBaseColorFromConfig(m_pConfig);
+    const QString cacheKey = pixmapCacheKey(trackId, desiredSize, type, colorSaturatedBaseColor);
     QPixmap pixmap;
     // Maybe it has been cached since the request for cached image?
     if (QPixmapCache::find(cacheKey, &pixmap)) {
@@ -128,6 +144,7 @@ QPixmap OverviewCache::requestUncachedOverview(
             m_pDbConnectionPool,
             type,
             signalColors,
+            colorSaturatedBaseColor,
             trackId,
             pRequester,
             desiredSize);
@@ -146,6 +163,7 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
         const mixxx::DbConnectionPoolPtr pDbConnectionPool,
         mixxx::OverviewType type,
         const WaveformSignalColors& signalColors,
+        const QColor& colorSaturatedBaseColor,
         TrackId trackId,
         const QObject* pRequester,
         QSize desiredSize) {
@@ -153,6 +171,7 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
     FutureResult result;
     result.trackId = trackId;
     result.type = type;
+    result.colorSaturatedBaseColor = colorSaturatedBaseColor;
     result.requester = pRequester;
     result.image = QImage();
     result.resizedToSize = desiredSize;
@@ -179,7 +198,7 @@ OverviewCache::FutureResult OverviewCache::prepareOverview(
                     pLoadedTrackWaveformSummary,
                     type,
                     signalColors,
-                    WaveformWidgetFactory::colorSaturatedBaseColorFromConfig(pConfig),
+                    colorSaturatedBaseColor,
                     true /* mono, bottom-aligned */);
 
             if (!image.isNull()) {
@@ -204,8 +223,10 @@ void OverviewCache::overviewPrepared() {
     if (!pixmap.isNull() && !res.resizedToSize.isEmpty()) {
         // we have to be sure that cacheKey is unique
         // because insert replaces the images with the same key
-        const QString cacheKey = pixmapCacheKey(
-                res.trackId, res.resizedToSize, res.type);
+        const QString cacheKey = pixmapCacheKey(res.trackId,
+                res.resizedToSize,
+                res.type,
+                res.colorSaturatedBaseColor);
         QPixmapCache::insert(cacheKey, pixmap);
         // Store the cached track id so we can clear ALL pixmaps of a track
         // in case the waveform has been cleared/updated.

@@ -156,12 +156,22 @@ PioneerDDJ800.deckGroup = function(deck) {
 // deck re-channels its own messages when DECK 1/3 or DECK 2/4 changes. The
 // skin shows on each side the deck that last sent a message. The input
 // selector notes 0x55 (DECK 1/2) and 0x56 (DECK 3/4) name the deck directly.
-// LINE/PHONO notes (0x57, 0x46) do not change the side.
+// LINE/PHONO notes (0x57, 0x46) do not change the side. The mixer strip
+// (mixerStripNotes, mixerStripCCs) does not change the side either: only the
+// deck section moves a side.
+// AI-generated (Claude Code). Start of AI-generated text.
+// CUE (headphones) and the fader start notes.
+PioneerDDJ800.mixerStripNotes = [0x54, 0x66, 0x52];
+// TRIM, EQ HI / MID / LOW and the channel fader, MSB and LSB (+0x20).
+PioneerDDJ800.mixerStripCCs = [0x04, 0x07, 0x0B, 0x0F, 0x13, 0x24, 0x27, 0x2B, 0x2F, 0x33];
+// End of AI-generated text.
 PioneerDDJ800.bind = function(status, midino, callback) {
     const S = PioneerDDJ800.STATUS;
     const deck = (status & 0xF0) === S.deckNote || (status & 0xF0) === S.deckCC ? status & 0x0F : -1;
     if (deck < 0 || deck > 3 || (status !== S.deckNote + deck && status !== S.deckCC + deck)
-            || (status === S.deckNote + deck && (midino === 0x57 || midino === 0x46))) {
+            || (status === S.deckNote + deck && (midino === 0x57 || midino === 0x46))
+            || (status === S.deckNote + deck && PioneerDDJ800.mixerStripNotes.includes(midino))
+            || (status === S.deckCC + deck && PioneerDDJ800.mixerStripCCs.includes(midino))) {
         PioneerDDJ800.inputHandlers.push(midi.makeInputHandler(status, midino, callback));
         return;
     }

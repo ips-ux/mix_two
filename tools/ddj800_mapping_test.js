@@ -299,9 +299,30 @@ check("note 0x55 on channel 4 -> right_deck_alt 0", values["[Skin],right_deck_al
 send(0x92, 0x57, 0x7F);
 send(0x93, 0x46, 0x7F);
 check("LINE/PHONO notes do not switch a side", values["[Skin],left_deck_alt"] === 0 && values["[Skin],right_deck_alt"] === 0);
-send(0x90, 0x56, 0x7F);
+// The mixer strip of channel 3 does not move the left side: only the deck
+// section does.
+const mixerOnly = [
+    [0xB2, 0x13], [0xB2, 0x33], // channel fader MSB / LSB
+    [0xB2, 0x04], [0xB2, 0x24], // TRIM
+    [0xB2, 0x07], [0xB2, 0x27], [0xB2, 0x0B], [0xB2, 0x2B], [0xB2, 0x0F], [0xB2, 0x2F], // EQ
+    [0x92, 0x54], // CUE (headphones)
+    [0x92, 0x66], [0x92, 0x52], // fader start
+];
+n = sets.length;
+for (const [st, no] of mixerOnly) {
+    send(st, no, 0x7F);
+    send(st, no, 0x00);
+}
+check("channel 3 fader CC 0xB2 0x13 does not move left_deck_alt",
+        values["[Skin],left_deck_alt"] === 0 && !did(n, "[Skin]", "left_deck_alt"));
+check("channel 3 mixer strip still sets volume", did(n, "[Channel3]", "volume"));
+send(0xB2, 0x21, 0x41);
+check("deck 3 jog CC -> left_deck_alt 1", values["[Skin],left_deck_alt"] === 1);
+send(0x90, 0x0B, 0x7F);
+send(0x92, 0x0B, 0x7F);
+check("deck 3 PLAY note -> left_deck_alt 1", values["[Skin],left_deck_alt"] === 1);
 send(0x91, 0x56, 0x7F);
-send(0xB2, 0x13, 0x00);
+send(0xB2, 0x21, 0x41);
 check("deck 3 CC message keeps left_deck_alt 1", values["[Skin],left_deck_alt"] === 1);
 P.shutdown();
 check("shutdown leaves the sides and clears ddj800_connected",

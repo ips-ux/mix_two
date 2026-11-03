@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QSqlDatabase>
 
 #include "analyzer/analyzerprogress.h"
@@ -35,6 +36,10 @@ class OverviewCache : public QObject, public Singleton<OverviewCache> {
 
         TrackId trackId;
         mixxx::OverviewType type;
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // The base colour of the Color Saturated image (part of its key).
+        QColor colorSaturatedBaseColor;
+        // End of AI-generated text.
         QImage image;
         QSize resizedToSize;
         const QObject* requester;
@@ -63,6 +68,7 @@ class OverviewCache : public QObject, public Singleton<OverviewCache> {
             mixxx::DbConnectionPoolPtr pDbConnectionPool,
             mixxx::OverviewType type,
             const WaveformSignalColors& signalColors,
+            const QColor& colorSaturatedBaseColor,
             TrackId trackId,
             const QObject* pRequester,
             QSize desiredSize);

@@ -10,8 +10,10 @@ enum class OverviewType {
     Filtered,
     HSV,
     RGB,
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Persisted by number: add new types at the end only.
     ColorSaturated,
+    // End of AI-generated text.
 };
 Q_ENUM_NS(OverviewType);
 

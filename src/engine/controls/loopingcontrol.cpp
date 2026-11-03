@@ -124,9 +124,11 @@ LoopingControl::LoopingControl(const QString& group,
             Qt::DirectConnection);
 
     m_pQuantizeEnabled = ControlObject::getControl(ConfigKey(group, "quantize"));
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: the beat value of QuantizeControl (missing in some tests).
     m_pQuantizeBeats = ControlObject::getControl(
             ConfigKey(group, "quantize_beats"), ControlFlag::AllowMissingOrInvalid);
+    // End of AI-generated text.
     m_pSlipEnabled = ControlObject::getControl(ConfigKey(group, "slip_enabled"));
 
     // DEPRECATED: Use beatloop_size and beatloop_set instead.
@@ -738,7 +740,9 @@ void LoopingControl::setLoopInToCurrentPosition() {
         mixxx::audio::FramePos nextBeatPosition;
         if (pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false)) {
             // both beat positions are valid
+            // AI-generated (Claude Code). Start of AI-generated text.
             // Mix Two: snap to the quantize beat value (1/8 to 1 beat).
+            // End of AI-generated text.
             mixxx::audio::FramePos closestBeatPosition = quantizeSubdivided(
                     prevBeatPosition, nextBeatPosition, position, quantizeBeats());
             quantizedBeatPosition =
@@ -878,7 +882,9 @@ void LoopingControl::setLoopOutToCurrentPosition() {
         mixxx::audio::FramePos nextBeatPosition;
         if (pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false)) {
             // both beat positions are valid
+            // AI-generated (Claude Code). Start of AI-generated text.
             // Mix Two: snap to the quantize beat value (1/8 to 1 beat).
+            // End of AI-generated text.
             const mixxx::audio::FramePos closestBeatPosition = quantizeSubdivided(
                     prevBeatPosition, nextBeatPosition, position, quantizeBeats());
             quantizedBeatPosition =
@@ -1516,8 +1522,10 @@ mixxx::audio::FramePos LoopingControl::findQuantizedBeatloopStart(
     }
 
     const mixxx::audio::FrameDiff_t beatLength = nextBeatPosition - prevBeatPosition;
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: the start snaps to the smaller of the loop size and the
     // quantize beat value. With a beat value of 1 this is Mixxx's behaviour.
+    // End of AI-generated text.
     const double stepBeats = math_min(beats, quantizeBeats());
     double loopLength = beatLength * stepBeats;
     if (stepBeats >= 1.0) {

@@ -174,7 +174,9 @@ class LoopingControl : public EngineControl {
     void updateBeatLoopingControls();
     bool currentLoopMatchesBeatloopSize(const LoopInfo& loopInfo) const;
     bool quantizeEnabledAndHasTrueTrackBeats() const;
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: [ChannelN],quantize_beats, or 1 when the control is missing.
+    // End of AI-generated text.
     double quantizeBeats() const;
 
     // Fake beats that allow using looping/beatjump controls with no beats:

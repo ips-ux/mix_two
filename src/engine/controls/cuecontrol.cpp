@@ -143,6 +143,7 @@ CueControl::CueControl(const QString& group,
             Qt::DirectConnection);
 
     m_pClosestBeat = ControlObject::getControl(ConfigKey(group, "beat_closest"));
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: the beat value of QuantizeControl (missing in some tests).
     m_pQuantizeBeats = ControlObject::getControl(
             ConfigKey(group, "quantize_beats"), ControlFlag::AllowMissingOrInvalid);
@@ -154,6 +155,7 @@ CueControl::CueControl(const QString& group,
                 &CueControl::quantizeChanged,
                 Qt::DirectConnection);
     }
+    // End of AI-generated text.
     m_pLoopStartPosition = make_parented<ControlProxy>(group, "loop_start_position", this);
     m_pLoopEndPosition = make_parented<ControlProxy>(group, "loop_end_position", this);
     m_pLoopEnabled = make_parented<ControlProxy>(group, "loop_enabled", this);
@@ -1018,14 +1020,15 @@ void CueControl::loadCuesFromTrack() {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
-void CueControl::showHotcues() {
+bool CueControl::showHotcues() {
     // Under m_trackMutex, so that trackLoaded() of the next track cannot
     // store false between this exchange and loadCuesFromTrack().
     auto lock = lockMutex(&m_trackMutex);
     if (m_hotcuesShown.exchange(true)) {
-        return;
+        return false;
     }
     loadCuesFromTrack();
+    return true;
 }
 
 void CueControl::hotcuesLoad(double value) {
@@ -1120,6 +1123,11 @@ mixxx::RgbColor CueControl::colorFromConfig(const ConfigKey& configKey) {
 };
 
 void CueControl::hotcueSet(HotcueControl* pControl, double value, HotcueSetMode mode) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A set on a hidden pad that has a cue on the track overwrites that cue:
+    // the cues show first, then the set replaces the cue at this number. No
+    // shipped mapping sends hotcue_N_set to an occupied hidden pad.
+    // End of AI-generated text.
     if (value != 0) {
         showHotcues();
     }
@@ -1530,9 +1538,13 @@ void CueControl::updateCurrentlyPreviewingIndex(int hotcueIndex) {
 }
 
 void CueControl::hotcueClear(HotcueControl* pControl, double value) {
-    if (value != 0) {
-        showHotcues();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A clear on hidden pads only shows the cues: it does not delete a cue
+    // that the user cannot see.
+    if (value != 0 && showHotcues()) {
+        return;
     }
+    // End of AI-generated text.
     if (value <= 0) {
         return;
     }
@@ -2706,6 +2718,7 @@ bool CueControl::updateIndicatorsAndModifyPlay(
     return newPlay;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
 // called from the engine thread
 void CueControl::process(const double rate,
         mixxx::audio::FramePos currentPosition,
@@ -2743,6 +2756,7 @@ void CueControl::updateBeatsToNextCue() {
         m_pBeatsToNextCue->forceSet(beatsToNextCue);
     }
 }
+// End of AI-generated text.
 
 // called from the engine thread
 void CueControl::updateIndicators() {
@@ -2898,6 +2912,7 @@ mixxx::audio::FramePos CueControl::quantizeCuePoint(mixxx::audio::FramePos posit
         return position;
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: snap to the quantize beat value (1/8 to 1 beat). With a value
     // of 1 this gives the same point as Beats::findClosestBeat().
     mixxx::audio::FramePos quantizedPosition;
@@ -2911,6 +2926,7 @@ mixxx::audio::FramePos CueControl::quantizeCuePoint(mixxx::audio::FramePos posit
     } else {
         quantizedPosition = pBeats->findClosestBeat(position);
     }
+    // End of AI-generated text.
     // The closest beat can be an unreachable interpolated beat past the end of
     // the track.
     if (quantizedPosition.isValid() && quantizedPosition <= trackEndPosition) {

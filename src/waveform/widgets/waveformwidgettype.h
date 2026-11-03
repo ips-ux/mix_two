@@ -17,7 +17,9 @@ class WaveformWidgetType {
         VSyncTest = 9, // 9  VSync GL
         RGB = 12,      // 12 RGB GLSL
         Stacked = 16,  // 16 RGB Stacked
+        // AI-generated (Claude Code). Start of AI-generated text.
         ColorSaturated = 17, // 17 Color Saturated (base colour to white)
+        // End of AI-generated text.
         Invalid,       // Don't use! Used to indicate invalid/unknown type, as
                        // Count_WaveformWidgetType used to.
     };

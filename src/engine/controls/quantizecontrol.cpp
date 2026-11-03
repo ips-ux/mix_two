@@ -149,7 +149,9 @@ void QuantizeControl::setFrameInfo(mixxx::audio::FramePos currentPosition,
         mixxx::audio::FramePos trackEndPosition,
         mixxx::audio::SampleRate sampleRate) {
     FrameInfo frameInf = frameInfo();
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: a new beat value also moves beat_closest (engine thread only).
+    // End of AI-generated text.
     const double quantizeBeats = m_pCOQuantizeBeats->get();
     if (frameInf.currentPosition != currentPosition ||
             frameInf.trackEndPosition != trackEndPosition ||
@@ -227,8 +229,10 @@ void QuantizeControl::updateClosestBeat(mixxx::audio::FramePos position) {
     } else if (!nextBeatPosition.isValid()) {
         m_pCOClosestBeat->set(prevBeatPosition.toEngineSamplePos());
     } else {
+        // AI-generated (Claude Code). Start of AI-generated text.
         // Mix Two: with a beat value below 1 the closest point is on the
         // subdivision grid; beat_prev and beat_next stay whole beats.
+        // End of AI-generated text.
         const mixxx::audio::FramePos currentClosestBeatPosition =
                 quantizeSubdivided(prevBeatPosition,
                         nextBeatPosition,

@@ -329,8 +329,9 @@ class CueControl : public EngineControl {
     // AI-generated (Claude Code). Start of AI-generated text.
     /// If the hot cues of the loaded track are hidden (A.HOT CUE off), shows
     /// them. Every hotcue_N_* action calls this first, so that it acts on the
-    /// cue that the track has at that number.
-    void showHotcues();
+    /// cue that the track has at that number (hotcue_N_clear only shows).
+    /// Returns true if the cues were hidden and are now shown.
+    bool showHotcues();
     // End of AI-generated text.
     void publishMemoryCues(const QList<CuePointer>& memoryCues);
     void callMemoryCue(const CuePointer& pCue, const TrackPointer& pTrack);

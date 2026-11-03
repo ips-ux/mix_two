@@ -515,6 +515,9 @@ To show the hidden hot cues, push a hot cue pad. All hot cues of the track
 show, then the pad operates as usual. If the pad has no hot cue, it sets a
 new hot cue.
 
+A hot cue clear (SHIFT + pad) on hidden hot cues only shows the hot cues. It
+does not delete a hot cue. To delete the hot cue, do the clear again.
+
 When AUTO CUE is on, the track starts at the first sound. When you set it
 off, the track starts at the cue point. AUTO CUE uses the "Track load point"
 setting in Preferences > Decks. When you change that setting, AUTO CUE

@@ -46,12 +46,14 @@ class QuantizeControl : public EngineControl {
     ControlObject* m_pCONextBeat;
     ControlObject* m_pCOPrevBeat;
     ControlObject* m_pCOClosestBeat;
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: [ChannelN],quantize_beats (0.125, 0.25, 0.5 or 1) and the
     // push control that steps it 1 > 1/8 > 1/4 > 1/2 > 1.
     ControlObject* m_pCOQuantizeBeats;
     ControlPushButton* m_pCOQuantizeBeatsCycle;
     // The beat value that beat_closest was computed with (engine thread).
     double m_appliedQuantizeBeats = 1.0;
+    // End of AI-generated text.
 
     // m_pBeats is written from an engine worker thread
     mixxx::BeatsPointer m_pBeats;

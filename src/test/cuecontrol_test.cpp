@@ -1040,13 +1040,22 @@ TEST_F(CueControlTest, AutoHotcueOffActivateUsesHiddenCue) {
     EXPECT_EQ(1, countHotcues(pTrack, 0));
 }
 
-TEST_F(CueControlTest, AutoHotcueOffClearRemovesHiddenCue) {
+TEST_F(CueControlTest, AutoHotcueOffClearOnlyShows) {
     m_pQuantizeEnabled->set(0);
     AutoHotcuePads pads(m_sGroup1);
     pads.autoHotcue.set(0.0);
     TrackPointer pTrack = addTwoHotcues(createTestTrack());
     loadTrack(pTrack);
 
+    // A clear on a hidden pad only shows the cues: it does not delete a cue
+    // that the user cannot see.
+    pads.press(&pads.hotcue1Clear);
+
+    EXPECT_EQ(1, countHotcues(pTrack, 0));
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue1Position, pads.positions[0]);
+    EXPECT_FRAMEPOS_EQ_CONTROL(kHotcue2Position, pads.positions[1]);
+
+    // When the cues show, the next clear operates as usual.
     pads.press(&pads.hotcue1Clear);
 
     EXPECT_EQ(0, countHotcues(pTrack, 0));

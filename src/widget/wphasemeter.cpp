@@ -59,8 +59,26 @@ WPhaseMeter::WPhaseMeter(const QString& group, QWidget* pParent)
                 QStringLiteral("[Channel%1]").arg(i), this));
     }
     connect(&m_timer, &QTimer::timeout, this, &WPhaseMeter::update30Hz);
-    m_timer.start(kUpdateIntervalMs);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The timer runs only while the widget shows: see showEvent(), hideEvent().
+    m_timer.setInterval(kUpdateIntervalMs);
+    // End of AI-generated text.
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void WPhaseMeter::showEvent(QShowEvent* pEvent) {
+    WWidget::showEvent(pEvent);
+    // Draw the current phase at once, then follow it.
+    update30Hz();
+    update();
+    m_timer.start();
+}
+
+void WPhaseMeter::hideEvent(QHideEvent* pEvent) {
+    m_timer.stop();
+    WWidget::hideEvent(pEvent);
+}
+// End of AI-generated text.
 
 void WPhaseMeter::setup(const QDomNode& node, const SkinContext& context) {
     m_tolerance = context.selectDouble(node, QStringLiteral("Tolerance"), kDefaultTolerance);
