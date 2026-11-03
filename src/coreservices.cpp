@@ -818,7 +818,9 @@ void CoreServices::initialize(QApplication* pApp) {
     m_pPlayerManager->loadSamplers();
 
     m_pTouchShift = std::make_unique<ControlPushButton>(ConfigKey("[Controls]", "touch_shift"));
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: [Controls],auto_cue and [Controls],auto_hotcue (AUTO CUE, A.HOT CUE).
+    // End of AI-generated text.
     m_pLoadSettingsControls = std::make_unique<LoadSettingsControls>(pConfig);
 
     // The UI controls must be created here so that controllers can bind to

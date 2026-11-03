@@ -998,6 +998,9 @@ void CueControl::loadCuesFromTrack() {
 
 // AI-generated (Claude Code). Start of AI-generated text.
 void CueControl::showHotcues() {
+    // Under m_trackMutex, so that trackLoaded() of the next track cannot
+    // store false between this exchange and loadCuesFromTrack().
+    auto lock = lockMutex(&m_trackMutex);
     if (m_hotcuesShown.exchange(true)) {
         return;
     }

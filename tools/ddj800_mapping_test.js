@@ -157,6 +157,32 @@ send(0x90, 0x69, 0x7F); // pick again
 n = sets.length;
 send(0x97, 0x44, 0x7F);
 check("keyboard: re-pick existing hot cue 5 does not overwrite it", !did(n, "[Channel1]", "hotcue_5_set"));
+// AI-generated (Claude Code). Start of AI-generated text.
+// A.HOT CUE off: the pads are empty (status 0) although the track has a hot
+// cue there. The first pad must show the cues (hotcues_load) before it reads
+// the status, else it would move the stored cue to the play position.
+engine.makeConnection("[Channel1]", "hotcues_load", v => {
+    if (v > 0) {
+        values["[Channel1],hotcue_6_status"] = 1; // the hidden cue shows
+    }
+});
+send(0x90, 0x69, 0x7F); // pick again
+n = sets.length;
+send(0x97, 0x45, 0x7F);
+send(0x97, 0x45, 0x00);
+const loadAt = sets.findIndex((s, i) => i >= n && s[0] === "[Channel1]" && s[1] === "hotcues_load" && s[2] === 1);
+check("keyboard: hidden hot cue 6 is shown first (hotcues_load 1, 0)",
+        loadAt >= 0 && did(n, "[Channel1]", "hotcues_load", 0));
+check("keyboard: hidden hot cue 6 is not overwritten", !did(n, "[Channel1]", "hotcue_6_set"));
+send(0x90, 0x69, 0x7F); // pick again
+n = sets.length;
+send(0x97, 0x46, 0x7F);
+send(0x97, 0x46, 0x00);
+const loadAt7 = sets.findIndex((s, i) => i >= n && s[1] === "hotcues_load" && s[2] === 1);
+const setAt7 = sets.findIndex((s, i) => i >= n && s[1] === "hotcue_7_set");
+check("keyboard: empty pad 7 shows the cues before it sets hot cue 7",
+        loadAt7 >= 0 && setAt7 > loadAt7);
+// End of AI-generated text.
 
 // SLIP REVERSE: held -> reverseroll; ends after 8 beats; release stops the timer.
 values["[Channel1],bpm"] = 120;

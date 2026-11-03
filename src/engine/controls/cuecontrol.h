@@ -439,8 +439,9 @@ class CueControl : public EngineControl {
     std::unique_ptr<ControlPushButton> m_pHotcuesLoad;
     /// False while A.HOT CUE keeps the hot cues of the loaded track off the
     /// pads. trackLoaded() sets it from [Controls],auto_hotcue; hotcues_load
-    /// and every hotcue_N_* action set it true. Atomic because hotcueGoto()
-    /// and its neighbours run without m_trackMutex.
+    /// and every hotcue_N_* action set it true. Written under m_trackMutex
+    /// (trackLoaded(), showHotcues()); atomic because loadCuesFromTrack()
+    /// callers read it too.
     std::atomic<bool> m_hotcuesShown{true};
     // End of AI-generated text.
 

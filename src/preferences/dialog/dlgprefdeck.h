@@ -119,7 +119,9 @@ class DlgPrefDeck : public DlgPreferencePage, public Ui::DlgPrefDeckDlg  {
     // Mix Two: Sync options ([App],sync_type and [App],sync_grid).
     std::unique_ptr<ControlProxy> m_pSyncType;
     std::unique_ptr<ControlProxy> m_pSyncGrid;
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Mix Two: [Controls],auto_cue (AUTO CUE); it writes CueRecall too.
+    // End of AI-generated text.
     std::unique_ptr<ControlProxy> m_pAutoCue;
     void selectSyncOptions(int syncType, double syncGrid);
 

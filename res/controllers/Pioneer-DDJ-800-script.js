@@ -1103,6 +1103,12 @@ PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
             // there, the current position becomes one (manual p.53).
             if (pressed && !shift) {
                 state.keyboardCue = pad + 1;
+                // AI-generated (Claude Code). Start of AI-generated text.
+                // A.HOT CUE off keeps the track's hot cues off the pads (status
+                // 0). Show them first, so that a stored cue is not set again.
+                engine.setValue(group, "hotcues_load", 1);
+                engine.setValue(group, "hotcues_load", 0);
+                // End of AI-generated text.
                 if (!engine.getValue(group, "hotcue_" + state.keyboardCue + "_status")) {
                     engine.setValue(group, "hotcue_" + state.keyboardCue + "_set", 1);
                 }
