@@ -1763,6 +1763,7 @@ add_library(
   src/util/workerthread.cpp
   src/util/workerthreadscheduler.cpp
   src/util/xml.cpp
+  src/waveform/bandcolor.cpp
   src/waveform/guitick.cpp
   src/waveform/overviewtype.cpp
   src/waveform/renderers/glwaveformrenderbackground.cpp
@@ -2970,6 +2971,7 @@ if(BUILD_TESTING)
     src/test/beatstranslatetest.cpp
     src/test/borrowabletest.cpp
     src/test/bpmtest.cpp
+    src/test/bandcolor_test.cpp
     src/test/bpmcontrol_test.cpp
     src/test/broadcastprofile_test.cpp
     src/test/broadcastsettings_test.cpp
