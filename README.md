@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-02: Legacy Design deck HUD: lower panel tabs and the pad view
 - 2026-11-02: Legacy Design deck HUD: phase meter
 - 2026-11-02: Legacy Design deck HUD: A.HOT CUE and AUTO CUE
 - 2026-11-02: Legacy Design deck HUD: NEXT CUE countdown
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Legacy Design deck HUD: deck-per-side skin controls
 - 2026-11-02: Device Library Plus export to a stick
 - 2026-11-02: Device Library Plus ANLZ writer
-- 2026-11-02: Device Library Plus container
 
 <!-- mixtwo-status:end -->
 
