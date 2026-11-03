@@ -1383,6 +1383,7 @@ add_library(
   src/engine/controls/enginecontrol.cpp
   src/engine/controls/keycontrol.cpp
   src/engine/controls/loopingcontrol.cpp
+  src/engine/controls/nextcue.cpp
   src/engine/controls/quantizecontrol.cpp
   src/engine/controls/ratecontrol.cpp
   src/engine/effects/engineeffect.cpp
@@ -1815,6 +1816,7 @@ add_library(
   src/widget/wanalysislibrarytableview.cpp
   src/widget/wbasewidget.cpp
   src/widget/wbattery.cpp
+  src/widget/wbeatcount.cpp
   src/widget/wbeatspinbox.cpp
   src/widget/wbpmeditor.cpp
   src/widget/wcollapsiblegroupbox.cpp
@@ -3054,6 +3056,7 @@ if(BUILD_TESTING)
     src/test/mixxxtest.cpp
     src/test/mock_networkaccessmanager.cpp
     src/test/musicbrainzrecordingstasktest.cpp
+    src/test/nextcue_test.cpp
     src/test/performancetimer_test.cpp
     src/test/playcountertest.cpp
     src/test/playermanagertest.cpp

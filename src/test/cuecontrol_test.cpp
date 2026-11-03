@@ -789,3 +789,27 @@ TEST_F(MemoryCueControlTest, DeleteRemovesCalledMemoryCue) {
     EXPECT_EQ(1.0, m_pMemoryCueCount->get());
     EXPECT_FRAMEPOS_EQ_CONTROL(kSecond, m_pMemoryCue1Position);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// beats_to_next_cue follows a new beat grid without a track reload.
+// End of AI-generated text.
+TEST_F(CueControlTest, UpdatesAfterGridChange) {
+    m_pQuantizeEnabled->set(0);
+    auto pBeatsToNextCue = std::make_unique<ControlProxy>(m_sGroup1, "beats_to_next_cue");
+
+    TrackPointer pTrack = createTestTrack();
+    pTrack->trySetBpm(120.0);
+    // 8 beats at 120 BPM, 4 beats at 60 BPM.
+    const auto kHotcuePosition = mixxx::audio::FramePos(8 * 22050.0);
+    pTrack->createAndAddCue(mixxx::CueType::HotCue,
+            0,
+            kHotcuePosition,
+            mixxx::audio::kInvalidFramePos);
+    loadTrack(pTrack);
+    setCurrentFramePos(mixxx::audio::kStartFramePos);
+    EXPECT_DOUBLE_EQ(8.0, pBeatsToNextCue->get());
+
+    pTrack->trySetBpm(60.0);
+    ProcessBuffer();
+    EXPECT_DOUBLE_EQ(4.0, pBeatsToNextCue->get());
+}

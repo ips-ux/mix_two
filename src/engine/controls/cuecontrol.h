@@ -5,6 +5,8 @@
 #include <QAtomicInt>
 #include <QAtomicPointer>
 #include <QList>
+#include <array>
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -14,6 +16,7 @@
 #include "track/cue.h"
 #include "track/track_decl.h"
 #include "util/compatibility/qmutex.h"
+#include "util/defs.h"
 #include "util/parented_ptr.h"
 
 class ControlObject;
@@ -199,6 +202,9 @@ class CueControl : public EngineControl {
     ~CueControl() override;
 
     void notifySeek(mixxx::audio::FramePos position) override;
+    void process(const double rate,
+            mixxx::audio::FramePos currentPosition,
+            const std::size_t bufferSize) override;
 
     /// nextTrigger returns the sample at which the engine will be triggered to
     /// take a jump. This is only used for active saved jumps.
@@ -323,6 +329,13 @@ class CueControl : public EngineControl {
             mixxx::audio::FramePos source,
             mixxx::audio::FramePos target);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Sets beats_to_next_cue from the play position, the hotcue_N_position
+    /// and memory_cue_N_position controls and m_pBeats. Engine thread only:
+    /// it uses m_nextCueSamplePositions and does not allocate or lock.
+    // End of AI-generated text.
+    void updateBeatsToNextCue();
+
     UserSettingsPointer m_pConfig;
     ColorPaletteSettings m_colorPaletteSettings;
     QAtomicInt m_currentlyPreviewingIndex;
@@ -394,6 +407,21 @@ class CueControl : public EngineControl {
     /// The memory cue last set or called; memory_cue_delete removes it.
     /// Guarded by m_trackMutex.
     CuePointer m_pCalledMemoryCue;
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Beats from the play position to the next hot cue or memory cue
+    /// after it; -1 when there is none or the track has no beat grid.
+    std::unique_ptr<ControlObject> m_pBeatsToNextCue;
+    /// The beat grid of the loaded track; written by trackLoaded() and
+    /// trackBeatsUpdated(), read in the engine thread (as in ClockControl).
+    mixxx::BeatsPointer m_pBeats;
+    /// Set when the beat grid or the cues change, so that the next process()
+    /// call updates beats_to_next_cue at once.
+    std::atomic<bool> m_beatsToNextCueUpdateNeeded{true};
+    /// Engine-thread scratch buffer: hot cue slots, then memory cue marks.
+    std::array<double, kMaxNumberOfHotcues + kMaxNumberOfMemoryCueMarks>
+            m_nextCueSamplePositions{};
+    // End of AI-generated text.
 
     ControlValueAtomic<double> m_n60dBSoundStartPosition;
 

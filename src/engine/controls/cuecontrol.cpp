@@ -3,6 +3,7 @@
 #include "control/controlindicator.h"
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
+#include "engine/controls/nextcue.h"
 #include "engine/controls/quantizecontrol.h"
 #include "engine/enginebuffer.h"
 #include "mixer/playermanager.h"
@@ -336,6 +337,11 @@ void CueControl::createControls() {
         pEndPosition->setReadOnly();
         m_memoryCueMarkEndPositions.push_back(std::move(pEndPosition));
     }
+
+    m_pBeatsToNextCue = std::make_unique<ControlObject>(
+            ConfigKey(m_group, QStringLiteral("beats_to_next_cue")));
+    m_pBeatsToNextCue->set(-1.0);
+    m_pBeatsToNextCue->setReadOnly();
 
     if (PlayerManager::isDeckGroup(m_group)) {
         m_pVinylControlEnabled = std::make_unique<ControlProxy>(
@@ -680,6 +686,8 @@ void CueControl::trackLoaded(TrackPointer pNewTrack) {
         m_n60dBSoundStartPosition.setValue(Cue::kNoPosition);
         publishMemoryCues({});
         m_pCalledMemoryCue.reset();
+        m_pBeats.reset();
+        m_pBeatsToNextCue->forceSet(-1.0);
         setHotcueFocusIndex(Cue::kNoHotCue);
         m_pLoadedTrack.reset();
         m_usedSeekOnLoadPosition.setValue(mixxx::audio::kStartFramePos);
@@ -689,6 +697,7 @@ void CueControl::trackLoaded(TrackPointer pNewTrack) {
         return;
     }
     m_pLoadedTrack = pNewTrack;
+    m_pBeats = pNewTrack->getBeats();
 
     connect(m_pLoadedTrack.get(),
             &Track::analyzed,
@@ -804,6 +813,11 @@ void CueControl::slotCueModeChanged(double) {
 }
 
 void CueControl::loadCuesFromTrack() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The cue positions or the grid can change: update the countdown in the
+    // next engine process() call.
+    // End of AI-generated text.
+    m_beatsToNextCueUpdateNeeded.store(true);
     auto lock = lockMutex(&m_trackMutex);
     if (!m_pLoadedTrack) {
         return;
@@ -992,7 +1006,7 @@ void CueControl::trackCuesUpdated() {
 }
 
 void CueControl::trackBeatsUpdated(mixxx::BeatsPointer pBeats) {
-    Q_UNUSED(pBeats);
+    m_pBeats = pBeats;
     loadCuesFromTrack();
 }
 
@@ -2573,8 +2587,47 @@ bool CueControl::updateIndicatorsAndModifyPlay(
 }
 
 // called from the engine thread
+void CueControl::process(const double rate,
+        mixxx::audio::FramePos currentPosition,
+        const std::size_t bufferSize) {
+    EngineControl::process(rate, currentPosition, bufferSize);
+    if (m_beatsToNextCueUpdateNeeded.exchange(false)) {
+        updateBeatsToNextCue();
+    }
+}
+
+// called from the engine thread
+void CueControl::updateBeatsToNextCue() {
+    const mixxx::BeatsPointer pBeats = m_pBeats;
+    double beatsToNextCue = -1.0;
+    if (pBeats) {
+        std::size_t i = 0;
+        for (const auto* pControl : std::as_const(m_hotcueControls)) {
+            if (i >= m_nextCueSamplePositions.size()) {
+                break;
+            }
+            m_nextCueSamplePositions[i++] =
+                    pControl->getPosition().toEngineSamplePosMaybeInvalid();
+        }
+        for (const auto& pPosition : m_memoryCueMarkPositions) {
+            if (i >= m_nextCueSamplePositions.size()) {
+                break;
+            }
+            m_nextCueSamplePositions[i++] = pPosition->get();
+        }
+        beatsToNextCue = mixxx::beatsToNextCue(*pBeats,
+                frameInfo().currentPosition,
+                std::span<const double>(m_nextCueSamplePositions.data(), i));
+    }
+    if (m_pBeatsToNextCue->get() != beatsToNextCue) {
+        m_pBeatsToNextCue->forceSet(beatsToNextCue);
+    }
+}
+
+// called from the engine thread
 void CueControl::updateIndicators() {
     // No need for mutex lock because we are only touching COs.
+    updateBeatsToNextCue();
     TrackAt trackAt = getTrackAt();
     CueMode cueMode = static_cast<CueMode>(static_cast<int>(m_pCueMode->get()));
     switch (cueMode) {

@@ -35,6 +35,7 @@
 #include "widget/controlwidgetconnection.h"
 #include "widget/wbasewidget.h"
 #include "widget/wbattery.h"
+#include "widget/wbeatcount.h"
 #include "widget/wbeatspinbox.h"
 #include "widget/wbpmeditor.h"
 #include "widget/wcombobox.h"
@@ -654,6 +655,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parseLibrary(node));
     } else if (nodeName == "Key") {
         result = wrapWidget(parseEngineKey(node));
+    } else if (nodeName == "BeatCount") {
+        result = wrapWidget(parseLabelWidget<WBeatCount>(node));
     } else if (nodeName == "Battery") {
         result = wrapWidget(parseBattery(node));
     } else if (nodeName == "SetVariable") {

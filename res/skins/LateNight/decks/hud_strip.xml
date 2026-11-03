@@ -8,7 +8,9 @@ Mix Two: HUD bottom strip (hud_waves.xml), 44 px.
     (quantize_beats_cycle: 1 > 1/8 > 1/4 > 1/2 > 1). The value line shows
     quantize_beats. Legacy skins have no context menu, and the right button
     of a PushButton is always a push, so a push control does the cycle.
-  * NEXT CUE: shows - until the next-cue countdown exists.
+  * NEXT CUE: bars.beats (4 beats per bar) from the play position to the
+    next hot cue or memory cue (beats_to_next_cue); - when there is no
+    cue ahead or no beat grid.
   * REMAIN / TIME: the play position. Click it to change between elapsed,
     remaining and both ([Controls],ShowDurationRemaining).
 The LOOP badge is in the phase meter row (hud_waves.xml).
@@ -155,12 +157,14 @@ End of AI-generated text.
             <Alignment>center</Alignment>
             <Text>NEXT CUE</Text>
           </Label>
-          <Label>
+          <BeatCount>
             <ObjectName>HudStripValue</ObjectName>
             <Size>0me,20f</Size>
             <Alignment>center</Alignment>
-            <Text>-</Text>
-          </Label>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,beats_to_next_cue</ConfigKey>
+            </Connection>
+          </BeatCount>
           <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
         </Children>
       </WidgetGroup>

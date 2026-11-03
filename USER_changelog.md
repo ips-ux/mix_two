@@ -441,7 +441,7 @@ To change the HUD window, open the skin settings (SETTINGS):
 - Push Waveform in Deck to show or hide the zoomed waveform in the deck.
 - Push Platter to show or hide the platter.
 
-A.HOT CUE, AUTO CUE and NEXT CUE do not operate yet.
+A.HOT CUE and AUTO CUE do not operate yet.
 
 Each side of the screen has one deck window. The left window shows deck 1
 or deck 3. The right window shows deck 2 or deck 4. To change the deck in a
@@ -482,6 +482,18 @@ in this sequence: 1, 1/8, 1/4, 1/2, 1. The cell shows the value.
 BEAT JUMP does not use the beat value. It moves by full beats.
 
 When QUANTIZE is off, the beat value has no effect.
+
+### NEXT CUE countdown
+
+The NEXT CUE cell in the HUD window shows the distance to the next hot cue
+or memory cue after the play position. The distance shows as bars and
+beats, with 4 beats in each bar. Example: 12.3 is 12 bars and 3 beats.
+
+The count changes while the track plays. It also changes when you edit the
+beat grid or the cues.
+
+When there is no cue after the play position, the cell shows "-". The cell
+also shows "-" when the track has no beat grid.
 
 ### Known problems
 
