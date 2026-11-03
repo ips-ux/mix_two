@@ -4097,10 +4097,7 @@ WLabel#HudPadHeaderLabel {
   font-weight: bold;
   color: #8b8f98;
 }
-WPushButton#HudPadPageButton,
-WPushButton#HudPadModeButton,
-WPushButton#HudPadModeButtonOpen,
-WPushButton#HudPadModeItem {
+WPushButton#HudPadPageButton {
   font-family: "Silkscreen";
   font-size: 8px;
   font-weight: bold;
@@ -4109,13 +4106,44 @@ WPushButton#HudPadModeItem {
   border: 1px solid #3b3f47;
   border-radius: 3px;
 }
-WPushButton#HudPadPageButton[displayValue="1"],
-WPushButton#HudPadModeItem[displayValue="1"] {
+WPushButton#HudPadPageButton[displayValue="1"] {
   color: #ff9d1c;
   border-color: #ff9d1c;
 }
-WPushButton#HudPadModeButtonOpen {
+/* Pad mode combo box, on the right of the pad view header */
+WComboBox#HudPadModeCombo {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #cfd2d8;
+  background-color: #17181b;
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+  padding: 0px 4px 0px 8px;
+}
+WComboBox#HudPadModeCombo:hover,
+WComboBox#HudPadModeCombo:on {
   border-color: #2f8cff;
+}
+WComboBox#HudPadModeCombo::drop-down {
+  border: none;
+  width: 14px;
+}
+WComboBox#HudPadModeCombo::down-arrow {
+  image: url(skins:LateNight/palemoon/buttons/btn__fx_selector_down.svg);
+  width: 8px;
+  height: 8px;
+}
+WComboBox#HudPadModeCombo QAbstractItemView {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #cfd2d8;
+  background-color: #0b0c0e;
+  border: 1px solid #3b3f47;
+  selection-color: #000000;
+  selection-background-color: #ff9d1c;
+  outline: none;
 }
 /* Pads */
 WPushButton#HudHotcuePad,

@@ -87,6 +87,13 @@ class KeyControl : public EngineControl {
     // The current effective key of the engine
     std::unique_ptr<ControlObject> m_pEngineKey;
     std::unique_ptr<ControlPotmeter> m_pEngineKeyDistance;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Read-only "key_shift_semitones": pitch in semitones, snapped to the
+    /// whole number when it is within 1e-6 of one. Unlike the pitch
+    /// parameter it is not clamped to +-6, so skins can compare it with any
+    /// semitone value (KEY SHIFT pads).
+    /// End of AI-generated text.
+    std::unique_ptr<ControlObject> m_pKeyShiftSemitones;
 
     struct PitchTempoRatio m_pitchRateInfo;
     QAtomicInt m_updatePitchRequest;

@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "control/controlobject.h"
+#include "control/controlproxy.h"
 #include "engine/sync/enginesync.h"
 #include "test/mockedenginebackendtest.h"
 #include "track/beats.h"
@@ -396,5 +397,42 @@ TEST_F(KeySyncLoadedDecksTest, StaysOffWithoutAnotherKey) {
     ControlObject::set(ConfigKey(m_sGroup1, "keysync_enabled"), 1.0);
     EXPECT_EQ(0.0, ControlObject::get(ConfigKey(m_sGroup1, "keysync_enabled")));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+/// [ChannelN],key_shift_semitones: the pitch in whole semitones, not clamped
+/// to +-6 like the pitch parameter (KEY SHIFT pads in the skin).
+class KeyShiftSemitonesTest : public MockedEngineBackendTest {
+  protected:
+    double keyShift() const {
+        return ControlObject::get(ConfigKey(m_sGroup1, "key_shift_semitones"));
+    }
+    void setPitchParameter(double parameter) {
+        // The skin writes the pitch parameter: (semitones + 6) / 12.
+        ControlProxy pitch(ConfigKey(m_sGroup1, "pitch"));
+        pitch.setParameter(parameter);
+    }
+};
+
+TEST_F(KeyShiftSemitonesTest, FollowsThePitchInWholeSemitones) {
+    EXPECT_EQ(0.0, keyShift());
+    for (int semitones = -3; semitones <= 12; ++semitones) {
+        setPitchParameter((semitones + 6) / 12.0);
+        EXPECT_EQ(static_cast<double>(semitones), keyShift()) << semitones;
+    }
+}
+
+TEST_F(KeyShiftSemitonesTest, KeepsAFractionalPitch) {
+    ControlObject::set(ConfigKey(m_sGroup1, "pitch"), 2.5);
+    EXPECT_DOUBLE_EQ(2.5, keyShift());
+    ControlObject::set(ConfigKey(m_sGroup1, "reset_key"), 1.0);
+    EXPECT_EQ(0.0, keyShift());
+}
+
+TEST_F(KeyShiftSemitonesTest, IsReadOnly) {
+    ControlObject::set(ConfigKey(m_sGroup1, "pitch"), 4.0);
+    ControlObject::set(ConfigKey(m_sGroup1, "key_shift_semitones"), 7.0);
+    EXPECT_EQ(4.0, keyShift());
+}
+// AI-generated (Claude Code). End of AI-generated text.
 
 } // namespace

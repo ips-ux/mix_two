@@ -1,6 +1,7 @@
 #include "engine/controls/keycontrol.h"
 
 #include <QPair>
+#include <cmath>
 #include <QtDebug>
 
 #include "control/controlobject.h"
@@ -42,7 +43,10 @@ KeyControl::KeyControl(const QString& group,
           m_pFileKey(std::make_unique<ControlObject>(ConfigKey(group, "file_key"))),
           m_pEngineKey(std::make_unique<ControlObject>(ConfigKey(group, "key"))),
           m_pEngineKeyDistance(std::make_unique<ControlPotmeter>(
-                  ConfigKey(group, "visual_key_distance"), -0.5, 0.5)) {
+                  ConfigKey(group, "visual_key_distance"), -0.5, 0.5)),
+          m_pKeyShiftSemitones(std::make_unique<ControlObject>(
+                  ConfigKey(group, "key_shift_semitones"))) {
+    m_pKeyShiftSemitones->setReadOnly();
     m_pitchRateInfo.pitchRatio = 1.0;
     m_pitchRateInfo.tempoRatio = 1.0;
     m_pitchRateInfo.pitchTweakRatio = 1.0;
@@ -330,6 +334,12 @@ void KeyControl::updateKeyCOs(double fileKeyNumeric, double pitchOctaves) {
     double diff_to_nearest_full_key = adjusted.second;
     m_pEngineKeyDistance->set(diff_to_nearest_full_key);
     m_pPitch->set(pitchOctaves * 12);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    const double semitones = pitchOctaves * 12;
+    const double wholeSemitones = std::round(semitones);
+    m_pKeyShiftSemitones->forceSet(
+            std::abs(semitones - wholeSemitones) < 1e-6 ? wholeSemitones : semitones);
+    // End of AI-generated text.
     if constexpr (kEnableDebugOutput) {
         qDebug() << "       .";
         qDebug() << "       KeyControl::updateKeyCOs";

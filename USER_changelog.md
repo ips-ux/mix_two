@@ -539,10 +539,10 @@ GRID / PHRASE, MEMORY CUE and INFO. Push a tab to show its page.
 The first tab shows the name of the pad mode. Its page has eight pads in two
 rows of four.
 
-To change the pad mode, push the pad mode button on the right. A list of the
-ten pad modes shows in place of the pads. Push a mode.
+To change the pad mode, select a mode in the pad mode list on the right.
 
-To show the pads A-H or I-P, push PAGE A-H or I-P.
+To show the pads A-H or I-P, push PAGE A-H or I-P. BEAT JUMP and BEAT LOOP
+have no PAGE buttons.
 
 These pad modes operate:
 
@@ -551,7 +551,7 @@ These pad modes operate:
 - BEAT JUMP: the pads jump forward by 1, 2, 4, 8, 16, 32, 64 or 128 beats.
 - BEAT LOOP: the pads set a loop of 1/4 to 32 beats on or off.
 - KEY SHIFT: the pads set the key from -3 to +4 semitones (A-H) or from +5 to
-  +12 semitones (I-P).
+  +12 semitones (I-P). The pad of the current key shift comes on.
 
 PAD FX, SLICER, KEYBOARD, SEQ. CALL and ACT. CENSR do not operate yet. The
 page shows "This mode is not available yet." The MEMORY CUE pad page and the
@@ -564,8 +564,6 @@ start it again.
 
 - The jog display on the DDJ-800 does not operate.
 - The hot cue pads do not show the time of the hot cue.
-- In KEY SHIFT, the pads +7 to +12 do not come on. When the key is more than
-  +6 semitones, the +6 pad comes on.
 - Beat FX do not sound like rekordbox yet.
 - On-screen buttons outside the deck hub can operate differently from the
   DDJ-800.

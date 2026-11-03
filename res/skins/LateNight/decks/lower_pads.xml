@@ -2,8 +2,9 @@
 AI-generated (Claude Code). Start of AI-generated text.
 
 Mix Two: pad view of the HUD lower panel (deck_lower_panel.xml), 80 px.
-  header  PAGE A-H | I-P ([LateNight],pad_page_<ChanNum>) on the left, the
-          pad mode selector on the right
+  header  PAGE A-H | I-P ([LateNight],pad_page_<ChanNum>) on the left
+          (hidden in BEAT JUMP and BEAT LOOP), the pad mode combo box on
+          the right
   pads    two rows of four pads, one page per pad mode
           ([LateNight],pad_mode_<ChanNum>):
             0 HOT CUE     hot cues 1-8 / 9-16 (colour from the hot cue)
@@ -13,12 +14,9 @@ Mix Two: pad view of the HUD lower panel (deck_lower_panel.xml), 80 px.
             4 BEAT LOOP   beatloop_N_toggle, 1/4 to 32 beats
             6 KEY SHIFT   sets pitch to -3 ... +4 (A-H) or +5 ... +12 (I-P)
                           semitones (pitch is a -6 ... +6 potmeter with no
-                          clamp: parameter = (semitones + 6) / 12)
+                          clamp: parameter = (semitones + 6) / 12). A pad
+                          is lit while key_shift_semitones is its value.
             9 MEMORY CUE  empty, the pads come later
-The mode selector is a button with a list of the ten modes
-([LateNight],pad_mode_menu_<ChanNum>). The list shows in place of the pads.
-A legacy ComboBox writes index 0 to its control while the skin loads, so
-the persisted mode would go back to HOT CUE at each start.
 The pages show and hide with visible bindings: a WidgetStack currentpage
 attribute cannot contain a template variable.
 
@@ -35,356 +33,87 @@ End of AI-generated text.
         <Layout>horizontal</Layout>
         <Size>0me,20f</Size>
         <Children>
-          <Label>
-            <ObjectName>HudPadHeaderLabel</ObjectName>
-            <Size>34f,20f</Size>
-            <Text>PAGE</Text>
-          </Label>
-          <PushButton>
-            <ObjectName>HudPadPageButton</ObjectName>
-            <Tooltip>Show the pads A to H.</Tooltip>
-            <Size>40f,20f</Size>
-            <NumberStates>2</NumberStates>
-            <LeftClickIsPushButton>true</LeftClickIsPushButton>
-            <State><Number>0</Number><Text>A-H</Text><Alignment>center</Alignment></State>
-            <State><Number>1</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+          <!-- PAGE buttons: hidden in BEAT JUMP (3) and BEAT LOOP (4) -->
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <Layout>horizontal</Layout>
+                <SizePolicy>min,min</SizePolicy>
+                <Children>
+                  <Label>
+                    <ObjectName>HudPadHeaderLabel</ObjectName>
+                    <Size>34f,20f</Size>
+                    <Text>PAGE</Text>
+                  </Label>
+                  <PushButton>
+                    <ObjectName>HudPadPageButton</ObjectName>
+                    <Tooltip>Show the pads A to H.</Tooltip>
+                    <Size>40f,20f</Size>
+                    <NumberStates>2</NumberStates>
+                    <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                    <State><Number>0</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+                    <State><Number>1</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+                    <Connection>
+                      <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                      <Transform><IsEqual>0</IsEqual></Transform>
+                      <ButtonState>LeftButton</ButtonState>
+                      <EmitOnDownPress>true</EmitOnDownPress>
+                    </Connection>
+                  </PushButton>
+                  <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
+                  <PushButton>
+                    <ObjectName>HudPadPageButton</ObjectName>
+                    <Tooltip>Show the pads I to P.</Tooltip>
+                    <Size>40f,20f</Size>
+                    <NumberStates>2</NumberStates>
+                    <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                    <State><Number>0</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+                    <State><Number>1</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+                    <Connection>
+                      <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                      <Transform><IsEqual>1</IsEqual></Transform>
+                      <ButtonState>LeftButton</ButtonState>
+                      <EmitOnDownPress>true</EmitOnDownPress>
+                    </Connection>
+                  </PushButton>
+                </Children>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>4</IsEqual><Not/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+            </Children>
             <Connection>
-              <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
-              <Transform><IsEqual>0</IsEqual></Transform>
-              <ButtonState>LeftButton</ButtonState>
-              <EmitOnDownPress>true</EmitOnDownPress>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>3</IsEqual><Not/></Transform>
+              <BindProperty>visible</BindProperty>
             </Connection>
-          </PushButton>
-          <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
-          <PushButton>
-            <ObjectName>HudPadPageButton</ObjectName>
-            <Tooltip>Show the pads I to P.</Tooltip>
-            <Size>40f,20f</Size>
-            <NumberStates>2</NumberStates>
-            <LeftClickIsPushButton>true</LeftClickIsPushButton>
-            <State><Number>0</Number><Text>I-P</Text><Alignment>center</Alignment></State>
-            <State><Number>1</Number><Text>I-P</Text><Alignment>center</Alignment></State>
-            <Connection>
-              <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
-              <Transform><IsEqual>1</IsEqual></Transform>
-              <ButtonState>LeftButton</ButtonState>
-              <EmitOnDownPress>true</EmitOnDownPress>
-            </Connection>
-          </PushButton>
+          </WidgetGroup>
           <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
-          <PushButton>
-            <ObjectName>HudPadModeButton</ObjectName>
-            <Tooltip>Pad mode. Push to show the list of pad modes.</Tooltip>
+          <ComboBox>
+            <ObjectName>HudPadModeCombo</ObjectName>
+            <Tooltip>Pad mode. Select the function of the pads.</Tooltip>
             <Size>112f,20f</Size>
-            <NumberStates>10</NumberStates>
-            <LeftClickIsPushButton>true</LeftClickIsPushButton>
-            <State><Number>0</Number><Text>HOT CUE  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>1</Number><Text>PAD FX  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>2</Number><Text>SLICER  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>3</Number><Text>BEAT JUMP  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>4</Number><Text>BEAT LOOP  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>5</Number><Text>KEYBOARD  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>6</Number><Text>KEY SHIFT  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>7</Number><Text>SEQ. CALL  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>8</Number><Text>ACT. CENSR  &#9662;</Text><Alignment>center</Alignment></State>
-            <State><Number>9</Number><Text>MEMORY CUE  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>0</Number><Text>HOT CUE</Text></State>
+            <State><Number>1</Number><Text>PAD FX</Text></State>
+            <State><Number>2</Number><Text>SLICER</Text></State>
+            <State><Number>3</Number><Text>BEAT JUMP</Text></State>
+            <State><Number>4</Number><Text>BEAT LOOP</Text></State>
+            <State><Number>5</Number><Text>KEYBOARD</Text></State>
+            <State><Number>6</Number><Text>KEY SHIFT</Text></State>
+            <State><Number>7</Number><Text>SEQ. CALL</Text></State>
+            <State><Number>8</Number><Text>ACT. CENSR</Text></State>
+            <State><Number>9</Number><Text>MEMORY CUE</Text></State>
             <Connection>
               <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-              <ConnectValueFromWidget>false</ConnectValueFromWidget>
             </Connection>
-            <Connection>
-              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-              <Transform><IsEqual>1</IsEqual></Transform>
-              <ButtonState>LeftButton</ButtonState>
-              <EmitOnDownPress>true</EmitOnDownPress>
-              <ConnectValueToWidget>false</ConnectValueToWidget>
-            </Connection>
-            <Connection>
-              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-              <Transform><IsEqual>0</IsEqual></Transform>
-              <BindProperty>visible</BindProperty>
-            </Connection>
-          </PushButton>
-          <PushButton>
-            <ObjectName>HudPadModeButtonOpen</ObjectName>
-            <Tooltip>Push to close the list of pad modes.</Tooltip>
-            <Size>112f,20f</Size>
-            <NumberStates>10</NumberStates>
-            <LeftClickIsPushButton>true</LeftClickIsPushButton>
-            <State><Number>0</Number><Text>HOT CUE  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>1</Number><Text>PAD FX  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>2</Number><Text>SLICER  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>3</Number><Text>BEAT JUMP  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>4</Number><Text>BEAT LOOP  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>5</Number><Text>KEYBOARD  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>6</Number><Text>KEY SHIFT  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>7</Number><Text>SEQ. CALL  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>8</Number><Text>ACT. CENSR  &#9652;</Text><Alignment>center</Alignment></State>
-            <State><Number>9</Number><Text>MEMORY CUE  &#9652;</Text><Alignment>center</Alignment></State>
-            <Connection>
-              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-              <ConnectValueFromWidget>false</ConnectValueFromWidget>
-            </Connection>
-            <Connection>
-              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-              <Transform><IsEqual>0</IsEqual></Transform>
-              <ButtonState>LeftButton</ButtonState>
-              <EmitOnDownPress>true</EmitOnDownPress>
-              <ConnectValueToWidget>false</ConnectValueToWidget>
-            </Connection>
-            <Connection>
-              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-              <Transform><IsEqual>1</IsEqual></Transform>
-              <BindProperty>visible</BindProperty>
-            </Connection>
-          </PushButton>
+          </ComboBox>
         </Children>
       </WidgetGroup>
       <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
-      <!-- Pad mode list (open while pad_mode_menu = 1) -->
-      <WidgetGroup>
-        <ObjectName>HudPadModeMenu</ObjectName>
-        <Layout>vertical</Layout>
-        <Size>0me,56f</Size>
-        <Children>
-          <WidgetGroup>
-            <Layout>horizontal</Layout>
-            <Size>0me,26f</Size>
-            <Children>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>HOT CUE</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>HOT CUE</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>PAD FX</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>PAD FX</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>1</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>SLICER</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>SLICER</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>2</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>BEAT JUMP</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>BEAT JUMP</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>3</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>BEAT LOOP</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>BEAT LOOP</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>4</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-            </Children>
-          </WidgetGroup>
-          <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
-          <WidgetGroup>
-            <Layout>horizontal</Layout>
-            <Size>0me,26f</Size>
-            <Children>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>KEYBOARD</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>KEYBOARD</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>5</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>KEY SHIFT</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>KEY SHIFT</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>6</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>SEQ. CALL</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>SEQ. CALL</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>7</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>ACT. CENSR</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>ACT. CENSR</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>8</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-              <PushButton>
-                <ObjectName>HudPadModeItem</ObjectName>
-                <Size>0me,26f</Size>
-                <NumberStates>2</NumberStates>
-                <LeftClickIsPushButton>true</LeftClickIsPushButton>
-                <State><Number>0</Number><Text>MEMORY CUE</Text><Alignment>center</Alignment></State>
-                <State><Number>1</Number><Text>MEMORY CUE</Text><Alignment>center</Alignment></State>
-                <Connection>
-                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>9</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                </Connection>
-                <Connection>
-                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-                  <Transform><IsEqual>0</IsEqual></Transform>
-                  <ButtonState>LeftButton</ButtonState>
-                  <EmitOnDownPress>true</EmitOnDownPress>
-                  <ConnectValueToWidget>false</ConnectValueToWidget>
-                </Connection>
-              </PushButton>
-            </Children>
-          </WidgetGroup>
-        </Children>
-        <Connection>
-          <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-          <Transform><IsEqual>1</IsEqual></Transform>
-          <BindProperty>visible</BindProperty>
-        </Connection>
-      </WidgetGroup>
       <WidgetGroup>
         <ObjectName>HudPadArea</ObjectName>
         <Layout>vertical</Layout>
@@ -1268,6 +997,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.25</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>-3</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1284,6 +1019,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.3333333333333333</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>-2</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1300,6 +1041,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.4166666666666667</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>-1</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1316,6 +1063,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.5</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>0</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                         </Children>
@@ -1338,6 +1091,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.5833333333333334</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>1</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1354,6 +1113,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.6666666666666666</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>2</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1370,6 +1135,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.75</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>3</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1386,6 +1157,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.8333333333333334</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>4</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                         </Children>
@@ -1424,6 +1201,12 @@ End of AI-generated text.
                               <Transform><IsEqual>0.9166666666666666</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>5</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1440,6 +1223,12 @@ End of AI-generated text.
                               <Transform><IsEqual>1.0</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>6</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1456,6 +1245,12 @@ End of AI-generated text.
                               <Transform><IsEqual>1.0833333333333333</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>7</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1472,6 +1267,12 @@ End of AI-generated text.
                               <Transform><IsEqual>1.1666666666666667</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>8</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                         </Children>
@@ -1494,6 +1295,12 @@ End of AI-generated text.
                               <Transform><IsEqual>1.25</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>9</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1510,6 +1317,12 @@ End of AI-generated text.
                               <Transform><IsEqual>1.3333333333333333</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>10</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1526,6 +1339,12 @@ End of AI-generated text.
                               <Transform><IsEqual>1.4166666666666667</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>11</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
@@ -1542,6 +1361,12 @@ End of AI-generated text.
                               <Transform><IsEqual>1.5</IsEqual></Transform>
                               <ButtonState>LeftButton</ButtonState>
                               <EmitOnDownPress>true</EmitOnDownPress>
+                              <ConnectValueToWidget>false</ConnectValueToWidget>
+                            </Connection>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,key_shift_semitones</ConfigKey>
+                              <Transform><IsEqual>12</IsEqual></Transform>
+                              <ConnectValueFromWidget>false</ConnectValueFromWidget>
                             </Connection>
                           </PushButton>
                         </Children>
@@ -1739,11 +1564,6 @@ End of AI-generated text.
             </Connection>
           </WidgetGroup>
         </Children>
-        <Connection>
-          <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
-          <Transform><IsEqual>0</IsEqual></Transform>
-          <BindProperty>visible</BindProperty>
-        </Connection>
       </WidgetGroup>
     </Children>
   </WidgetGroup>
