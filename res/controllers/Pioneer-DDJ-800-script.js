@@ -151,8 +151,34 @@ PioneerDDJ800.deckGroup = function(deck) {
     return "[Channel" + (deck + 1) + "]";
 };
 
+// Every deck message (note or CC) goes through here. The MIDI channel of a
+// message is the deck that sent it: the deck re-channels its own messages when
+// DECK 1/3 or DECK 2/4 changes, so this also covers the toggle notes 0x55 and
+// 0x56. The skin shows on each side the deck that last sent a message.
 PioneerDDJ800.bind = function(status, midino, callback) {
-    PioneerDDJ800.inputHandlers.push(midi.makeInputHandler(status, midino, callback));
+    const S = PioneerDDJ800.STATUS;
+    const deck = (status & 0xF0) === S.deckNote || (status & 0xF0) === S.deckCC ? status & 0x0F : -1;
+    if (deck < 0 || deck > 3 || (status !== S.deckNote + deck && status !== S.deckCC + deck)) {
+        PioneerDDJ800.inputHandlers.push(midi.makeInputHandler(status, midino, callback));
+        return;
+    }
+    PioneerDDJ800.inputHandlers.push(midi.makeInputHandler(status, midino, function(channel, control, value, st) {
+        PioneerDDJ800.showDeckOnSide(deck);
+        callback(channel, control, value, st);
+    }));
+};
+
+// Left side = decks 1 and 3 (index 0, 2), right side = decks 2 and 4 (1, 3).
+// Writes only on change. Nothing to do with fewer than 3 decks.
+PioneerDDJ800.showDeckOnSide = function(deck) {
+    if (PioneerDDJ800.numDecks < 3) {
+        return;
+    }
+    const control = deck % 2 === 0 ? "left_deck_alt" : "right_deck_alt";
+    const alt = deck >= 2 ? 1 : 0;
+    if (engine.getValue("[Skin]", control) !== alt) {
+        engine.setValue("[Skin]", control, alt);
+    }
 };
 
 PioneerDDJ800.bindButton = function(status, midino, onPress) {
@@ -220,6 +246,15 @@ PioneerDDJ800.init = function() {
     engine.setValue("[Skin]", "ddj800_connected", 1);
 
     PioneerDDJ800.numDecks = Math.min(4, engine.getValue("[App]", "num_decks"));
+    // Both sides start on deck 1 / 2. The request for all positions sent below
+    // resends the switch positions; if that includes DECK 1/3 and DECK 2/4,
+    // the reply sets the sides. If not, the first message from a deck sets its
+    // side. The deck has no other state request.
+    for (const control of ["left_deck_alt", "right_deck_alt"]) {
+        if (engine.getValue("[Skin]", control) !== 0) {
+            engine.setValue("[Skin]", control, 0);
+        }
+    }
     PioneerDDJ800.decks = [];
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
         PioneerDDJ800.decks.push({

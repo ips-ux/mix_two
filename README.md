@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-02: Legacy Design deck HUD: the mapping sets the deck shown on each side (commit: see git log, "DDJ-800: the screen shows the deck each side controls")
 - 2026-11-02: Legacy Design deck HUD, task 13 fix: memory cue list safe for a live set
 - 2026-11-02: Legacy Design deck HUD: memory cue list and the MEMORY CUE pad mode
 - 2026-11-02: Legacy Design deck HUD: GRID / PHRASE and INFO pages (commit hash: see git log, "LateNight: GRID / PHRASE and INFO pages")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Legacy Design deck HUD: QUANTIZE beat value
 - 2026-11-02: Legacy Design deck HUD: Color Saturated waveform type
 - 2026-11-02: Legacy Design deck HUD: shared band colour unit
-- 2026-11-02: Legacy Design deck HUD: decks 3 / 4 and the 4-deck layout
 
 <!-- mixtwo-status:end -->
 

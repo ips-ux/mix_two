@@ -161,6 +161,12 @@ The MT (Master Tempo) button is now a small round button above the tempo
 slider, half way between KEY and the tempo slider.
 The lock button near the waveform is removed.
 
+### Deck on each side
+
+The screen shows the deck that each side of the DDJ-800 controls. Push
+DECK 1/3 or DECK 2/4 to change the deck. The window for that side follows.
+At start, a side shows deck 1 or deck 2 until you use a control on it.
+
 ### Memory cues
 
 You can now set memory cues and memory loops. There is no limit to the

@@ -53,6 +53,7 @@ vm.runInContext(fs.readFileSync(scriptPath, "utf8") + "\nthis.PioneerDDJ800 = Pi
 const P = ctx.PioneerDDJ800;
 values["[App],num_decks"] = 4;
 P.init("DDJ-800", false);
+const initialAlt = [engine.getValue("[Skin]", "left_deck_alt"), engine.getValue("[Skin]", "right_deck_alt")];
 
 function send(status, midino, value) {
     (handlers[status * 0x80 + midino] || []).forEach(cb => cb(status & 0x0F, midino, value, status));
@@ -270,6 +271,46 @@ send(0x94, 0x4B, 0x7F);
 check("BEAT > -> parameter1 + 1/8", did(n, fxSlot, "parameter1", 0.125));
 send(0x94, 0x66, 0x7F);
 check("SHIFT + BEAT < -> parameter1 = 0.5 (1 beat)", did(n, fxSlot, "parameter1", 0.5));
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// The deck shown on each side follows the deck that sends messages.
+check("init: both deck sides are 0", initialAlt[0] === 0 && initialAlt[1] === 0);
+n = sets.length;
+send(0x92, 0x0B, 0x7F);
+check("deck 3 message -> left_deck_alt 1", values["[Skin],left_deck_alt"] === 1 && did(n, "[Skin]", "left_deck_alt", 1));
+check("deck 3 message leaves the right side", !did(n, "[Skin]", "right_deck_alt"));
+n = sets.length;
+send(0x92, 0x0C, 0x7F);
+check("same side again writes nothing", !did(n, "[Skin]", "left_deck_alt"));
+send(0x90, 0x0B, 0x7F);
+check("deck 1 message -> left_deck_alt 0", values["[Skin],left_deck_alt"] === 0);
+send(0x93, 0x0B, 0x7F);
+check("deck 4 message -> right_deck_alt 1", values["[Skin],right_deck_alt"] === 1);
+send(0x91, 0x0B, 0x7F);
+check("deck 2 message -> right_deck_alt 0", values["[Skin],right_deck_alt"] === 0);
+send(0x92, 0x55, 0x7F);
+check("toggle note 0x55 on deck 3 -> left_deck_alt 1", values["[Skin],left_deck_alt"] === 1);
+send(0x90, 0x56, 0x7F);
+check("toggle note 0x56 on deck 1 -> left_deck_alt 0", values["[Skin],left_deck_alt"] === 0);
+send(0x93, 0x56, 0x7F);
+check("toggle note 0x56 on deck 4 -> right_deck_alt 1", values["[Skin],right_deck_alt"] === 1);
+send(0x92, 0x56, 0x7F);
+send(0xB2, 0x13, 0x00);
+check("deck 3 CC message keeps left_deck_alt 1", values["[Skin],left_deck_alt"] === 1);
+P.shutdown();
+check("shutdown leaves the sides and clears ddj800_connected",
+        values["[Skin],left_deck_alt"] === 1 && values["[Skin],right_deck_alt"] === 1 && values["[Skin],ddj800_connected"] === 0);
+// Fewer than 3 decks: the sides stay 0.
+values["[App],num_decks"] = 2;
+values["[Skin],left_deck_alt"] = 1;
+for (const k of Object.keys(handlers)) delete handlers[k];
+P.init("DDJ-800", false);
+send(0x91, 0x0B, 0x7F);
+check("2 decks: sides stay 0", values["[Skin],left_deck_alt"] === 0 && values["[Skin],right_deck_alt"] === 0);
+values["[App],num_decks"] = 4;
+for (const k of Object.keys(handlers)) delete handlers[k];
+P.init("DDJ-800", false);
+// End of AI-generated text.
 
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;
