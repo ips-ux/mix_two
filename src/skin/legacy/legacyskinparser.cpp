@@ -65,6 +65,7 @@
 #include "widget/wnumberpos.h"
 #include "widget/wnumberrate.h"
 #include "widget/woverview.h"
+#include "widget/wphasemeter.h"
 #include "widget/wpixmapstore.h"
 #include "widget/wplaybutton.h"
 #include "widget/wpushbutton.h"
@@ -655,6 +656,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parseLibrary(node));
     } else if (nodeName == "Key") {
         result = wrapWidget(parseEngineKey(node));
+    } else if (nodeName == "PhaseMeter") {
+        result = wrapWidget(parsePhaseMeter(node));
     } else if (nodeName == "BeatCount") {
         result = wrapWidget(parseLabelWidget<WBeatCount>(node));
     } else if (nodeName == "Battery") {
@@ -1380,6 +1383,14 @@ QWidget* LegacySkinParser::parseEngineKey(const QDomElement& node) {
     WKey* pEngineKey = new WKey(group, m_pConfig, m_pParent);
     setupLabelWidget(node, pEngineKey);
     return pEngineKey;
+}
+
+QWidget* LegacySkinParser::parsePhaseMeter(const QDomElement& node) {
+    QString group = lookupNodeGroup(node);
+    WPhaseMeter* pPhaseMeter = new WPhaseMeter(group, m_pParent);
+    commonWidgetSetup(node, pPhaseMeter);
+    pPhaseMeter->setup(node, *m_pContext);
+    return pPhaseMeter;
 }
 
 QWidget* LegacySkinParser::parseBeatSpinBox(const QDomElement& node) {

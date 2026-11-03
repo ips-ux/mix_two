@@ -1862,6 +1862,7 @@ add_library(
   src/widget/wnumberrate.cpp
   src/widget/woverview.cpp
   src/widget/wpixmapstore.cpp
+  src/widget/wphasemeter.cpp
   src/widget/wplaybutton.cpp
   src/widget/wpushbutton.cpp
   src/widget/wraterange.cpp
@@ -3059,6 +3060,7 @@ if(BUILD_TESTING)
     src/test/musicbrainzrecordingstasktest.cpp
     src/test/nextcue_test.cpp
     src/test/performancetimer_test.cpp
+    src/test/phasemeter_test.cpp
     src/test/playcountertest.cpp
     src/test/playermanagertest.cpp
     src/test/playlistfolders_test.cpp

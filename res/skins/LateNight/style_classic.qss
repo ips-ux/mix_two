@@ -3298,6 +3298,11 @@ WLabel#HudMtLabel {
   background-color: #050607;
   border-radius: 2px;
 }
+WPhaseMeter#HudPhaseMeter {
+  qproperty-inPhaseColor: #2f8cff;
+  qproperty-outOfPhaseColor: #ff5a2a;
+  qproperty-centerColor: #666666;
+}
 #HudPlatter,
 #HudCueBox,
 #HudPlayBox {

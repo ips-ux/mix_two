@@ -695,6 +695,12 @@ void Tooltips::addStandardTooltips() {
             << tr("Master Tempo")
             << tr("When lit, tempo changes do not change the pitch (key lock).");
 
+    add("phase_meter")
+            << tr("Phase Meter")
+            << tr("Shows the distance of this deck to the beat of the sync leader. "
+                  "The bar goes left when this deck is behind and right when it is ahead. "
+                  "Blue: in phase. Red-orange: out of phase.");
+
     add("sync_leader")
             << tr("Enable Sync Leader")
             << tr("When enabled, this device will serve as the sync leader for all other decks.")

@@ -516,6 +516,21 @@ changes too.
 
 When the hot cues are hidden, NEXT CUE does not count to them.
 
+### Phase meter
+
+The HUD window has a phase meter between the zoomed waveform and the
+overview. It shows how far the deck is from the beat of the sync leader.
+
+The line in the center is the leader beat. The bar goes left when the deck is
+behind the leader. The bar goes right when the deck is ahead.
+
+The bar is blue when the deck is in phase. It is red-orange when the deck is
+out of phase. A bar half the width of the meter is half a beat.
+
+The meter shows only the center line when no deck or clock is the sync leader.
+It also shows only the center line on the leader deck and on a deck with no
+track.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.
