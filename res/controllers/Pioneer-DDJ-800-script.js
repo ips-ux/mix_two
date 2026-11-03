@@ -151,19 +151,27 @@ PioneerDDJ800.deckGroup = function(deck) {
     return "[Channel" + (deck + 1) + "]";
 };
 
-// Every deck message (note or CC) goes through here. The MIDI channel of a
-// message is the deck that sent it: the deck re-channels its own messages when
-// DECK 1/3 or DECK 2/4 changes, so this also covers the toggle notes 0x55 and
-// 0x56. The skin shows on each side the deck that last sent a message.
+// Messages on the deck note and CC statuses (not the pads, 0x97-0x9E) go
+// through here. The MIDI channel of a message is the deck that sent it: the
+// deck re-channels its own messages when DECK 1/3 or DECK 2/4 changes. The
+// skin shows on each side the deck that last sent a message. The input
+// selector notes 0x55 (DECK 1/2) and 0x56 (DECK 3/4) name the deck directly.
+// LINE/PHONO notes (0x57, 0x46) do not change the side.
 PioneerDDJ800.bind = function(status, midino, callback) {
     const S = PioneerDDJ800.STATUS;
     const deck = (status & 0xF0) === S.deckNote || (status & 0xF0) === S.deckCC ? status & 0x0F : -1;
-    if (deck < 0 || deck > 3 || (status !== S.deckNote + deck && status !== S.deckCC + deck)) {
+    if (deck < 0 || deck > 3 || (status !== S.deckNote + deck && status !== S.deckCC + deck)
+            || (status === S.deckNote + deck && (midino === 0x57 || midino === 0x46))) {
         PioneerDDJ800.inputHandlers.push(midi.makeInputHandler(status, midino, callback));
         return;
     }
+    const isToggle = status === S.deckNote + deck && (midino === 0x55 || midino === 0x56);
     PioneerDDJ800.inputHandlers.push(midi.makeInputHandler(status, midino, function(channel, control, value, st) {
-        PioneerDDJ800.showDeckOnSide(deck);
+        if (!isToggle) {
+            PioneerDDJ800.showDeckOnSide(deck);
+        } else if (value > 0) {
+            PioneerDDJ800.setSideAlt(deck % 2 === 0 ? "left_deck_alt" : "right_deck_alt", midino === 0x56 ? 1 : 0);
+        }
         callback(channel, control, value, st);
     }));
 };
@@ -174,9 +182,11 @@ PioneerDDJ800.showDeckOnSide = function(deck) {
     if (PioneerDDJ800.numDecks < 3) {
         return;
     }
-    const control = deck % 2 === 0 ? "left_deck_alt" : "right_deck_alt";
-    const alt = deck >= 2 ? 1 : 0;
-    if (engine.getValue("[Skin]", control) !== alt) {
+    PioneerDDJ800.setSideAlt(deck % 2 === 0 ? "left_deck_alt" : "right_deck_alt", deck >= 2 ? 1 : 0);
+};
+
+PioneerDDJ800.setSideAlt = function(control, alt) {
+    if (PioneerDDJ800.numDecks >= 3 && engine.getValue("[Skin]", control) !== alt) {
         engine.setValue("[Skin]", control, alt);
     }
 };
@@ -247,9 +257,9 @@ PioneerDDJ800.init = function() {
 
     PioneerDDJ800.numDecks = Math.min(4, engine.getValue("[App]", "num_decks"));
     // Both sides start on deck 1 / 2. The request for all positions sent below
-    // resends the switch positions; if that includes DECK 1/3 and DECK 2/4,
-    // the reply sets the sides. If not, the first message from a deck sets its
-    // side. The deck has no other state request.
+    // resends the switch positions; the reply is expected to include the
+    // DECK 1/3 and DECK 2/4 notes (to be confirmed on hardware) and sets the
+    // sides. If not, the first message from a deck sets its side. The deck has no other state request.
     for (const control of ["left_deck_alt", "right_deck_alt"]) {
         if (engine.getValue("[Skin]", control) !== 0) {
             engine.setValue("[Skin]", control, 0);
