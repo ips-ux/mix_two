@@ -64,13 +64,26 @@ cmake -S "%MIXXX_ROOT%" -B "%BUILD_DIR%" -G Ninja ^
 EXIT /B %ERRORLEVEL%
 
 :ROADMAP
-python "%MIXXX_ROOT%\tools\roadmap_site.py"
+CALL :FIND_PYTHON || EXIT /B 1
+%PYTHON% "%MIXXX_ROOT%\tools\roadmap_site.py"
 START "" "%MIXXX_ROOT%\docs\roadmap\index.html"
 EXIT /B 0
 
 :MANAGER
-python "%MIXXX_ROOT%\tools\roadmap_site.py" manager
+CALL :FIND_PYTHON || EXIT /B 1
+%PYTHON% "%MIXXX_ROOT%\tools\roadmap_site.py" manager
 EXIT /B %ERRORLEVEL%
+
+REM Python on PATH, then the py launcher, then the usual per-user installs.
+:FIND_PYTHON
+SET PYTHON=
+python --version >NUL 2>&1 && SET PYTHON=python
+IF NOT DEFINED PYTHON py -3 --version >NUL 2>&1 && SET PYTHON=py -3
+IF NOT DEFINED PYTHON FOR /D %%D IN ("%LOCALAPPDATA%\Python\pythoncore-3*") DO IF EXIST "%%D\python.exe" SET PYTHON="%%D\python.exe"
+IF NOT DEFINED PYTHON FOR /D %%D IN ("%LOCALAPPDATA%\Programs\Python\Python3*") DO IF EXIST "%%D\python.exe" SET PYTHON="%%D\python.exe"
+IF DEFINED PYTHON EXIT /B 0
+ECHO Python 3 not found. Install it from python.org, or add python to PATH.
+EXIT /B 1
 
 :BUILD
 CALL "%MIXTWO_BUILDTOOLS%\VC\Auxiliary\Build\vcvars64.bat" >NUL 2>&1 || EXIT /B 1
