@@ -555,7 +555,34 @@ These pad modes operate:
 
 PAD FX, SLICER, KEYBOARD, SEQ. CALL and ACT. CENSR do not operate yet. The
 page shows "This mode is not available yet." The MEMORY CUE pad page and the
-GRID / PHRASE, MEMORY CUE and INFO tabs are empty for now.
+MEMORY CUE tab are empty for now.
+
+### GRID / PHRASE and INFO pages
+
+The GRID / PHRASE tab shows GRID EDIT on the left and PHRASE EDIT on the
+right.
+
+GRID EDIT has these buttons:
+
+- **<<** and **>>**: move the beat grid 50 ms earlier or later.
+- **<** and **>**: move the beat grid 10 ms earlier or later.
+- **BPM+** and **BPM-**: make the BPM of the beat grid a little faster or
+  slower.
+- **x2** and **x1/2**: double or halve the BPM of the beat grid.
+- **TAP**: tap the beat. After 4 taps, the beat grid gets the tapped BPM.
+- **UNDO**: undo the last change of the beat grid.
+- **LOCK**: lock the BPM of the beat grid.
+- **1/2 BT**: move the beat grid half a beat.
+- **SET**: set the beat grid to the playhead.
+
+To type a BPM, click the BPM value in the middle of the first row.
+
+REDO, CUT, CLEAR and the phrase kind buttons are dim. They do not operate
+yet.
+
+The INFO tab shows the genre, album, composer, comment, year and number of
+plays of the loaded track. It also shows the star rating. To change the
+rating, click a star.
 
 Mix Two keeps the tab, the pad mode and the pad page of each deck when you
 start it again.
@@ -564,6 +591,8 @@ start it again.
 
 - The jog display on the DDJ-800 does not operate.
 - The hot cue pads do not show the time of the hot cue.
+- The INFO tab does not show the label, the date added, the file type and the
+  bitrate.
 - Beat FX do not sound like rekordbox yet.
 - On-screen buttons outside the deck hub can operate differently from the
   DDJ-800.

@@ -3491,6 +3491,66 @@ WLabel#HudPadNotice {
 /* AI-generated (Claude Code). End of AI-generated text. */
 
 /* AI-generated (Claude Code). Start of AI-generated text. */
+/* Lower panel pages GRID / PHRASE and INFO (decks/lower_grid.xml,
+   lower_info.xml). Same look as the pads. A lit button (LOCK) has the blue
+   face. A button that is not available yet is dim. */
+WLabel#HudGridHeader,
+WLabel#HudInfoLabel {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #8b8f98;
+}
+WLabel#HudGridNotice {
+  font-size: 10px;
+  color: #5d616a;
+}
+WPushButton#HudGridBtn,
+WPushButton#HudGridOff {
+  font-family: "Silkscreen";
+  font-size: 8px;
+  font-weight: bold;
+  color: #cfd2d8;
+  background-color: #101114;
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+}
+WPushButton#HudGridBtn:pressed {
+  background-color: #1d2a3d;
+}
+WPushButton#HudGridBtn:disabled {
+  color: #4a4e56;
+  border-color: #26282d;
+}
+WPushButton#HudGridBtn[displayValue="1"] {
+  color: #e8e8ea;
+  background-color: #12305a;
+  border-color: #2f8cff;
+}
+WPushButton#HudGridOff {
+  color: #4a4e56;
+  background-color: #0d0e10;
+  border-color: #26282d;
+}
+WNumber#HudGridBpm {
+  font-size: 14px;
+  font-weight: bold;
+  color: #e8e8ea;
+  background-color: #101114;
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
+}
+WLabel#HudInfoValue,
+WTrackProperty#HudInfoValue {
+  font-size: 11px;
+  color: #e8e8ea;
+}
+WStarRating#HudInfoStars {
+  background-color: #0b0c0e;
+}
+/* AI-generated (Claude Code). End of AI-generated text. */
+
+/* AI-generated (Claude Code). Start of AI-generated text. */
 /* Deck badge. A click changes the deck in the window (1 / 3, 2 / 4). While
    a DDJ-800 is connected the badge is disabled (the controller selects the
    deck), but it keeps its colours. */

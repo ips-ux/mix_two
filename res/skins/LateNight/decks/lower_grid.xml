@@ -1,0 +1,336 @@
+<!--
+AI-generated (Claude Code). Start of AI-generated text.
+
+Mix Two: GRID / PHRASE page of the HUD lower panel (deck_lower_panel.xml).
+  GRID EDIT    three rows of five buttons on the controls of the deck:
+               row 1  grid 50 ms / 10 ms earlier, BPM (BpmEditor over
+                      visual_bpm), grid 10 ms / 50 ms later
+               row 2  BPM faster / slower, x2, x1/2, TAP
+               row 3  UNDO (enabled while beats_undo_possible), REDO (not
+                      available: there is no redo control), LOCK (bpmlock),
+                      half beat, SET (beats_translate_curpos)
+  PHRASE EDIT  CUT, CLEAR, < KIND, KIND > : off, there is no phrase data yet.
+Variables: Group.
+
+End of AI-generated text.
+-->
+<Template>
+<WidgetGroup>
+<ObjectName>HudGridEdit</ObjectName>
+<Layout>horizontal</Layout>
+<Size>0me,80f</Size>
+<Children>
+<WidgetGroup>
+<Layout>vertical</Layout>
+<Size>0me,80f</Size>
+<Children>
+<Label>
+<ObjectName>HudGridHeader</ObjectName>
+<Size>0me,10f</Size>
+<Text>GRID EDIT</Text>
+</Label>
+<WidgetGroup><Size>0min,2f</Size></WidgetGroup>
+<WidgetGroup>
+<Layout>horizontal</Layout>
+<Size>0me,20f</Size>
+<Children>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Move the beat grid 50 ms earlier.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>&lt;&lt;</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>&lt;&lt;</Text><Alignment>center</Alignment></State>
+  <LeftClickIsPushButton>true</LeftClickIsPushButton>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_translate_ms</ConfigKey>
+    <Transform><IsEqual>-50</IsEqual></Transform>
+    <ButtonState>LeftButton</ButtonState>
+    <EmitOnDownPress>true</EmitOnDownPress>
+    <ConnectValueToWidget>false</ConnectValueToWidget>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Move the beat grid 10 ms earlier.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>&lt;</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>&lt;</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_translate_earlier</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<WidgetGroup>
+<Layout>stacked</Layout>
+<Size>0me,20f</Size>
+<Children>
+<BpmEditor>
+  <TooltipId>visual_bpm_edit</TooltipId>
+  <Size>0me,20f</Size>
+  <Group><Variable name="Group"/></Group>
+</BpmEditor>
+<Number>
+  <ObjectName>HudGridBpm</ObjectName>
+  <TooltipId>visual_bpm</TooltipId>
+  <Size>0me,20f</Size>
+  <Alignment>center</Alignment>
+  <NumberOfDigits>2</NumberOfDigits>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,visual_bpm</ConfigKey>
+  </Connection>
+</Number>
+</Children>
+</WidgetGroup>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Move the beat grid 10 ms later.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>&gt;</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>&gt;</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_translate_later</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Move the beat grid 50 ms later.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>&gt;&gt;</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>&gt;&gt;</Text><Alignment>center</Alignment></State>
+  <LeftClickIsPushButton>true</LeftClickIsPushButton>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_translate_ms</ConfigKey>
+    <Transform><IsEqual>50</IsEqual></Transform>
+    <ButtonState>LeftButton</ButtonState>
+    <EmitOnDownPress>true</EmitOnDownPress>
+    <ConnectValueToWidget>false</ConnectValueToWidget>
+  </Connection>
+</PushButton>
+</Children>
+</WidgetGroup>
+<WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+<WidgetGroup>
+<Layout>horizontal</Layout>
+<Size>0me,20f</Size>
+<Children>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Make the BPM of the beat grid a little faster.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>BPM+</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>BPM+</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_adjust_faster</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Make the BPM of the beat grid a little slower.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>BPM-</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>BPM-</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_adjust_slower</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Double the BPM of the beat grid.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>x2</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>x2</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_set_double</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Halve the BPM of the beat grid.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>x1/2</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>x1/2</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_set_halve</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Tap the beat. After 4 taps, the beat grid gets the tapped BPM.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>TAP</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>TAP</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,bpm_tap</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+</Children>
+</WidgetGroup>
+<WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+<WidgetGroup>
+<Layout>horizontal</Layout>
+<Size>0me,20f</Size>
+<Children>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Undo the last change of the beat grid.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>UNDO</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>UNDO</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_undo_adjustment</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_undo_possible</ConfigKey>
+    <BindProperty>enabled</BindProperty>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridOff</ObjectName>
+  <Tooltip>This function is not available yet.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>REDO</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>REDO</Text><Alignment>center</Alignment></State>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Lock the BPM of the beat grid. A locked beat grid does not change.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>LOCK</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>LOCK</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,bpmlock</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Move the beat grid half a beat.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>1/2 BT</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>1/2 BT</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_translate_half</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridBtn</ObjectName>
+  <Tooltip>Set the beat grid to the playhead. The nearest beat moves to the playhead.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>SET</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>SET</Text><Alignment>center</Alignment></State>
+  <Connection>
+    <ConfigKey><Variable name="Group"/>,beats_translate_curpos</ConfigKey>
+    <ButtonState>LeftButton</ButtonState>
+  </Connection>
+</PushButton>
+</Children>
+</WidgetGroup>
+
+</Children>
+</WidgetGroup>
+<WidgetGroup><Size>12f,0min</Size></WidgetGroup>
+<WidgetGroup>
+<Layout>vertical</Layout>
+<Size>150f,80f</Size>
+<Children>
+<Label>
+<ObjectName>HudGridHeader</ObjectName>
+<Size>0me,10f</Size>
+<Text>PHRASE EDIT</Text>
+</Label>
+<WidgetGroup><Size>0min,2f</Size></WidgetGroup>
+<WidgetGroup>
+<Layout>horizontal</Layout>
+<Size>0me,20f</Size>
+<Children>
+<PushButton>
+  <ObjectName>HudGridOff</ObjectName>
+  <Tooltip>Phrase editing needs phrase data. It is not available yet.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>CUT</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>CUT</Text><Alignment>center</Alignment></State>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridOff</ObjectName>
+  <Tooltip>Phrase editing needs phrase data. It is not available yet.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>CLEAR</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>CLEAR</Text><Alignment>center</Alignment></State>
+</PushButton>
+</Children>
+</WidgetGroup>
+<WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+
+<WidgetGroup>
+<Layout>horizontal</Layout>
+<Size>0me,20f</Size>
+<Children>
+<PushButton>
+  <ObjectName>HudGridOff</ObjectName>
+  <Tooltip>Phrase editing needs phrase data. It is not available yet.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>&lt; KIND</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>&lt; KIND</Text><Alignment>center</Alignment></State>
+</PushButton>
+<WidgetGroup><Size>3f,0min</Size></WidgetGroup>
+<PushButton>
+  <ObjectName>HudGridOff</ObjectName>
+  <Tooltip>Phrase editing needs phrase data. It is not available yet.</Tooltip>
+  <Size>0me,20f</Size>
+  <NumberStates>2</NumberStates>
+  <State><Number>0</Number><Text>KIND &gt;</Text><Alignment>center</Alignment></State>
+  <State><Number>1</Number><Text>KIND &gt;</Text><Alignment>center</Alignment></State>
+</PushButton>
+</Children>
+</WidgetGroup>
+<WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+
+<Label>
+<ObjectName>HudGridNotice</ObjectName>
+<Size>0me,14f</Size>
+<Text>Needs phrase data.</Text>
+</Label>
+
+</Children>
+</WidgetGroup>
+</Children>
+</WidgetGroup>
+</Template>
