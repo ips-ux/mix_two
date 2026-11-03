@@ -65,6 +65,8 @@
           apply. waveforms_in_deck: zoomed waveform shown in the HUD (the top
           waveform band always stays). show_hub: platter shown. show_lower_panel: panel below
           the HUD. lower_panel_page_N: tab per deck (0-3).
+          pad_mode_N: pad mode (0-9, decks/lower_pads.xml), pad_page_N: 0 = A-H,
+          1 = I-P, pad_mode_menu_N: the pad mode list is open (not kept).
           End of AI-generated text. -->
       <attribute persist="true" config_key="[LateNight],deck_hud">1</attribute>
       <attribute persist="true" config_key="[LateNight],waveforms_in_deck">1</attribute>
@@ -74,6 +76,18 @@
       <attribute persist="true" config_key="[LateNight],lower_panel_page_2">0</attribute>
       <attribute persist="true" config_key="[LateNight],lower_panel_page_3">0</attribute>
       <attribute persist="true" config_key="[LateNight],lower_panel_page_4">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_mode_1">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_mode_2">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_mode_3">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_mode_4">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_page_1">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_page_2">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_page_3">0</attribute>
+      <attribute persist="true" config_key="[LateNight],pad_page_4">0</attribute>
+      <attribute config_key="[LateNight],pad_mode_menu_1">0</attribute>
+      <attribute config_key="[LateNight],pad_mode_menu_2">0</attribute>
+      <attribute config_key="[LateNight],pad_mode_menu_3">0</attribute>
+      <attribute config_key="[LateNight],pad_mode_menu_4">0</attribute>
       <!-- Full deck -->
       <attribute persist="true" config_key="[Skin],show_rate_controls">1</attribute>
       <attribute persist="true" config_key="[Skin],show_rate_control_buttons">1</attribute>

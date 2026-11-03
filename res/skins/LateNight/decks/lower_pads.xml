@@ -1,0 +1,1750 @@
+<!--
+AI-generated (Claude Code). Start of AI-generated text.
+
+Mix Two: pad view of the HUD lower panel (deck_lower_panel.xml), 80 px.
+  header  PAGE A-H | I-P ([LateNight],pad_page_<ChanNum>) on the left, the
+          pad mode selector on the right
+  pads    two rows of four pads, one page per pad mode
+          ([LateNight],pad_mode_<ChanNum>):
+            0 HOT CUE     hot cues 1-8 / 9-16 (colour from the hot cue)
+            1 PAD FX, 2 SLICER, 5 KEYBOARD, 7 SEQ. CALL, 8 ACT. CENSR:
+                          not available yet (pads off, one notice)
+            3 BEAT JUMP   beatjump_N_forward, 1 to 128 beats
+            4 BEAT LOOP   beatloop_N_toggle, 1/4 to 32 beats
+            6 KEY SHIFT   sets pitch to -3 ... +4 (A-H) or +5 ... +12 (I-P)
+                          semitones (pitch is a -6 ... +6 potmeter with no
+                          clamp: parameter = (semitones + 6) / 12)
+            9 MEMORY CUE  empty, the pads come later
+The mode selector is a button with a list of the ten modes
+([LateNight],pad_mode_menu_<ChanNum>). The list shows in place of the pads.
+A legacy ComboBox writes index 0 to its control while the skin loads, so
+the persisted mode would go back to HOT CUE at each start.
+The pages show and hide with visible bindings: a WidgetStack currentpage
+attribute cannot contain a template variable.
+
+End of AI-generated text.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>HudPadView</ObjectName>
+    <Layout>vertical</Layout>
+    <Size>0me,80f</Size>
+    <Children>
+      <WidgetGroup>
+        <ObjectName>HudPadHeader</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,20f</Size>
+        <Children>
+          <Label>
+            <ObjectName>HudPadHeaderLabel</ObjectName>
+            <Size>34f,20f</Size>
+            <Text>PAGE</Text>
+          </Label>
+          <PushButton>
+            <ObjectName>HudPadPageButton</ObjectName>
+            <Tooltip>Show the pads A to H.</Tooltip>
+            <Size>40f,20f</Size>
+            <NumberStates>2</NumberStates>
+            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+            <State><Number>0</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+            <State><Number>1</Number><Text>A-H</Text><Alignment>center</Alignment></State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>0</IsEqual></Transform>
+              <ButtonState>LeftButton</ButtonState>
+              <EmitOnDownPress>true</EmitOnDownPress>
+            </Connection>
+          </PushButton>
+          <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
+          <PushButton>
+            <ObjectName>HudPadPageButton</ObjectName>
+            <Tooltip>Show the pads I to P.</Tooltip>
+            <Size>40f,20f</Size>
+            <NumberStates>2</NumberStates>
+            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+            <State><Number>0</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+            <State><Number>1</Number><Text>I-P</Text><Alignment>center</Alignment></State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>1</IsEqual></Transform>
+              <ButtonState>LeftButton</ButtonState>
+              <EmitOnDownPress>true</EmitOnDownPress>
+            </Connection>
+          </PushButton>
+          <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
+          <PushButton>
+            <ObjectName>HudPadModeButton</ObjectName>
+            <Tooltip>Pad mode. Push to show the list of pad modes.</Tooltip>
+            <Size>112f,20f</Size>
+            <NumberStates>10</NumberStates>
+            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+            <State><Number>0</Number><Text>HOT CUE  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>1</Number><Text>PAD FX  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>2</Number><Text>SLICER  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>3</Number><Text>BEAT JUMP  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>4</Number><Text>BEAT LOOP  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>5</Number><Text>KEYBOARD  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>6</Number><Text>KEY SHIFT  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>7</Number><Text>SEQ. CALL  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>8</Number><Text>ACT. CENSR  &#9662;</Text><Alignment>center</Alignment></State>
+            <State><Number>9</Number><Text>MEMORY CUE  &#9662;</Text><Alignment>center</Alignment></State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+            <Connection>
+              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>1</IsEqual></Transform>
+              <ButtonState>LeftButton</ButtonState>
+              <EmitOnDownPress>true</EmitOnDownPress>
+              <ConnectValueToWidget>false</ConnectValueToWidget>
+            </Connection>
+            <Connection>
+              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>0</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <ObjectName>HudPadModeButtonOpen</ObjectName>
+            <Tooltip>Push to close the list of pad modes.</Tooltip>
+            <Size>112f,20f</Size>
+            <NumberStates>10</NumberStates>
+            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+            <State><Number>0</Number><Text>HOT CUE  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>1</Number><Text>PAD FX  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>2</Number><Text>SLICER  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>3</Number><Text>BEAT JUMP  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>4</Number><Text>BEAT LOOP  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>5</Number><Text>KEYBOARD  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>6</Number><Text>KEY SHIFT  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>7</Number><Text>SEQ. CALL  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>8</Number><Text>ACT. CENSR  &#9652;</Text><Alignment>center</Alignment></State>
+            <State><Number>9</Number><Text>MEMORY CUE  &#9652;</Text><Alignment>center</Alignment></State>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+            <Connection>
+              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>0</IsEqual></Transform>
+              <ButtonState>LeftButton</ButtonState>
+              <EmitOnDownPress>true</EmitOnDownPress>
+              <ConnectValueToWidget>false</ConnectValueToWidget>
+            </Connection>
+            <Connection>
+              <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>1</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </PushButton>
+        </Children>
+      </WidgetGroup>
+      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+      <!-- Pad mode list (open while pad_mode_menu = 1) -->
+      <WidgetGroup>
+        <ObjectName>HudPadModeMenu</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>0me,56f</Size>
+        <Children>
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <Size>0me,26f</Size>
+            <Children>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>HOT CUE</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>HOT CUE</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>PAD FX</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>PAD FX</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>1</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>SLICER</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>SLICER</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>2</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>BEAT JUMP</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>BEAT JUMP</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>3</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>BEAT LOOP</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>BEAT LOOP</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>4</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+            </Children>
+          </WidgetGroup>
+          <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <Size>0me,26f</Size>
+            <Children>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>KEYBOARD</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>KEYBOARD</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>5</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>KEY SHIFT</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>KEY SHIFT</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>6</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>SEQ. CALL</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>SEQ. CALL</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>7</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>ACT. CENSR</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>ACT. CENSR</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>8</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+              <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+              <PushButton>
+                <ObjectName>HudPadModeItem</ObjectName>
+                <Size>0me,26f</Size>
+                <NumberStates>2</NumberStates>
+                <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                <State><Number>0</Number><Text>MEMORY CUE</Text><Alignment>center</Alignment></State>
+                <State><Number>1</Number><Text>MEMORY CUE</Text><Alignment>center</Alignment></State>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>9</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                </Connection>
+                <Connection>
+                  <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <ButtonState>LeftButton</ButtonState>
+                  <EmitOnDownPress>true</EmitOnDownPress>
+                  <ConnectValueToWidget>false</ConnectValueToWidget>
+                </Connection>
+              </PushButton>
+            </Children>
+          </WidgetGroup>
+        </Children>
+        <Connection>
+          <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+          <Transform><IsEqual>1</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>HudPadArea</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>0me,56f</Size>
+        <Children>
+          <!-- HOT CUE: hot cues 1-8 (A-H) or 9-16 (I-P) -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageHotCue</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>1</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>A</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>A</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>A</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>2</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>B</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>B</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>B</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>3</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>C</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>C</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>C</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>4</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>D</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>D</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>D</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>5</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>E</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>E</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>E</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>6</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>F</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>F</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>F</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>7</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>G</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>G</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>G</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>8</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>H</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>H</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>H</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>9</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>I</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>I</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>I</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>10</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>J</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>J</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>J</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>11</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>K</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>K</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>K</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>12</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>L</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>L</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>L</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>13</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>M</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>M</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>M</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>14</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>N</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>N</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>N</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>15</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>O</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>O</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>O</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <HotcueButton>
+                            <TooltipId>hotcue</TooltipId>
+                            <ObjectName>HudHotcuePad</ObjectName>
+                            <Size>0me,26f</Size>
+                            <Group><Variable name="Group"/></Group>
+                            <Hotcue>16</Hotcue>
+                            <NumberStates>3</NumberStates>
+                            <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+                            <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
+                            <State><Number>0</Number><Text>P</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>P</Text><Alignment>center</Alignment></State>
+                            <State><Number>2</Number><Text>P</Text><Alignment>center</Alignment></State>
+                          </HotcueButton>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>1</IsEqual></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>0</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- PAD FX: not available yet -->
+          <WidgetGroup>
+            <ObjectName>HudPadPagePadFx</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>stacked</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <Label>
+                    <ObjectName>HudPadNotice</ObjectName>
+                    <Size>0me,56f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>This mode is not available yet.</Text>
+                  </Label>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>1</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- SLICER: not available yet -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageSlicer</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>stacked</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <Label>
+                    <ObjectName>HudPadNotice</ObjectName>
+                    <Size>0me,56f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>This mode is not available yet.</Text>
+                  </Label>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>2</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- BEAT JUMP: jump forward by 1-128 beats (no SHIFT row) -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageBeatJump</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <Size>0me,26f</Size>
+                    <Children>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 1 beat forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>1</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>1</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_1_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 2 beats forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>2</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>2</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_2_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 4 beats forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>4</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>4</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_4_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 8 beats forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>8</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>8</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_8_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                  <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <Size>0me,26f</Size>
+                    <Children>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 16 beats forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>16</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>16</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_16_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 32 beats forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>32</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>32</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_32_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 64 beats forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>64</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>64</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_64_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT JUMP: jump 128 beats forward.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>128</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>128</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatjump_128_forward</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>3</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- BEAT LOOP: loops of 1/4-32 beats -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageBeatLoop</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <Size>0me,26f</Size>
+                    <Children>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 1/4 beat on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>1/4</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>1/4</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_0.25_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_0.25_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 1/2 beat on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>1/2</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>1/2</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_0.5_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_0.5_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 1 beat on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>1</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>1</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_1_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_1_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 2 beats on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>2</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>2</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_2_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_2_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                  <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                  <WidgetGroup>
+                    <Layout>horizontal</Layout>
+                    <Size>0me,26f</Size>
+                    <Children>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 4 beats on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>4</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>4</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_4_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_4_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 8 beats on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>8</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>8</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_8_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_8_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 16 beats on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>16</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>16</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_16_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_16_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                      <PushButton>
+                        <ObjectName>HudPad</ObjectName>
+                        <Tooltip>BEAT LOOP: set a loop of 32 beats on or off.</Tooltip>
+                        <Size>0me,26f</Size>
+                        <NumberStates>2</NumberStates>
+                        <State><Number>0</Number><Text>32</Text><Alignment>center</Alignment></State>
+                        <State><Number>1</Number><Text>32</Text><Alignment>center</Alignment></State>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_32_toggle</ConfigKey>
+                          <ButtonState>LeftButton</ButtonState>
+                          <ConnectValueToWidget>false</ConnectValueToWidget>
+                        </Connection>
+                        <Connection>
+                          <ConfigKey><Variable name="Group"/>,beatloop_32_enabled</ConfigKey>
+                          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                        </Connection>
+                      </PushButton>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>4</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- KEYBOARD: not available yet -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageKeyboard</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>stacked</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <Label>
+                    <ObjectName>HudPadNotice</ObjectName>
+                    <Size>0me,56f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>This mode is not available yet.</Text>
+                  </Label>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>5</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- KEY SHIFT: pitch -3 to +4 semitones (A-H) or +5 to +12 (I-P) -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageKeyShift</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to -3 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>-3</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>-3</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.25</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to -2 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>-2</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>-2</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.3333333333333333</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to -1 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>-1</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>-1</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.4166666666666667</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to the original key.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>0</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>0</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.5</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +1 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+1</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+1</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.5833333333333334</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +2 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+2</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+2</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.6666666666666666</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +3 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+3</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+3</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.75</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +4 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+4</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+4</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.8333333333333334</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>0</IsEqual></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +5 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+5</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+5</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>0.9166666666666666</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +6 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+6</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+6</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>1.0</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +7 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+7</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+7</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>1.0833333333333333</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +8 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+8</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+8</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>1.1666666666666667</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +9 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+9</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+9</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>1.25</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +10 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+10</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+10</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>1.3333333333333333</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +11 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+11</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+11</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>1.4166666666666667</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <PushButton>
+                            <ObjectName>HudPad</ObjectName>
+                            <Tooltip>KEY SHIFT: set the key to +12 semitones.</Tooltip>
+                            <Size>0me,26f</Size>
+                            <NumberStates>2</NumberStates>
+                            <LeftClickIsPushButton>true</LeftClickIsPushButton>
+                            <State><Number>0</Number><Text>+12</Text><Alignment>center</Alignment></State>
+                            <State><Number>1</Number><Text>+12</Text><Alignment>center</Alignment></State>
+                            <Connection>
+                              <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                              <Transform><IsEqual>1.5</IsEqual></Transform>
+                              <ButtonState>LeftButton</ButtonState>
+                              <EmitOnDownPress>true</EmitOnDownPress>
+                            </Connection>
+                          </PushButton>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+                <Connection>
+                  <ConfigKey persist="true">[LateNight],pad_page_<Variable name="ChanNum"/></ConfigKey>
+                  <Transform><IsEqual>1</IsEqual></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>6</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- SEQ. CALL: not available yet -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageSeqCall</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>stacked</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <Label>
+                    <ObjectName>HudPadNotice</ObjectName>
+                    <Size>0me,56f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>This mode is not available yet.</Text>
+                  </Label>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>7</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- ACT. CENSR: not available yet -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageActCensr</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children>
+              <WidgetGroup>
+                <Layout>stacked</Layout>
+                <Size>0me,56f</Size>
+                <Children>
+                  <Label>
+                    <ObjectName>HudPadNotice</ObjectName>
+                    <Size>0me,56f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>This mode is not available yet.</Text>
+                  </Label>
+                  <WidgetGroup>
+                    <Layout>vertical</Layout>
+                    <Size>0me,56f</Size>
+                    <Children>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+                      <WidgetGroup>
+                        <Layout>horizontal</Layout>
+                        <Size>0me,26f</Size>
+                        <Children>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+                          <Label>
+                            <ObjectName>HudPadOff</ObjectName>
+                            <Size>0me,26f</Size>
+                          </Label>
+                        </Children>
+                      </WidgetGroup>
+                    </Children>
+                  </WidgetGroup>
+                </Children>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>8</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <!-- MEMORY CUE: empty, the pads come later -->
+          <WidgetGroup>
+            <ObjectName>HudPadPageMemoryCue</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>0me,56f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[LateNight],pad_mode_<Variable name="ChanNum"/></ConfigKey>
+              <Transform><IsEqual>9</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+        </Children>
+        <Connection>
+          <ConfigKey>[LateNight],pad_mode_menu_<Variable name="ChanNum"/></ConfigKey>
+          <Transform><IsEqual>0</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+    </Children>
+  </WidgetGroup>
+</Template>

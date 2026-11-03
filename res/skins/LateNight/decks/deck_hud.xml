@@ -6,7 +6,7 @@ Mix Two: CDJ-style HUD deck window.
   * track info        hud_trackinfo.xml
   * waveforms, phase meter row, overview, bottom strip and the side column
                       hud_waves.xml (strip: hud_strip.xml)
-  * lower panel       empty slot (not built yet)
+  * lower panel       deck_lower_panel.xml (pad view: lower_pads.xml)
 The rate column (DeckRate<N>, deck_singletons.xml) sits on the mixer edge.
 
 Variables:
@@ -67,13 +67,14 @@ End of AI-generated text.
             </Children>
           </WidgetGroup><!-- HudWindow -->
 
-          <!-- Lower panel (HOT CUE | GRID / PHRASE | MEMORY CUE | INFO):
-               not built yet. -->
+          <!-- Lower panel (pad mode | GRID / PHRASE | MEMORY CUE | INFO) -->
           <WidgetGroup>
             <ObjectName>HudLowerPanelSlot</ObjectName>
             <Layout>vertical</Layout>
             <SizePolicy>me,min</SizePolicy>
-            <Children/>
+            <Children>
+              <Template src="skins:LateNight/decks/deck_lower_panel.xml"/>
+            </Children>
             <Connection>
               <ConfigKey persist="true">[LateNight],show_lower_panel</ConfigKey>
               <BindProperty>visible</BindProperty>

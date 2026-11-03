@@ -531,9 +531,41 @@ The meter shows only the center line when no deck or clock is the sync leader.
 It also shows only the center line on the leader deck and on a deck with no
 track.
 
+### Lower panel and pads
+
+Under each HUD window, a lower panel shows. It has four tabs: the pad mode,
+GRID / PHRASE, MEMORY CUE and INFO. Push a tab to show its page.
+
+The first tab shows the name of the pad mode. Its page has eight pads in two
+rows of four.
+
+To change the pad mode, push the pad mode button on the right. A list of the
+ten pad modes shows in place of the pads. Push a mode.
+
+To show the pads A-H or I-P, push PAGE A-H or I-P.
+
+These pad modes operate:
+
+- HOT CUE: the pads are the hot cues A-H (1-8) or I-P (9-16). A set hot cue
+  shows in its color.
+- BEAT JUMP: the pads jump forward by 1, 2, 4, 8, 16, 32, 64 or 128 beats.
+- BEAT LOOP: the pads set a loop of 1/4 to 32 beats on or off.
+- KEY SHIFT: the pads set the key from -3 to +4 semitones (A-H) or from +5 to
+  +12 semitones (I-P).
+
+PAD FX, SLICER, KEYBOARD, SEQ. CALL and ACT. CENSR do not operate yet. The
+page shows "This mode is not available yet." The MEMORY CUE pad page and the
+GRID / PHRASE, MEMORY CUE and INFO tabs are empty for now.
+
+Mix Two keeps the tab, the pad mode and the pad page of each deck when you
+start it again.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.
+- The hot cue pads do not show the time of the hot cue.
+- In KEY SHIFT, the pads +7 to +12 do not come on. When the key is more than
+  +6 semitones, the +6 pad comes on.
 - Beat FX do not sound like rekordbox yet.
 - On-screen buttons outside the deck hub can operate differently from the
   DDJ-800.
