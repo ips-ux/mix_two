@@ -459,8 +459,9 @@ outline and a lit deck number. The other deck on that side is darker.
 ### Waveform type: Color Saturated
 
 There is a new waveform type, **Color Saturated**. It shows each part of the
-track in one colour. Bass parts show in the base colour. Loud high sounds
-show nearer to white.
+track in one colour. Bass parts, such as kicks, show in the base colour.
+Middle sounds, such as vocals, show nearer to white. This is the same as the
+rekordbox blue waveform. USB exports use the same rule.
 
 To use it, open Preferences > Waveforms. Set **Type** to Color Saturated.
 Set the overview **Type** to Color Saturated too.

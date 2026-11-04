@@ -17,8 +17,10 @@ TEST(BandColorTest, Height5IsLoudestBandOver8) {
 
 TEST(BandColorTest, Whiteness3FollowsMidShare) {
     EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{0, 0, 0}));
-    EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{200, 200, 10}));
-    EXPECT_EQ(7, mixxx::bandcolor::whiteness3(Bands{200, 0, 10}));
+    EXPECT_EQ(7, mixxx::bandcolor::whiteness3(Bands{200, 200, 10}));
+    EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{200, 0, 10}));
+    // 7 * 100 / 200 = 3.5 -> 4.
+    EXPECT_EQ(4, mixxx::bandcolor::whiteness3(Bands{200, 100, 10}));
 }
 
 TEST(BandColorTest, ColorDetailEntryPacksBandsAndHeight) {
@@ -35,11 +37,11 @@ TEST(BandColorTest, ColorSaturatedBlendsToWhite) {
     EXPECT_EQ(QColor(255, 255, 255), mixxx::bandcolor::colorSaturated(base, 9));
 }
 
-TEST(BandColorTest, ColorSaturatedMidIsBase) {
-    // The Color Saturated renderers use this mapping: a column where the mid
-    // band is the loudest band shows the base colour.
+TEST(BandColorTest, ColorSaturatedBassIsBase) {
+    // The Color Saturated renderers use this mapping: a column with no mid
+    // band (a kick) shows the base colour.
     const QColor base(0, 104, 255);
-    const Bands b{200, 200, 10};
+    const Bands b{200, 0, 10};
     EXPECT_EQ(base,
             mixxx::bandcolor::colorSaturated(
                     base, mixxx::bandcolor::whiteness3(b)));

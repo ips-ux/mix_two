@@ -21,8 +21,9 @@ struct Bands {
 /// The loudest band divided by 8 (0-31).
 quint8 height5(Bands b);
 
-/// How far the mid band is below the loudest band (0-7). 0 when the loudest
-/// band is 0.
+/// The mid band as a share of the loudest band (0-7), as rekordbox's blue
+/// waveform does: bass-led columns stay near 0, mid-led columns go to 7.
+/// 0 when the height is 0.
 quint8 whiteness3(Bands b);
 
 /// The 16-bit colour detail word: mid, high and low in 3 bits each, then the

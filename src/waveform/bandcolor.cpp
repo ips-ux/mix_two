@@ -21,8 +21,8 @@ quint8 whiteness3(Bands b) {
     if (height5(b) == 0) {
         return 0;
     }
-    // 7 * (1 - mid / loudest), rounded to nearest.
-    return static_cast<quint8>((7 * (loudest - b.mid) + loudest / 2) / loudest);
+    // 7 * mid / loudest, rounded to nearest.
+    return static_cast<quint8>((7 * b.mid + loudest / 2) / loudest);
 }
 
 quint16 colorDetailEntry(Bands b) {
