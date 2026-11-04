@@ -26,8 +26,19 @@ quint8 whiteness3(Bands b) {
 }
 
 quint16 colorDetailEntry(Bands b) {
-    return static_cast<quint16>(((b.mid >> 5) << 13) | ((b.high >> 5) << 10) |
-            ((b.low >> 5) << 7) | (height5(b) << 2));
+    const int red = b.low * 0xff;
+    const int green = b.mid * 0xe7;
+    const int blue = b.mid * 0xd3 + b.high * 0xdc;
+    const int largest = std::max({red, green, blue});
+    if (largest == 0) {
+        return static_cast<quint16>(height5(b) << 2);
+    }
+    // Each channel 7 * channel / largest, rounded to nearest.
+    const auto scaled = [largest](int channel) {
+        return (7 * channel + largest / 2) / largest;
+    };
+    return static_cast<quint16>((scaled(red) << 13) | (scaled(green) << 10) |
+            (scaled(blue) << 7) | (height5(b) << 2));
 }
 
 QColor colorSaturated(QColor base, quint8 whiteness) {

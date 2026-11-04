@@ -477,6 +477,9 @@ The RGB waveform in the LateNight skin has new colours. Bass sounds show in
 red. Middle sounds show in cyan. High sounds show in blue. The colours are
 closer to the colours of the rekordbox RGB waveform.
 
+USB exports use the same colours for the RGB waveform. Before, an exported
+track showed bass in blue and middle sounds in red on a CDJ.
+
 The RGB overview now shows the same colours as the waveform. Before, the
 overview always showed red, green and blue, also when a skin set other
 colours.

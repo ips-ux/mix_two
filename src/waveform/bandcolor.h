@@ -26,8 +26,10 @@ quint8 height5(Bands b);
 /// 0 when the height is 0.
 quint8 whiteness3(Bands b);
 
-/// The 16-bit colour detail word: mid, high and low in 3 bits each, then the
-/// height in 5 bits.
+/// The 16-bit colour detail word: red, green and blue in 3 bits each, then the
+/// height in 5 bits. The colour is the RGB waveform blend of the bands (low
+/// #ff0000, mid #00e7d3, high #0000dc, the LateNight RGB colours), scaled so
+/// that the largest channel is 7, as in rekordbox's own files.
 quint16 colorDetailEntry(Bands b);
 
 /// The blend from `base` (whiteness 0) to white (whiteness 7). A whiteness

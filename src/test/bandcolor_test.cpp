@@ -24,10 +24,16 @@ TEST(BandColorTest, Whiteness3FollowsMidShare) {
 }
 
 TEST(BandColorTest, ColorDetailEntryPacksBandsAndHeight) {
-    // Low only: R 0, G 0, B 7, height 31 -> 7 << 7 | 31 << 2.
-    EXPECT_EQ(0x03FC, mixxx::bandcolor::colorDetailEntry(Bands{255, 0, 0}));
-    // Mid only: R 7, G 0, B 0, height 31.
-    EXPECT_EQ(0xE07C, mixxx::bandcolor::colorDetailEntry(Bands{0, 255, 0}));
+    // Low only: red. R 7, G 0, B 0, height 31 -> 7 << 13 | 31 << 2.
+    EXPECT_EQ(0xE07C, mixxx::bandcolor::colorDetailEntry(Bands{255, 0, 0}));
+    // Mid only: cyan #00e7d3. G 7, B 7 * 0xd3 / 0xe7 = 6.39 -> 6.
+    EXPECT_EQ(0x1F7C, mixxx::bandcolor::colorDetailEntry(Bands{0, 255, 0}));
+    // High only: blue. B 7.
+    EXPECT_EQ(0x03FC, mixxx::bandcolor::colorDetailEntry(Bands{0, 0, 255}));
+    // Low and high: R 7, B 7 * 255 * 0xdc / (255 * 0xff) = 6.04 -> 6.
+    EXPECT_EQ(0xE37C, mixxx::bandcolor::colorDetailEntry(Bands{255, 0, 255}));
+    // Silence: height 0 and no colour.
+    EXPECT_EQ(0x0000, mixxx::bandcolor::colorDetailEntry(Bands{0, 0, 0}));
 }
 
 TEST(BandColorTest, ColorSaturatedBlendsToWhite) {

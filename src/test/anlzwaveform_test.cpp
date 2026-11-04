@@ -88,8 +88,8 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesLowOnly) {
     });
     ASSERT_EQ(150, w.detailEntries);
     EXPECT_EQ(0x1F, byteAt(w.detail, 0));
-    // R 0, G 0, B 7, height 31 -> 7 << 7 | 31 << 2.
-    EXPECT_EQ(0x03FC, u16At(w.colorDetail, 0));
+    // Red: R 7, G 0, B 0, height 31 -> 7 << 13 | 31 << 2.
+    EXPECT_EQ(0xE07C, u16At(w.colorDetail, 0));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 0));   // mid
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 1));   // high
     EXPECT_EQ(127, byteAt(w.threeBandDetail, 2)); // low
@@ -102,7 +102,8 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesMidOnly) {
     });
     ASSERT_EQ(150, w.detailEntries);
     EXPECT_EQ(0xFF, byteAt(w.detail, 0));
-    EXPECT_EQ(0xE07C, u16At(w.colorDetail, 0));
+    // Cyan: G 7, B 6, height 31.
+    EXPECT_EQ(0x1F7C, u16At(w.colorDetail, 0));
     EXPECT_EQ(127, byteAt(w.threeBandDetail, 0));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 1));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 2));
@@ -114,8 +115,8 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesHighOnly) {
     });
     ASSERT_EQ(150, w.detailEntries);
     EXPECT_EQ(0x1F, byteAt(w.detail, 0));
-    // G 7 << 10 | height 31 << 2.
-    EXPECT_EQ(0x1C7C, u16At(w.colorDetail, 0));
+    // Blue: B 7 << 7 | height 31 << 2.
+    EXPECT_EQ(0x03FC, u16At(w.colorDetail, 0));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 0));
     EXPECT_EQ(127, byteAt(w.threeBandDetail, 1));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 2));
