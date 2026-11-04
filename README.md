@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-04: USB export RGB waveform colours match the screen (commit: see git log, "USB export: RGB waveform colours match the screen")
 - 2026-11-04: Color Saturated whiteness follows the mid band share (commit: see git log, "Color Saturated: whiteness follows the mid band share")
 - 2026-11-04: Legacy Design deck HUD: RGB waveform colours calibrated (commit: see git log, "LateNight: RGB waveform colours calibrated")
 - 2026-11-02: Legacy Design deck HUD, final review fixes (commit: see git log, "A.HOT CUE: a clear on hidden pads only shows the cues; DDJ-800 mixer strip keeps the side")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Legacy Design deck HUD: lower panel tabs and the pad view
 - 2026-11-02: Legacy Design deck HUD: phase meter
 - 2026-11-02: Legacy Design deck HUD: A.HOT CUE and AUTO CUE
-- 2026-11-02: Legacy Design deck HUD: NEXT CUE countdown
 
 <!-- mixtwo-status:end -->
 
