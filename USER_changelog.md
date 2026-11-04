@@ -470,6 +470,16 @@ The default colour is blue. The waveforms change immediately.
 
 Color Saturated needs "Use acceleration". Without it, the waveform is empty.
 
+### Waveform type: RGB colours
+
+The RGB waveform in the LateNight skin has new colours. Bass sounds show in
+red. Middle sounds show in cyan. High sounds show in blue. The colours are
+almost the same as the colours of the rekordbox RGB waveform.
+
+The RGB overview now shows the same colours as the waveform. Before, the
+overview always showed red, green and blue, also when a skin set other
+colours.
+
 ### QUANTIZE beat value
 
 Each deck has a QUANTIZE beat value: 1/8, 1/4, 1/2 or 1 beat. The default

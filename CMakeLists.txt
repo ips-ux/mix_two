@@ -3103,6 +3103,7 @@ if(BUILD_TESTING)
     src/test/trackreftest.cpp
     src/test/trackupdate_test.cpp
     src/test/uuid_test.cpp
+    src/test/waveformoverviewrenderer_test.cpp
     src/test/wbatterytest.cpp
     src/test/wcombobox_test.cpp
     src/test/wmemorycuelist_test.cpp

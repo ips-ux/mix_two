@@ -184,9 +184,13 @@
             <SignalHighColor></SignalHighColor>
             <SignalMidColor></SignalMidColor>
             <SignalLowColor></SignalLowColor>
-            <SignalRGBHighColor></SignalRGBHighColor>
-            <SignalRGBMidColor></SignalRGBMidColor>
-            <SignalRGBLowColor></SignalRGBLowColor>
+            <!-- AI-generated (Claude Code). Start of AI-generated text.
+                 RGB type: kicks red, mids cyan, highs blue, fitted to the RGB
+                 waveform that rekordbox shows for the same tracks.
+                 End of AI-generated text. -->
+            <SignalRGBHighColor>#0000dc</SignalRGBHighColor>
+            <SignalRGBMidColor>#00e7d3</SignalRGBMidColor>
+            <SignalRGBLowColor>#ff0000</SignalRGBLowColor>
             <BeatColor><Variable name="BeatColor"/></BeatColor>
             <AxesColor><Variable name="AxesColor"/></AxesColor>
             <BeatHighlightColor></BeatHighlightColor>

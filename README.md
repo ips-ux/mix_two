@@ -2,7 +2,7 @@
 # Mix Two
 
 Mix Two is a fork of Mixxx. It replaces rekordbox 6 for a DJ with a Pioneer
-DDJ-800. The text below shows the status of the work, up to 2026-11-02.
+DDJ-800. The text below shows the status of the work, up to 2026-11-04.
 
 ## Overview
 
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-04: Legacy Design deck HUD: RGB waveform colours calibrated (commit: see git log, "LateNight: RGB waveform colours calibrated")
 - 2026-11-02: Legacy Design deck HUD, final review fixes (commit: see git log, "A.HOT CUE: a clear on hidden pads only shows the cues; DDJ-800 mixer strip keeps the side")
 - 2026-11-02: Legacy Design deck HUD: the mapping sets the deck shown on each side (commit: see git log, "DDJ-800: the screen shows the deck each side controls")
 - 2026-11-02: Legacy Design deck HUD, task 13 fix: memory cue list safe for a live set
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Legacy Design deck HUD: A.HOT CUE and AUTO CUE
 - 2026-11-02: Legacy Design deck HUD: NEXT CUE countdown
 - 2026-11-02: Legacy Design deck HUD: QUANTIZE beat value
-- 2026-11-02: Legacy Design deck HUD: Color Saturated waveform type
 
 <!-- mixtwo-status:end -->
 
