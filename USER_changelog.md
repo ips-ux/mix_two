@@ -461,6 +461,9 @@ the numbers do not change on a click.
 1, 2, 4. It does not add deck windows. The waveforms at the top follow the
 deck windows.
 
+With 4 DECKS on, the master output meter shows in the Master panel, on the
+left of the LEVEL and BOOTH knobs.
+
 ### Waveform type: Color Saturated
 
 There is a new waveform type, **Color Saturated**. It shows each part of the

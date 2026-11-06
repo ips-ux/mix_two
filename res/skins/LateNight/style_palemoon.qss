@@ -863,7 +863,7 @@ WBpmEditor QDoubleSpinBox::down-button {
   margin: 0px 0px 2px 0px;
 }
 #VuMeterMain_4Decks {
-  margin: 5px 0px;
+  margin: 0px;
 }
 
 #VuMeterDeck1_Compact,

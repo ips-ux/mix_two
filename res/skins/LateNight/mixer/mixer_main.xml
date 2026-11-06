@@ -46,53 +46,93 @@
                     <Text>Master</Text>
                   </Label>
                 <WidgetGroup><Size>0min,2f</Size></WidgetGroup>
-                <Template src="skins:LateNight/controls/knob_label_above_level.xml">
-                  <SetVariable name="KnobBg">main_level_red</SetVariable>
-                  <SetVariable name="TooltipId">main_gain</SetVariable>
-                  <SetVariable name="Size">35f,30f</SetVariable>
-                  <SetVariable name="KnobColor">white</SetVariable>
-                  <SetVariable name="ArcColor"><Variable name="ArcColorGainLow"/></SetVariable>
-                  <SetVariable name="ArcUnipolar">true</SetVariable>
-                  <SetVariable name="Control">gain</SetVariable>
-                  <SetVariable name="Label">Level</SetVariable>
-                </Template>
-                <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
                 <WidgetGroup>
-                  <ObjectName>AlignCenter</ObjectName>
                   <Layout>horizontal</Layout>
                   <SizePolicy>min,min</SizePolicy>
                   <Children>
-                    <PushButton>
-                      <TooltipId>main_cue</TooltipId>
-                      <ObjectName>MainCueButton</ObjectName>
-                      <Size>42f,16f</Size>
-                      <NumberStates>2</NumberStates>
-                      <State>
-                        <Number>0</Number>
-                        <Text>CUE</Text>
-                      </State>
-                      <State>
-                        <Number>1</Number>
-                        <Text>CUE</Text>
-                      </State>
+
+                    <!-- Mix Two: with 4 DECKS the main output meter is in this
+                         module, on the left of the knobs. The 2-deck mixer has
+                         it between its channel meters. -->
+                    <WidgetGroup>
+                      <Layout>horizontal</Layout>
+                      <SizePolicy>max,min</SizePolicy>
+                      <Children>
+                        <WidgetGroup>
+                          <ObjectName>VuMeterMain_4Decks</ObjectName>
+                          <Layout>horizontal</Layout>
+                          <SizePolicy>max,min</SizePolicy>
+                          <Children>
+                            <Template src="skins:LateNight/mixer/vumeter_main.xml">
+                              <SetVariable name="VuSize">main4</SetVariable>
+                              <SetVariable name="VuColor">light</SetVariable>
+                            </Template>
+                          </Children>
+                        </WidgetGroup><!-- VuMeterMain_4Decks -->
+                        <WidgetGroup><Size>10f,0min</Size></WidgetGroup>
+                      </Children>
                       <Connection>
-                        <ConfigKey>[Master],main_cue</ConfigKey>
-                        <ButtonState>LeftButton</ButtonState>
+                        <ConfigKey persist="true">[Skin],show_4decks</ConfigKey>
+                        <BindProperty>visible</BindProperty>
                       </Connection>
-                    </PushButton>
+                    </WidgetGroup>
+
+                    <WidgetGroup>
+                      <Layout>vertical</Layout>
+                      <SizePolicy>min,min</SizePolicy>
+                      <Children>
+                        <Template src="skins:LateNight/controls/knob_label_above_level.xml">
+                          <SetVariable name="KnobBg">main_level_red</SetVariable>
+                          <SetVariable name="TooltipId">main_gain</SetVariable>
+                          <SetVariable name="Size">35f,30f</SetVariable>
+                          <SetVariable name="KnobColor">white</SetVariable>
+                          <SetVariable name="ArcColor"><Variable name="ArcColorGainLow"/></SetVariable>
+                          <SetVariable name="ArcUnipolar">true</SetVariable>
+                          <SetVariable name="Control">gain</SetVariable>
+                          <SetVariable name="Label">Level</SetVariable>
+                        </Template>
+                        <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+                        <WidgetGroup>
+                          <ObjectName>AlignCenter</ObjectName>
+                          <Layout>horizontal</Layout>
+                          <SizePolicy>min,min</SizePolicy>
+                          <Children>
+                            <PushButton>
+                              <TooltipId>main_cue</TooltipId>
+                              <ObjectName>MainCueButton</ObjectName>
+                              <Size>42f,16f</Size>
+                              <NumberStates>2</NumberStates>
+                              <State>
+                                <Number>0</Number>
+                                <Text>CUE</Text>
+                              </State>
+                              <State>
+                                <Number>1</Number>
+                                <Text>CUE</Text>
+                              </State>
+                              <Connection>
+                                <ConfigKey>[Master],main_cue</ConfigKey>
+                                <ButtonState>LeftButton</ButtonState>
+                              </Connection>
+                            </PushButton>
+                          </Children>
+                        </WidgetGroup>
+                        <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
+                        <Template src="skins:LateNight/controls/knob_label_above_level.xml">
+                          <SetVariable name="KnobBg">main_level_red</SetVariable>
+                          <SetVariable name="TooltipId">booth_gain</SetVariable>
+                          <SetVariable name="Size">35f,30f</SetVariable>
+                          <SetVariable name="KnobColor">white</SetVariable>
+                          <SetVariable name="ArcColor"><Variable name="ArcColorGainLow"/></SetVariable>
+                          <SetVariable name="ArcUnipolar">true</SetVariable>
+                          <SetVariable name="Control">booth_gain</SetVariable>
+                          <SetVariable name="Label">Booth</SetVariable>
+                        </Template>
+                      </Children>
+                    </WidgetGroup>
+
                   </Children>
                 </WidgetGroup>
-                <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
-                <Template src="skins:LateNight/controls/knob_label_above_level.xml">
-                  <SetVariable name="KnobBg">main_level_red</SetVariable>
-                  <SetVariable name="TooltipId">booth_gain</SetVariable>
-                  <SetVariable name="Size">35f,30f</SetVariable>
-                  <SetVariable name="KnobColor">white</SetVariable>
-                  <SetVariable name="ArcColor"><Variable name="ArcColorGainLow"/></SetVariable>
-                  <SetVariable name="ArcUnipolar">true</SetVariable>
-                  <SetVariable name="Control">booth_gain</SetVariable>
-                  <SetVariable name="Label">Booth</SetVariable>
-                </Template>
                 </Children>
               </WidgetGroup><!-- MixerModule -->
               <WidgetGroup><Size>0min,6f</Size></WidgetGroup>
@@ -100,41 +140,6 @@
               <!-- Mix Two: EFFECTS (Beat FX) under MASTER -->
               <Template src="skins:LateNight/mixer/effects_module.xml"/>
               <WidgetGroup><Size>0min,6f</Size></WidgetGroup>
-
-              <WidgetGroup>
-                <Layout>vertical</Layout>
-                <SizePolicy>min,min</SizePolicy>
-                <Children>
-
-                  <WidgetGroup>
-                    <MinimumSize>0,10</MinimumSize>
-                    <MaximumSize>,10</MaximumSize>
-                    <SizePolicy>min,me</SizePolicy>
-                  </WidgetGroup>
-
-                  <WidgetGroup>
-                    <ObjectName>VuMeterMain_4Decks</ObjectName>
-                    <Layout>horizontal</Layout>
-                    <SizePolicy>max,max</SizePolicy>
-                    <Children>
-                      <SingletonContainer>
-                        <ObjectName>VuMeterMain_Light</ObjectName>
-                      </SingletonContainer>
-                    </Children>
-                  </WidgetGroup><!-- VuMeterMain_4Decks -->
-
-                  <WidgetGroup>
-                    <MinimumSize>0,20</MinimumSize>
-                    <MaximumSize>,20</MaximumSize>
-                    <SizePolicy>min,me</SizePolicy>
-                  </WidgetGroup>
-
-                </Children>
-                <Connection>
-                  <ConfigKey persist="true">[Skin],show_4decks</ConfigKey>
-                  <BindProperty>visible</BindProperty>
-                </Connection>
-              </WidgetGroup><!-- /MainVuMeter4ch -->
 
               <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
 

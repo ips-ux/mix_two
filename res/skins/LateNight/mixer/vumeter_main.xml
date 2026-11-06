@@ -6,7 +6,8 @@
     Group
     ChannelType   channel | sampler | microphone | ...
     StyleScheme
-    VuSize        deck | sampler | small
+    VuSize        deck | main4 (level images only; main4 is the taller meter
+                  in the MASTER module of the 4-deck mixer)
     VuColor       dark | light
             (in PaleMoon theme the Vu meters are different
              in mixer or 'standalone' in between compact decks)
@@ -33,8 +34,8 @@
           </StatusLight>
           <VuMeter>
             <TooltipId>main_VuMeterL</TooltipId>
-            <PathBack>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_deck_level_bg_<Variable name="VuColor"/>.png</PathBack>
-            <PathVu>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_deck_level_active.png</PathVu>
+            <PathBack>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_<Variable name="VuSize"/>_level_bg_<Variable name="VuColor"/>.png</PathBack>
+            <PathVu>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_<Variable name="VuSize"/>_level_active.png</PathVu>
             <Horizontal>false</Horizontal>
             <PeakHoldSize>5</PeakHoldSize>
             <PeakHoldTime>500</PeakHoldTime>
@@ -62,8 +63,8 @@
           </StatusLight>
           <VuMeter>
             <TooltipId>main_VuMeterR</TooltipId>
-            <PathBack>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_deck_level_bg_<Variable name="VuColor"/>.png</PathBack>
-            <PathVu>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_deck_level_active.png</PathVu>
+            <PathBack>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_<Variable name="VuSize"/>_level_bg_<Variable name="VuColor"/>.png</PathBack>
+            <PathVu>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_<Variable name="VuSize"/>_level_active.png</PathVu>
             <Horizontal>false</Horizontal>
             <PeakHoldSize>5</PeakHoldSize>
             <PeakHoldTime>500</PeakHoldTime>
