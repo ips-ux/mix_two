@@ -403,6 +403,9 @@
              (mixer) edge. DeckAltKey: the control that the deck badge
              toggles. End of AI-generated text. -->
         <SetVariable name="DeckAltKey">[Skin],left_deck_alt</SetVariable>
+        <SetVariable name="HudBadgeL">HudIndOff</SetVariable>
+        <SetVariable name="HudBadgeR">HudIndOn</SetVariable>
+        <SetVariable name="HudBadgeOther">3</SetVariable>
         <SetVariable name="HudHdrL">HudFx</SetVariable>
         <SetVariable name="HudHdrR">HudDeckId</SetVariable>
         <SetVariable name="HudIdL">HudHdrKey</SetVariable>
@@ -439,6 +442,9 @@
              (mixer) edge. DeckAltKey: the control that the deck badge
              toggles. End of AI-generated text. -->
         <SetVariable name="DeckAltKey">[Skin],right_deck_alt</SetVariable>
+        <SetVariable name="HudBadgeL">HudIndOn</SetVariable>
+        <SetVariable name="HudBadgeR">HudIndOff</SetVariable>
+        <SetVariable name="HudBadgeOther">4</SetVariable>
         <SetVariable name="HudHdrL">HudDeckId</SetVariable>
         <SetVariable name="HudHdrR">HudFx</SetVariable>
         <SetVariable name="HudIdL">HudBadge</SetVariable>
@@ -475,6 +481,9 @@
              (mixer) edge. DeckAltKey: the control that the deck badge
              toggles. End of AI-generated text. -->
         <SetVariable name="DeckAltKey">[Skin],left_deck_alt</SetVariable>
+        <SetVariable name="HudBadgeL">HudIndOn</SetVariable>
+        <SetVariable name="HudBadgeR">HudIndOff</SetVariable>
+        <SetVariable name="HudBadgeOther">1</SetVariable>
         <SetVariable name="HudHdrL">HudFx</SetVariable>
         <SetVariable name="HudHdrR">HudDeckId</SetVariable>
         <SetVariable name="HudIdL">HudHdrKey</SetVariable>
@@ -511,6 +520,9 @@
              (mixer) edge. DeckAltKey: the control that the deck badge
              toggles. End of AI-generated text. -->
         <SetVariable name="DeckAltKey">[Skin],right_deck_alt</SetVariable>
+        <SetVariable name="HudBadgeL">HudIndOff</SetVariable>
+        <SetVariable name="HudBadgeR">HudIndOn</SetVariable>
+        <SetVariable name="HudBadgeOther">2</SetVariable>
         <SetVariable name="HudHdrL">HudDeckId</SetVariable>
         <SetVariable name="HudHdrR">HudFx</SetVariable>
         <SetVariable name="HudIdL">HudBadge</SetVariable>

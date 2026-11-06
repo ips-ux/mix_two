@@ -448,13 +448,18 @@ To change the HUD window, open the skin settings (SETTINGS):
 - Push Platter to show or hide the platter.
 
 Each side of the screen has one deck window. The left window shows deck 1
-or deck 3. The right window shows deck 2 or deck 4. To change the deck in a
-window, click the deck number in the window header. When the DDJ-800 is
-connected, the deck number does not change on a click.
+or deck 3. The right window shows deck 2 or deck 4.
 
-With 4 DECKS on, the four deck windows show in the order 3, 1, mixer, 2, 4.
-When the DDJ-800 is connected, the deck that a side controls has a blue
-outline and a lit deck number. The other deck on that side is darker.
+Each window header shows the two deck numbers of its side. The left order is
+3, 1. The right order is 2, 4. The number of the deck in the window is lit.
+
+To change the deck in a window, click the number that is not lit. When the
+DDJ-800 is connected, the DECK button on the DDJ-800 changes the deck, and
+the numbers do not change on a click.
+
+4 DECKS adds the channels of deck 3 and deck 4 to the mixer, in the order 3,
+1, 2, 4. It does not add deck windows. The waveforms at the top follow the
+deck windows.
 
 ### Waveform type: Color Saturated
 

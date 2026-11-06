@@ -9,10 +9,13 @@ the HudHdrL / HudHdrR slots; inside the deck group, key and badge swap with
 HudIdL / HudIdR. Slot values are set per deck in skin.xml.
 The source box (USB1 on a CDJ) is left out until the track has a property
 for it.
-The deck badge: a click toggles DeckAltKey ([Skin],left_deck_alt or
-[Skin],right_deck_alt), so the window changes between deck 1 and 3 (2 and 4).
-While a DDJ-800 is connected ([Skin],ddj800_connected = 1), the badge is
-disabled: the controller's DECK buttons set the value.
+The deck indicators: each window shows the two deck numbers of its side, in
+the order 3 1 (left) and 2 4 (right). The number of the deck in the window is
+lit (HudIndOn). A click on the other number (HudIndOff) toggles DeckAltKey
+([Skin],left_deck_alt or [Skin],right_deck_alt), so the window changes between
+deck 1 and 3 (2 and 4). HudBadgeL / HudBadgeR set the order per deck in
+skin.xml. While a DDJ-800 is connected ([Skin],ddj800_connected = 1), the other
+number is disabled: the controller's DECK buttons set the value.
 
 End of AI-generated text.
 -->
@@ -62,25 +65,44 @@ End of AI-generated text.
   </SingletonDefinition>
 
   <SingletonDefinition>
-    <ObjectName>HudBadge<Variable name="ChanNum"/></ObjectName>
+    <ObjectName>HudIndOn<Variable name="ChanNum"/></ObjectName>
+    <Children>
+      <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <Label>
+            <ObjectName>HudDeckBadge</ObjectName>
+            <Tooltip>This deck shows in this window.</Tooltip>
+            <Size>24f,20f</Size>
+            <Text><Variable name="ChanNum"/></Text>
+            <Alignment>center</Alignment>
+          </Label>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </SingletonDefinition>
+
+  <SingletonDefinition>
+    <ObjectName>HudIndOff<Variable name="ChanNum"/></ObjectName>
     <Children>
       <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
         <Layout>horizontal</Layout>
         <SizePolicy>min,min</SizePolicy>
         <Children>
           <PushButton>
-            <ObjectName>HudDeckBadge</ObjectName>
-            <Tooltip>Deck number. Push to show the other deck of this side in this window.</Tooltip>
+            <ObjectName>HudDeckBadgeOff</ObjectName>
+            <Tooltip>Push to show this deck in this window. While the DDJ-800 is connected, the DECK button on the DDJ-800 sets the deck.</Tooltip>
             <Size>24f,20f</Size>
             <NumberStates>2</NumberStates>
             <State>
               <Number>0</Number>
-              <Text><Variable name="ChanNum"/></Text>
+              <Text><Variable name="HudBadgeOther"/></Text>
               <Alignment>center</Alignment>
             </State>
             <State>
               <Number>1</Number>
-              <Text><Variable name="ChanNum"/></Text>
+              <Text><Variable name="HudBadgeOther"/></Text>
               <Alignment>center</Alignment>
             </State>
             <Connection>
@@ -93,6 +115,25 @@ End of AI-generated text.
               <ButtonState>LeftButton</ButtonState>
             </Connection>
           </PushButton>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </SingletonDefinition>
+
+  <SingletonDefinition>
+    <ObjectName>HudBadge<Variable name="ChanNum"/></ObjectName>
+    <Children>
+      <WidgetGroup><!-- the parser renames this outer group to the singleton name -->
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <SingletonContainer>
+            <ObjectName><Variable name="HudBadgeL"/><Variable name="ChanNum"/></ObjectName>
+          </SingletonContainer>
+          <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
+          <SingletonContainer>
+            <ObjectName><Variable name="HudBadgeR"/><Variable name="ChanNum"/></ObjectName>
+          </SingletonContainer>
         </Children>
       </WidgetGroup>
     </Children>

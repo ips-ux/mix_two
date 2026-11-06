@@ -6,9 +6,22 @@
     <SizePolicy>me,min</SizePolicy>
     <Children>
 
-      <SingletonContainer>
-        <ObjectName>Deck1_Mini</ObjectName>
-      </SingletonContainer>
+      <!-- Mix Two (AI-generated, Claude Code): one deck for each side, as in
+           decks_left.xml. End of AI-generated text. -->
+      <WidgetGroup>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,min</SizePolicy>
+        <Children>
+          <SingletonContainer>
+            <ObjectName>Deck1_Mini</ObjectName>
+          </SingletonContainer>
+        </Children>
+        <Connection>
+          <ConfigKey>[Skin],left_deck_alt</ConfigKey>
+          <Transform><Not/></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
 
       <WidgetGroup>
         <Layout>horizontal</Layout>
@@ -19,7 +32,7 @@
           </SingletonContainer>
         </Children>
         <Connection>
-          <ConfigKey>[Skin],show_4decks</ConfigKey>
+          <ConfigKey>[Skin],left_deck_alt</ConfigKey>
           <BindProperty>visible</BindProperty>
         </Connection>
       </WidgetGroup>

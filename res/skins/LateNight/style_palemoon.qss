@@ -3930,7 +3930,7 @@ WKey#HudHeaderKey {
   border-radius: 3px;
   padding: 0px 8px;
 }
-WPushButton#HudDeckBadge {
+WLabel#HudDeckBadge {
   font-size: 12px;
   font-weight: bold;
   color: #000000;
@@ -4313,62 +4313,19 @@ WMemoryCueList#HudMemoryCueList QScrollBar::sub-page:vertical {
 /* AI-generated (Claude Code). End of AI-generated text. */
 
 /* AI-generated (Claude Code). Start of AI-generated text. */
-/* Deck badge. A click changes the deck in the window (1 / 3, 2 / 4). While
-   a DDJ-800 is connected the badge is disabled (the controller selects the
-   deck), but it keeps its colours. */
-WPushButton#HudDeckBadge:disabled {
-  color: #000000;
-  background-color: #ff9d1c;
+/* Deck indicators. The lit number is the deck in the window (WLabel
+   #HudDeckBadge). The other number of the side is not lit. A click on it
+   changes the deck, except while a DDJ-800 is connected. */
+WPushButton#HudDeckBadgeOff,
+WPushButton#HudDeckBadgeOff:disabled {
+  font-size: 12px;
+  font-weight: bold;
+  color: #6b6f78;
+  background-color: transparent;
+  border: 1px solid #3b3f47;
+  border-radius: 3px;
 }
-
-/* 4-deck layout with a DDJ-800 connected: the deck that its side does not
-   control is in the HudDeckDimmed group (decks/decks_left.xml,
-   decks_right.xml). Qt style sheets have no opacity for widgets, so the
-   text, borders and badges get darker colours. */
-#HudDeckDimmed #HudWindow {
-  background-color: #070809;
-  border-color: #1c1e22;
-}
-#HudDeckDimmed WTrackProperty,
-#HudDeckDimmed WNumber,
-#HudDeckDimmed WNumberPos,
-#HudDeckDimmed WNumberRate,
-#HudDeckDimmed WRateRange,
-#HudDeckDimmed WKey,
-#HudDeckDimmed WLabel {
-  color: #4a4d54;
-}
-#HudDeckDimmed WKey#HudHeaderKey,
-#HudDeckDimmed #HudBpmBlock,
-#HudDeckDimmed #HudKeyBox,
-#HudDeckDimmed #HudStripCell {
-  border-color: #23262b;
-}
-#HudDeckDimmed WPushButton#HudDeckBadge,
-#HudDeckDimmed WPushButton#HudDeckBadge:disabled {
-  color: #0b0c0e;
-  background-color: #5a3a10;
-}
-#HudDeckDimmed WLabel#HudMasterBadge {
-  color: #0b0c0e;
-  background-color: #5a2414;
-}
-#HudDeckDimmed WLabel#HudMtLabel {
-  color: #5a1414;
-}
-/* AI-generated (Claude Code). End of AI-generated text. */
-
-/* AI-generated (Claude Code). Start of AI-generated text. */
-/* 4-deck layout with a DDJ-800 connected: the deck that its side controls
-   is in the HudDeckActive group. It gets a blue outline and a lit deck
-   badge with a light ring. */
-#HudDeckActive #HudWindow {
-  border: 2px solid #2f8cff;
-}
-#HudDeckActive WPushButton#HudDeckBadge,
-#HudDeckActive WPushButton#HudDeckBadge:disabled {
-  color: #000000;
-  background-color: #ffb040;
-  border: 2px solid #ffe6c0;
+WPushButton#HudDeckBadgeOff:hover {
+  color: #cfd2d8;
 }
 /* AI-generated (Claude Code). End of AI-generated text. */

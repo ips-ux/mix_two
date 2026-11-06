@@ -1,4 +1,7 @@
 <Template>
+  <!-- Mix Two (AI-generated, Claude Code): two waveform rows, one for each
+       deck window. The deck follows [Skin],left_deck_alt and right_deck_alt.
+       End of AI-generated text. -->
 
   <WidgetGroup>
     <Layout>horizontal</Layout>
@@ -42,7 +45,7 @@
                   </Template>
                 </Children>
                 <Connection>
-                  <ConfigKey persist="true">[Skin],show_4decks</ConfigKey>
+                  <ConfigKey>[Skin],left_deck_alt</ConfigKey>
                   <BindProperty>visible</BindProperty>
                 </Connection>
               </WidgetGroup>
@@ -58,6 +61,11 @@
                     <SetVariable name="Highlight">[Skin],show_4decks</SetVariable>
                   </Template>
                 </Children>
+                <Connection>
+                  <ConfigKey>[Skin],left_deck_alt</ConfigKey>
+                  <Transform><Not/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
               </WidgetGroup>
 
               <WidgetGroup>
@@ -71,6 +79,11 @@
                     <SetVariable name="Highlight">[Skin],show_4decks</SetVariable>
                   </Template>
                 </Children>
+                <Connection>
+                  <ConfigKey>[Skin],right_deck_alt</ConfigKey>
+                  <Transform><Not/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
               </WidgetGroup>
 
               <WidgetGroup>
@@ -84,7 +97,7 @@
                   </Template>
                 </Children>
                 <Connection>
-                  <ConfigKey persist="true">[Skin],show_4decks</ConfigKey>
+                  <ConfigKey>[Skin],right_deck_alt</ConfigKey>
                   <BindProperty>visible</BindProperty>
                 </Connection>
               </WidgetGroup>
