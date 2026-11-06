@@ -2,7 +2,7 @@
 # Mix Two
 
 Mix Two is a fork of Mixxx. It replaces rekordbox 6 for a DJ with a Pioneer
-DDJ-800. The text below shows the status of the work, up to 2026-11-05.
+DDJ-800. The text below shows the status of the work, up to 2026-11-06.
 
 ## Overview
 
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-06: 4-deck master meter moves into the Master panel (commit: see git log, "LateNight: 4-deck master meter in the Master panel")
 - 2026-11-05: 4-deck mode keeps two deck windows (commit: see git log, "LateNight: 4-deck mode keeps two deck windows")
 - 2026-11-04: USB export RGB waveform colours match the screen (commit: see git log, "USB export: RGB waveform colours match the screen")
 - 2026-11-04: Color Saturated whiteness follows the mid band share (commit: see git log, "Color Saturated: whiteness follows the mid band share")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Legacy Design deck HUD: GRID / PHRASE and INFO pages (commit hash: see git log, "LateNight: GRID / PHRASE and INFO pages")
 - 2026-11-02: Legacy Design deck HUD: pad mode combo box and KEY SHIFT lights
 - 2026-11-02: Legacy Design deck HUD: lower panel tabs and the pad view
-- 2026-11-02: Legacy Design deck HUD: phase meter
 
 <!-- mixtwo-status:end -->
 
