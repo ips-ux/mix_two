@@ -1,9 +1,12 @@
 #pragma once
 
+#include <QList>
 #include <QObject>
+#include <QString>
 #include <memory>
 
 #include "preferences/usersettings.h"
+#include "soundio/sounddevice.h"
 #include "soundio/soundmanagerconfig.h"
 
 class ControlObject;
@@ -37,11 +40,26 @@ class AudioTargetManager : public QObject {
     /// True if a DJ unit for the HARDWARE target is present for `api`.
     bool hasHardwareDevice(const QString& api) const;
 
+    /// WASAPI input devices that can carry a microphone: input channels, and
+    /// no DJ unit (a DJ unit carries no programme audio).
+    QList<SoundDevicePointer> micInputDevices() const;
+
+    /// The saved device name of Microphone `micIndex` (0..3), also when the
+    /// device is not connected. Empty means no input.
+    QString micInputDeviceName(int micIndex) const;
+
+    /// Sets the WASAPI input of Microphone `micIndex` (0..3) to channels 1-2
+    /// of `device` (channel 1 for a mono device). An empty device id means
+    /// None. Returns false, with the old setup in place, if the device does
+    /// not open. Call from the GUI thread.
+    bool assignMicInput(int micIndex, const SoundDeviceId& device);
+
   private slots:
     void slotTargetChanged(double value);
     void slotRoutingChanged(double value);
     void slotSelectHardware(double value);
     void slotSelectPc(double value);
+    void slotDevicesSetup();
 
   private:
     enum class Target {
@@ -53,6 +71,9 @@ class AudioTargetManager : public QObject {
     SoundManagerConfig buildConfig(Target target, const SoundManagerConfig& current) const;
     bool switchTo(Target target);
     void select(Target target);
+    // Keep the WASAPI Microphone inputs in mixxx.cfg across sound changes.
+    void snapshotMicInputs(const SoundManagerConfig& config);
+    void restoreMicInputs(SoundManagerConfig* pConfig) const;
 
     UserSettingsPointer m_pConfig;
     SoundManager* m_pSoundManager;

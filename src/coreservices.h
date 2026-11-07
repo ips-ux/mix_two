@@ -56,6 +56,10 @@ class CoreServices : public QObject {
         return m_pSoundManager;
     }
 
+    AudioTargetManager* getAudioTargetManager() const {
+        return m_pAudioTargetManager.get();
+    }
+
     std::shared_ptr<PlayerManager> getPlayerManager() const {
         return m_pPlayerManager;
     }
