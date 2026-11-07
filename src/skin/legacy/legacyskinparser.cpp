@@ -95,6 +95,7 @@
 #include "widget/wwaveformviewer.h"
 #include "widget/wbeatfxbeatselector.h"
 #include "widget/wsoundcolorfxbutton.h"
+#include "widget/wmicinputbutton.h"
 #include "widget/wwidget.h"
 #include "widget/wwidgetgroup.h"
 #include "widget/wwidgetstack.h"
@@ -176,6 +177,7 @@ LegacySkinParser::LegacySkinParser(UserSettingsPointer pConfig)
           m_pLibrary(nullptr),
           m_pVCManager(nullptr),
           m_pEffectsManager(nullptr),
+          m_pAudioTargets(nullptr),
           m_pRecordingManager(nullptr),
           m_pParent(nullptr) {
 }
@@ -188,7 +190,8 @@ LegacySkinParser::LegacySkinParser(UserSettingsPointer pConfig,
         Library* pLibrary,
         VinylControlManager* pVCMan,
         EffectsManager* pEffectsManager,
-        RecordingManager* pRecordingManager)
+        RecordingManager* pRecordingManager,
+        AudioTargetManager* pAudioTargets)
         : m_pConfig(pConfig),
           m_pSkinCreatedControls(pSkinCreatedControls),
           m_pKeyboard(pKeyboard),
@@ -197,6 +200,7 @@ LegacySkinParser::LegacySkinParser(UserSettingsPointer pConfig,
           m_pLibrary(pLibrary),
           m_pVCManager(pVCMan),
           m_pEffectsManager(pEffectsManager),
+          m_pAudioTargets(pAudioTargets),
           m_pRecordingManager(pRecordingManager),
           m_pParent(nullptr) {
     DEBUG_ASSERT(m_pSkinCreatedControls);
@@ -627,6 +631,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parseStandardWidget<WBeatFxBeatSelector>(node));
     } else if (nodeName == "SoundColorFxButton") {
         result = wrapWidget(parseSoundColorFxButton(node));
+    } else if (nodeName == "MicInputButton") {
+        result = wrapWidget(parseMicInputButton(node));
     } else if (nodeName == "EffectChainPresetSelector") {
         result = wrapWidget(parseEffectChainPresetSelector(node));
     } else if (nodeName == "EffectName") {
@@ -2087,6 +2093,18 @@ QWidget* LegacySkinParser::parseEffectChainPresetButton(const QDomElement& node)
 // Mix Two: a Sound Color FX button; right-click selects its chain preset.
 QWidget* LegacySkinParser::parseSoundColorFxButton(const QDomElement& node) {
     WSoundColorFxButton* pButton = new WSoundColorFxButton(m_pParent, m_pEffectsManager);
+    commonWidgetSetup(node, pButton);
+    pButton->setup(node, *m_pContext);
+    pButton->installEventFilter(m_pKeyboard);
+    pButton->installEventFilter(
+            m_pControllerManager->getControllerLearningEventFilter());
+    pButton->Init();
+    return pButton;
+}
+
+// Mix Two: one of the four WASAPI microphone squares.
+QWidget* LegacySkinParser::parseMicInputButton(const QDomElement& node) {
+    WMicInputButton* pButton = new WMicInputButton(m_pParent, m_pAudioTargets);
     commonWidgetSetup(node, pButton);
     pButton->setup(node, *m_pContext);
     pButton->installEventFilter(m_pKeyboard);

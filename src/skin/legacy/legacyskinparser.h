@@ -18,6 +18,7 @@ class Library;
 class KeyboardEventFilter;
 class PlayerManager;
 class EffectsManager;
+class AudioTargetManager;
 class RecordingManager;
 class ControllerManager;
 class SkinContext;
@@ -39,7 +40,8 @@ class LegacySkinParser : public QObject, public SkinParser {
             Library* pLibrary,
             VinylControlManager* pVCMan,
             EffectsManager* pEffectsManager,
-            RecordingManager* pRecordingManager);
+            RecordingManager* pRecordingManager,
+            AudioTargetManager* pAudioTargets);
     virtual ~LegacySkinParser();
 
     virtual bool canParse(const QString& skinPath);
@@ -95,6 +97,7 @@ class LegacySkinParser : public QObject, public SkinParser {
     QWidget* parseEffectChainPresetButton(const QDomElement& node);
     QWidget* parseEffectChainPresetSelector(const QDomElement& node);
     QWidget* parseSoundColorFxButton(const QDomElement& node);
+    QWidget* parseMicInputButton(const QDomElement& node);
     QWidget* parseEffectName(const QDomElement& node);
     QWidget* parseEffectMetaKnob(const QDomElement& node);
     QWidget* parseEffectParameterName(const QDomElement& node);
@@ -177,6 +180,8 @@ class LegacySkinParser : public QObject, public SkinParser {
     Library* m_pLibrary;
     VinylControlManager* m_pVCManager;
     EffectsManager* m_pEffectsManager;
+    // Mix Two: null in the config-only parser; the mic squares need it.
+    AudioTargetManager* m_pAudioTargets;
     RecordingManager* m_pRecordingManager;
     QWidget* m_pParent;
     std::unique_ptr<SkinContext> m_pContext;

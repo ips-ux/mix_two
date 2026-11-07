@@ -1875,6 +1875,7 @@ add_library(
   src/widget/wscrollable.cpp
   src/widget/wbeatfxbeatselector.cpp
   src/widget/wsoundcolorfxbutton.cpp
+  src/widget/wmicinputbutton.cpp
   src/widget/wsearchlineedit.cpp
   src/widget/wsearchrelatedtracksmenu.cpp
   src/widget/wsettingscheckboxlabel.cpp
