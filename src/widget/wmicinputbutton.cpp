@@ -93,6 +93,8 @@ void WMicInputButton::mousePressEvent(QMouseEvent* pEvent) {
 
     if (m_pSelectedMic->valid()) {
         m_pSelectedMic->set(m_index + 1);
+        // The proxy drops its own change signal, so update this square here.
+        slotStateChanged();
     }
 
     const bool hasInput = m_pInputConfigured->toBool();

@@ -18,6 +18,10 @@ class QPoint;
 /// talk-over; if not, it opens the input menu. A right click selects the
 /// square and opens the menu. Without an AudioTargetManager the menu does not
 /// open.
+///
+/// The On state (QSS displayValue) needs the skin to give the widget
+/// <NumberStates>2</NumberStates> and a <Connection> to
+/// [MicrophoneN],talkover.
 class WMicInputButton : public WPushButton {
     Q_OBJECT
     Q_PROPERTY(bool assigned READ isAssigned NOTIFY assignedChanged)
