@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-07: Preferences window belongs to the main window, frameless, asks before it discards changes (commit: see git log, "Preferences: frameless window owned by the main window")
 - 2026-11-07: Mix Two logo and Contributions page (commit: see git log, "Branding: Mix Two logo and a Contributions page")
 - 2026-11-06: Preferences window redesign, dark glass (commit: see git log, "Preferences: new dark glass window with a page rail and search")
 - 2026-11-06: 4-deck master meter moves into the Master panel (commit: see git log, "LateNight: 4-deck master meter in the Master panel")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-02: Legacy Design deck HUD: the mapping sets the deck shown on each side (commit: see git log, "DDJ-800: the screen shows the deck each side controls")
 - 2026-11-02: Legacy Design deck HUD, task 13 fix: memory cue list safe for a live set
 - 2026-11-02: Legacy Design deck HUD: memory cue list and the MEMORY CUE pad mode
-- 2026-11-02: Legacy Design deck HUD: GRID / PHRASE and INFO pages (commit hash: see git log, "LateNight: GRID / PHRASE and INFO pages")
 
 <!-- mixtwo-status:end -->
 
