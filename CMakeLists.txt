@@ -1621,6 +1621,7 @@ add_library(
   src/preferences/dialog/dlgprefmixerdlg.ui
   src/preferences/dialog/prefraildelegate.cpp
   src/preferences/dialog/prefsearch.cpp
+  src/preferences/dialog/prefsnapshot.cpp
   src/preferences/dialog/dlgprefrecord.cpp
   src/preferences/dialog/dlgprefrecorddlg.ui
   src/preferences/dialog/dlgprefreplaygain.cpp
@@ -3072,6 +3073,7 @@ if(BUILD_TESTING)
     src/test/playermanagertest.cpp
     src/test/playlistfolders_test.cpp
     src/test/prefsearch_test.cpp
+    src/test/prefsnapshot_test.cpp
     src/test/playlisttest.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp

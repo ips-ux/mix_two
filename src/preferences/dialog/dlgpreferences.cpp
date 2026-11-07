@@ -6,7 +6,11 @@
 #include <QFontMetrics>
 #include <QFrame>
 #include <QKeyEvent>
+#include <QMessageBox>
+#include <QMouseEvent>
 #include <QMoveEvent>
+#include <QPainter>
+#include <QPainterPath>
 #include <QPalette>
 #include <QResizeEvent>
 #include <QScreen>
@@ -19,6 +23,7 @@
 #include <QTimer>
 #include <QTreeWidgetItemIterator>
 #include <QVariantAnimation>
+#include <QWindow>
 #include <QtGlobal>
 
 #include "controllers/controller.h"
@@ -70,6 +75,12 @@ constexpr int kRailExpandedWidth = 224;
 constexpr int kRailCollapsedWidth = 62;
 constexpr int kRailAnimationMs = 160;
 constexpr QSize kMinimumDialogSize(760, 520);
+// The window has no frame. These margins hold the painted shadow.
+constexpr int kShadowSize = 16;
+constexpr qreal kWindowRadius = 16.0;
+constexpr int kLayoutMargin = 14;
+// The width of the band along the window edge that resizes the window.
+constexpr int kResizeGrip = 8;
 const ConfigKey kRailCollapsedCfgKey("[Preferences]", "rail_collapsed");
 const QString kControllersIcon = QStringLiteral("ic_preferences_controllers.svg");
 const QString kContributionsIcon = QStringLiteral("ic_preferences_contributions.svg");
@@ -123,8 +134,10 @@ DlgPreferences::DlgPreferences(
         std::shared_ptr<EffectsManager> pEffectsManager,
         std::shared_ptr<SettingsManager> pSettingsManager,
         std::shared_ptr<Library> pLibrary,
-        bool includeWaveformPreferences)
-        : m_allPages(),
+        bool includeWaveformPreferences,
+        QWidget* pParent)
+        : QDialog(pParent),
+          m_allPages(),
           m_pConfig(pSettingsManager->settings()),
           m_pControllerManager(pControllerManager),
           m_pageSizeHint(QSize(0, 0)) {
@@ -135,6 +148,24 @@ DlgPreferences::DlgPreferences(
     setPalette(glassPalette());
     setStyleSheet(loadGlassStyleSheet());
     setMinimumSize(kMinimumDialogSize);
+    // The window belongs to the main window: it stays in front of it, has no
+    // taskbar entry and blocks the main window while it is open. It has no
+    // frame; paintEvent() paints the rounded body and its shadow.
+    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
+    if (pParent) {
+        setWindowModality(Qt::WindowModal);
+    }
+    setMouseTracking(true);
+    shellLayout->setContentsMargins(kShadowSize + kLayoutMargin,
+            kShadowSize + kLayoutMargin,
+            kShadowSize + kLayoutMargin,
+            kShadowSize + kLayoutMargin);
+    closeButton->setIcon(QIcon(QStringLiteral(":/preferences/glass/close.svg")));
+    closeButton->setToolTip(tr("Close (Esc)"));
+    closeButton->setAccessibleName(tr("Close"));
+    closeButton->setAutoRaise(true);
+    connect(closeButton, &QToolButton::clicked, this, &DlgPreferences::reject);
     // End of AI-generated text.
 
     // Add '&' to default button labels to always have Alt shortcuts, indpependent
@@ -146,9 +177,9 @@ DlgPreferences::DlgPreferences(
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
     buttonBox->button(QDialogButtonBox::Apply)->setText(tr("&Apply"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("&Cancel"));
+    buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("&Close"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::Ok)->setText(tr("&Ok"));
+    buttonBox->button(QDialogButtonBox::Ok)->setText(tr("Apply and cl&ose"));
 
     connect(buttonBox,
             QOverload<QAbstractButton*>::of(&QDialogButtonBox::clicked),
@@ -549,6 +580,9 @@ void DlgPreferences::onShow() {
     updateDeviceStatus();
     // The layout is not final before the window shows.
     QTimer::singleShot(0, this, &DlgPreferences::updateRailBridge);
+    // The pages fill their inputs in slotUpdate(), which the showDlg signal
+    // starts. The snapshot must come after that.
+    QTimer::singleShot(0, this, &DlgPreferences::captureAppliedState);
     // End of AI-generated text.
 }
 
@@ -567,6 +601,8 @@ void DlgPreferences::slotButtonPressed(QAbstractButton* pButton) {
         if (!pendingConfigValidOnAllPages()) {
             return;
         }
+        // The pages can change their inputs while they apply.
+        QTimer::singleShot(0, this, &DlgPreferences::captureAppliedState);
         break;
     case QDialogButtonBox::AcceptRole:
         emit applyPreferences();
@@ -577,7 +613,7 @@ void DlgPreferences::slotButtonPressed(QAbstractButton* pButton) {
         // Same as Apply but close the dialog
         break;
     case QDialogButtonBox::RejectRole:
-        emit cancelPreferences();
+        // reject() asks about changes that are not applied.
         reject();
         break;
     default:
@@ -1170,6 +1206,156 @@ void DlgPreferences::moveEvent(QMoveEvent* e) {
 #endif
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void DlgPreferences::captureAppliedState() {
+    QList<QWidget*> roots;
+    for (const PreferencesPage& page : std::as_const(m_allPages)) {
+        roots.append(page.pDlg);
+    }
+    m_appliedState.capture(roots);
+}
+
+bool DlgPreferences::hasUnappliedChanges() const {
+    return m_appliedState.differsFromCurrent();
+}
+
+void DlgPreferences::reject() {
+    // Esc, the close button, Close and Alt+F4 come here.
+    if (hasUnappliedChanges()) {
+        QMessageBox box(this);
+        box.setIcon(QMessageBox::Question);
+        box.setWindowTitle(tr("Preferences"));
+        box.setText(tr("You changed settings and did not apply them."));
+        box.setInformativeText(tr("Do you want to apply the changes?"));
+        QPushButton* pApply = box.addButton(tr("Apply and close"), QMessageBox::AcceptRole);
+        QPushButton* pDiscard =
+                box.addButton(tr("Close without applying"), QMessageBox::DestructiveRole);
+        QPushButton* pKeep = box.addButton(tr("Keep editing"), QMessageBox::RejectRole);
+        box.setDefaultButton(pApply);
+        box.setEscapeButton(pKeep);
+        // The style sheet is already set, so the style must read the property again.
+        pApply->setProperty("primary", true);
+        pApply->style()->unpolish(pApply);
+        pApply->style()->polish(pApply);
+        box.exec();
+        if (box.clickedButton() == pApply) {
+            emit applyPreferences();
+            if (pendingConfigValidOnAllPages()) {
+                accept();
+            }
+            return;
+        }
+        if (box.clickedButton() != pDiscard) {
+            return;
+        }
+    }
+    closeWithoutPrompt();
+}
+
+void DlgPreferences::closeWithoutPrompt() {
+    emit cancelPreferences();
+    QDialog::reject();
+}
+
+QRect DlgPreferences::bodyRect() const {
+    return rect().adjusted(kShadowSize, kShadowSize, -kShadowSize, -kShadowSize);
+}
+
+void DlgPreferences::paintEvent(QPaintEvent* pEvent) {
+    Q_UNUSED(pEvent);
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+    const QRectF body = QRectF(bodyRect()).adjusted(0.5, 0.5, -0.5, -0.5);
+
+    // A soft shadow: rings that get lighter to the outside.
+    painter.setPen(Qt::NoPen);
+    for (int i = kShadowSize; i > 0; --i) {
+        const qreal strength = 1.0 - static_cast<qreal>(i) / kShadowSize;
+        painter.setBrush(QColor(0, 0, 0, static_cast<int>(10 * strength * strength)));
+        painter.drawRoundedRect(body.adjusted(-i, -i + 2, i, i + 2),
+                kWindowRadius + i,
+                kWindowRadius + i);
+    }
+
+    QRadialGradient gradient(body.left() + body.width() * 0.15,
+            body.top() + body.height() * 0.1,
+            std::max(body.width(), body.height()) * 1.25);
+    gradient.setColorAt(0.0, QColor(0x2b, 0x46, 0x50));
+    gradient.setColorAt(0.45, QColor(0x18, 0x21, 0x27));
+    gradient.setColorAt(1.0, QColor(0x0f, 0x14, 0x17));
+    painter.setBrush(gradient);
+    painter.setPen(QPen(QColor(255, 255, 255, 40), 1.0));
+    painter.drawRoundedRect(body, kWindowRadius, kWindowRadius);
+}
+
+Qt::Edges DlgPreferences::resizeEdgesAt(const QPoint& pos) const {
+    const QRect body = bodyRect();
+    if (!body.adjusted(-kResizeGrip, -kResizeGrip, kResizeGrip, kResizeGrip).contains(pos)) {
+        return {};
+    }
+    Qt::Edges edges;
+    if (pos.x() < body.left() + kResizeGrip) {
+        edges |= Qt::LeftEdge;
+    } else if (pos.x() > body.right() - kResizeGrip) {
+        edges |= Qt::RightEdge;
+    }
+    if (pos.y() < body.top() + kResizeGrip) {
+        edges |= Qt::TopEdge;
+    } else if (pos.y() > body.bottom() - kResizeGrip) {
+        edges |= Qt::BottomEdge;
+    }
+    return edges;
+}
+
+bool DlgPreferences::isMoveArea(const QPoint& pos) const {
+    if (!bodyRect().contains(pos)) {
+        return false;
+    }
+    // The page header: the band of the pane above the page.
+    const QRect pane = paneWidget->geometry();
+    if (pane.contains(pos)) {
+        return pos.y() < pagesWidget->mapTo(this, QPoint(0, 0)).y();
+    }
+    // The free space around the rail and the pane.
+    return !railWidget->geometry().contains(pos);
+}
+
+void DlgPreferences::mousePressEvent(QMouseEvent* pEvent) {
+    QWindow* pWindow = windowHandle();
+    if (pEvent->button() == Qt::LeftButton && pWindow) {
+        const QPoint pos = pEvent->position().toPoint();
+        const Qt::Edges edges = resizeEdgesAt(pos);
+        if (edges && pWindow->startSystemResize(edges)) {
+            pEvent->accept();
+            return;
+        }
+        if (isMoveArea(pos) && pWindow->startSystemMove()) {
+            pEvent->accept();
+            return;
+        }
+    }
+    QDialog::mousePressEvent(pEvent);
+}
+
+void DlgPreferences::mouseMoveEvent(QMouseEvent* pEvent) {
+    const Qt::Edges edges = resizeEdgesAt(pEvent->position().toPoint());
+    const bool horizontal = edges & (Qt::LeftEdge | Qt::RightEdge);
+    const bool vertical = edges & (Qt::TopEdge | Qt::BottomEdge);
+    if (horizontal && vertical) {
+        const bool falling = edges == (Qt::LeftEdge | Qt::TopEdge) ||
+                edges == (Qt::RightEdge | Qt::BottomEdge);
+        setCursor(falling ? Qt::SizeFDiagCursor : Qt::SizeBDiagCursor);
+    } else if (horizontal) {
+        setCursor(Qt::SizeHorCursor);
+    } else if (vertical) {
+        setCursor(Qt::SizeVerCursor);
+    } else {
+        unsetCursor();
+    }
+    QDialog::mouseMoveEvent(pEvent);
+}
+// End of AI-generated text.
 
 void DlgPreferences::resizeEvent(QResizeEvent* e) {
     if (m_geometry.length() == 4) {

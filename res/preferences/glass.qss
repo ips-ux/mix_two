@@ -11,9 +11,22 @@ QDialog {
     background-color: #1a2227;
     color: #e6eef0;
 }
+/* The window has no frame: DlgPreferences::paintEvent() paints the rounded
+   body and the shadow, so the window itself stays transparent. */
 #DlgPreferencesDlg {
-    background-color: qradialgradient(cx: 0.15, cy: 0.1, radius: 1.25, fx: 0.15, fy: 0.1,
-            stop: 0 #2b4650, stop: 0.45 #182127, stop: 1 #0f1417);
+    background: transparent;
+}
+#closeButton {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 6px;
+}
+#closeButton:hover {
+    background-color: rgba(255, 255, 255, 26);
+}
+#closeButton:pressed {
+    background-color: rgba(255, 255, 255, 14);
 }
 QLabel, QCheckBox, QRadioButton, QGroupBox {
     color: #e6eef0;

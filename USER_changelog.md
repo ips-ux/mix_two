@@ -662,6 +662,21 @@ open its page.
 
 On/off options now show as switches.
 
+The Preferences window has no title bar and has round corners. It stays in
+front of Mix Two and does not show in the taskbar. While it is open, you
+cannot use the main window.
+
+- To move the window, drag the page title or the border area.
+- To change the size, drag an edge or a corner.
+- To close the window, click **Close**, click the X at the top right, or push
+  Esc.
+- To keep the changes, click **Apply and close**. **Apply** keeps the changes
+  and keeps the window open.
+
+If you changed a setting and did not apply it, Mix Two asks before the window
+closes. Click **Apply and close**, **Close without applying** or **Keep
+editing**.
+
 ### Mix Two logo
 
 The Mix Two logo replaces the Mixxx logo: on the start screen, in the

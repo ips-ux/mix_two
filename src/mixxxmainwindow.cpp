@@ -325,7 +325,10 @@ void MixxxMainWindow::initialize() {
             m_pCoreServices->getVinylControlManager(),
             m_pCoreServices->getEffectsManager(),
             m_pCoreServices->getSettingsManager(),
-            m_pCoreServices->getLibrary());
+            m_pCoreServices->getLibrary(),
+            true,
+            // AI-generated (Claude Code): the window belongs to the main window.
+            this);
     m_pPrefDlg->setWindowIcon(QIcon(MIXXX_ICON_PATH));
     m_pPrefDlg->setHidden(true);
     connect(m_pPrefDlg,
@@ -1649,7 +1652,8 @@ bool MixxxMainWindow::confirmExit() {
             return false;
         }
         else {
-            m_pPrefDlg->close();
+            // AI-generated (Claude Code): close() would ask about the changes again.
+            m_pPrefDlg->closeWithoutPrompt();
         }
     }
 

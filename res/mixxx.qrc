@@ -114,6 +114,7 @@
         <file>preferences/glass/chevron_up.svg</file>
         <file>preferences/glass/rail_collapse.svg</file>
         <file>preferences/glass/rail_expand.svg</file>
+        <file>preferences/glass/close.svg</file>
         <file>preferences/glass.qss</file>
         <file>schema.xml</file>
         <file>shaders/filteredsignal.frag</file>

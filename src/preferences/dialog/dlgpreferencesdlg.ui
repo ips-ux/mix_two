@@ -228,6 +228,16 @@
           </item>
          </layout>
         </item>
+        <item alignment="Qt::AlignTop">
+         <widget class="QToolButton" name="closeButton">
+          <property name="iconSize">
+           <size>
+            <width>14</width>
+            <height>14</height>
+           </size>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item>

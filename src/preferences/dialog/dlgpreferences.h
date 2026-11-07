@@ -14,6 +14,7 @@
 #include "preferences/constants.h"
 #include "preferences/dialog/dlgpreferencepage.h"
 #include "preferences/dialog/prefsearch.h"
+#include "preferences/dialog/prefsnapshot.h"
 #include "preferences/dialog/ui_dlgpreferencesdlg.h"
 #include "preferences/settingsmanager.h"
 #include "preferences/usersettings.h"
@@ -64,7 +65,8 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
             std::shared_ptr<EffectsManager> pEffectsManager,
             std::shared_ptr<SettingsManager> pSettingsManager,
             std::shared_ptr<Library> pLibrary,
-            bool includeWaveformPreferences = true);
+            bool includeWaveformPreferences = true,
+            QWidget* pParent = nullptr);
     virtual ~DlgPreferences();
 
     void addPageWidget(const PreferencesPage& page,
@@ -82,6 +84,12 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     void showSoundHardwareInputPage();
     void slotButtonPressed(QAbstractButton* pButton);
     void slotHelpClicked();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Asks about changes that are not applied, then closes or stays open.
+    void reject() override;
+    /// Discards the changes that are not applied and closes, without a question.
+    void closeWithoutPrompt();
+    // End of AI-generated text.
   signals:
     void closeDlg();
     void showDlg();
@@ -101,6 +109,11 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     bool eventFilter(QObject*, QEvent*) override;
     void moveEvent(QMoveEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void paintEvent(QPaintEvent* pEvent) override;
+    void mousePressEvent(QMouseEvent* pEvent) override;
+    void mouseMoveEvent(QMouseEvent* pEvent) override;
+    // End of AI-generated text.
 
   private:
     DlgPreferencePage* currentPage();
@@ -150,6 +163,15 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     QHash<DlgPreferencePage*, QList<mixxx::preferences::PrefSearchEntry>> m_searchIndex;
     QStringList m_searchWords;
     bool m_searchIndexDirty{true};
+    // AI-generated (Claude Code). Start of AI-generated text.
+    QRect bodyRect() const;
+    Qt::Edges resizeEdgesAt(const QPoint& pos) const;
+    bool isMoveArea(const QPoint& pos) const;
+    void captureAppliedState();
+    bool hasUnappliedChanges() const;
+    /// The inputs as they were at the last show or Apply.
+    mixxx::preferences::PrefSnapshot m_appliedState;
+    // End of AI-generated text.
 
     QSize m_pageSizeHint;
 
