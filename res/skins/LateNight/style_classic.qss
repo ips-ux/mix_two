@@ -3630,3 +3630,59 @@ WPushButton#HudDeckBadgeOff:hover {
   color: #cfd2d8;
 }
 /* AI-generated (Claude Code). End of AI-generated text. */
+
+/* AI-generated (Claude Code). Start of AI-generated text. */
+/************** Mix Two: Mic module ****************************************/
+/* The content is 76px wide, and so is this column. The frame must not be wider
+   than its content, or it moves the mixer: the content covers the side borders. */
+#MicModuleSlot #MixerModule {
+  padding: 0px -1px 5px -1px;
+}
+#HeadphoneControls WLabel#MicDeckLabel,
+#HeadphoneControls WLabel#MicChannelLabel {
+  color: #bfbfbe;
+  background-color: transparent;
+}
+#HeadphoneControls WLabel#MicDeckDimLabel {
+  color: #4a4744;
+  background-color: transparent;
+}
+/* The DDJ-800's MIC switch, lit as the other mixer lamps. */
+#MicDeckLamp {
+  color: #6f6a65;
+  background-color: #161616;
+  border: 1px solid #454240;
+  border-radius: 2px;
+}
+#MicDeckLamp[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+#MicDeckDimLamp {
+  color: #4a4744;
+  background-color: #161616;
+  border: 1px solid #2e2c2a;
+  border-radius: 2px;
+}
+/* Input squares. Dim: no input. Assigned: unlit. On: lit, talk-over is on.
+   Selected: a light border, in any state. */
+#MicInputSquare {
+  color: #4a4744;
+  background-color: #161616;
+  border: 1px solid #2e2c2a;
+  border-radius: 1px;
+}
+#MicInputSquare[assigned="true"] {
+  color: #c8c2ba;
+  border-color: #6f6a65;
+}
+#MicInputSquare[displayValue="1"] {
+  color: #1a1000;
+  background-color: #ff9a1f;
+  border-color: #ff9a1f;
+}
+#MicInputSquare[selected="true"] {
+  border-color: #f0f0f0;
+}
+/* AI-generated (Claude Code). End of AI-generated text. */

@@ -214,6 +214,10 @@
                     </Children>
                   </WidgetGroup><!-- SoundColorFxButtons -->
 
+                  <!-- Mix Two: the Mic module -->
+                  <WidgetGroup><Size>0min,6f</Size></WidgetGroup>
+                  <Template src="skins:LateNight/mixer/mic_module.xml"/>
+
                   <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
                 </Children>
               </WidgetGroup><!-- HeadphoneControls -->

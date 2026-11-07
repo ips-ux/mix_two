@@ -1,0 +1,91 @@
+<!DOCTYPE template>
+<!-- AI-generated (Claude Code). Start of AI-generated text. -->
+<!--
+  Mix Two: the four native mic inputs as squares 1-4, and below them the level,
+  knob and CUE of the selected mic. The widget writes talkover itself, so the
+  squares' connections only display it. The widget sets its own tooltip.
+-->
+<Template>
+  <WidgetGroup>
+    <Layout>vertical</Layout>
+    <SizePolicy>min,min</SizePolicy>
+    <Children>
+      <WidgetGroup>
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <MicInputButton>
+            <MicInput>1</MicInput>
+            <ObjectName>MicInputSquare</ObjectName>
+            <Size>16f,16f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>1</Text></State>
+            <State><Number>1</Number><Text>1</Text></State>
+            <Connection>
+              <ConfigKey>[Microphone],talkover</ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+          </MicInputButton>
+          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+          <MicInputButton>
+            <MicInput>2</MicInput>
+            <ObjectName>MicInputSquare</ObjectName>
+            <Size>16f,16f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>2</Text></State>
+            <State><Number>1</Number><Text>2</Text></State>
+            <Connection>
+              <ConfigKey>[Microphone2],talkover</ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+          </MicInputButton>
+          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+          <MicInputButton>
+            <MicInput>3</MicInput>
+            <ObjectName>MicInputSquare</ObjectName>
+            <Size>16f,16f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>3</Text></State>
+            <State><Number>1</Number><Text>3</Text></State>
+            <Connection>
+              <ConfigKey>[Microphone3],talkover</ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+          </MicInputButton>
+          <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
+          <MicInputButton>
+            <MicInput>4</MicInput>
+            <ObjectName>MicInputSquare</ObjectName>
+            <Size>16f,16f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>4</Text></State>
+            <State><Number>1</Number><Text>4</Text></State>
+            <Connection>
+              <ConfigKey>[Microphone4],talkover</ConfigKey>
+              <ConnectValueFromWidget>false</ConnectValueFromWidget>
+            </Connection>
+          </MicInputButton>
+        </Children>
+      </WidgetGroup>
+      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+
+      <Template src="skins:LateNight/mixer/mic_module_channel.xml">
+        <SetVariable name="MicNumber">1</SetVariable>
+        <SetVariable name="MicNum"></SetVariable>
+      </Template>
+      <Template src="skins:LateNight/mixer/mic_module_channel.xml">
+        <SetVariable name="MicNumber">2</SetVariable>
+        <SetVariable name="MicNum">2</SetVariable>
+      </Template>
+      <Template src="skins:LateNight/mixer/mic_module_channel.xml">
+        <SetVariable name="MicNumber">3</SetVariable>
+        <SetVariable name="MicNum">3</SetVariable>
+      </Template>
+      <Template src="skins:LateNight/mixer/mic_module_channel.xml">
+        <SetVariable name="MicNumber">4</SetVariable>
+        <SetVariable name="MicNum">4</SetVariable>
+      </Template>
+    </Children>
+  </WidgetGroup>
+</Template>
+<!-- End of AI-generated text. -->

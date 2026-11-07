@@ -1,0 +1,127 @@
+<!DOCTYPE template>
+<!-- AI-generated (Claude Code). Start of AI-generated text. -->
+<!--
+  Mix Two: the DDJ-800's mic controls, display only: the ON lamp, then MIC 1,
+  MIC 2, HI and LOW. No widget here writes to its control.
+  Variables:
+    Dim:           empty, or "Dim" for the MicDeckDim object names (grey)
+    LevelArcColor: arc of MIC 1 and MIC 2
+    EqArcColor:    arc of HI and LOW
+    Tooltip:       the tooltip of each widget
+-->
+<Template>
+  <SetVariable name="Group">[Skin]</SetVariable>
+  <SetVariable name="Size">35f,30f</SetVariable>
+  <SetVariable name="KnobColor">white</SetVariable>
+  <WidgetGroup>
+    <Layout>vertical</Layout>
+    <SizePolicy>min,min</SizePolicy>
+    <Children>
+      <PushButton>
+        <Tooltip><Variable name="Tooltip"/></Tooltip>
+        <ObjectName>MicDeck<Variable name="Dim"/>Lamp</ObjectName>
+        <Size>76f,14f</Size>
+        <NumberStates>2</NumberStates>
+        <State><Number>0</Number><Text>ON</Text></State>
+        <State><Number>1</Number><Text>ON</Text></State>
+        <Connection>
+          <ConfigKey>[Skin],ddj800_mic_on</ConfigKey>
+          <ConnectValueFromWidget>false</ConnectValueFromWidget>
+        </Connection>
+      </PushButton>
+      <WidgetGroup><Size>0min,4f</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <WidgetGroup>
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/controls/knob_display.xml">
+                <SetVariable name="KnobBg">main_level</SetVariable>
+                <SetVariable name="ArcColor"><Variable name="LevelArcColor"/></SetVariable>
+                <SetVariable name="ArcUnipolar">true</SetVariable>
+                <SetVariable name="Control">ddj800_mic1_level</SetVariable>
+              </Template>
+              <Label>
+                <Tooltip><Variable name="Tooltip"/></Tooltip>
+                <ObjectName>MicDeck<Variable name="Dim"/>Label</ObjectName>
+                <Size>35f,11f</Size>
+                <Text>MIC 1</Text>
+                <Alignment>center</Alignment>
+              </Label>
+            </Children>
+          </WidgetGroup>
+          <WidgetGroup><Size>6f,0min</Size></WidgetGroup>
+          <WidgetGroup>
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/controls/knob_display.xml">
+                <SetVariable name="KnobBg">main_level</SetVariable>
+                <SetVariable name="ArcColor"><Variable name="LevelArcColor"/></SetVariable>
+                <SetVariable name="ArcUnipolar">true</SetVariable>
+                <SetVariable name="Control">ddj800_mic2_level</SetVariable>
+              </Template>
+              <Label>
+                <Tooltip><Variable name="Tooltip"/></Tooltip>
+                <ObjectName>MicDeck<Variable name="Dim"/>Label</ObjectName>
+                <Size>35f,11f</Size>
+                <Text>MIC 2</Text>
+                <Alignment>center</Alignment>
+              </Label>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+      <WidgetGroup><Size>0min,2f</Size></WidgetGroup>
+
+      <WidgetGroup>
+        <Layout>horizontal</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <WidgetGroup>
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/controls/knob_display.xml">
+                <SetVariable name="KnobBg">main_scale</SetVariable>
+                <SetVariable name="ArcColor"><Variable name="EqArcColor"/></SetVariable>
+                <SetVariable name="Control">ddj800_mic_eq_hi</SetVariable>
+              </Template>
+              <Label>
+                <Tooltip><Variable name="Tooltip"/></Tooltip>
+                <ObjectName>MicDeck<Variable name="Dim"/>Label</ObjectName>
+                <Size>35f,11f</Size>
+                <Text>HI</Text>
+                <Alignment>center</Alignment>
+              </Label>
+            </Children>
+          </WidgetGroup>
+          <WidgetGroup><Size>6f,0min</Size></WidgetGroup>
+          <WidgetGroup>
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/controls/knob_display.xml">
+                <SetVariable name="KnobBg">main_scale</SetVariable>
+                <SetVariable name="ArcColor"><Variable name="EqArcColor"/></SetVariable>
+                <SetVariable name="Control">ddj800_mic_eq_low</SetVariable>
+              </Template>
+              <Label>
+                <Tooltip><Variable name="Tooltip"/></Tooltip>
+                <ObjectName>MicDeck<Variable name="Dim"/>Label</ObjectName>
+                <Size>35f,11f</Size>
+                <Text>LOW</Text>
+                <Alignment>center</Alignment>
+              </Label>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+    </Children>
+  </WidgetGroup>
+</Template>
+<!-- End of AI-generated text. -->

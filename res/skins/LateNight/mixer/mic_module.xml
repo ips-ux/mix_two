@@ -1,0 +1,90 @@
+<!DOCTYPE template>
+<!-- AI-generated (Claude Code). Start of AI-generated text. -->
+<!--
+  Mix Two: the Mic module under the CFX buttons. WASAPI shows the four input
+  squares. Any other API shows the deck's mic controls: lit while a DDJ-800 is
+  connected, dimmed when not. The outer group of the deck layouts binds to the
+  routing and the inner two bind to ddj800_connected, because one widget can
+  bind its visibility to one control only.
+-->
+<Template>
+  <WidgetGroup>
+    <!-- The slot lets the colour schemes set the side padding of this frame. -->
+    <ObjectName>MicModuleSlot</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>min,min</SizePolicy>
+    <Children>
+      <WidgetGroup>
+        <ObjectName>MixerModule</ObjectName>
+        <Layout>vertical</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <Label>
+            <ObjectName>MixerSectionHeader</ObjectName>
+            <Text>Mic</Text>
+          </Label>
+
+          <!-- ASIO and any other API but WASAPI -->
+          <WidgetGroup>
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <SizePolicy>min,min</SizePolicy>
+                <Children>
+                  <Template src="skins:LateNight/mixer/mic_module_deck.xml">
+                    <SetVariable name="Dim"></SetVariable>
+                    <SetVariable name="LevelArcColor"><Variable name="ArcColorGain"/></SetVariable>
+                    <SetVariable name="EqArcColor"><Variable name="ArcColorEq"/></SetVariable>
+                    <SetVariable name="Tooltip">The DDJ-800 controls the microphone. This display shows its settings.</SetVariable>
+                  </Template>
+                </Children>
+                <Connection>
+                  <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+              <WidgetGroup>
+                <Layout>vertical</Layout>
+                <SizePolicy>min,min</SizePolicy>
+                <Children>
+                  <Template src="skins:LateNight/mixer/mic_module_deck.xml">
+                    <SetVariable name="Dim">Dim</SetVariable>
+                    <SetVariable name="LevelArcColor"><Variable name="ArcColorMicDim"/></SetVariable>
+                    <SetVariable name="EqArcColor"><Variable name="ArcColorMicDim"/></SetVariable>
+                    <SetVariable name="Tooltip">Connect a DDJ-800 to show its microphone settings.</SetVariable>
+                  </Template>
+                </Children>
+                <Connection>
+                  <ConfigKey>[Skin],ddj800_connected</ConfigKey>
+                  <Transform><Not/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </WidgetGroup>
+            </Children>
+            <Connection>
+              <ConfigKey>[Soundcard],audio_routing</ConfigKey>
+              <Transform><Not/></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+
+          <!-- WASAPI -->
+          <WidgetGroup>
+            <Layout>vertical</Layout>
+            <SizePolicy>min,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/mixer/mic_module_wasapi.xml"/>
+            </Children>
+            <Connection>
+              <ConfigKey>[Soundcard],audio_routing</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup><!-- MixerModule -->
+    </Children>
+  </WidgetGroup>
+</Template>
+<!-- End of AI-generated text. -->

@@ -1169,3 +1169,22 @@ WLibrarySidebar {
   font-size: 8px;
   font-weight: bold;
 }
+
+/* AI-generated (Claude Code). Start of AI-generated text. */
+/************** Mix Two: Mic module ****************************************/
+#MicDeckLabel,
+#MicDeckDimLabel,
+#MicChannelLabel {
+  font-family: "Open Sans";
+  font-size: 9px;
+  font-weight: bold;
+  qproperty-alignment: 'AlignCenter';
+}
+#MicDeckLamp,
+#MicDeckDimLamp,
+#MicInputSquare {
+  font-family: "Open Sans";
+  font-size: 9px;
+  font-weight: bold;
+}
+/* AI-generated (Claude Code). End of AI-generated text. */
