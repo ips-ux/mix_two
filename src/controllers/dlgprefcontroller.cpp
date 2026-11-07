@@ -241,7 +241,7 @@ DlgPrefController::DlgPrefController(
             Qt::LinksAccessibleByMouse | Qt::TextSelectableByMouse);
     m_ui.labelWarning->setOpenExternalLinks(true);
     m_ui.labelWarning->setText(tr(
-            "<font color='#BB0000'><b>If you use this mapping your controller "
+            "<font color='#ff8a80'><b>If you use this mapping your controller "
             "may not work correctly. "
             "Please select another mapping or disable the "
             "controller.</b></font><br><br>"

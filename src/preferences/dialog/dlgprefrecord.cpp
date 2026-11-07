@@ -157,10 +157,18 @@ DlgPrefRecord::~DlgPrefRecord() {
         } else {
             LossyEncLayout->removeWidget(button);
         }
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Hide it now: deleteLater() can wait for the end of a nested event loop.
+        button->hide();
+        // End of AI-generated text.
         button->deleteLater();
     }
     for (QAbstractButton* widget : std::as_const(m_optionWidgets)) {
         OptionGroupsLayout->removeWidget(widget);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Hide it now: deleteLater() can wait for the end of a nested event loop.
+        widget->hide();
+        // End of AI-generated text.
         widget->deleteLater();
     }
     m_optionWidgets.clear();
@@ -307,6 +315,8 @@ void DlgPrefRecord::setupEncoderUI() {
         optionsgroup.removeButton(widget);
         OptionGroupsLayout->removeWidget(widget);
         disconnect(widget, &QAbstractButton::clicked, this, &DlgPrefRecord::slotGroupChanged);
+        // Hide it now: deleteLater() can wait for the end of a nested event loop.
+        widget->hide();
         widget->deleteLater();
     }
     m_optionWidgets.clear();

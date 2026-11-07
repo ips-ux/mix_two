@@ -100,6 +100,18 @@
         <file>images/ic_magnifier.svg</file>
       <!-- skin oversize warning -->
         <file>images/preferences/ic_preferences_warning.svg</file>
+        <file>preferences/glass/switch_off.svg</file>
+        <file>preferences/glass/switch_on.svg</file>
+        <file>preferences/glass/switch_mixed.svg</file>
+        <file>preferences/glass/switch_off_disabled.svg</file>
+        <file>preferences/glass/switch_on_disabled.svg</file>
+        <file>preferences/glass/radio_off.svg</file>
+        <file>preferences/glass/radio_on.svg</file>
+        <file>preferences/glass/chevron_down.svg</file>
+        <file>preferences/glass/chevron_up.svg</file>
+        <file>preferences/glass/rail_collapse.svg</file>
+        <file>preferences/glass/rail_expand.svg</file>
+        <file>preferences/glass.qss</file>
         <file>schema.xml</file>
         <file>shaders/filteredsignal.frag</file>
         <file>shaders/passthrough.vert</file>

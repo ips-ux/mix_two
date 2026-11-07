@@ -1,24 +1,35 @@
 #include "preferences/dialog/dlgpreferences.h"
 
-#include <QApplication>
 #include <QDialog>
 #include <QEvent>
+#include <QFile>
+#include <QFontMetrics>
+#include <QFrame>
+#include <QKeyEvent>
 #include <QMoveEvent>
 #include <QPalette>
 #include <QResizeEvent>
 #include <QScreen>
 #include <QScrollArea>
-#include <QSlider>
+#include <QScrollBar>
+#include <QShortcut>
+#include <QStackedWidget>
 #include <QStyle>
+#include <QTabWidget>
+#include <QTimer>
+#include <QTreeWidgetItemIterator>
+#include <QVariantAnimation>
 #include <QtGlobal>
 
+#include "controllers/controller.h"
+#include "controllers/controllermanager.h"
 #include "controllers/dlgprefcontrollers.h"
 #include "library/library.h"
 #include "library/trackcollectionmanager.h"
 #include "moc_dlgpreferences.cpp"
 #include "preferences/dialog/dlgpreflibrary.h"
 #include "preferences/dialog/dlgprefsound.h"
-#include "util/color/color.h"
+#include "preferences/dialog/prefraildelegate.h"
 #include "util/desktophelper.h"
 #include "util/widgethelper.h"
 
@@ -49,9 +60,57 @@
 #include "preferences/dialog/dlgprefmodplug.h"
 #endif // __MODPLUG__
 
-#ifdef Q_OS_MACOS
-#include "util/darkappearance.h"
-#endif
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+using namespace mixxx::preferences;
+
+constexpr int kRailExpandedWidth = 224;
+constexpr int kRailCollapsedWidth = 62;
+constexpr int kRailAnimationMs = 160;
+constexpr QSize kMinimumDialogSize(760, 520);
+const ConfigKey kRailCollapsedCfgKey("[Preferences]", "rail_collapsed");
+const QString kControllersIcon = QStringLiteral("ic_preferences_controllers.svg");
+
+/// The window is always dark. Pages paint some items from the palette, so the
+/// palette must agree with the style sheet.
+QPalette glassPalette() {
+    const QColor pane = QColor::fromRgb(glass::kPane);
+    const QColor text = QColor::fromRgb(glass::kText);
+    const QColor accent = QColor::fromRgb(glass::kAccent);
+    const QColor disabled(0x6b, 0x7c, 0x82);
+    QPalette palette;
+    palette.setColor(QPalette::Window, pane);
+    palette.setColor(QPalette::WindowText, text);
+    palette.setColor(QPalette::Base, QColor(0x16, 0x1d, 0x22));
+    palette.setColor(QPalette::AlternateBase, QColor(0x20, 0x29, 0x2f));
+    palette.setColor(QPalette::Text, text);
+    palette.setColor(QPalette::Button, QColor(0x2f, 0x3b, 0x44));
+    palette.setColor(QPalette::ButtonText, text);
+    palette.setColor(QPalette::ToolTipBase, QColor(0x2a, 0x35, 0x3d));
+    palette.setColor(QPalette::ToolTipText, text);
+    palette.setColor(QPalette::Highlight, accent);
+    palette.setColor(QPalette::HighlightedText, QColor(0x06, 0x30, 0x2c));
+    palette.setColor(QPalette::PlaceholderText, disabled);
+    palette.setColor(QPalette::Link, accent);
+    palette.setColor(QPalette::LinkVisited, accent);
+    palette.setColor(QPalette::Disabled, QPalette::WindowText, disabled);
+    palette.setColor(QPalette::Disabled, QPalette::Text, disabled);
+    palette.setColor(QPalette::Disabled, QPalette::ButtonText, disabled);
+    return palette;
+}
+
+QString loadGlassStyleSheet() {
+    QFile file(QStringLiteral(":/preferences/glass.qss"));
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Failed to load the preferences style sheet";
+        return QString();
+    }
+    return QString::fromUtf8(file.readAll());
+}
+
+} // namespace
+// End of AI-generated text.
 
 DlgPreferences::DlgPreferences(
         std::shared_ptr<mixxx::ScreensaverManager> pScreensaverManager,
@@ -65,15 +124,21 @@ DlgPreferences::DlgPreferences(
         bool includeWaveformPreferences)
         : m_allPages(),
           m_pConfig(pSettingsManager->settings()),
+          m_pControllerManager(pControllerManager),
           m_pageSizeHint(QSize(0, 0)) {
     setupUi(this);
-    fixSliderStyle();
-    contentsTreeWidget->setHeaderHidden(true);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Before the pages are constructed, because they read the palette to
+    // select their icons and link colors.
+    setPalette(glassPalette());
+    setStyleSheet(loadGlassStyleSheet());
+    setMinimumSize(kMinimumDialogSize);
+    // End of AI-generated text.
 
     // Add '&' to default button labels to always have Alt shortcuts, indpependent
     // of operating system.
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::Help)->setText(tr("&Help"));
+    helpButton->setText(tr("&Help"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
     buttonBox->button(QDialogButtonBox::RestoreDefaults)->setText(tr("&Restore Defaults"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
@@ -87,22 +152,23 @@ DlgPreferences::DlgPreferences(
             QOverload<QAbstractButton*>::of(&QDialogButtonBox::clicked),
             this,
             &DlgPreferences::slotButtonPressed);
+    connect(helpButton, &QPushButton::clicked, this, &DlgPreferences::slotHelpClicked);
 
     connect(contentsTreeWidget,
             &QTreeWidget::currentItemChanged,
             this,
             &DlgPreferences::changePage);
 
+    setupRail();
+
     while (pagesWidget->count() > 0) {
         pagesWidget->removeWidget(pagesWidget->currentWidget());
     }
 
-    // Check the text color of the palette for whether to use dark or light icons
-    if (!Color::isDimColor(palette().text().color())) {
-        m_iconsPath.setPath(":/images/preferences/light/");
-    } else {
-        m_iconsPath.setPath(":/images/preferences/dark/");
-    }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The window is always dark, so it uses the light icons.
+    m_iconsPath.setPath(":/images/preferences/light/");
+    // End of AI-generated text.
 
     // Construct page widgets and associated sidebar items
     m_pSoundDlg = std::make_unique<DlgPrefSound>(this, pSoundManager, m_pConfig);
@@ -123,12 +189,12 @@ DlgPreferences::DlgPreferences(
             tr("Library"),
             "ic_preferences_library.svg");
 
-    QTreeWidgetItem* pControllerRootItem =
+    m_pControllersRootItem =
             new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type);
     m_pControllersDlg = new DlgPrefControllers(
-            this, m_pConfig, pControllerManager, pControllerRootItem);
+            this, m_pConfig, pControllerManager, m_pControllersRootItem);
     addPageWidget(PreferencesPage(m_pControllersDlg,
-                          pControllerRootItem),
+                          m_pControllersRootItem),
             tr("Controllers"),
             "ic_preferences_controllers.svg");
 
@@ -251,6 +317,8 @@ DlgPreferences::DlgPreferences(
             "ic_preferences_modplug.svg");
 #endif // __MODPLUG__
 
+    buildRailGroups();
+
     // Find accept and apply buttons
     const auto buttons = buttonBox->buttons();
     for (QAbstractButton* button : buttons) {
@@ -259,13 +327,19 @@ DlgPreferences::DlgPreferences(
             m_pApplyButton = button;
         } else if (role == QDialogButtonBox::ButtonRole::AcceptRole) {
             m_pAcceptButton = button;
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // The style sheet is already set, so the style must read the property again.
+            m_pAcceptButton->setProperty("primary", true);
+            m_pAcceptButton->style()->unpolish(m_pAcceptButton);
+            m_pAcceptButton->style()->polish(m_pAcceptButton);
+            // End of AI-generated text.
         }
     }
 
     labelWarning->hide();
     labelWarningIcon->hide();
     labelWarning->setText(tr(
-            "<font color='#BB0000'><b>Some preferences pages have errors. "
+            "<font color='#ff8a80'><b>Some preferences pages have errors. "
             "To apply the changes please first fix the issues.</b></font>"));
     QIcon icon = style()->standardIcon(QStyle::SP_MessageBoxWarning);
     labelWarningIcon->setPixmap(icon.pixmap(16));
@@ -276,6 +350,14 @@ DlgPreferences::DlgPreferences(
     // If we don't call this explicitly, then we default to showing the sound
     // hardware page but the tree item is not selected.
     showSoundHardwarePage();
+
+    connect(m_pControllerManager.get(),
+            &ControllerManager::devicesChanged,
+            this,
+            &DlgPreferences::updateDeviceStatus);
+    updateDeviceStatus();
+    setRailCollapsed(m_pConfig->getValue(kRailCollapsedCfgKey, false), false);
+    contentsTreeWidget->setFocus();
 }
 
 DlgPreferences::~DlgPreferences() {
@@ -302,17 +384,20 @@ void DlgPreferences::changePage(QTreeWidgetItem* pCurrent, QTreeWidgetItem* pPre
         pCurrent = pPrevious;
     }
 
-    if (m_pControllersDlg->handleTreeItemClick(pCurrent)) {
-        // Do nothing. m_controllersPage handled this click.
-        return;
-    }
-
-    for (const PreferencesPage& page : std::as_const(m_allPages)) {
-        if (pCurrent == page.pTreeItem) {
-            switchToPage(pCurrent->text(0), page.pDlg);
-            break;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // m_pControllersDlg handles the clicks on its own items.
+    // End of AI-generated text.
+    if (!m_pControllersDlg->handleTreeItemClick(pCurrent)) {
+        for (const PreferencesPage& page : std::as_const(m_allPages)) {
+            if (pCurrent == page.pTreeItem) {
+                switchToPage(pCurrent->text(0), page.pDlg);
+                break;
+            }
         }
     }
+    updateControllerRowsExpansion();
+    updateRailBridge();
+    showSearchMatchOnCurrentPage();
 }
 
 void DlgPreferences::showSoundHardwarePage(
@@ -329,72 +414,38 @@ void DlgPreferences::showSoundHardwareInputPage() {
 }
 
 bool DlgPreferences::eventFilter(QObject* o, QEvent* e) {
-    // Send a close signal if dialog is closing
-    if (e->type() == QEvent::Hide) {
-        onHide();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (o == searchEdit && e->type() == QEvent::KeyPress) {
+        const int key = static_cast<QKeyEvent*>(e)->key();
+        if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+            // The dialog must not get this key: it would push the default button.
+            selectFirstSearchMatch();
+            return true;
+        }
+        if (key == Qt::Key_Escape && !searchEdit->text().isEmpty()) {
+            searchEdit->clear();
+            return true;
+        }
+        if (key == Qt::Key_Down) {
+            contentsTreeWidget->setFocus();
+            return true;
+        }
     }
+    // End of AI-generated text.
 
-    if (e->type() == QEvent::Show) {
-        onShow();
+    if (o == this) {
+        // Send a close signal if dialog is closing
+        if (e->type() == QEvent::Hide) {
+            onHide();
+        }
+
+        if (e->type() == QEvent::Show) {
+            onShow();
+        }
     }
 
     // Standard event processing
     return QWidget::eventFilter(o, e);
-}
-
-void DlgPreferences::changeEvent(QEvent* pEvent) {
-    static bool s_inPaletteUpdate = false;
-    if (s_inPaletteUpdate) {
-        QDialog::changeEvent(pEvent);
-        return;
-    }
-
-    if (pEvent->type() == QEvent::PaletteChange ||
-            pEvent->type() == QEvent::ApplicationPaletteChange ||
-            pEvent->type() == QEvent::ThemeChange) {
-        struct ResetFlag {
-            bool& flag;
-            explicit ResetFlag(bool& f)
-                    : flag(f) {
-                flag = true;
-            }
-            ~ResetFlag() {
-                flag = false;
-            }
-        } resetFlag(s_inPaletteUpdate);
-
-        // Re-apply macOS system slider styles based on the current theme mode
-        fixSliderStyle();
-
-        const QPalette appPalette = QApplication::palette();
-        if (palette() != appPalette) {
-            setPalette(appPalette);
-        }
-        // Update m_iconsPath based on the new palette's text color
-        if (!Color::isDimColor(appPalette.text().color())) {
-            m_iconsPath.setPath(":/images/preferences/light/");
-        } else {
-            m_iconsPath.setPath(":/images/preferences/dark/");
-        }
-
-        // Reload tree item icons for all pages
-        for (const PreferencesPage& page : std::as_const(m_allPages)) {
-            if (page.pTreeItem && !page.iconFile.isEmpty()) {
-                page.pTreeItem->setIcon(0, QIcon(m_iconsPath.filePath(page.iconFile)));
-            }
-        }
-
-        const QList<QWidget*> children = findChildren<QWidget*>();
-        for (QWidget* pChild : children) {
-            pChild->setPalette(appPalette);
-            if (pChild->style()) {
-                pChild->style()->unpolish(pChild);
-                pChild->style()->polish(pChild);
-            }
-            pChild->update();
-        }
-    }
-    QDialog::changeEvent(pEvent);
 }
 
 void DlgPreferences::onHide() {
@@ -483,6 +534,12 @@ void DlgPreferences::onShow() {
 
     // Notify children that we are about to show.
     emit showDlg();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    updateDeviceStatus();
+    // The layout is not final before the window shows.
+    QTimer::singleShot(0, this, &DlgPreferences::updateRailBridge);
+    // End of AI-generated text.
 }
 
 void DlgPreferences::slotButtonPressed(QAbstractButton* pButton) {
@@ -513,17 +570,21 @@ void DlgPreferences::slotButtonPressed(QAbstractButton* pButton) {
         emit cancelPreferences();
         reject();
         break;
-    case QDialogButtonBox::HelpRole:
-        if (pCurrentPage) {
-            QUrl helpUrl = pCurrentPage->helpUrl();
-            DEBUG_ASSERT(helpUrl.isValid());
-            mixxx::DesktopHelper::openUrl(helpUrl);
-        }
-        break;
     default:
         break;
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void DlgPreferences::slotHelpClicked() {
+    DlgPreferencePage* pCurrentPage = currentPage();
+    if (pCurrentPage) {
+        QUrl helpUrl = pCurrentPage->helpUrl();
+        DEBUG_ASSERT(helpUrl.isValid());
+        mixxx::DesktopHelper::openUrl(helpUrl);
+    }
+}
+// End of AI-generated text.
 
 bool DlgPreferences::pendingConfigValidOnAllPages() {
     for (const PreferencesPage& page : std::as_const(m_allPages)) {
@@ -544,9 +605,11 @@ void DlgPreferences::addPageWidget(const PreferencesPage& page,
         const QString& iconFile) {
     PreferencesPage pageCopy = page;
     pageCopy.iconFile = iconFile;
+    pageCopy.description = descriptionForIcon(iconFile);
     // Configure the tree button linked to the page
     pageCopy.pTreeItem->setIcon(0, QIcon(m_iconsPath.filePath(iconFile)));
     pageCopy.pTreeItem->setText(0, pageTitle);
+    pageCopy.pTreeItem->setToolTip(0, pageTitle);
     pageCopy.pTreeItem->setTextAlignment(0, Qt::AlignLeft | Qt::AlignVCenter);
     pageCopy.pTreeItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
@@ -568,14 +631,20 @@ void DlgPreferences::addPageWidget(const PreferencesPage& page,
     QScrollArea* sa = new QScrollArea(pagesWidget);
     sa->setWidgetResizable(true);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    sa->setFrameShape(QFrame::NoFrame);
     sa->setWidget(pageCopy.pDlg);
+    // The pane shows through. setWidget() sets the auto fill of the page.
+    sa->viewport()->setAutoFillBackground(false);
+    pageCopy.pDlg->setAutoFillBackground(false);
+    // End of AI-generated text.
     pagesWidget->addWidget(sa);
     m_allPages.append(pageCopy);
+    m_searchIndexDirty = true;
 
     int iframe = 2 * sa->frameWidth();
     m_pageSizeHint = m_pageSizeHint.expandedTo(
             pageCopy.pDlg->sizeHint() + QSize(iframe, iframe));
-    fixSliderStyle();
 }
 
 DlgPreferencePage* DlgPreferences::currentPage() {
@@ -610,6 +679,7 @@ void DlgPreferences::removePageWidget(DlgPreferencePage* pWidget) {
     }
 
     m_allPages.removeAt(index);
+    m_searchIndexDirty = true;
     pagesWidget->removeWidget(pScrollArea);
     delete pScrollArea;
 }
@@ -625,22 +695,453 @@ void DlgPreferences::switchToPage(const QString& pageTitle, DlgPreferencePage* p
     // This also solves the problem of the changed in terminology, Settings instead
     // of Preferences, since macOS Ventura.
     setWindowTitle(pageTitle);
-#else
-    Q_UNUSED(pageTitle);
 #endif
     pagesWidget->setCurrentWidget(pWidget->parentWidget()->parentWidget());
 
-    QPushButton* pButton = buttonBox->button(QDialogButtonBox::Help);
-    VERIFY_OR_DEBUG_ASSERT(pButton) {
-        return;
+    pageTitleLabel->setText(pageTitle);
+    for (const PreferencesPage& page : std::as_const(m_allPages)) {
+        if (page.pDlg == pWidget) {
+            pageDescriptionLabel->setText(page.description);
+            pageIconLabel->setPixmap(tintedIconPixmap(
+                    QIcon(m_iconsPath.filePath(page.iconFile)),
+                    pageIconLabel->size(),
+                    devicePixelRatioF(),
+                    QColor::fromRgb(glass::kAccent)));
+            break;
+        }
     }
 
-    if (pWidget->helpUrl().isValid()) {
-        pButton->show();
-    } else {
-        pButton->hide();
+    helpButton->setVisible(pWidget->helpUrl().isValid());
+}
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void DlgPreferences::setupRail() {
+    m_pRailDelegate = new PrefRailDelegate(contentsTreeWidget);
+    contentsTreeWidget->setItemDelegate(m_pRailDelegate);
+    contentsTreeWidget->setHeaderHidden(true);
+    contentsTreeWidget->setMouseTracking(true);
+    contentsTreeWidget->viewport()->setAttribute(Qt::WA_Hover);
+    contentsTreeWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    contentsTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    // These buttons must not take the place of the default button of the dialog.
+    railToggleButton->setAutoDefault(false);
+    deviceStatusButton->setAutoDefault(false);
+    helpButton->setAutoDefault(false);
+    deviceStatusButton->setIcon(QIcon(tintedIconPixmap(
+            QIcon(QStringLiteral(":/images/preferences/light/") + kControllersIcon),
+            deviceStatusButton->iconSize(),
+            devicePixelRatioF(),
+            QColor::fromRgb(glass::kAccent))));
+
+    m_pRailBridge = new QFrame(this);
+    m_pRailBridge->setObjectName(QStringLiteral("railBridge"));
+    m_pRailBridge->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_pRailBridge->hide();
+
+    m_pRailAnimation = new QVariantAnimation(this);
+    m_pRailAnimation->setDuration(kRailAnimationMs);
+    m_pRailAnimation->setEasingCurve(QEasingCurve::OutCubic);
+    connect(m_pRailAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
+        railWidget->setFixedWidth(value.toInt());
+        updateRailBridge();
+    });
+
+    connect(railToggleButton, &QPushButton::clicked, this, [this]() {
+        const bool collapsed = !m_railCollapsed;
+        m_pConfig->setValue(kRailCollapsedCfgKey, collapsed);
+        setRailCollapsed(collapsed, true);
+    });
+    connect(deviceStatusButton,
+            &QPushButton::clicked,
+            this,
+            &DlgPreferences::slotDeviceStatusClicked);
+
+    // The rows move when the rail scrolls or when items are added or removed.
+    connect(contentsTreeWidget->verticalScrollBar(),
+            &QScrollBar::valueChanged,
+            this,
+            &DlgPreferences::updateRailBridge);
+    connect(contentsTreeWidget->model(),
+            &QAbstractItemModel::rowsInserted,
+            this,
+            &DlgPreferences::updateRailBridge,
+            Qt::QueuedConnection);
+    connect(contentsTreeWidget->model(),
+            &QAbstractItemModel::rowsRemoved,
+            this,
+            &DlgPreferences::updateRailBridge,
+            Qt::QueuedConnection);
+
+    searchEdit->setPlaceholderText(tr("Find a setting"));
+    searchEdit->setClearButtonEnabled(true);
+    searchEdit->addAction(QIcon(tintedIconPixmap(
+                                  QIcon(QStringLiteral(":/images/ic_magnifier.svg")),
+                                  QSize(16, 16),
+                                  devicePixelRatioF(),
+                                  QColor::fromRgb(glass::kTextDim))),
+            QLineEdit::LeadingPosition);
+    searchEdit->installEventFilter(this);
+    searchEmptyLabel->setText(tr("No setting found."));
+    searchEmptyLabel->hide();
+    connect(searchEdit, &QLineEdit::textChanged, this, &DlgPreferences::filterRail);
+
+    auto* pFindShortcut = new QShortcut(QKeySequence::Find, this);
+    connect(pFindShortcut, &QShortcut::activated, this, [this]() {
+        if (m_railCollapsed) {
+            m_pConfig->setValue(kRailCollapsedCfgKey, false);
+            setRailCollapsed(false, true);
+        }
+        searchEdit->setFocus();
+        searchEdit->selectAll();
+    });
+}
+
+QString DlgPreferences::descriptionForIcon(const QString& iconFile) const {
+    const QHash<QString, QString> descriptions = {
+            {QStringLiteral("ic_preferences_soundhardware.svg"),
+                    tr("Set the audio device, sample rate and outputs.")},
+            {QStringLiteral("ic_preferences_crossfader.svg"),
+                    tr("Set the crossfader and EQ behavior.")},
+            {QStringLiteral("ic_preferences_effects.svg"),
+                    tr("Set the effect units and the effects that show.")},
+            {QStringLiteral("ic_preferences_replaygain.svg"),
+                    tr("Set the track volume normalization.")},
+            {QStringLiteral("ic_preferences_decks.svg"),
+                    tr("Set the deck display and playback.")},
+            {kControllersIcon, tr("Connect and set your controllers.")},
+            {QStringLiteral("ic_preferences_vinyl.svg"), tr("Set the timecode vinyl inputs.")},
+            {QStringLiteral("ic_preferences_autodj.svg"),
+                    tr("Set the automatic track changes.")},
+            {QStringLiteral("ic_preferences_library.svg"),
+                    tr("Set the music folders and the track table.")},
+            {QStringLiteral("ic_preferences_bpmdetect.svg"),
+                    tr("Set how the app finds the beats.")},
+            {QStringLiteral("ic_preferences_keydetect.svg"),
+                    tr("Set how the app finds the key.")},
+            {QStringLiteral("ic_preferences_modplug.svg"),
+                    tr("Set the decoder for tracker files.")},
+            {QStringLiteral("ic_preferences_interface.svg"),
+                    tr("Set the skin, the scale and the screen behavior.")},
+            {QStringLiteral("ic_preferences_waveforms.svg"),
+                    tr("Set the waveform type and colors.")},
+            {QStringLiteral("ic_preferences_colors.svg"),
+                    tr("Set the hot cue and track colors.")},
+            {QStringLiteral("ic_preferences_recording.svg"),
+                    tr("Set the file format and the folder.")},
+            {QStringLiteral("ic_preferences_broadcast.svg"), tr("Set the stream servers.")},
+    };
+    // The pages of the single controllers have their own icons.
+    return descriptions.value(iconFile, tr("Set the mapping for this controller."));
+}
+
+void DlgPreferences::buildRailGroups() {
+    // The page creation order stays as it is, because it sets the apply order.
+    // Only the order of the rows changes here.
+    QHash<QString, QTreeWidgetItem*> itemsByIcon;
+    for (const PreferencesPage& page : std::as_const(m_allPages)) {
+        if (!page.pTreeItem->parent()) {
+            itemsByIcon.insert(page.iconFile, page.pTreeItem);
+        }
+    }
+    while (contentsTreeWidget->topLevelItemCount() > 0) {
+        contentsTreeWidget->takeTopLevelItem(0);
+    }
+
+    const QList<QPair<QString, QStringList>> groups = {
+            {tr("Audio"),
+                    {QStringLiteral("ic_preferences_soundhardware.svg"),
+                            QStringLiteral("ic_preferences_crossfader.svg"),
+                            QStringLiteral("ic_preferences_effects.svg"),
+                            QStringLiteral("ic_preferences_replaygain.svg")}},
+            {tr("Decks and hardware"),
+                    {QStringLiteral("ic_preferences_decks.svg"),
+                            kControllersIcon,
+                            QStringLiteral("ic_preferences_vinyl.svg"),
+                            QStringLiteral("ic_preferences_autodj.svg")}},
+            {tr("Library and analysis"),
+                    {QStringLiteral("ic_preferences_library.svg"),
+                            QStringLiteral("ic_preferences_bpmdetect.svg"),
+                            QStringLiteral("ic_preferences_keydetect.svg"),
+                            QStringLiteral("ic_preferences_modplug.svg")}},
+            {tr("Display"),
+                    {QStringLiteral("ic_preferences_interface.svg"),
+                            QStringLiteral("ic_preferences_waveforms.svg"),
+                            QStringLiteral("ic_preferences_colors.svg")}},
+            {tr("Record and stream"),
+                    {QStringLiteral("ic_preferences_recording.svg"),
+                            QStringLiteral("ic_preferences_broadcast.svg")}},
+    };
+    for (const auto& group : groups) {
+        QTreeWidgetItem* pHeading = nullptr;
+        for (const QString& iconFile : group.second) {
+            QTreeWidgetItem* pItem = itemsByIcon.take(iconFile);
+            if (!pItem) {
+                // This page is not in this build.
+                continue;
+            }
+            if (!pHeading) {
+                pHeading = new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type);
+                pHeading->setText(0, group.first);
+                pHeading->setData(0, kRailHeadingRole, true);
+                pHeading->setFlags(Qt::NoItemFlags);
+            }
+            contentsTreeWidget->addTopLevelItem(pItem);
+        }
+    }
+    // A page without a group must stay reachable.
+    DEBUG_ASSERT(itemsByIcon.isEmpty());
+    for (QTreeWidgetItem* pItem : std::as_const(itemsByIcon)) {
+        contentsTreeWidget->addTopLevelItem(pItem);
     }
 }
+
+void DlgPreferences::updateControllerRowsExpansion() {
+    // A computer can show many HID devices as controllers, so the rows of the
+    // controllers show only when they are necessary.
+    const QTreeWidgetItem* pCurrent = contentsTreeWidget->currentItem();
+    bool expand = pCurrent &&
+            (pCurrent == m_pControllersRootItem || pCurrent->parent() == m_pControllersRootItem);
+    if (!m_searchWords.isEmpty()) {
+        for (int i = 0; i < m_pControllersRootItem->childCount(); ++i) {
+            expand = expand || !m_pControllersRootItem->child(i)->isHidden();
+        }
+    }
+    m_pControllersRootItem->setExpanded(expand);
+}
+
+void DlgPreferences::setRailCollapsed(bool collapsed, bool animate) {
+    m_railCollapsed = collapsed;
+    m_pRailDelegate->setCollapsed(collapsed);
+    if (collapsed) {
+        searchEdit->clear();
+    }
+    searchEdit->setVisible(!collapsed);
+    contentsTreeWidget->doItemsLayout();
+
+    railToggleButton->setIcon(QIcon(collapsed
+                    ? QStringLiteral(":/preferences/glass/rail_expand.svg")
+                    : QStringLiteral(":/preferences/glass/rail_collapse.svg")));
+    const QString toggleText = collapsed ? tr("Show the page names") : tr("Hide the page names");
+    railToggleButton->setToolTip(toggleText);
+    railToggleButton->setAccessibleName(toggleText);
+    showDeviceStatusText();
+
+    const int targetWidth = collapsed ? kRailCollapsedWidth : kRailExpandedWidth;
+    m_pRailAnimation->stop();
+    if (animate) {
+        m_pRailAnimation->setStartValue(railWidget->width());
+        m_pRailAnimation->setEndValue(targetWidth);
+        m_pRailAnimation->start();
+    } else {
+        railWidget->setFixedWidth(targetWidth);
+        updateRailBridge();
+    }
+}
+
+void DlgPreferences::updateRailBridge() {
+    QTreeWidgetItem* pCurrent = contentsTreeWidget->currentItem();
+    if (!pCurrent || pCurrent->isHidden()) {
+        m_pRailBridge->hide();
+        return;
+    }
+    QWidget* pViewport = contentsTreeWidget->viewport();
+    QRect row = contentsTreeWidget->visualItemRect(pCurrent);
+    row.setLeft(pViewport->width() - 1);
+    row.setRight(pViewport->width() - 1);
+    // A row that is partly scrolled away must not paint outside of the rail.
+    row = row.adjusted(0, 1, 0, -1).intersected(pViewport->rect());
+    if (row.isEmpty()) {
+        m_pRailBridge->hide();
+        return;
+    }
+    const QPoint topLeft = pViewport->mapTo(this, row.topLeft());
+    // Goes over the border of the pane too, so that no line separates them.
+    const int right = paneWidget->geometry().left();
+    m_pRailBridge->setGeometry(QRect(topLeft, QPoint(right, topLeft.y() + row.height() - 1)));
+    m_pRailBridge->show();
+    m_pRailBridge->raise();
+}
+
+void DlgPreferences::updateDeviceStatus() {
+    for (const QMetaObject::Connection& connection : std::as_const(m_deviceStatusConnections)) {
+        disconnect(connection);
+    }
+    m_deviceStatusConnections.clear();
+
+    const QList<Controller*> controllers = m_pControllerManager->getControllerList(false, true);
+    Controller* pShown = nullptr;
+    for (Controller* pController : controllers) {
+        m_deviceStatusConnections.append(connect(pController,
+                &Controller::openChanged,
+                this,
+                &DlgPreferences::updateDeviceStatus,
+                Qt::QueuedConnection));
+        if (!pShown && pController->isOpen()) {
+            pShown = pController;
+        }
+    }
+
+    if (pShown) {
+        m_deviceStatusName = pShown->getName();
+        m_deviceStatusState = tr("Connected");
+    } else {
+        // The list also has keyboards and mice, so do not name a closed device.
+        m_deviceStatusName.clear();
+        m_deviceStatusState = tr("No controller enabled");
+    }
+    showDeviceStatusText();
+}
+
+void DlgPreferences::showDeviceStatusText() {
+    const QString tooltip = m_deviceStatusName.isEmpty()
+            ? m_deviceStatusState
+            : m_deviceStatusName + QStringLiteral(": ") + m_deviceStatusState;
+    deviceStatusButton->setToolTip(tooltip);
+    deviceStatusButton->setAccessibleName(tooltip);
+    if (m_railCollapsed) {
+        deviceStatusButton->setText(QString());
+        return;
+    }
+    if (m_deviceStatusName.isEmpty()) {
+        deviceStatusButton->setText(m_deviceStatusState);
+        return;
+    }
+    // The space for the text: the width of the rail without the icon and the padding.
+    constexpr int kTextWidth = kRailExpandedWidth - 64;
+    const QString name = deviceStatusButton->fontMetrics().elidedText(
+            m_deviceStatusName, Qt::ElideRight, kTextWidth);
+    deviceStatusButton->setText(name + QLatin1Char('\n') + m_deviceStatusState);
+}
+
+void DlgPreferences::slotDeviceStatusClicked() {
+    searchEdit->clear();
+    QTreeWidgetItem* pTarget = m_pControllersRootItem;
+    for (int i = 0; i < m_pControllersRootItem->childCount(); ++i) {
+        QTreeWidgetItem* pChild = m_pControllersRootItem->child(i);
+        if (pChild->text(0) == m_deviceStatusName) {
+            pTarget = pChild;
+            break;
+        }
+    }
+    contentsTreeWidget->setCurrentItem(pTarget);
+}
+
+void DlgPreferences::filterRail(const QString& query) {
+    m_searchWords = prefSearchQueryWords(query);
+    if (m_searchIndexDirty && !m_searchWords.isEmpty()) {
+        m_searchIndex.clear();
+        for (const PreferencesPage& page : std::as_const(m_allPages)) {
+            m_searchIndex.insert(page.pDlg, collectPrefSearchEntries(page.pDlg));
+        }
+        m_searchIndexDirty = false;
+    }
+
+    bool anyMatch = false;
+    for (const PreferencesPage& page : std::as_const(m_allPages)) {
+        const bool match = m_searchWords.isEmpty() || pageMatchesSearch(page);
+        page.pTreeItem->setHidden(!match);
+        anyMatch = anyMatch || match;
+    }
+    // A controller row needs its parent row and each row needs its heading.
+    for (int i = 0; i < m_pControllersRootItem->childCount(); ++i) {
+        if (!m_pControllersRootItem->child(i)->isHidden()) {
+            m_pControllersRootItem->setHidden(false);
+        }
+    }
+    QTreeWidgetItem* pHeading = nullptr;
+    bool headingHasRows = false;
+    for (int i = 0; i < contentsTreeWidget->topLevelItemCount(); ++i) {
+        QTreeWidgetItem* pItem = contentsTreeWidget->topLevelItem(i);
+        if (pItem->data(0, kRailHeadingRole).toBool()) {
+            if (pHeading) {
+                pHeading->setHidden(!headingHasRows);
+            }
+            pHeading = pItem;
+            headingHasRows = false;
+        } else if (!pItem->isHidden()) {
+            headingHasRows = true;
+        }
+    }
+    if (pHeading) {
+        pHeading->setHidden(!headingHasRows);
+    }
+
+    searchEmptyLabel->setVisible(!anyMatch);
+    updateControllerRowsExpansion();
+    updateRailBridge();
+}
+
+bool DlgPreferences::pageMatchesSearch(const PreferencesPage& page) const {
+    return prefSearchTextMatches(
+                   normalizePrefSearchText(page.pTreeItem->text(0)), m_searchWords) ||
+            prefSearchTextMatches(normalizePrefSearchText(page.description), m_searchWords) ||
+            firstMatchingPrefSearchEntry(m_searchIndex.value(page.pDlg), m_searchWords);
+}
+
+void DlgPreferences::selectFirstSearchMatch() {
+    // A page with the query in its title comes before a page that only has it
+    // in a setting.
+    QTreeWidgetItem* pFirstMatch = nullptr;
+    QTreeWidgetItemIterator it(contentsTreeWidget,
+            QTreeWidgetItemIterator::Selectable | QTreeWidgetItemIterator::NotHidden);
+    for (; *it; ++it) {
+        if (prefSearchTextMatches(normalizePrefSearchText((*it)->text(0)), m_searchWords)) {
+            pFirstMatch = *it;
+            break;
+        }
+        if (!pFirstMatch) {
+            pFirstMatch = *it;
+        }
+    }
+    if (!pFirstMatch) {
+        return;
+    }
+    if (contentsTreeWidget->currentItem() == pFirstMatch) {
+        showSearchMatchOnCurrentPage();
+    } else {
+        contentsTreeWidget->setCurrentItem(pFirstMatch);
+    }
+}
+
+void DlgPreferences::showSearchMatchOnCurrentPage() {
+    DlgPreferencePage* pPage = currentPage();
+    if (!pPage || m_searchWords.isEmpty()) {
+        return;
+    }
+    const QList<PrefSearchEntry> entries = m_searchIndex.value(pPage);
+    const PrefSearchEntry* pEntry = firstMatchingPrefSearchEntry(entries, m_searchWords);
+    if (!pEntry || !pEntry->pWidget) {
+        return;
+    }
+    QPointer<QWidget> pTarget = pEntry->pWidget;
+    // Open the tabs or stacked pages that hold the match.
+    for (QWidget* pChild = pTarget; pChild && pChild != pPage; pChild = pChild->parentWidget()) {
+        auto* pStack = qobject_cast<QStackedWidget*>(pChild->parentWidget());
+        if (!pStack) {
+            continue;
+        }
+        if (auto* pTabs = qobject_cast<QTabWidget*>(pStack->parentWidget())) {
+            pTabs->setCurrentWidget(pChild);
+        } else {
+            pStack->setCurrentWidget(pChild);
+        }
+    }
+    // The page must do its layout before it can scroll to the widget.
+    QPointer<QWidget> pPagePointer = pPage;
+    QTimer::singleShot(0, this, [pPagePointer, pTarget]() {
+        if (!pPagePointer || !pTarget) {
+            return;
+        }
+        // Each page is in a viewport in a QScrollArea, see addPageWidget().
+        auto* pScrollArea = qobject_cast<QScrollArea*>(
+                pPagePointer->parentWidget()->parentWidget());
+        if (pScrollArea) {
+            pScrollArea->ensureWidgetVisible(pTarget);
+        }
+    });
+}
+// End of AI-generated text.
 
 void DlgPreferences::moveEvent(QMoveEvent* e) {
     if (m_geometry.length() == 4) {
@@ -663,6 +1164,7 @@ void DlgPreferences::resizeEvent(QResizeEvent* e) {
         m_geometry[2] = QString::number(e->size().width());
         m_geometry[3] = QString::number(e->size().height());
     }
+    updateRailBridge();
 }
 
 QRect DlgPreferences::getDefaultGeometry() {
@@ -689,57 +1191,4 @@ QRect DlgPreferences::getDefaultGeometry() {
     optimumRect.setSize(optimumSize);
 
     return optimumRect;
-}
-
-void DlgPreferences::fixSliderStyle() {
-#ifdef Q_OS_MACOS
-    // Only used on macOS where the default slider style has several issues:
-    // - the handle is semi-transparent
-    // - the slider is higher than the space we give it, which causes that:
-    //   - the groove is not correctly centered vertically
-    //   - the handle is cut off at the top
-    // The style below is based on sliders in the macOS system settings dialogs.
-    const QString styleSheetStr = darkAppearance() ? R"--(
-QSlider::handle:horizontal {
-    background-color: #8f8c8b; 
-    border-radius: 4px;
-    width: 8px;
-    margin: -8px;
-} 
-QSlider::handle:horizontal::pressed {
-    background-color: #a9a7a7;
-}
-QSlider::groove:horizontal {
-    background: #1e1e1e; 
-    height: 4px;
-    border-radius: 2px;
-    margin-left: 8px; 
-    margin-right: 8px;
-}
-)--"
-                                                   : R"--(
-QSlider::handle:horizontal {
-    background-color: #ffffff;
-    border-radius: 4px;
-    border: 1px solid #d4d3d3;
-    width: 7px;
-    margin: -8px;
-}
-QSlider::handle:horizontal::pressed {
-    background-color: #ececec;
-}
-QSlider::groove:horizontal {
-    background: #c6c5c5;
-    height: 4px;
-    border-radius: 2px;
-    margin-left: 8px;
-    margin-right: 8px;
-}
-)--";
-
-    const QList<QSlider*> sliders = findChildren<QSlider*>();
-    for (QSlider* pSlider : sliders) {
-        pSlider->setStyleSheet(styleSheetStr);
-    }
-#endif // Q_OS_MACOS
 }

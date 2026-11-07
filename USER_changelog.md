@@ -638,6 +638,30 @@ In the MEMORY CUE pad mode, the pads go to memory cues 1-8 in time order. A
 pad comes on when its memory cue is set. When the track has more than 8
 memory cues, PAGE shows. Push I-P to use memory cues 9-16.
 
+### Preferences window
+
+The Preferences window has a new design. The window is always dark. Your
+settings do not change.
+
+The page list is at the left, in groups. To hide the page names, click the
+button at the top of the list. Click it again to show the names. Mix Two keeps
+this selection.
+
+To find a setting:
+
+1. Push Ctrl+F.
+2. Type a word from the setting, for example "asio".
+3. Push Enter. The page opens at the setting.
+
+Push Esc to clear the search.
+
+The rows of the controllers show only when the Controllers page is open.
+
+The tile below the list shows the controller that is enabled. Click the tile to
+open its page.
+
+On/off options now show as switches.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.
