@@ -44,8 +44,9 @@ class AudioTargetManager : public QObject {
     /// no DJ unit (a DJ unit carries no programme audio).
     QList<SoundDevicePointer> micInputDevices() const;
 
-    /// The saved device name of Microphone `micIndex` (0..3), also when the
-    /// device is not connected. Empty means no input.
+    /// The device name of Microphone `micIndex` (0..3). On WASAPI it reflects
+    /// the live setup as well as the saved one, and a saved device that is not
+    /// connected still shows its name. Empty means no input.
     QString micInputDeviceName(int micIndex) const;
 
     /// Sets the WASAPI input of Microphone `micIndex` (0..3) to channels 1-2

@@ -419,6 +419,9 @@ void AudioTargetManager::slotDevicesSetup() {
                     0.0);
         }
     }
+    // After a config is applied, a restored mic is live, so its pending state
+    // can be cleared, and a change made in Preferences is kept.
+    snapshotMicInputs(m_pSoundManager->getConfig());
 }
 
 QList<SoundDevicePointer> AudioTargetManager::micInputDevices() const {
