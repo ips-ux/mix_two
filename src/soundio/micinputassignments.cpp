@@ -24,8 +24,12 @@ Assignments merge(const Assignments& saved,
         if (result.contains(it.key())) {
             continue;
         }
-        if (!availableDevices.contains(it.value().deviceName)) {
-            result.insert(it.key(), it.value());
+        Assignment kept = it.value();
+        if (!availableDevices.contains(kept.deviceName)) {
+            kept.pending = true;
+            result.insert(it.key(), kept);
+        } else if (kept.pending) {
+            result.insert(it.key(), kept);
         }
     }
     return result;
@@ -61,6 +65,8 @@ Assignments load(const UserSettingsPointer& pConfig) {
                 (assignment.channelCount != 1 && assignment.channelCount != 2)) {
             continue;
         }
+        // A missing or bad value means false.
+        assignment.pending = pConfig->getValueString(keyFor(index, "pending")).toInt() != 0;
         result.insert(index, assignment);
     }
     return result;
@@ -79,11 +85,13 @@ void save(const UserSettingsPointer& pConfig, const Assignments& assignments) {
             pConfig->remove(deviceKey);
             pConfig->remove(baseKey);
             pConfig->remove(countKey);
+            pConfig->remove(keyFor(index, "pending"));
             continue;
         }
         pConfig->setValue(deviceKey, it.value().deviceName);
         pConfig->setValue(baseKey, it.value().channelBase);
         pConfig->setValue(countKey, it.value().channelCount);
+        pConfig->setValue(keyFor(index, "pending"), it.value().pending ? 1 : 0);
     }
 }
 

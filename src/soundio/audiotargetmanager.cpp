@@ -90,7 +90,8 @@ AudioTargetManager::AudioTargetManager(UserSettingsPointer pConfig,
                   ConfigKey(kMainGroup, QStringLiteral("audio_target_pc")))),
           m_pRouting(std::make_unique<ControlObject>(
                   ConfigKey(kSoundcardGroup, QStringLiteral("audio_routing")))),
-          m_target(Target::Hardware) {
+          m_target(Target::Hardware),
+          m_onWasapi(m_pSoundManager->getConfig().getAPI() == kApiWasapi) {
     m_pRouting->set(m_pSoundManager->getConfig().getAPI() == kApiWasapi ? 1.0 : 0.0);
     connect(m_pRouting.get(),
             &ControlObject::valueChanged,
@@ -276,6 +277,28 @@ void AudioTargetManager::prepareStartup() {
         } else {
             want = currentIsHardware ? Target::Hardware : Target::Pc;
         }
+    } else if (current.getAPI() == kApiWasapi) {
+        // The kept config may lack a mic input whose device has returned
+        // since the last run. Apply it, without opening devices.
+        const auto assignments = micinputs::load(m_pConfig);
+        const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
+        bool returned = false;
+        for (auto it = assignments.constBegin(); it != assignments.constEnd(); ++it) {
+            if (!it.value().pending) {
+                continue;
+            }
+            for (const auto& pDevice : devices) {
+                if (pDevice->getDeviceId().name == it.value().deviceName) {
+                    returned = true;
+                    break;
+                }
+            }
+        }
+        if (returned) {
+            SoundManagerConfig next = current;
+            restoreMicInputs(&next);
+            m_pSoundManager->setConfigBeforeSetup(next);
+        }
     }
 
     m_target = want;
@@ -379,12 +402,15 @@ void AudioTargetManager::slotRoutingChanged(double value) {
 
 void AudioTargetManager::slotDevicesSetup() {
     const bool wasapi = m_pSoundManager->getConfig().getAPI() == kApiWasapi;
-    const bool wasWasapi = m_pRouting->get() > 0;
-    if (wasapi == wasWasapi) {
-        return;
+    const bool wasWasapi = m_onWasapi;
+    m_onWasapi = wasapi;
+    // The control may already hold the new value (set by Preferences), so
+    // set it whenever it differs.
+    const double routing = wasapi ? 1.0 : 0.0;
+    if (m_pRouting->get() != routing) {
+        m_pRouting->set(routing);
     }
-    m_pRouting->set(wasapi ? 1.0 : 0.0);
-    if (wasWasapi) {
+    if (wasWasapi && !wasapi) {
         // The four squares are gone, so no talk-over may stay on.
         for (int i = 0; i < micinputs::kNumMics; ++i) {
             ControlObject::set(
@@ -408,7 +434,21 @@ QList<SoundDevicePointer> AudioTargetManager::micInputDevices() const {
 }
 
 QString AudioTargetManager::micInputDeviceName(int micIndex) const {
-    return micinputs::load(m_pConfig).value(micIndex).deviceName;
+    const micinputs::Assignments saved = micinputs::load(m_pConfig);
+    const SoundManagerConfig config = m_pSoundManager->getConfig();
+    if (config.getAPI() != kApiWasapi) {
+        return saved.value(micIndex).deviceName;
+    }
+    // Show the live setup, which Preferences may have changed since the last
+    // snapshot. A missing device still shows its saved name. No write.
+    QStringList available;
+    const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
+    for (const auto& pDevice : devices) {
+        available.append(pDevice->getDeviceId().name);
+    }
+    return micinputs::merge(saved, liveMicInputs(config), available)
+            .value(micIndex)
+            .deviceName;
 }
 
 bool AudioTargetManager::assignMicInput(int micIndex, const SoundDeviceId& device) {
@@ -512,7 +552,8 @@ void AudioTargetManager::restoreMicInputs(SoundManagerConfig* pConfig) const {
             if (pDevice->getDeviceId().name != assignment.deviceName) {
                 continue;
             }
-            // Too few channels: add nothing, the keys stay.
+            // Too few channels: add nothing. If the device is present and the
+            // mic is not pending, the next snapshot drops its keys.
             if (pDevice->getNumInputChannels().value() >=
                     assignment.channelBase + assignment.channelCount) {
                 pConfig->addInput(pDevice->getDeviceId(),

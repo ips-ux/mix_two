@@ -51,7 +51,8 @@ class AudioTargetManager : public QObject {
     /// Sets the WASAPI input of Microphone `micIndex` (0..3) to channels 1-2
     /// of `device` (channel 1 for a mono device). An empty device id means
     /// None. Returns false, with the old setup in place, if the device does
-    /// not open. Call from the GUI thread.
+    /// not open. False also means that the sound API is not WASAPI, the index
+    /// is bad or the device is not an input device. Call from the GUI thread.
     bool assignMicInput(int micIndex, const SoundDeviceId& device);
 
   private slots:
@@ -87,4 +88,7 @@ class AudioTargetManager : public QObject {
     // Preferences > Sound Hardware > Audio Routing.
     std::unique_ptr<ControlObject> m_pRouting;
     Target m_target;
+    // The sound API state last applied: true for WASAPI. slotDevicesSetup()
+    // compares it, because the routing control can change before the setup.
+    bool m_onWasapi;
 };

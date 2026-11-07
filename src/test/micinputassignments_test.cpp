@@ -17,6 +17,12 @@ Assignment make(const QString& name, int base = 0, int count = 2) {
     return a;
 }
 
+Assignment makePending(const QString& name, int base = 0, int count = 2) {
+    Assignment a = make(name, base, count);
+    a.pending = true;
+    return a;
+}
+
 class MicInputAssignmentsTest : public MixxxTest {
   protected:
     void setRaw(int n, const QString& device, const QString& base, const QString& count) {
@@ -47,6 +53,22 @@ TEST_F(MicInputAssignmentsTest, KeptWhenDeviceMissing) {
     EXPECT_EQ("A", result.value(0).deviceName);
     EXPECT_EQ(2, result.value(0).channelBase);
     EXPECT_EQ(1, result.value(0).channelCount);
+    EXPECT_TRUE(result.value(0).pending);
+}
+
+TEST_F(MicInputAssignmentsTest, PendingKeptWhenDeviceReturns) {
+    Assignments saved{{0, makePending("A", 2, 1)}};
+    const Assignments result = micinputs::merge(saved, {}, {"A"});
+    ASSERT_TRUE(result.contains(0));
+    EXPECT_EQ(makePending("A", 2, 1), result.value(0));
+}
+
+TEST_F(MicInputAssignmentsTest, LiveClearsPending) {
+    Assignments saved{{0, makePending("A")}};
+    Assignments live{{0, make("A")}};
+    const Assignments result = micinputs::merge(saved, live, {"A"});
+    ASSERT_TRUE(result.contains(0));
+    EXPECT_FALSE(result.value(0).pending);
 }
 
 TEST_F(MicInputAssignmentsTest, OthersUntouched) {
@@ -56,7 +78,7 @@ TEST_F(MicInputAssignmentsTest, OthersUntouched) {
     ASSERT_TRUE(result.contains(0));
     ASSERT_TRUE(result.contains(2));
     EXPECT_EQ("B", result.value(0).deviceName);
-    EXPECT_EQ(make("C", 4, 2), result.value(2));
+    EXPECT_EQ(makePending("C", 4, 2), result.value(2));
 }
 
 TEST_F(MicInputAssignmentsTest, ChannelCount) {
@@ -68,6 +90,7 @@ TEST_F(MicInputAssignmentsTest, ChannelCount) {
 
 TEST_F(MicInputAssignmentsTest, RoundTrip) {
     Assignments x{{0, make("Mic (USB Audio [2])", 0, 1)},
+            {2, makePending("Gone", 0, 2)},
             {3, make(QStringLiteral("Mikrofon (Zoé)"), 2, 2)}};
     micinputs::save(config(), x);
     EXPECT_EQ(x, micinputs::load(config()));
