@@ -31,6 +31,7 @@
         <file>images/library/ic_library_serato.svg</file>
       <!-- logo and icons for 'About' dialog -->
         <file>images/mixxx_logo.svg</file>
+        <file>images/mixtwo_logo_light.svg</file>
         <file>images/icons/scalable/apps/mixxx.svg</file>
         <file>images/heart_icon_light.svg</file>
         <file>images/heart_icon_dark.svg</file>
@@ -49,6 +50,7 @@
         <file>images/preferences/dark/ic_preferences_bulk.svg</file>
         <file>images/preferences/dark/ic_preferences_colors.svg</file>
         <file>images/preferences/dark/ic_preferences_controllers.svg</file>
+        <file>images/preferences/dark/ic_preferences_contributions.svg</file>
         <file>images/preferences/dark/ic_preferences_controllers_reload.svg</file>
         <file>images/preferences/dark/ic_preferences_crossfader.svg</file>
         <file>images/preferences/dark/ic_preferences_decks.svg</file>
@@ -76,6 +78,7 @@
         <file>images/preferences/light/ic_preferences_bulk.svg</file>
         <file>images/preferences/light/ic_preferences_colors.svg</file>
         <file>images/preferences/light/ic_preferences_controllers.svg</file>
+        <file>images/preferences/light/ic_preferences_contributions.svg</file>
         <file>images/preferences/light/ic_preferences_controllers_reload.svg</file>
         <file>images/preferences/light/ic_preferences_crossfader.svg</file>
         <file>images/preferences/light/ic_preferences_decks.svg</file>

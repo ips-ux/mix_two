@@ -1283,6 +1283,7 @@ add_library(
   src/database/schemamanager.cpp
   src/dialog/dlgabout.cpp
   src/dialog/dlgaboutdlg.ui
+  src/dialog/mixxxcredits.cpp
   src/dialog/dlgdevelopertools.cpp
   src/dialog/dlgdevelopertoolsdlg.ui
   src/dialog/dlgkeywheel.cpp
@@ -1601,6 +1602,7 @@ add_library(
   src/preferences/dialog/dlgprefbeats.cpp
   src/preferences/dialog/dlgprefbeatsdlg.ui
   src/preferences/dialog/dlgprefcolors.cpp
+  src/preferences/dialog/dlgprefcontributions.cpp
   src/preferences/dialog/dlgprefcolorsdlg.ui
   src/preferences/dialog/dlgprefdeck.cpp
   src/preferences/dialog/dlgprefdeckdlg.ui

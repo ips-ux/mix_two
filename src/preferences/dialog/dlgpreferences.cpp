@@ -39,6 +39,7 @@
 
 #include "preferences/dialog/dlgprefautodj.h"
 #include "preferences/dialog/dlgprefcolors.h"
+#include "preferences/dialog/dlgprefcontributions.h"
 #include "preferences/dialog/dlgprefdeck.h"
 #include "preferences/dialog/dlgprefeffects.h"
 #include "preferences/dialog/dlgprefinterface.h"
@@ -71,6 +72,7 @@ constexpr int kRailAnimationMs = 160;
 constexpr QSize kMinimumDialogSize(760, 520);
 const ConfigKey kRailCollapsedCfgKey("[Preferences]", "rail_collapsed");
 const QString kControllersIcon = QStringLiteral("ic_preferences_controllers.svg");
+const QString kContributionsIcon = QStringLiteral("ic_preferences_contributions.svg");
 
 /// The window is always dark. Pages paint some items from the palette, so the
 /// palette must agree with the style sheet.
@@ -316,6 +318,14 @@ DlgPreferences::DlgPreferences(
             tr("Modplug Decoder"),
             "ic_preferences_modplug.svg");
 #endif // __MODPLUG__
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    addPageWidget(PreferencesPage(
+                          new DlgPrefContributions(this),
+                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+            tr("Contributions"),
+            kContributionsIcon);
+    // End of AI-generated text.
 
     buildRailGroups();
 
@@ -830,6 +840,7 @@ QString DlgPreferences::descriptionForIcon(const QString& iconFile) const {
             {QStringLiteral("ic_preferences_recording.svg"),
                     tr("Set the file format and the folder.")},
             {QStringLiteral("ic_preferences_broadcast.svg"), tr("Set the stream servers.")},
+            {kContributionsIcon, tr("The Mixxx team made the base of Mix Two. Support their work.")},
     };
     // The pages of the single controllers have their own icons.
     return descriptions.value(iconFile, tr("Set the mapping for this controller."));
@@ -871,6 +882,7 @@ void DlgPreferences::buildRailGroups() {
             {tr("Record and stream"),
                     {QStringLiteral("ic_preferences_recording.svg"),
                             QStringLiteral("ic_preferences_broadcast.svg")}},
+            {tr("About"), {kContributionsIcon}},
     };
     for (const auto& group : groups) {
         QTreeWidgetItem* pHeading = nullptr;

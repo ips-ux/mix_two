@@ -662,6 +662,21 @@ open its page.
 
 On/off options now show as switches.
 
+### Mix Two logo
+
+The Mix Two logo replaces the Mixxx logo: on the start screen, in the
+toolbar of the skins, in the About window, in the Windows taskbar and on the
+app icon. The icon shows the Mix Two creature on a dark tile.
+
+### Contributions page
+
+Mix Two is a fork of Mixxx. The new **Contributions** page, in the About group
+of Preferences, gives credit to the Mixxx team and to all its contributors.
+It shows the full list of names.
+
+To support the Mixxx team, open Preferences > Contributions, then click
+**Donate to Mixxx**. The Mixxx donations page opens in your web browser.
+
 ### Known problems
 
 - The jog display on the DDJ-800 does not operate.
