@@ -1654,6 +1654,7 @@ add_library(
   src/soundio/sounddevicenetwork.cpp
   src/soundio/sounddeviceportaudio.cpp
   src/soundio/audiotargetmanager.cpp
+  src/soundio/micinputassignments.cpp
   src/soundio/soundmanager.cpp
   src/soundio/soundmanagerconfig.cpp
   src/soundio/soundmanagerutil.cpp
@@ -3089,6 +3090,7 @@ if(BUILD_TESTING)
     src/test/seratotagstest.cpp
     src/test/signalpathtest.cpp
     src/test/soundcolorfxtest.cpp
+    src/test/micinputassignments_test.cpp
     src/test/skincontext_test.cpp
     src/test/softtakeover_test.cpp
     src/test/soundproxy_test.cpp
