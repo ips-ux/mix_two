@@ -327,6 +327,11 @@ PioneerDDJ800.SYSEX_SEND_ALL = [0xF0, 0x00, 0x40, 0x05, 0x00, 0x00, 0x02, 0x09, 
 
 PioneerDDJ800.shutdown = function() {
     engine.setValue("[Skin]", "ddj800_connected", 0);
+    engine.setValue("[Skin]", "ddj800_mic_on", 0);
+    engine.setValue("[Skin]", "ddj800_mic1_level", 0);
+    engine.setValue("[Skin]", "ddj800_mic2_level", 0);
+    engine.setValue("[Skin]", "ddj800_mic_eq_hi", 0.5);
+    engine.setValue("[Skin]", "ddj800_mic_eq_low", 0.5);
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
         if (PioneerDDJ800.decks[deck].slipReverseTimer) {
             engine.stopTimer(PioneerDDJ800.decks[deck].slipReverseTimer);
@@ -490,12 +495,24 @@ PioneerDDJ800.initMixer = function() {
     PioneerDDJ800.bindButton(S.globalNote, 0x52, function() { crossfaderStart(0, "cue_gotoandstop"); });
     PioneerDDJ800.bindButton(S.globalNote, 0x53, function() { crossfaderStart(2, "cue_gotoandstop"); });
 
-    // MIC ON/OFF. Mic level and EQ knobs are processed in hardware.
+    // The deck mixes the mic in hardware. The skin only shows these values.
+    PioneerDDJ800.bindHiRes(S.globalCC, 0x05, function(value) {
+        engine.setValue("[Skin]", "ddj800_mic1_level", value);
+    });
+    PioneerDDJ800.bindHiRes(S.globalCC, 0x06, function(value) {
+        engine.setValue("[Skin]", "ddj800_mic2_level", value);
+    });
+    PioneerDDJ800.bindHiRes(S.globalCC, 0x07, function(value) {
+        engine.setValue("[Skin]", "ddj800_mic_eq_hi", value);
+    });
+    PioneerDDJ800.bindHiRes(S.globalCC, 0x0F, function(value) {
+        engine.setValue("[Skin]", "ddj800_mic_eq_low", value);
+    });
     PioneerDDJ800.bindButton(S.globalNote, 0x6B, function() {
-        engine.setValue("[Microphone]", "talkover", 1);
+        engine.setValue("[Skin]", "ddj800_mic_on", 1);
     });
     PioneerDDJ800.bindButton(S.globalNote, 0x6A, function() {
-        engine.setValue("[Microphone]", "talkover", 0);
+        engine.setValue("[Skin]", "ddj800_mic_on", 0);
     });
 };
 

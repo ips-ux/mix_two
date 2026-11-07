@@ -327,6 +327,12 @@ check("deck 3 CC message keeps left_deck_alt 1", values["[Skin],left_deck_alt"] 
 P.shutdown();
 check("shutdown leaves the sides and clears ddj800_connected",
         values["[Skin],left_deck_alt"] === 1 && values["[Skin],right_deck_alt"] === 1 && values["[Skin],ddj800_connected"] === 0);
+check("shutdown puts the mic state back to its defaults",
+        engine.getValue("[Skin]", "ddj800_mic_on") === 0
+        && engine.getValue("[Skin]", "ddj800_mic1_level") === 0
+        && engine.getValue("[Skin]", "ddj800_mic2_level") === 0
+        && engine.getValue("[Skin]", "ddj800_mic_eq_hi") === 0.5
+        && engine.getValue("[Skin]", "ddj800_mic_eq_low") === 0.5);
 // Fewer than 3 decks: the sides stay 0.
 values["[App],num_decks"] = 2;
 values["[Skin],left_deck_alt"] = 1;
@@ -338,6 +344,18 @@ values["[App],num_decks"] = 4;
 for (const k of Object.keys(handlers)) delete handlers[k];
 P.init("DDJ-800", false);
 // End of AI-generated text.
+
+// The deck mixes the mic in hardware. The mapping only publishes its state
+// to the skin, and never drives talk-over.
+send(0xB6, 0x05, 0x7F); check("MSB alone leaves MIC 1 alone", engine.getValue("[Skin]", "ddj800_mic1_level") === 0);
+send(0xB6, 0x25, 0x7F); check("MIC 1 full", engine.getValue("[Skin]", "ddj800_mic1_level") === 1);
+send(0xB6, 0x06, 0x40); send(0xB6, 0x26, 0x00); check("MIC 2 half", Math.abs(engine.getValue("[Skin]", "ddj800_mic2_level") - 0.5) < 0.001);
+send(0xB6, 0x07, 0x7F); send(0xB6, 0x27, 0x7F); check("EQ HI", engine.getValue("[Skin]", "ddj800_mic_eq_hi") === 1);
+send(0xB6, 0x0F, 0x00); send(0xB6, 0x2F, 0x00); check("EQ LOW", engine.getValue("[Skin]", "ddj800_mic_eq_low") === 0);
+send(0x96, 0x6B, 0x7F); check("MIC on", engine.getValue("[Skin]", "ddj800_mic_on") === 1);
+send(0x96, 0x6A, 0x00); check("value 0 on the OFF note does not act", engine.getValue("[Skin]", "ddj800_mic_on") === 1);
+send(0x96, 0x6A, 0x7F); check("MIC off", engine.getValue("[Skin]", "ddj800_mic_on") === 0);
+check("MIC never drives talkover", !sets.some(s => s[0] === "[Microphone]" && s[1] === "talkover"));
 
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;
