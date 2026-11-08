@@ -286,11 +286,13 @@ void AudioTargetManager::prepareStartup() {
 
     const bool currentIsHardware = usesHardwareUnit(current);
     const QString lastPcName = m_pConfig->getValueString(kPcDeviceKey);
+    // AI-generated (Claude Code). Start of AI-generated text.
     // The saved name is a WASAPI name, so on another API any setup that is
     // not on the DJ unit is the PC one.
     const bool currentIsSavedPc = !currentIsHardware &&
             (current.getAPI() != kApiWasapi || lastPcName.isEmpty() ||
                     mainDeviceName(current) == lastPcName);
+    // End of AI-generated text.
     const bool keepCurrent = (want == Target::Hardware)
             ? currentIsHardware
             : currentIsSavedPc;
@@ -422,7 +424,9 @@ void AudioTargetManager::slotRoutingChanged(double value) {
     }
     SoundManagerConfig next = buildConfig(target, onNewApi);
     next.setFileName(QStringLiteral(SOUNDMANAGERCONFIG_FILENAME));
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Without an output device nothing is changed.
+    // End of AI-generated text.
     if (!hasMainOutput(next) || !applyOrGoBack(next, current)) {
         qWarning() << "AudioTargetManager: could not open a device on" << api << ", went back";
         m_pRouting->set(current.getAPI() == kApiWasapi ? 1.0 : 0.0);
@@ -483,8 +487,10 @@ QList<SoundDevicePointer> AudioTargetManager::micInputDevices() const {
     QList<SoundDevicePointer> result;
     const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
     for (const auto& pDevice : devices) {
+        // AI-generated (Claude Code). Start of AI-generated text.
         // No DJ unit, and no loop-back device: it records the output, so a
         // mic on it feeds the mix back into itself.
+        // End of AI-generated text.
         if (pDevice->getNumInputChannels().isValid() &&
                 !micinputs::isExcludedDevice(pDevice->getDeviceId().name)) {
             result.append(pDevice);
@@ -695,7 +701,9 @@ void AudioTargetManager::snapshotMicInputs(const SoundManagerConfig& config) {
     if (config.getAPI() != kApiWasapi) {
         return;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
     // merge() drops a DDJ-800 or loop-back input, so it is never kept.
+    // End of AI-generated text.
     micinputs::save(m_pConfig,
             micinputs::merge(micinputs::load(m_pConfig),
                     liveMicInputs(config),
@@ -708,7 +716,9 @@ void AudioTargetManager::restoreMicInputs(SoundManagerConfig* pConfig) const {
     const auto assignments = micinputs::load(m_pConfig);
     for (auto it = assignments.constBegin(); it != assignments.constEnd(); ++it) {
         const micinputs::Assignment& assignment = it.value();
+        // AI-generated (Claude Code). Start of AI-generated text.
         // Keys from an older build can name a DDJ-800 or loop-back device.
+        // End of AI-generated text.
         if (micinputs::isExcludedDevice(assignment.deviceName)) {
             continue;
         }

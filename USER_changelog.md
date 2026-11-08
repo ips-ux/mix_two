@@ -468,6 +468,9 @@ The mixer has a new Mic module. The MIC/AUX panel and the MIC/AUX button are
 removed. The talk-over ducking settings are now in Preferences, on the Sound
 Hardware page.
 
+If Mix Two cannot open a microphone input, it sets the microphone off. The
+audio output stays active, and a message shows.
+
 ### Waveform type: Color Saturated
 
 There is a new waveform type, **Color Saturated**. It shows each part of the
