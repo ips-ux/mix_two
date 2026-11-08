@@ -63,17 +63,17 @@ void WMicInputButton::slotStateChanged() {
     const bool assigned = m_pInputConfigured && m_pInputConfigured->toBool();
     const bool selected = m_pSelectedMic && m_pSelectedMic->valid() &&
             static_cast<int>(m_pSelectedMic->get()) == m_index + 1;
-    const bool assignedChanged = assigned != m_assigned;
-    const bool selectedChanged = selected != m_selected;
+    const bool assignedDiffers = assigned != m_assigned;
+    const bool selectedDiffers = selected != m_selected;
     m_assigned = assigned;
     m_selected = selected;
-    if (assignedChanged) {
-        emit this->assignedChanged(m_assigned);
+    if (assignedDiffers) {
+        emit assignedChanged(m_assigned);
     }
-    if (selectedChanged) {
-        emit this->selectedChanged(m_selected);
+    if (selectedDiffers) {
+        emit selectedChanged(m_selected);
     }
-    if (assignedChanged || selectedChanged) {
+    if (assignedDiffers || selectedDiffers) {
         style()->unpolish(this);
         style()->polish(this);
         update();
@@ -98,8 +98,11 @@ void WMicInputButton::mousePressEvent(QMouseEvent* pEvent) {
     }
 
     const bool hasInput = m_pInputConfigured->toBool();
-    if (button == Qt::LeftButton && hasInput) {
-        m_pTalkover->set(m_pTalkover->toBool() ? 0.0 : 1.0);
+    if (button == Qt::LeftButton && m_pTalkover->toBool()) {
+        // A lit square always goes off, also when its input is gone.
+        m_pTalkover->set(0.0);
+    } else if (button == Qt::LeftButton && hasInput) {
+        m_pTalkover->set(1.0);
     } else if (m_pTargets) {
         showInputMenu(pEvent->globalPosition().toPoint());
     }
@@ -195,7 +198,10 @@ void WMicInputButton::showInputMenu(const QPoint& globalPos) {
         return;
     }
 
-    if (deckIsPlaying()) {
+    // None on a mic with no live input only removes its saved keys, so the
+    // audio does not stop.
+    const bool keysOnly = chosen.name.isEmpty() && !m_pInputConfigured->toBool();
+    if (!keysOnly && deckIsPlaying()) {
         const auto answer = QMessageBox::question(this,
                 tr("Mix Two"),
                 tr("The audio stops for a short time when the input changes. "
@@ -207,11 +213,25 @@ void WMicInputButton::showInputMenu(const QPoint& globalPos) {
         }
     }
 
-    if (!m_pTargets->assignMicInput(m_index, chosen)) {
+    switch (m_pTargets->assignMicInput(m_index, chosen)) {
+    case AudioTargetManager::MicAssignResult::Applied:
+        break;
+    case AudioTargetManager::MicAssignResult::Rejected:
+    case AudioTargetManager::MicAssignResult::PreviousActive:
         QMessageBox::warning(this,
                 tr("Mix Two"),
                 tr("Mix Two cannot open this device. "
                    "The previous input is active."));
+        break;
+    case AudioTargetManager::MicAssignResult::MicrophonesOff:
+        QMessageBox::warning(this,
+                tr("Mix Two"),
+                AudioTargetManager::microphonesOffText());
+        break;
+    case AudioTargetManager::MicAssignResult::AudioOff:
+        // No setup came back, so no text can say what is active. The
+        // manager writes the failure to the log.
+        break;
     }
 }
 

@@ -3,6 +3,7 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <memory>
 
 #include "preferences/usersettings.h"
@@ -41,7 +42,8 @@ class AudioTargetManager : public QObject {
     bool hasHardwareDevice(const QString& api) const;
 
     /// WASAPI input devices that can carry a microphone: input channels, and
-    /// no DJ unit (a DJ unit carries no programme audio).
+    /// no DJ unit (a DJ unit carries no programme audio) and no loop-back
+    /// device (it records the output, so it would feed the mix back).
     QList<SoundDevicePointer> micInputDevices() const;
 
     /// The device name of Microphone `micIndex` (0..3). On WASAPI it reflects
@@ -49,12 +51,33 @@ class AudioTargetManager : public QObject {
     /// connected still shows its name. Empty means no input.
     QString micInputDeviceName(int micIndex) const;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The result of assignMicInput().
+    enum class MicAssignResult {
+        /// The new input is applied (for None on a mic with no live input,
+        /// only its saved keys are removed).
+        Applied,
+        /// Nothing changed: the sound API is not WASAPI, the index is bad, or
+        /// the device is not a usable input device. The old setup is active.
+        Rejected,
+        /// The device did not open. The old setup is active again.
+        PreviousActive,
+        /// The device did not open, and the old setup came back only without
+        /// its microphone inputs. The main output is active, the mics are off.
+        MicrophonesOff,
+        /// The device did not open, and no setup came back.
+        AudioOff,
+    };
+
     /// Sets the WASAPI input of Microphone `micIndex` (0..3) to channels 1-2
     /// of `device` (channel 1 for a mono device). An empty device id means
-    /// None. Returns false, with the old setup in place, if the device does
-    /// not open. False also means that the sound API is not WASAPI, the index
-    /// is bad or the device is not an input device. Call from the GUI thread.
-    bool assignMicInput(int micIndex, const SoundDeviceId& device);
+    /// None. Call from the GUI thread.
+    MicAssignResult assignMicInput(int micIndex, const SoundDeviceId& device);
+
+    /// The text that tells the user that the microphone inputs were removed
+    /// to get the audio output back.
+    static QString microphonesOffText();
+    // End of AI-generated text.
 
   private slots:
     void slotTargetChanged(double value);
@@ -76,6 +99,28 @@ class AudioTargetManager : public QObject {
     // Keep the WASAPI Microphone inputs in mixxx.cfg across sound changes.
     void snapshotMicInputs(const SoundManagerConfig& config);
     void restoreMicInputs(SoundManagerConfig* pConfig) const;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Saves the PC device name, only from a PC setup on WASAPI.
+    void storePcDeviceName(const SoundManagerConfig& config);
+
+    struct ApplyResult {
+        // The config (with or without its mic inputs) is active.
+        bool ok = false;
+        // The mic inputs were removed to open the other devices.
+        bool micsDropped = false;
+    };
+    // SoundManager::setConfig(). If that fails and the config has Microphone
+    // inputs, tries once more without them; their saved keys stay, pending.
+    ApplyResult applyConfig(const SoundManagerConfig& config);
+    // applyConfig(next); if that fails, applyConfig(old). Returns true if
+    // `next` is active. Shows microphonesOffText() if mics were removed.
+    bool applyOrGoBack(const SoundManagerConfig& next, const SoundManagerConfig& old);
+    // Queued from slotDevicesSetup(): puts the saved mics back into the
+    // live WASAPI config.
+    void restoreMicInputsNow();
+    void showMicrophonesOff();
+    QStringList availableMicDevices() const;
+    // End of AI-generated text.
 
     UserSettingsPointer m_pConfig;
     SoundManager* m_pSoundManager;
@@ -92,4 +137,7 @@ class AudioTargetManager : public QObject {
     // The sound API state last applied: true for WASAPI. slotDevicesSetup()
     // compares it, because the routing control can change before the setup.
     bool m_onWasapi;
+    // True while applyConfig() runs: a config it applies has its mic inputs
+    // restored (or dropped on purpose) already.
+    bool m_applying;
 };

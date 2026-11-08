@@ -81,6 +81,63 @@ TEST_F(MicInputAssignmentsTest, OthersUntouched) {
     EXPECT_EQ(makePending("C", 4, 2), result.value(2));
 }
 
+TEST_F(MicInputAssignmentsTest, ApiRoundTripWithoutRestoreKeepsMics) {
+    // WASAPI > ASIO > WASAPI through the sound API box: the config that comes
+    // back has no mic inputs, and every saved device is present.
+    const Assignments saved{{0, make("A")}, {1, make("B", 0, 1)}};
+    const QStringList available{"A", "B"};
+    // A plain snapshot would take this for "cleared" and drop both.
+    EXPECT_TRUE(micinputs::merge(saved, {}, available).isEmpty());
+
+    const Assignments kept = micinputs::merge(
+            micinputs::keepOnReturn(saved, {}), {}, available);
+    EXPECT_EQ(makePending("A"), kept.value(0));
+    EXPECT_EQ(makePending("B", 0, 1), kept.value(1));
+    EXPECT_TRUE(micinputs::needsRestore(kept, available));
+
+    // After the restore the inputs are live again and pending is cleared.
+    const Assignments restored = micinputs::merge(kept, saved, available);
+    EXPECT_EQ(saved, restored);
+    EXPECT_FALSE(micinputs::needsRestore(restored, available));
+}
+
+TEST_F(MicInputAssignmentsTest, KeepOnReturnLeavesLiveMics) {
+    const Assignments saved{{0, make("A")}, {2, make("C")}};
+    const Assignments live{{0, make("A")}};
+    const Assignments kept = micinputs::keepOnReturn(saved, live);
+    EXPECT_FALSE(kept.value(0).pending);
+    EXPECT_TRUE(kept.value(2).pending);
+}
+
+TEST_F(MicInputAssignmentsTest, NeedsRestoreOnlyForPresentDevice) {
+    const Assignments pending{{0, makePending("A")}};
+    EXPECT_FALSE(micinputs::needsRestore(pending, {}));
+    EXPECT_TRUE(micinputs::needsRestore(pending, {"A"}));
+    EXPECT_FALSE(micinputs::needsRestore({{0, make("A")}}, {"A"}));
+}
+
+TEST_F(MicInputAssignmentsTest, ExcludedDevices) {
+    EXPECT_TRUE(micinputs::isExcludedDevice("Line (PIONEER DJ DDJ-800) [Loopback]"));
+    EXPECT_TRUE(micinputs::isExcludedDevice("Line In (PIONEER DJ DDJ-800)"));
+    EXPECT_TRUE(micinputs::isExcludedDevice("Main Output 1/2 (Audient EVO4) [Loopback]"));
+    EXPECT_FALSE(micinputs::isExcludedDevice("Microphone (HD Pro Webcam C920)"));
+    EXPECT_FALSE(micinputs::isExcludedDevice("Mic | Line 1/2 (Audient EVO4)"));
+}
+
+TEST_F(MicInputAssignmentsTest, MergeDropsExcludedDevices) {
+    const QString loopback = "Line (PIONEER DJ DDJ-800) [Loopback]";
+    const QString ddj = "Line In (PIONEER DJ DDJ-800)";
+    // A live input on an excluded device is not kept.
+    const Assignments fromLive = micinputs::merge({}, {{0, make(loopback)}}, {loopback});
+    EXPECT_TRUE(fromLive.isEmpty());
+    // A saved one is dropped, also when it is pending or its device is gone.
+    const Assignments saved{{0, make(loopback)}, {1, makePending(ddj)}, {2, make("Gone")}};
+    const Assignments fromSaved = micinputs::merge(saved, {}, {loopback, ddj});
+    EXPECT_EQ(1, fromSaved.size());
+    EXPECT_TRUE(fromSaved.contains(2));
+    EXPECT_FALSE(micinputs::needsRestore(saved, {loopback, ddj}));
+}
+
 TEST_F(MicInputAssignmentsTest, ChannelCount) {
     EXPECT_EQ(2, micinputs::channelCountFor(0));
     EXPECT_EQ(1, micinputs::channelCountFor(1));

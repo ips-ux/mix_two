@@ -14,8 +14,9 @@ class QPoint;
 /// PlayerManager::groupForMicrophone(), and [Skin],mic_selected marks the
 /// selected one.
 ///
-/// A left click selects the square. If it has an input, the click also toggles
-/// talk-over; if not, it opens the input menu. A right click selects the
+/// A left click selects the square. On a lit square it switches talk-over
+/// off. Else, if the square has an input, it switches talk-over on; if not,
+/// it opens the input menu. A right click selects the
 /// square and opens the menu. Without an AudioTargetManager the menu does not
 /// open.
 ///

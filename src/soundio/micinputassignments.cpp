@@ -16,12 +16,23 @@ ConfigKey keyFor(int index, const char* suffix) {
 
 } // namespace
 
+bool isExcludedDevice(const QString& deviceName) {
+    return deviceName.contains(QStringLiteral("DDJ-800"), Qt::CaseInsensitive) ||
+            deviceName.contains(QStringLiteral("loopback"), Qt::CaseInsensitive) ||
+            deviceName.contains(QStringLiteral("loop-back"), Qt::CaseInsensitive);
+}
+
 Assignments merge(const Assignments& saved,
         const Assignments& live,
         const QStringList& availableDevices) {
-    Assignments result = live;
+    Assignments result;
+    for (auto it = live.constBegin(); it != live.constEnd(); ++it) {
+        if (!isExcludedDevice(it.value().deviceName)) {
+            result.insert(it.key(), it.value());
+        }
+    }
     for (auto it = saved.constBegin(); it != saved.constEnd(); ++it) {
-        if (result.contains(it.key())) {
+        if (live.contains(it.key()) || isExcludedDevice(it.value().deviceName)) {
             continue;
         }
         Assignment kept = it.value();
@@ -33,6 +44,27 @@ Assignments merge(const Assignments& saved,
         }
     }
     return result;
+}
+
+Assignments keepOnReturn(const Assignments& saved, const Assignments& live) {
+    Assignments result = saved;
+    for (auto it = result.begin(); it != result.end(); ++it) {
+        if (!live.contains(it.key())) {
+            it.value().pending = true;
+        }
+    }
+    return result;
+}
+
+bool needsRestore(const Assignments& assignments, const QStringList& availableDevices) {
+    for (const Assignment& assignment : assignments) {
+        if (assignment.pending &&
+                !isExcludedDevice(assignment.deviceName) &&
+                availableDevices.contains(assignment.deviceName)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int channelCountFor(int deviceInputChannels) {

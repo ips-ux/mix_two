@@ -1,5 +1,8 @@
 #include "soundio/audiotargetmanager.h"
 
+#include <QMessageBox>
+#include <QTimer>
+
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
 #include "mixer/playermanager.h"
@@ -76,6 +79,34 @@ micinputs::Assignments liveMicInputs(const SoundManagerConfig& config) {
     return live;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// Removes all Microphone inputs of `pConfig`. True if there was one.
+bool removeMicInputs(SoundManagerConfig* pConfig) {
+    bool removed = false;
+    auto& inputs = pConfig->getInputsRef();
+    for (auto it = inputs.begin(); it != inputs.end();) {
+        if (it.value().getType() == AudioPathType::Microphone) {
+            it = inputs.erase(it);
+            removed = true;
+        } else {
+            ++it;
+        }
+    }
+    return removed;
+}
+
+bool hasMicInput(const SoundManagerConfig& config, int micIndex) {
+    const auto inputs = config.getInputs();
+    for (auto it = inputs.constBegin(); it != inputs.constEnd(); ++it) {
+        if (it.value().getType() == AudioPathType::Microphone &&
+                it.value().getIndex() == micIndex) {
+            return true;
+        }
+    }
+    return false;
+}
+// End of AI-generated text.
+
 } // anonymous namespace
 
 AudioTargetManager::AudioTargetManager(UserSettingsPointer pConfig,
@@ -91,7 +122,8 @@ AudioTargetManager::AudioTargetManager(UserSettingsPointer pConfig,
           m_pRouting(std::make_unique<ControlObject>(
                   ConfigKey(kSoundcardGroup, QStringLiteral("audio_routing")))),
           m_target(Target::Hardware),
-          m_onWasapi(m_pSoundManager->getConfig().getAPI() == kApiWasapi) {
+          m_onWasapi(m_pSoundManager->getConfig().getAPI() == kApiWasapi),
+          m_applying(false) {
     m_pRouting->set(m_pSoundManager->getConfig().getAPI() == kApiWasapi ? 1.0 : 0.0);
     connect(m_pRouting.get(),
             &ControlObject::valueChanged,
@@ -254,8 +286,11 @@ void AudioTargetManager::prepareStartup() {
 
     const bool currentIsHardware = usesHardwareUnit(current);
     const QString lastPcName = m_pConfig->getValueString(kPcDeviceKey);
+    // The saved name is a WASAPI name, so on another API any setup that is
+    // not on the DJ unit is the PC one.
     const bool currentIsSavedPc = !currentIsHardware &&
-            (lastPcName.isEmpty() || mainDeviceName(current) == lastPcName);
+            (current.getAPI() != kApiWasapi || lastPcName.isEmpty() ||
+                    mainDeviceName(current) == lastPcName);
     const bool keepCurrent = (want == Target::Hardware)
             ? currentIsHardware
             : currentIsSavedPc;
@@ -267,7 +302,7 @@ void AudioTargetManager::prepareStartup() {
             saved.setFileName(configFileName(currentIsHardware ? Target::Hardware : Target::Pc));
             saved.writeToDisk();
             if (!currentIsHardware) {
-                m_pConfig->setValue(kPcDeviceKey, mainDeviceName(current));
+                storePcDeviceName(current);
             }
         }
         SoundManagerConfig next = buildConfig(want, current);
@@ -308,8 +343,8 @@ void AudioTargetManager::prepareStartup() {
 bool AudioTargetManager::switchTo(Target target) {
     const SoundManagerConfig current = m_pSoundManager->getConfig();
     snapshotMicInputs(current);
-    if (m_target == Target::Pc && hasMainOutput(current)) {
-        m_pConfig->setValue(kPcDeviceKey, mainDeviceName(current));
+    if (m_target == Target::Pc) {
+        storePcDeviceName(current);
     }
     SoundManagerConfig saved = current;
     saved.setFileName(configFileName(m_target));
@@ -322,11 +357,10 @@ bool AudioTargetManager::switchTo(Target target) {
         return false;
     }
     next.setFileName(QStringLiteral(SOUNDMANAGERCONFIG_FILENAME));
-    if (m_pSoundManager->setConfig(next) != SoundDeviceStatus::Ok) {
+    if (!applyOrGoBack(next, current)) {
         qWarning() << "AudioTargetManager: could not open the"
                    << (target == Target::Hardware ? "HARDWARE" : "PC")
-                   << "device, going back";
-        m_pSoundManager->setConfig(current);
+                   << "device, went back";
         return false;
     }
     m_target = target;
@@ -373,8 +407,8 @@ void AudioTargetManager::slotRoutingChanged(double value) {
         return;
     }
     snapshotMicInputs(current);
-    if (m_target == Target::Pc && hasMainOutput(current)) {
-        m_pConfig->setValue(kPcDeviceKey, mainDeviceName(current));
+    if (m_target == Target::Pc) {
+        storePcDeviceName(current);
     }
     SoundManagerConfig saved = current;
     saved.setFileName(configFileName(m_target));
@@ -388,9 +422,9 @@ void AudioTargetManager::slotRoutingChanged(double value) {
     }
     SoundManagerConfig next = buildConfig(target, onNewApi);
     next.setFileName(QStringLiteral(SOUNDMANAGERCONFIG_FILENAME));
-    if (!hasMainOutput(next) || m_pSoundManager->setConfig(next) != SoundDeviceStatus::Ok) {
-        qWarning() << "AudioTargetManager: could not open a device on" << api << ", going back";
-        m_pSoundManager->setConfig(current);
+    // Without an output device nothing is changed.
+    if (!hasMainOutput(next) || !applyOrGoBack(next, current)) {
+        qWarning() << "AudioTargetManager: could not open a device on" << api << ", went back";
         m_pRouting->set(current.getAPI() == kApiWasapi ? 1.0 : 0.0);
         return;
     }
@@ -401,7 +435,8 @@ void AudioTargetManager::slotRoutingChanged(double value) {
 }
 
 void AudioTargetManager::slotDevicesSetup() {
-    const bool wasapi = m_pSoundManager->getConfig().getAPI() == kApiWasapi;
+    const SoundManagerConfig config = m_pSoundManager->getConfig();
+    const bool wasapi = config.getAPI() == kApiWasapi;
     const bool wasWasapi = m_onWasapi;
     m_onWasapi = wasapi;
     // The control may already hold the new value (set by Preferences), so
@@ -410,26 +445,48 @@ void AudioTargetManager::slotDevicesSetup() {
     if (m_pRouting->get() != routing) {
         m_pRouting->set(routing);
     }
-    if (wasWasapi && !wasapi) {
-        // The four squares are gone, so no talk-over may stay on.
-        for (int i = 0; i < micinputs::kNumMics; ++i) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Leaving WASAPI: the four squares are gone, so no talk-over may stay on.
+    // A mic with no live input cannot be heard, so its talk-over goes off too.
+    const micinputs::Assignments live = liveMicInputs(config);
+    for (int i = 0; i < micinputs::kNumMics; ++i) {
+        if ((wasWasapi && !wasapi) || !live.contains(i)) {
             ControlObject::set(
                     ConfigKey(PlayerManager::groupForMicrophone(i),
                             QStringLiteral("talkover")),
                     0.0);
         }
     }
+    if (wasapi && !wasWasapi && !m_applying) {
+        // Back on WASAPI without buildConfig() (the sound API box in
+        // Preferences): the saved mics were not restored, so a snapshot would
+        // take them for cleared. Keep them pending, and restore them when
+        // this setup is complete.
+        const QStringList available = availableMicDevices();
+        const micinputs::Assignments kept = micinputs::merge(
+                micinputs::keepOnReturn(micinputs::load(m_pConfig), live),
+                live,
+                available);
+        micinputs::save(m_pConfig, kept);
+        if (micinputs::needsRestore(kept, available)) {
+            QTimer::singleShot(0, this, &AudioTargetManager::restoreMicInputsNow);
+        }
+        return;
+    }
+    // End of AI-generated text.
     // After a config is applied, a restored mic is live, so its pending state
     // can be cleared, and a change made in Preferences is kept.
-    snapshotMicInputs(m_pSoundManager->getConfig());
+    snapshotMicInputs(config);
 }
 
 QList<SoundDevicePointer> AudioTargetManager::micInputDevices() const {
     QList<SoundDevicePointer> result;
     const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
     for (const auto& pDevice : devices) {
+        // No DJ unit, and no loop-back device: it records the output, so a
+        // mic on it feeds the mix back into itself.
         if (pDevice->getNumInputChannels().isValid() &&
-                !isHardwareUnit(pDevice->getDeviceId().name)) {
+                !micinputs::isExcludedDevice(pDevice->getDeviceId().name)) {
             result.append(pDevice);
         }
     }
@@ -444,28 +501,30 @@ QString AudioTargetManager::micInputDeviceName(int micIndex) const {
     }
     // Show the live setup, which Preferences may have changed since the last
     // snapshot. A missing device still shows its saved name. No write.
-    QStringList available;
-    const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
-    for (const auto& pDevice : devices) {
-        available.append(pDevice->getDeviceId().name);
-    }
-    return micinputs::merge(saved, liveMicInputs(config), available)
+    return micinputs::merge(saved, liveMicInputs(config), availableMicDevices())
             .value(micIndex)
             .deviceName;
 }
 
-bool AudioTargetManager::assignMicInput(int micIndex, const SoundDeviceId& device) {
+// AI-generated (Claude Code). Start of AI-generated text.
+AudioTargetManager::MicAssignResult AudioTargetManager::assignMicInput(
+        int micIndex, const SoundDeviceId& device) {
     if (micIndex < 0 || micIndex >= micinputs::kNumMics) {
-        return false;
+        return MicAssignResult::Rejected;
     }
     const SoundManagerConfig old = m_pSoundManager->getConfig();
     if (old.getAPI() != kApiWasapi) {
-        return false;
+        return MicAssignResult::Rejected;
     }
+    const ConfigKey talkoverKey(
+            PlayerManager::groupForMicrophone(micIndex), QStringLiteral("talkover"));
 
     micinputs::Assignment assignment;
     const bool isNone = device.name.isEmpty();
     if (!isNone) {
+        if (micinputs::isExcludedDevice(device.name)) {
+            return MicAssignResult::Rejected;
+        }
         SoundDevicePointer pChosen;
         const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
         for (const auto& pDevice : devices) {
@@ -475,12 +534,22 @@ bool AudioTargetManager::assignMicInput(int micIndex, const SoundDeviceId& devic
             }
         }
         if (!pChosen) {
-            return false;
+            return MicAssignResult::Rejected;
         }
         assignment.deviceName = device.name;
         assignment.channelBase = 0;
         assignment.channelCount = micinputs::channelCountFor(
                 pChosen->getNumInputChannels().value());
+    }
+
+    if (isNone && !hasMicInput(old, micIndex)) {
+        // Pending or not connected: no device is open for this mic, so only
+        // its keys go.
+        micinputs::Assignments assignments = micinputs::load(m_pConfig);
+        assignments.remove(micIndex);
+        micinputs::save(m_pConfig, assignments);
+        ControlObject::set(talkoverKey, 0.0);
+        return MicAssignResult::Applied;
     }
 
     SoundManagerConfig next = old;
@@ -504,53 +573,145 @@ bool AudioTargetManager::assignMicInput(int micIndex, const SoundDeviceId& devic
     if (m_pSoundManager->setConfig(next) != SoundDeviceStatus::Ok) {
         qWarning() << "AudioTargetManager: could not open the input for MIC"
                    << (micIndex + 1) << ", going back";
-        m_pSoundManager->setConfig(old);
-        return false;
+        const ApplyResult back = applyConfig(old);
+        if (!back.ok) {
+            qWarning() << "AudioTargetManager: the previous sound setup did not open";
+            return MicAssignResult::AudioOff;
+        }
+        return back.micsDropped ? MicAssignResult::MicrophonesOff
+                                : MicAssignResult::PreviousActive;
     }
 
     // The other mics keep their keys, this one gets what was applied.
     micinputs::Assignments assignments = micinputs::load(m_pConfig);
     if (isNone) {
         assignments.remove(micIndex);
-        ControlObject::set(
-                ConfigKey(PlayerManager::groupForMicrophone(micIndex),
-                        QStringLiteral("talkover")),
-                0.0);
+        ControlObject::set(talkoverKey, 0.0);
     } else {
         assignments.insert(micIndex, assignment);
     }
     micinputs::save(m_pConfig, assignments);
-    return true;
+    return MicAssignResult::Applied;
 }
 
-void AudioTargetManager::snapshotMicInputs(const SoundManagerConfig& config) {
-    if (config.getAPI() != kApiWasapi) {
-        return;
-    }
+QString AudioTargetManager::microphonesOffText() {
+    return tr("Mix Two cannot open the microphone input. The microphone is off. "
+              "The audio output is active.");
+}
+
+QStringList AudioTargetManager::availableMicDevices() const {
     QStringList available;
     const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
     for (const auto& pDevice : devices) {
         available.append(pDevice->getDeviceId().name);
     }
+    return available;
+}
+
+void AudioTargetManager::storePcDeviceName(const SoundManagerConfig& config) {
+    // An ASIO driver name would make the PC choice on WASAPI pick another
+    // device of the same maker, maybe at a rate that does not open.
+    if (config.getAPI() != kApiWasapi || !hasMainOutput(config) || usesHardwareUnit(config)) {
+        return;
+    }
+    m_pConfig->setValue(kPcDeviceKey, mainDeviceName(config));
+}
+
+AudioTargetManager::ApplyResult AudioTargetManager::applyConfig(
+        const SoundManagerConfig& config) {
+    ApplyResult result;
+    const bool wasApplying = m_applying;
+    m_applying = true;
+    if (m_pSoundManager->setConfig(config) == SoundDeviceStatus::Ok) {
+        result.ok = true;
+    } else {
+        SoundManagerConfig withoutMics = config;
+        if (removeMicInputs(&withoutMics)) {
+            qWarning() << "AudioTargetManager: the sound setup did not open,"
+                       << "trying again without the microphone inputs";
+            if (config.getAPI() == kApiWasapi) {
+                // Keep the keys of the removed mics, pending, so that the
+                // next snapshot does not take them for cleared.
+                micinputs::Assignments assignments = micinputs::load(m_pConfig);
+                const micinputs::Assignments removed = liveMicInputs(config);
+                for (auto it = removed.constBegin(); it != removed.constEnd(); ++it) {
+                    if (micinputs::isExcludedDevice(it.value().deviceName)) {
+                        continue;
+                    }
+                    micinputs::Assignment kept = it.value();
+                    kept.pending = true;
+                    assignments.insert(it.key(), kept);
+                }
+                micinputs::save(m_pConfig, assignments);
+            }
+            result.micsDropped = true;
+            result.ok = m_pSoundManager->setConfig(withoutMics) == SoundDeviceStatus::Ok;
+        }
+    }
+    m_applying = wasApplying;
+    return result;
+}
+
+bool AudioTargetManager::applyOrGoBack(
+        const SoundManagerConfig& next, const SoundManagerConfig& old) {
+    const ApplyResult result = applyConfig(next);
+    bool micsOff = result.ok && result.micsDropped;
+    if (!result.ok) {
+        const ApplyResult back = applyConfig(old);
+        micsOff = back.ok && back.micsDropped;
+        if (!back.ok) {
+            qWarning() << "AudioTargetManager: the previous sound setup did not open";
+        }
+    }
+    if (micsOff) {
+        showMicrophonesOff();
+    }
+    return result.ok;
+}
+
+void AudioTargetManager::restoreMicInputsNow() {
+    const SoundManagerConfig current = m_pSoundManager->getConfig();
+    if (current.getAPI() != kApiWasapi) {
+        return;
+    }
+    SoundManagerConfig next = current;
+    restoreMicInputs(&next);
+    if (liveMicInputs(next) == liveMicInputs(current)) {
+        return;
+    }
+    applyOrGoBack(next, current);
+}
+
+void AudioTargetManager::showMicrophonesOff() {
+    // Shown after the sound change is complete, not inside it: the change can
+    // come from a control or from the Preferences page.
+    QTimer::singleShot(0, this, []() {
+        QMessageBox::warning(nullptr, tr("Mix Two"), microphonesOffText());
+    });
+}
+// End of AI-generated text.
+
+void AudioTargetManager::snapshotMicInputs(const SoundManagerConfig& config) {
+    if (config.getAPI() != kApiWasapi) {
+        return;
+    }
+    // merge() drops a DDJ-800 or loop-back input, so it is never kept.
     micinputs::save(m_pConfig,
             micinputs::merge(micinputs::load(m_pConfig),
                     liveMicInputs(config),
-                    available));
+                    availableMicDevices()));
 }
 
 void AudioTargetManager::restoreMicInputs(SoundManagerConfig* pConfig) const {
-    auto& inputs = pConfig->getInputsRef();
-    for (auto it = inputs.begin(); it != inputs.end();) {
-        if (it.value().getType() == AudioPathType::Microphone) {
-            it = inputs.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    removeMicInputs(pConfig);
     const auto devices = m_pSoundManager->getDeviceList(kApiWasapi, false, true);
     const auto assignments = micinputs::load(m_pConfig);
     for (auto it = assignments.constBegin(); it != assignments.constEnd(); ++it) {
         const micinputs::Assignment& assignment = it.value();
+        // Keys from an older build can name a DDJ-800 or loop-back device.
+        if (micinputs::isExcludedDevice(assignment.deviceName)) {
+            continue;
+        }
         for (const auto& pDevice : devices) {
             if (pDevice->getDeviceId().name != assignment.deviceName) {
                 continue;
