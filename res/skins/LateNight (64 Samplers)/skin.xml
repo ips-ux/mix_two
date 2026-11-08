@@ -89,8 +89,15 @@
       <attribute persist="true" config_key="[LateNight],expand_samplers_1-4">0</attribute>
       <attribute persist="true" config_key="[LateNight],expand_samplers_1-8">0</attribute>
       <attribute persist="true" config_key="[LateNight],expand_samplers_9-16">0</attribute>
-    <!-- Mic / Aux -->
+    <!-- Microphones: no rack in this skin, the control picker names the key -->
       <attribute persist="true" config_key="[Skin],show_microphones">0</attribute>
+    <!-- Mic module: the selected input square, and the DDJ-800's mic controls -->
+      <attribute persist="true" config_key="[Skin],mic_selected">1</attribute>
+      <attribute persist="false" config_key="[Skin],ddj800_mic_on">0</attribute>
+      <attribute persist="false" config_key="[Skin],ddj800_mic1_level">0</attribute>
+      <attribute persist="false" config_key="[Skin],ddj800_mic2_level">0</attribute>
+      <attribute persist="false" config_key="[Skin],ddj800_mic_eq_hi">0.5</attribute>
+      <attribute persist="false" config_key="[Skin],ddj800_mic_eq_low">0.5</attribute>
     <!-- Library -->
       <attribute config_key="[Skin],show_maximized_library">0</attribute>
       <attribute persist="true" config_key="[LateNight],max_lib_show_decks">1</attribute>
@@ -239,6 +246,8 @@
       <SetVariable name="ArcColorGainLow">#8d3b11</SetVariable>
       <SetVariable name="ArcColorMstBal">#a00000</SetVariable>
       <SetVariable name="ArcColorFxMix">#a00000</SetVariable>
+      <!-- Mix Two: the Mic module's knobs while no DDJ-800 is connected -->
+      <SetVariable name="ArcColorMicDim">#454545</SetVariable>
       <!-- Knob pointers = suffix for indicator image url -->
       <SetVariable name="KnobColorEq">grey</SetVariable>
       <SetVariable name="KnobColorQuickEffect">green</SetVariable>
@@ -499,7 +508,7 @@
 
                   </Children>
                 </Splitter>
-                <!-- Decks, Effects, Samplers, Mic/Aux, Library -->
+                <!-- Decks, Effects, Samplers, Library -->
 
                 <!-- Maximized Library & mini decks only -->
                 <WidgetGroup trigger="[Skin],show_maximized_library" on_hide_select="0">
