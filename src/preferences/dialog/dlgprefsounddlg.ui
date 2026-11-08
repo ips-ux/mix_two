@@ -155,6 +155,36 @@
       </widget>
      </item>
      <item row="10" column="0">
+      <widget class="QLabel" name="talkoverDuckingLabel">
+       <property name="text">
+        <string>Talk-over ducking</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="1">
+      <widget class="QComboBox" name="talkoverDuckingComboBox"/>
+     </item>
+     <item row="11" column="0">
+      <widget class="QLabel" name="duckStrengthLabel">
+       <property name="text">
+        <string>Ducking strength</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1">
+      <widget class="QSpinBox" name="duckStrengthSpinBox">
+       <property name="suffix">
+        <string> %</string>
+       </property>
+       <property name="maximum">
+        <number>100</number>
+       </property>
+       <property name="singleStep">
+        <number>5</number>
+       </property>
+      </widget>
+     </item>
+     <item row="12" column="0">
       <widget class="QLabel" name="latencyCompensationLabel">
        <property name="text">
         <string>Microphone Latency Compensation</string>
@@ -164,7 +194,7 @@
        </property>
       </widget>
      </item>
-     <item row="10" column="1">
+     <item row="12" column="1">
       <widget class="QDoubleSpinBox" name="latencyCompensationSpinBox">
        <property name="suffix">
         <string> ms</string>
@@ -180,14 +210,14 @@
        </property>
       </widget>
      </item>
-     <item row="12" column="0">
+     <item row="14" column="0">
       <widget class="QLabel" name="mainDelayLabel">
        <property name="text">
         <string>Main Output Delay</string>
        </property>
       </widget>
      </item>
-     <item row="12" column="1">
+     <item row="14" column="1">
       <widget class="QDoubleSpinBox" name="mainDelaySpinBox">
        <property name="suffix">
         <string extracomment="milliseconds"> ms</string>
@@ -203,14 +233,14 @@
        </property>
       </widget>
      </item>
-     <item row="13" column="0">
+     <item row="15" column="0">
       <widget class="QLabel" name="headDelayLabel">
        <property name="text">
         <string>Headphone Output Delay</string>
        </property>
       </widget>
      </item>
-     <item row="13" column="1">
+     <item row="15" column="1">
       <widget class="QDoubleSpinBox" name="headDelaySpinBox">
        <property name="suffix">
         <string extracomment="milliseconds"> ms</string>
@@ -226,14 +256,14 @@
        </property>
       </widget>
      </item>
-     <item row="14" column="0">
+     <item row="16" column="0">
       <widget class="QLabel" name="boothDelayLabel">
        <property name="text">
         <string>Booth Output Delay</string>
        </property>
       </widget>
      </item>
-     <item row="14" column="1">
+     <item row="16" column="1">
       <widget class="QDoubleSpinBox" name="boothDelaySpinBox">
        <property name="suffix">
         <string extracomment="milliseconds"> ms</string>
@@ -249,7 +279,7 @@
        </property>
       </widget>
      </item>
-     <item row="15" column="0" colspan="2">
+     <item row="17" column="0" colspan="2">
       <widget class="QLabel" name="latencyCompensationWarningLabel">
        <property name="text">
         <string notr="true">warning goes here</string>
@@ -491,6 +521,8 @@
   <tabstop>mainMixComboBox</tabstop>
   <tabstop>mainOutputModeComboBox</tabstop>
   <tabstop>micMonitorModeComboBox</tabstop>
+  <tabstop>talkoverDuckingComboBox</tabstop>
+  <tabstop>duckStrengthSpinBox</tabstop>
   <tabstop>latencyCompensationSpinBox</tabstop>
   <tabstop>mainDelaySpinBox</tabstop>
   <tabstop>headDelaySpinBox</tabstop>

@@ -44,7 +44,6 @@ WTrackTableViewHeader::section {
 /* QLabel / WLabel / WPushButton required to override styles set above */
 WLabel#KnobLabel,
 WLabel#FxUnitLabel,
-WLabel#MicAuxLabel, WLabel#MicAuxLabelUnconfigured,
 #VinylControls WPushButton,
 #FxAssignButtons WPushButton,
 WPushButton#GuiToggleButton,
@@ -69,7 +68,6 @@ QLabel#labelRecFilename {
 /* All capitals */
 #KnobLabel,
 #FxUnitLabel,
-#MicAuxLabel, #MicAuxLabelUnconfigured,
 #VinylControls WPushButton,
 #FxAssignButtons WPushButton,
 #GuiToggleButton,
@@ -263,7 +261,6 @@ WEffectChainPresetSelector QAbstractScrollArea,
 #DurationText,
 #RateText,
 #SamplerTitleMini, #SamplerBpm,
-#MicAuxLabel, #MicAuxLabelUnconfigured,
 #PreviewTitle,
 #PreviewLabel,
 WBeatSpinBox,
@@ -298,15 +295,12 @@ WRecordingDuration {
 #PlayPositionTextSmall,
 #SamplerTitle,
 #SamplerTitleMini,
-#MicAuxLabel,
-#MicAuxLabelUnconfigured,
 #PreviewTitle,
 #PreviewLabel {
   text-align: left;
 }
 
 #RateText,
-#MicAuxLabel,
 #PreviewBPM {
   text-align: center;
   }
@@ -788,50 +782,6 @@ WEffectChainPresetButton::menu-indicator {
     }
 
 /************** Samplers *****************************************************/
-
-
-
-/************** Mic Aux *******************************************************/
-
-#MicDuckingContainer {
-  qproperty-layoutAlignment: 'AlignCenter | AlignTop';
-  }
-  #MicDuckingStrengthBox {
-    qproperty-layoutAlignment: 'AlignHCenter';
-  }
-
-#MicAuxUnit {
-  qproperty-layoutAlignment: 'AlignHCenter | AlignTop';
-  }
-    #MicAuxLabel {
-      qproperty-alignment: 'AlignCenter | AlignTop';
-    }
-    #AuxPlayBox {
-      qproperty-layoutAlignment: 'AlignCenter | AlignBottom';
-    }
-    #MicTalkBox {
-      qproperty-layoutAlignment: 'AlignCenter | AlignBottom';
-    }
-    #MicAuxVUMeter {
-      qproperty-layoutAlignment: 'AlignHCenter | AlignVCenter';
-    }
-    #MicAuxAddBox {
-      qproperty-layoutAlignment: 'AlignCenter | AlignBottom';
-    }
-
-  #MicAuxSubControls {
-    qproperty-layoutAlignment: 'AlignHCenter | AlignVCenter';
-    }
-    #MicAuxGainPFlContainer {
-      }
-      #MicAuxGainKnob {
-        qproperty-layoutAlignment: 'AlignCenter';
-      }
-    #MicAuxFxButtons {
-      qproperty-layoutAlignment: 'AlignHCenter | AlignVCenter';
-    }
-
-/************** Mic Aux *******************************************************/
 
 
 

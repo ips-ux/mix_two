@@ -66,6 +66,8 @@ class DlgPrefSound : public DlgPreferencePage, public Ui::DlgPrefSoundDlg  {
     void mainOutputModeComboBoxChanged(int value);
     void mainMonoMixdownChanged(double value);
     void micMonitorModeComboBoxChanged(int value);
+    void talkoverDuckingComboBoxChanged(int value);
+    void duckStrengthSpinBoxChanged(int value);
 
   private slots:
     void addPath(const AudioOutput& output);
@@ -112,6 +114,8 @@ class DlgPrefSound : public DlgPreferencePage, public Ui::DlgPrefSoundDlg  {
     PollingControlProxy m_pHeadDelay;
     PollingControlProxy m_pBoothDelay;
     PollingControlProxy m_pMicMonitorMode;
+    PollingControlProxy m_pTalkoverDucking;
+    PollingControlProxy m_pDuckStrength;
     PollingControlProxy m_pKeylockEngine;
 
     parented_ptr<ControlProxy> m_pAudioLatencyOverloadCount;

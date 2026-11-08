@@ -35,7 +35,6 @@
 #FxUnitControlsExpanded, #FxUnitControlsCollapsed,
 #FxSlotsExpanded, #FxSlotsCollapsed,
 #MixerContainer,
-#MicDuckingContainer, #MicAuxUnit, #MicAuxAddFrame,
 #Sampler, #SamplerMini,
 WEffectSelector::checked,
 WEffectChainPresetSelector,
@@ -65,7 +64,6 @@ WStarRating {
 #VuMeterDeck4_Compact,
 #VuMeterMain_Compact,
 #FxUnit1, #FxUnit2, #FxUnit3, #FxUnit4,
-#MicDuckingContainer, #MicAuxUnit, #MicAuxAddFrame,
 #Sampler, #SamplerMini,
 WLibrary,
 #SidebarBox,
@@ -388,7 +386,6 @@ WLibrary {
 #FxUnit2, #FxUnit4,
 #FxRackFillerR,
 #FxRackFillerL,
-#MicAuxRack,
 #SamplerRow,
 #PreviewDeck {
   margin-bottom: 4px;
@@ -400,8 +397,7 @@ WLibrary {
 #FxUnit1,
 #FxUnit3,
 #FxRackFillerL,
-#FxRackFillerR,
-#MicRack, #AuxRack {
+#FxRackFillerR {
   margin-right: 2px;
 }
 
@@ -411,8 +407,7 @@ WLibrary {
 #FxUnit2,
 #FxUnit4,
 #FxRackFillerL,
-#FxRackFillerR,
-#MicRack, #AuxRack {
+#FxRackFillerR {
   margin-left: 2px;
 }
 /* gap in between compact decks is managed
@@ -424,10 +419,6 @@ WLibrary {
 
 #SamplerRow {
   qproperty-layoutSpacing: 4;
-}
-
-#MicRack, #AuxRack {
-  qproperty-layoutSpacing: 3;
 }
 
 #SkinSettingsContainer {
@@ -1068,54 +1059,6 @@ WEffectSelector,
     }
 
 
-/************** MicAux *****************************************************/
-
-#MicDuckingContainer {
-  }
-  #MicDuckingModeBox {
-    padding: 2px 2px 0px 2px;
-  }
-  #MicDuckingStrengthBox {
-    padding: 2px 0px;
-  }
-
-#MicAuxMainControls {
-  border-radius: 2px;
-  padding: 0px 1px 0px 2px;
-  border-bottom-left-radius: 1px;
-  border-top-right-radius: 1px;
-  }
-  #MicAuxLabel {
-    padding: 3px 0px 3px 1px;
-  }
-
-  #AuxPlayBox,
-  #MicTalkBox {
-    padding: 0px 0px 2px 1px;
-  }
-
-  #MicAuxAddBox {
-    margin: 1px 0px 1px 1px;
-  }
-
-  #MicAuxVUMeter {
-    padding: 2px 1px 3px 0px;
-    margin-left: 2px;
-  }
-
-#MicAuxSubControls {
-  border-width: 0px;
-  padding: 0px 3px 3px 3px;
-  }
-  #MicAuxFxButtons {
-    padding: 2px 0px;
-  }
-
-#MicAuxAddFrame {
-  padding: 2px 4px 4px 4px;
-}
-
-
 /************** PreviewDeck ***************************************************/
 
 #PreviewDeck {
@@ -1197,7 +1140,6 @@ WSearchLineEdit QAbstractScrollArea,
   #Deck1 WStarRating, #DeckCompact1 WStarRating,
 #Deck2 WLabel, #DeckCompact2 WLabel, #DeckMini2 WLabel,
   #Deck2 WStarRating, #DeckCompact2 WStarRating,
-#MicAuxLabel,
 #SamplerTitle, #SamplerTitleMini,
 #SamplerBpm, #SamplerBpmMini,
 #PreviewDeckTextBox, #PreviewTitle, #PreviewBPM,
@@ -1307,7 +1249,6 @@ WBpmEditor QDoubleSpinBox,
 #FxKnobLabel,
 #FxButtonLabel,
 #FxUnitLabel[highlight="0"],
-#MicAuxLabelUnconfigured,
 #LibraryFeatureControls QPushButton:!enabled {
   color: #666;
 }
@@ -1484,7 +1425,6 @@ WPushButton#SyncSampler,
 #FxUnitContainer WPushButton,
 #Sampler WPushButton,
 #SamplerMini WPushButton,
-#MicAuxRack WPushButton,
 WPushButton#PlayPreview {
   /* Limit background-color area to button area designed in SVG backpath. */
   margin: 1px;
@@ -1533,7 +1473,6 @@ WPushButton#SyncLeader[value="0"],
 #MixerContainer WPushButton[displayValue="0"],
 #FxUnitContainer WPushButton[displayValue="0"],
 #Sampler WPushButton[displayValue="0"],
-#MicAuxRack WPushButton[displayValue="0"],
 /* library buttons */
 QPushButton#pushButtonAutoDJ:enabled:!checked,
 #LibraryFeatureControls QPushButton:enabled,
@@ -1570,8 +1509,6 @@ WPushButton#Reverse[pressed="true"],
 #BeatjumpControls WPushButton[value="1"],
 #EQKillButtonBox WPushButton[displayValue="1"],
 #PflButton[value="1"],
-#MicTalk[value="1"], #AuxPlay[value="1"],
-#MicDucking[value="1"], #MicDucking[value="2"],
 #RecFeedback[displayValue="2"],
 QPushButton#pushButtonRecording:checked {
   background-color: #db0000;
@@ -2094,28 +2031,6 @@ WPushButton#BpmLockToggle[value="1"] {
     #HotcuesLater {
       image: url(skins:LateNight/classic/buttons/btn__beats_hotcues_later.svg) no-repeat center center;
     }
-
-#MicTalk {
-  image: url(skins:LateNight/classic/buttons/btn__mic_talk.svg) no-repeat center center;
-}
-
-#AuxPlay {
-  image: url(skins:LateNight/classic/buttons/btn__aux_play.svg) no-repeat center center;
-}
-
-#MicAuxAdd {
-  image: url(skins:LateNight/classic/buttons/btn__plus_flat.svg) no-repeat center center;
-}
-
-#MicDucking[value="0"] {
-  image: url(skins:LateNight/classic/buttons/btn__mic_duck_off.svg) no-repeat center center;
-  }
-  #MicDucking[value="1"] {
-    image: url(skins:LateNight/classic/buttons/btn__mic_duck_auto.svg) no-repeat center center;
-  }
-  #MicDucking[value="2"] {
-    image: url(skins:LateNight/classic/buttons/btn__mic_duck_manual.svg) no-repeat center center;
-  }
 
 #RecDot[highlight="0"] {
   image: url(skins:LateNight/classic/buttons/btn__rec_dot.svg) no-repeat center center;

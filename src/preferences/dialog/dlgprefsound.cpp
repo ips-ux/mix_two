@@ -4,8 +4,11 @@
 #include <QCheckBox>
 #include <QGroupBox>
 #include <QMessageBox>
+#include <QSignalBlocker>
+#include <QSpinBox>
 #include <QtDebug>
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 #include "control/controlobject.h"
@@ -13,6 +16,7 @@
 #include "defs_urls.h"
 #include "engine/enginebuffer.h"
 #include "engine/enginemixer.h"
+#include "engine/enginetalkoverducking.h"
 #include "mixer/playermanager.h"
 #include "moc_dlgprefsound.cpp"
 #include "preferences/configobject.h"
@@ -96,6 +100,8 @@ DlgPrefSound::DlgPrefSound(QWidget* pParent,
           m_pHeadDelay(kMasterGroup, QStringLiteral("headDelay")),
           m_pBoothDelay(kMasterGroup, QStringLiteral("boothDelay")),
           m_pMicMonitorMode(kMasterGroup, QStringLiteral("talkover_mix")),
+          m_pTalkoverDucking(kMasterGroup, QStringLiteral("talkoverDucking")),
+          m_pDuckStrength(kMasterGroup, QStringLiteral("duckStrength")),
           m_pKeylockEngine(kKeylockEngingeCfgkey),
           m_settingsModified(false),
           m_bLatencyChanged(false),
@@ -235,6 +241,27 @@ DlgPrefSound::DlgPrefSound(QWidget* pParent,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             &DlgPrefSound::micMonitorModeComboBoxChanged);
+
+    talkoverDuckingComboBox->addItem(tr("Off"),
+            QVariant(static_cast<int>(EngineTalkoverDucking::OFF)));
+    talkoverDuckingComboBox->addItem(tr("Auto"),
+            QVariant(static_cast<int>(EngineTalkoverDucking::AUTO)));
+    talkoverDuckingComboBox->addItem(tr("Manual"),
+            QVariant(static_cast<int>(EngineTalkoverDucking::MANUAL)));
+    talkoverDuckingComboBox->setCurrentIndex(talkoverDuckingComboBox->findData(
+            static_cast<int>(m_pTalkoverDucking.get())));
+    connect(talkoverDuckingComboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &DlgPrefSound::talkoverDuckingComboBoxChanged);
+
+    // The engine control is 0.0 to 1.0. The spin box shows percent.
+    duckStrengthSpinBox->setValue(
+            static_cast<int>(std::lround(m_pDuckStrength.get() * 100)));
+    connect(duckStrengthSpinBox,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &DlgPrefSound::duckStrengthSpinBoxChanged);
 
 #ifdef __PIPEWIRE__
     if (CmdlineArgs::Instance().getDeveloper()) {
@@ -559,6 +586,16 @@ void DlgPrefSound::slotUpdate() {
     loadSettings();
     checkLatencyCompensation();
     m_bSkipConfigClear = false;
+
+    // The skin can change the ducking controls while this page is closed
+    {
+        const QSignalBlocker modeBlocker(talkoverDuckingComboBox);
+        const QSignalBlocker strengthBlocker(duckStrengthSpinBox);
+        talkoverDuckingComboBox->setCurrentIndex(talkoverDuckingComboBox->findData(
+                static_cast<int>(m_pTalkoverDucking.get())));
+        duckStrengthSpinBox->setValue(
+                static_cast<int>(std::lround(m_pDuckStrength.get() * 100)));
+    }
 }
 
 /// Slot called when the Apply or OK button is pressed.
@@ -1329,6 +1366,13 @@ void DlgPrefSound::slotResetToDefaults() {
             micMonitorModeComboBox->findData(
                     static_cast<int>(EngineMixer::MicMonitorMode::Main)));
 
+    // Talk-over ducking: the engine defaults are Auto and 90 percent
+    m_pTalkoverDucking.set(static_cast<double>(EngineTalkoverDucking::AUTO));
+    talkoverDuckingComboBox->setCurrentIndex(talkoverDuckingComboBox->findData(
+            static_cast<int>(EngineTalkoverDucking::AUTO)));
+    m_pDuckStrength.set(0.9);
+    duckStrengthSpinBox->setValue(90);
+
     latencyCompensationSpinBox->setValue(latencyCompensationSpinBox->minimum());
 
     settingChanged();
@@ -1398,6 +1442,14 @@ void DlgPrefSound::micMonitorModeComboBoxChanged(int value) {
     m_pMicMonitorMode.set(static_cast<double>(newMode));
 
     checkLatencyCompensation();
+}
+
+void DlgPrefSound::talkoverDuckingComboBoxChanged(int value) {
+    m_pTalkoverDucking.set(talkoverDuckingComboBox->itemData(value).toDouble());
+}
+
+void DlgPrefSound::duckStrengthSpinBoxChanged(int value) {
+    m_pDuckStrength.set(value / 100.0);
 }
 
 void DlgPrefSound::checkLatencyCompensation() {

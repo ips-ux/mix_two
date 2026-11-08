@@ -70,15 +70,6 @@
             <SetVariable name="ConfigKey">[Skin],show_samplers</SetVariable>
           </Template>
 
-          <Template src="skins:LateNight/controls/button_2state_persist.xml">
-            <SetVariable name="TooltipId">show_microphone</SetVariable>
-            <SetVariable name="ObjectName">GuiToggleButton</SetVariable>
-            <SetVariable name="Size">61f,20f</SetVariable>
-            <SetVariable name="state_0_text">MIC/AUX</SetVariable>
-            <SetVariable name="state_1_text">MIC/AUX</SetVariable>
-            <SetVariable name="ConfigKey">[Skin],show_microphones</SetVariable>
-          </Template>
-
         </Children>
         <Connection>
           <ConfigKey>[Skin],show_maximized_library</ConfigKey>

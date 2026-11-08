@@ -642,7 +642,6 @@
 
                         <Template src="skins:LateNight/fx_rack.xml"/>
                         <Template src="skins:LateNight/samplers_rack.xml"/>
-                        <Template src="skins:LateNight/mic_aux_rack.xml"/>
 
                         <SingletonContainer>
                           <ObjectName>LibrarySingleton</ObjectName>
@@ -652,7 +651,7 @@
 
                   </Children>
                 </Splitter>
-                <!-- Decks, Effects, Samplers, Mic/Aux, Library -->
+                <!-- Decks, Effects, Samplers, Library -->
 
                 <!-- Maximized Library & mini decks only -->
                 <WidgetGroup trigger="[Skin],show_maximized_library" on_hide_select="0">

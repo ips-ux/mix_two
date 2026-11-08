@@ -464,6 +464,10 @@ deck windows.
 With 4 DECKS on, the master output meter shows in the Master panel, on the
 left of the LEVEL and BOOTH knobs.
 
+The mixer has a new Mic module. The MIC/AUX panel and the MIC/AUX button are
+removed. The talk-over ducking settings are now in Preferences, on the Sound
+Hardware page.
+
 ### Waveform type: Color Saturated
 
 There is a new waveform type, **Color Saturated**. It shows each part of the
