@@ -345,6 +345,7 @@ for (const k of Object.keys(handlers)) delete handlers[k];
 P.init("DDJ-800", false);
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
 // The deck mixes the mic in hardware. The mapping only publishes its state
 // to the skin, and never drives talk-over.
 send(0xB6, 0x05, 0x7F); check("MSB alone leaves MIC 1 alone", engine.getValue("[Skin]", "ddj800_mic1_level") === 0);
@@ -356,6 +357,24 @@ send(0x96, 0x6B, 0x7F); check("MIC on", engine.getValue("[Skin]", "ddj800_mic_on
 send(0x96, 0x6A, 0x00); check("value 0 on the OFF note does not act", engine.getValue("[Skin]", "ddj800_mic_on") === 1);
 send(0x96, 0x6A, 0x7F); check("MIC off", engine.getValue("[Skin]", "ddj800_mic_on") === 0);
 check("MIC never drives talkover", !sets.some(s => s[0] === "[Microphone]" && s[1] === "talkover"));
+// Shutdown after mic messages: on, levels and EQ go back to their defaults.
+send(0x96, 0x6B, 0x7F);
+check("mic state is not at its defaults before shutdown",
+        engine.getValue("[Skin]", "ddj800_mic_on") === 1
+        && engine.getValue("[Skin]", "ddj800_mic1_level") === 1
+        && engine.getValue("[Skin]", "ddj800_mic2_level") > 0
+        && engine.getValue("[Skin]", "ddj800_mic_eq_hi") === 1
+        && engine.getValue("[Skin]", "ddj800_mic_eq_low") === 0);
+P.shutdown();
+check("shutdown after mic messages resets on, levels and EQ",
+        engine.getValue("[Skin]", "ddj800_mic_on") === 0
+        && engine.getValue("[Skin]", "ddj800_mic1_level") === 0
+        && engine.getValue("[Skin]", "ddj800_mic2_level") === 0
+        && engine.getValue("[Skin]", "ddj800_mic_eq_hi") === 0.5
+        && engine.getValue("[Skin]", "ddj800_mic_eq_low") === 0.5);
+for (const k of Object.keys(handlers)) delete handlers[k];
+P.init("DDJ-800", false);
+// End of AI-generated text.
 
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;
