@@ -2,7 +2,7 @@
 # Mix Two
 
 Mix Two is a fork of Mixxx. It replaces rekordbox 6 for a DJ with a Pioneer
-DDJ-800. The text below shows the status of the work, up to 2026-11-07.
+DDJ-800. The text below shows the status of the work, up to 2026-11-11.
 
 ## Overview
 
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-11: 2-deck mixer uses the 4-deck channel columns; COLOR knobs in 4-deck mode (commit: see git log, "LateNight: 2-deck mixer in channel columns, COLOR knobs with 4 decks")
 - 2026-11-07: Mic module in the LateNight mixer (commit: see git log, "LateNight: Mic module under the CFX buttons" and the mic commits before and after it)
 - 2026-11-07: Preferences window belongs to the main window, frameless, asks before it discards changes (commit: see git log, "Preferences: frameless window owned by the main window")
 - 2026-11-07: Mix Two logo and Contributions page (commit: see git log, "Branding: Mix Two logo and a Contributions page")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-04: Legacy Design deck HUD: RGB waveform colours calibrated (commit: see git log, "LateNight: RGB waveform colours calibrated")
 - 2026-11-02: Legacy Design deck HUD, final review fixes (commit: see git log, "A.HOT CUE: a clear on hidden pads only shows the cues; DDJ-800 mixer strip keeps the side")
 - 2026-11-02: Legacy Design deck HUD: the mapping sets the deck shown on each side (commit: see git log, "DDJ-800: the screen shows the deck each side controls")
-- 2026-11-02: Legacy Design deck HUD, task 13 fix: memory cue list safe for a live set
 
 <!-- mixtwo-status:end -->
 
