@@ -472,6 +472,9 @@ The mixer has a new Mic module. The MIC/AUX panel and the MIC/AUX button are
 removed. The talk-over ducking settings are now in Preferences, on the Sound
 Hardware page.
 
+In the Mic module, the level meter of the selected microphone is a horizontal
+bar below the Level knob. The knob and CUE are at the center of the module.
+
 If Mix Two cannot open a microphone input, it sets the microphone off. The
 audio output stays active, and a message shows.
 

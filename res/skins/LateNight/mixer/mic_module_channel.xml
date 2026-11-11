@@ -1,7 +1,7 @@
 <!DOCTYPE template>
 <!-- AI-generated (Claude Code). Start of AI-generated text. -->
 <!--
-  Mix Two: the label, meter, Level knob and CUE of one native mic. It shows
+  Mix Two: the label, Level knob, meter bar and CUE of one native mic. It shows
   while [Skin],mic_selected selects this mic.
   Variables:
     MicNumber: 1 to 4
@@ -25,11 +25,6 @@
         <SizePolicy>min,min</SizePolicy>
         <Children>
           <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
-          <Template src="skins:LateNight/mixer/vumeter_single.xml">
-            <SetVariable name="ChannelType">microphone</SetVariable>
-            <SetVariable name="VuSize">micaux</SetVariable>
-          </Template>
-          <WidgetGroup><Size>8f,0min</Size></WidgetGroup>
           <WidgetGroup>
             <Layout>vertical</Layout>
             <SizePolicy>min,min</SizePolicy>
@@ -43,6 +38,39 @@
                 <SetVariable name="ArcColor"><Variable name="ArcColorGain"/></SetVariable>
                 <SetVariable name="Control">pregain</SetVariable>
               </Template>
+              <WidgetGroup><Size>0min,2f</Size></WidgetGroup>
+              <!-- The level meter: a bar below the knob, so the knob and
+                   CUE stay at the centre of the module. -->
+              <WidgetGroup>
+                <ObjectName>MicMeterBar</ObjectName>
+                <Layout>horizontal</Layout>
+                <SizePolicy>min,min</SizePolicy>
+                <Children>
+                  <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
+                  <VuMeter>
+                    <TooltipId>microphone_VuMeter</TooltipId>
+                    <PathBack>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_micbar_level_bg.png</PathBack>
+                    <PathVu>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_micbar_level_active.png</PathVu>
+                    <Horizontal>true</Horizontal>
+                    <PeakHoldSize>4</PeakHoldSize>
+                    <PeakHoldTime>500</PeakHoldTime>
+                    <PeakFallTime>10</PeakFallTime>
+                    <PeakFallStep>2</PeakFallStep>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,vu_meter</ConfigKey>
+                    </Connection>
+                  </VuMeter>
+                  <StatusLight>
+                    <TooltipId>microphone_peak_indicator</TooltipId>
+                    <PathBack>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_micbar_clipping_bg.png</PathBack>
+                    <PathStatusLight>skins:LateNight/<Variable name="StyleScheme"/>/style/vu_micbar_clipping_active.png</PathStatusLight>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,peak_indicator</ConfigKey>
+                    </Connection>
+                  </StatusLight>
+                  <WidgetGroup><Size>0me,0min</Size></WidgetGroup>
+                </Children>
+              </WidgetGroup>
               <WidgetGroup><Size>0min,3f</Size></WidgetGroup>
               <PushButton>
                 <TooltipId>pfl</TooltipId>
