@@ -369,9 +369,13 @@ The TRIM knob is now at the top of each channel, above HI. It has a scale
 with -∞ and +12 at its ends. +12 dB is the maximum TRIM in Mix Two. The
 DDJ-800 TRIM stops at +9 dB.
 
-The COLOR knobs are now in a SOUND COLOR FX row below the EQ knobs, as on
-the DDJ-800. Each COLOR knob shows LOW and HI at its ends. The headphone CUE
-buttons are below the COLOR knobs, at the center of each channel.
+Each mixer channel is now one column, as on a usual DJ mixer. From top to
+bottom: TRIM, HI, MID, LOW, COLOR, CUE, the channel meter and fader, and the
+crossfader assign buttons. 2 decks and 4 DECKS use the same columns.
+
+Each COLOR knob shows LOW and HI at its ends. With 4 DECKS on, the COLOR knobs
+also show when no Sound Color FX is on. The SOUND COLOR FX text is removed.
+The 2-deck mixer is narrower, so the deck windows are wider.
 
 The HEADPHONES MIXING and LEVEL knobs and the MASTER LEVEL and BOOTH knobs
 now have scales. The level knobs show -∞ and 0 at their ends. On MASTER
@@ -461,8 +465,8 @@ the numbers do not change on a click.
 1, 2, 4. It does not add deck windows. The waveforms at the top follow the
 deck windows.
 
-With 4 DECKS on, the master output meter shows in the Master panel, on the
-left of the LEVEL and BOOTH knobs.
+The master output meter shows in the Master panel, on the left of the LEVEL
+and BOOTH knobs. This is the same with 2 decks and with 4 DECKS.
 
 The mixer has a new Mic module. The MIC/AUX panel and the MIC/AUX button are
 removed. The talk-over ducking settings are now in Preferences, on the Sound

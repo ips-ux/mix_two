@@ -22,7 +22,7 @@
               <WidgetGroup><!-- Enable button / placeholder -->
                 <ObjectName>EQKillButtonBox</ObjectName>
                 <Layout>vertical</Layout>
-                <Size>0min,34f</Size>
+                <Size>0min,41f</Size>
                 <Children>
 
                   <WidgetGroup><Size>0min,5f</Size></WidgetGroup>
@@ -34,8 +34,12 @@
                 </Children>
               </WidgetGroup><!-- Enable button / placeholder -->
 
-              <WidgetGroup><!-- QuickEffect Meta knob + status dot -->
-                <Size>40f,34f</Size>
+              <!-- AI-generated (Claude Code). Start of AI-generated text. -->
+              <!-- Mix Two: the COLOR knob, LOW / HI at its bottom corners. It
+                   shows also when no Sound Color FX is selected. -->
+              <!-- End of AI-generated text. -->
+              <WidgetGroup>
+                <Size>40f,41f</Size>
                 <Children>
                   <KnobComposed>
                     <TooltipId>QuickEffectRack_super1</TooltipId>
@@ -56,21 +60,26 @@
                       <ConfigKey><Variable name="QuickEffectGroup"/>,super1</ConfigKey>
                     </Connection>
                   </KnobComposed>
-
+                  <Label>
+                    <ObjectName>KnobCornerLabel</ObjectName>
+                    <Pos>0,31</Pos>
+                    <Size>18f,10f</Size>
+                    <Text>LOW</Text>
+                    <Alignment>left</Alignment>
+                  </Label>
+                  <Label>
+                    <ObjectName>KnobCornerLabel</ObjectName>
+                    <Pos>20,31</Pos>
+                    <Size>20f,10f</Size>
+                    <Text>HI</Text>
+                    <Alignment>right</Alignment>
+                  </Label>
                 </Children>
-              </WidgetGroup><!-- QuickEffect Meta knob + status dot -->
+              </WidgetGroup><!-- COLOR knob -->
 
               <WidgetGroup><Size>2f,0min</Size></WidgetGroup>
 
             </Children>
-            <Connection>
-              <ConfigKey><Variable name="QuickEffectGroup"/>,loaded_chain_preset</ConfigKey>
-              <Transform>
-                <IsEqual>0</IsEqual>
-                <Not/>
-              </Transform>
-              <BindProperty>visible</BindProperty>
-            </Connection>
           </WidgetGroup><!-- /Kill button + knob -->
 
         </Children>

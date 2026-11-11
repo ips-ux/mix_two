@@ -51,9 +51,10 @@
                   <SizePolicy>min,min</SizePolicy>
                   <Children>
 
-                    <!-- Mix Two: with 4 DECKS the main output meter is in this
-                         module, on the left of the knobs. The 2-deck mixer has
-                         it between its channel meters. -->
+                    <!-- AI-generated (Claude Code). Start of AI-generated text. -->
+                    <!-- Mix Two: the main output meter is in this module, on
+                         the left of the knobs, with 2 and 4 decks. -->
+                    <!-- End of AI-generated text. -->
                     <WidgetGroup>
                       <Layout>horizontal</Layout>
                       <SizePolicy>max,min</SizePolicy>
@@ -71,10 +72,6 @@
                         </WidgetGroup><!-- VuMeterMain_4Decks -->
                         <WidgetGroup><Size>10f,0min</Size></WidgetGroup>
                       </Children>
-                      <Connection>
-                        <ConfigKey persist="true">[Skin],show_4decks</ConfigKey>
-                        <BindProperty>visible</BindProperty>
-                      </Connection>
                     </WidgetGroup>
 
                     <WidgetGroup>

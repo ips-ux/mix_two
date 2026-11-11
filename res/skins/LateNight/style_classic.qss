@@ -2923,19 +2923,6 @@ WSearchLineEdit::indicator:unchecked:selected {
   color: #a39a90;
 }
 
-/* Mix Two: SOUND COLOR FX set apart from the EQ: a line across the mixer
-   and the band's name between the COLOR knobs, as on the DDJ-800. */
-#SoundColorFxDivider {
-  background-color: #3a3a3e;
-}
-#SoundColorFxLabel {
-  font-family: "Open Sans";
-  font-size: 10px;
-  font-weight: bold;
-  color: #bfbfbe;
-  qproperty-alignment: 'AlignCenter';
-}
-
 /* Mix Two: AUDIO: HARDWARE | PC in the toolbar, next to REC. The side
    that is not in use looks like the other toolbar buttons when off; the
    side in use is lit: HARDWARE in our orange, PC in our blue. */
