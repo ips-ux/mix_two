@@ -1007,7 +1007,7 @@ void BaseTrackPlayerImpl::slotWaveformZoomUp(double pressed) {
         return;
     }
 
-    m_pWaveformZoom->set(m_pWaveformZoom->get() + 1.0);
+    m_pWaveformZoom->set(WaveformWidgetRenderer::steppedZoom(m_pWaveformZoom->get(), 1));
 }
 
 void BaseTrackPlayerImpl::slotWaveformZoomDown(double pressed) {
@@ -1015,7 +1015,7 @@ void BaseTrackPlayerImpl::slotWaveformZoomDown(double pressed) {
         return;
     }
 
-    m_pWaveformZoom->set(m_pWaveformZoom->get() - 1.0);
+    m_pWaveformZoom->set(WaveformWidgetRenderer::steppedZoom(m_pWaveformZoom->get(), -1));
 }
 
 void BaseTrackPlayerImpl::slotWaveformZoomSetDefault(double pressed) {

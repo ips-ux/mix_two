@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include <cmath>
 
 #include "control/controlproxy.h"
 #include "track/track.h"
@@ -13,10 +14,24 @@
 #include "waveform/vsyncthread.h"
 #include "waveform/waveform.h"
 
-const double WaveformWidgetRenderer::s_waveformMinZoom = 1.0;
+const double WaveformWidgetRenderer::s_waveformMinZoom = 0.2;
 const double WaveformWidgetRenderer::s_waveformMaxZoom = 10.0;
 const double WaveformWidgetRenderer::s_waveformDefaultZoom = 3.0;
 const double WaveformWidgetRenderer::s_defaultPlayMarkerPosition = 0.5;
+
+double WaveformWidgetRenderer::zoomToVisualSamplesPerPixel(
+        double zoom, double visualSampleRate) {
+    if (visualSampleRate <= 0) {
+        return zoom;
+    }
+    return zoom * visualSampleRate / kLegacyMainWaveformSampleRate;
+}
+
+double WaveformWidgetRenderer::steppedZoom(double zoom, int steps) {
+    return math_clamp<double>(zoom * std::pow(1.25, steps),
+            s_waveformMinZoom,
+            s_waveformMaxZoom);
+}
 
 namespace {
 constexpr int kDefaultDimBrightThreshold = 127;
@@ -166,15 +181,20 @@ void WaveformWidgetRenderer::onPreRender(VSyncTimeProvider* vsyncThread) {
     // Allow waveform to spread one visual sample across a hundred pixels
     // NOTE: The hundred pixel limit is totally arbitrary. Theoretically,
     // there should be no limit to how far the waveforms can be zoomed in.
-    double visualSamplePerPixel = m_zoomFactor * rateRatio / m_scaleFactor;
-    m_visualSamplePerPixel = math_max(0.01, visualSamplePerPixel);
-
+    // The zoom value is a span of time; convert it to stored points per
+    // pixel with the rate of the loaded waveform (old or new).
+    ConstWaveformPointer pWaveform;
     TrackPointer pTrack = m_pTrack;
     if (pTrack) {
-        ConstWaveformPointer pWaveform = pTrack->getWaveform();
-        if (pWaveform) {
-            m_audioSamplePerPixel = m_visualSamplePerPixel * pWaveform->getAudioVisualRatio();
-        }
+        pWaveform = pTrack->getWaveform();
+    }
+    const double storedPointsPerPixel = zoomToVisualSamplesPerPixel(m_zoomFactor,
+            pWaveform ? pWaveform->getVisualSampleRate() : 0.0);
+    double visualSamplePerPixel = storedPointsPerPixel * rateRatio / m_scaleFactor;
+    m_visualSamplePerPixel = math_max(0.01, visualSamplePerPixel);
+
+    if (pWaveform) {
+        m_audioSamplePerPixel = m_visualSamplePerPixel * pWaveform->getAudioVisualRatio();
     }
 
     double truePos[2]{0};

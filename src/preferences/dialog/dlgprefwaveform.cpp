@@ -16,6 +16,7 @@
 #include "moc_dlgprefwaveform.cpp"
 #include "preferences/waveformsettings.h"
 #include "util/cmdlineargs.h"
+#include "util/assert.h"
 #include "util/db/dbconnectionpooled.h"
 #include "waveform/overviewtype.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
@@ -129,12 +130,16 @@ DlgPrefWaveform::DlgPrefWaveform(
     // Sort the combobox items alphabetically
     waveformTypeComboBox->model()->sort(0);
 
-    // Populate zoom options.
-    for (int i = static_cast<int>(WaveformWidgetRenderer::s_waveformMinZoom);
+    // Populate zoom options: the whole numbers 1 to 10. The entry index is
+    // the zoom value minus one. The zoom range goes lower, but the list
+    // does not.
+    for (int i = 1;
             i <= static_cast<int>(WaveformWidgetRenderer::s_waveformMaxZoom);
             i++) {
         defaultZoomComboBox->addItem(QString::number(100 / static_cast<double>(i), 'f', 1) + " %");
     }
+    DEBUG_ASSERT(defaultZoomComboBox->count() ==
+            static_cast<int>(WaveformWidgetRenderer::s_waveformMaxZoom));
 
     const ConfigKey overviewStereoKey(
             kWaveformGroup, QStringLiteral("overview_stereo_mode"));

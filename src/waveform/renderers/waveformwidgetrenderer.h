@@ -26,6 +26,17 @@ class WaveformWidgetRenderer {
     static const double s_waveformDefaultZoom;
     static const double s_defaultPlayMarkerPosition;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The zoom value is a span of time: 1 to 10 show the same span for
+    // waveform data stored at the old and at the new point rate. This
+    // converts it to stored points per pixel. Without a waveform
+    // (rate <= 0) the zoom value is returned unchanged.
+    static double zoomToVisualSamplesPerPixel(double zoom, double visualSampleRate);
+    // A zoom value changed by `steps` proportional steps (factor 1.25
+    // each), kept inside the zoom range.
+    static double steppedZoom(double zoom, int steps);
+    // End of AI-generated text.
+
     struct WaveformMarkOnScreen {
         WaveformMarkPointer m_pMark;
         int m_offsetOnScreen;
