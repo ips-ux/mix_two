@@ -153,7 +153,14 @@ class WaveformWidgetFactory : public QObject,
     WaveformWidgetBackend getBackendFromConfig() const;
     WaveformWidgetBackend preferredBackend() const;
     static WaveformWidgetType::Type defaultType() {
-        return WaveformWidgetType::RGB;
+        return WaveformWidgetType::ThreeBand;
+    }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The default type if it is available. Else RGB, which is also
+    /// available without allshader.
+    // End of AI-generated text.
+    static WaveformWidgetType::Type defaultTypeIfAvailable(bool defaultAvailable) {
+        return defaultAvailable ? defaultType() : WaveformWidgetType::RGB;
     }
     // AI-generated (Claude Code). Start of AI-generated text.
     /// The waveform type to use at start. Mix Two changes each profile to

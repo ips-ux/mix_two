@@ -487,23 +487,28 @@ void DlgPrefWaveform::slotApply() {
 
 void DlgPrefWaveform::slotResetToDefaults() {
     auto* pFactory = WaveformWidgetFactory::instance();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Without allshader, 3Band is not available: use RGB.
+    // End of AI-generated text.
+    const WaveformWidgetType::Type defaultType =
+            WaveformWidgetFactory::defaultTypeIfAvailable(
+                    pFactory->findHandleIndexFromType(
+                            WaveformWidgetFactory::defaultType()) != -1);
 
-    int defaultIndex = waveformTypeComboBox->findData(
-            WaveformWidgetFactory::defaultType());
+    int defaultIndex = waveformTypeComboBox->findData(defaultType);
     if (defaultIndex != -1 && waveformTypeComboBox->currentIndex() != defaultIndex) {
         waveformTypeComboBox->setCurrentIndex(defaultIndex);
     }
     pFactory->setDefaultBackend();
     useWaveformCheckBox->setChecked(true);
     waveformTypeComboBox->setEnabled(true);
-    updateWaveformAcceleration(pFactory->defaultType());
+    updateWaveformAcceleration(defaultType);
 
     // Restore waveform backend and option setting instantly
     pFactory->resetWaveformOptions();
     updateWaveformTypeOptions(true);
     pFactory->setWidgetTypeFromHandle(
-            pFactory->findHandleIndexFromType(
-                    WaveformWidgetFactory::defaultType()),
+            pFactory->findHandleIndexFromType(defaultType),
             true);
 
     allVisualGain->setValue(WaveformWidgetFactory::getVisualGainDefault(BandIndex::AllBand));

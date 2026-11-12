@@ -29,4 +29,15 @@ TEST(WaveformWidgetFactoryDefaultTest, SwitchesToThreeBandOnce) {
             WaveformWidgetFactory::mixtwoInitialType(WaveformWidgetType::Stacked, true));
 }
 
+TEST(WaveformWidgetFactoryDefaultTest, DefaultIsThreeBand) {
+    EXPECT_EQ(WaveformWidgetType::ThreeBand, WaveformWidgetFactory::defaultType());
+}
+
+TEST(WaveformWidgetFactoryDefaultTest, DefaultFallsBackToRgb) {
+    EXPECT_EQ(WaveformWidgetType::ThreeBand,
+            WaveformWidgetFactory::defaultTypeIfAvailable(true));
+    EXPECT_EQ(WaveformWidgetType::RGB,
+            WaveformWidgetFactory::defaultTypeIfAvailable(false));
+}
+
 } // namespace

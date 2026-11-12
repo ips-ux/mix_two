@@ -60,7 +60,11 @@ upgradeToAllShaders(int unsafeWaveformType,
                     waveformOption};
             ;
         default:
-            return {WaveformWidgetFactory::defaultType(),
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // RGB, not defaultType(): RGB is available in every build. At
+            // start, the factory then changes the profile to 3Band one time.
+            // End of AI-generated text.
+            return {WaveformWidgetType::RGB,
                     WaveformWidgetBackend::AllShader,
                     waveformOption};
         }
@@ -131,7 +135,10 @@ upgradeToAllShaders(int unsafeWaveformType,
                 : WaveformRendererSignalBase::Option::HighDetail;
         [[fallthrough]];
     default:
-        waveformType = WaveformWidgetFactory::defaultType();
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // RGB, for the same reason as above.
+        // End of AI-generated text.
+        waveformType = WaveformWidgetType::RGB;
         break;
     }
     return {waveformType, waveformBackend, waveformOption};

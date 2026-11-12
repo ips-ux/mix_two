@@ -70,7 +70,7 @@ void addBandHalf(RGBVertexUpdater& vertexUpdater,
             {x1, centreY}, {x2, middleY}, colors.centre, colors.middle);
     vertexUpdater.addRectangleVGradient(
             {x1, middleY}, {x2, edgeY}, colors.middle, colors.edge);
-    const float rimInnerY = drawRim ? edgeY - direction * rimHeight : edgeY;
+    const float rimInnerY = drawRim ? edgeY - direction * std::min(rimHeight, height) : edgeY;
     vertexUpdater.addRectangle({x1, rimInnerY}, {x2, edgeY}, colors.rim);
 }
 // End of AI-generated text.
