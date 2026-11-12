@@ -2085,6 +2085,7 @@ if(QOPENGL)
       src/waveform/renderers/allshader/waveformrenderbackground.cpp
       src/waveform/renderers/allshader/waveformrenderbeat.cpp
       src/waveform/renderers/allshader/waveformrenderer.cpp
+      src/waveform/renderers/allshader/waveformrenderer3band.cpp
       src/waveform/renderers/allshader/waveformrenderercolorsaturated.cpp
       src/waveform/renderers/allshader/waveformrendererendoftrack.cpp
       src/waveform/renderers/allshader/waveformrendererslipmode.cpp
@@ -3117,6 +3118,7 @@ if(BUILD_TESTING)
     src/test/uuid_test.cpp
     src/test/threebandsampler_test.cpp
     src/test/waveformoverviewrenderer_test.cpp
+    src/test/waveformwidgettype_test.cpp
     src/test/waveformzoom_test.cpp
     src/test/wbatterytest.cpp
     src/test/wcombobox_test.cpp

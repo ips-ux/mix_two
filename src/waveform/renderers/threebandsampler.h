@@ -15,6 +15,13 @@ inline constexpr double kLowHoldSeconds = 0.016;
 /// Time over which the mid band is held, in seconds.
 inline constexpr double kMidHoldSeconds = 0.004;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// Height scale of each band, relative to the full half height.
+// End of AI-generated text.
+inline constexpr float kLowGain = 0.75f;
+inline constexpr float kMidGain = 0.68f;
+inline constexpr float kHighGain = 0.5f;
+
 struct Peaks {
     uchar low = 0;
     uchar mid = 0;

@@ -8,6 +8,7 @@
 #include "rendergraph/opacitynode.h"
 #include "waveform/renderers/allshader/waveformrenderbackground.h"
 #include "waveform/renderers/allshader/waveformrenderbeat.h"
+#include "waveform/renderers/allshader/waveformrenderer3band.h"
 #include "waveform/renderers/allshader/waveformrenderercolorsaturated.h"
 #include "waveform/renderers/allshader/waveformrendererendoftrack.h"
 #include "waveform/renderers/allshader/waveformrendererfiltered.h"
@@ -137,6 +138,8 @@ WaveformWidget::addWaveformSignalRenderer(WaveformWidgetType::Type type,
     case ::WaveformWidgetType::ColorSaturated:
         return addWaveformSignalRenderer<WaveformRendererColorSaturated>(
                 positionSource, options);
+    case ::WaveformWidgetType::ThreeBand:
+        return addWaveformSignalRenderer<WaveformRenderer3Band>(positionSource, options);
     default:
         break;
     }

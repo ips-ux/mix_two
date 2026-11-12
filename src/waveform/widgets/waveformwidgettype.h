@@ -19,6 +19,7 @@ class WaveformWidgetType {
         Stacked = 16,  // 16 RGB Stacked
         // AI-generated (Claude Code). Start of AI-generated text.
         ColorSaturated = 17, // 17 Color Saturated (base colour to white)
+        ThreeBand = 18,      // 18 3Band (low, mid and high band, shaded)
         // End of AI-generated text.
         Invalid,       // Don't use! Used to indicate invalid/unknown type, as
                        // Count_WaveformWidgetType used to.
@@ -32,6 +33,7 @@ class WaveformWidgetType {
             WaveformWidgetType::RGB,
             WaveformWidgetType::Stacked,
             WaveformWidgetType::ColorSaturated,
+            WaveformWidgetType::ThreeBand,
     };
 };
 

@@ -155,6 +155,13 @@ class WaveformWidgetFactory : public QObject,
     static WaveformWidgetType::Type defaultType() {
         return WaveformWidgetType::RGB;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The waveform type to use at start. Mix Two changes each profile to
+    /// 3Band one time: while [Waveform],mixtwo_3band_default_applied is not
+    /// set, this returns ThreeBand. After that it returns `configured`.
+    // End of AI-generated text.
+    static WaveformWidgetType::Type mixtwoInitialType(
+            WaveformWidgetType::Type configured, bool alreadyApplied);
     void setDefaultBackend();
 
     /// Sets the widget type and saves it to configuration.
@@ -421,6 +428,7 @@ class WaveformWidgetFactory : public QObject,
             WaveformRendererSignalBase::Options option);
     WaveformWidgetAbstract* createStackedWaveformWidget(WWaveformViewer* viewer);
     WaveformWidgetAbstract* createColorSaturatedWaveformWidget(WWaveformViewer* viewer);
+    WaveformWidgetAbstract* createThreeBandWaveformWidget(WWaveformViewer* viewer);
     WaveformWidgetAbstract* createSimpleWaveformWidget(WWaveformViewer* viewer);
     WaveformWidgetAbstract* createVSyncTestWaveformWidget(WWaveformViewer* viewer);
 

@@ -92,6 +92,11 @@ const ConfigKey kVSyncKey = ConfigKey(kWaveformGroup, QStringLiteral("VSync"));
 const ConfigKey kBeatGridAlpha = ConfigKey(kWaveformGroup, QStringLiteral("beatGridAlpha"));
 const ConfigKey kColorSaturatedBaseColorKey =
         ConfigKey(kWaveformGroup, QStringLiteral("ColorSaturatedBaseColor"));
+// AI-generated (Claude Code). Start of AI-generated text.
+// 1 after Mix Two changed the profile to the 3Band waveform one time.
+// End of AI-generated text.
+const ConfigKey kThreeBandDefaultAppliedKey =
+        ConfigKey(kWaveformGroup, QStringLiteral("mixtwo_3band_default_applied"));
 
 ConfigKey visualGainKey(int index) {
     return ConfigKey(kWaveformGroup, QStringLiteral("VisualGain_") + QString::number(index));
@@ -428,9 +433,18 @@ bool WaveformWidgetFactory::setConfig(UserSettingsPointer config) {
 
     WaveformWidgetType::Type type = static_cast<WaveformWidgetType::Type>(
             m_config->getValueString(kWaveformTypeKey).toInt(&ok));
+    if (!ok) {
+        type = WaveformWidgetType::RGB;
+    }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Change the profile to 3Band one time. If 3Band is not available, the
+    // fallback below applies, and the flag is set all the same.
+    // End of AI-generated text.
+    type = mixtwoInitialType(type, m_config->getValue(kThreeBandDefaultAppliedKey, 0) != 0);
+    m_config->setValue(kThreeBandDefaultAppliedKey, 1);
     // Store the widget type on m_configType for later initialization.
     // We will initialize the objects later because of a problem with GL on QT 5.14.2 on Windows
-    if (!ok || !setWidgetType(type, &m_configType)) {
+    if (!setWidgetType(type, &m_configType)) {
         setWidgetType(WaveformWidgetType::RGB, &m_configType);
     }
 
@@ -601,6 +615,12 @@ void WaveformWidgetFactory::setEndOfTrackWarningTime(int endTime) {
     }
 }
 
+// static
+WaveformWidgetType::Type WaveformWidgetFactory::mixtwoInitialType(
+        WaveformWidgetType::Type configured, bool alreadyApplied) {
+    return alreadyApplied ? configured : WaveformWidgetType::ThreeBand;
+}
+
 bool WaveformWidgetFactory::setWidgetType(WaveformWidgetType::Type type) {
     return setWidgetType(type, &m_type);
 }
@@ -632,6 +652,7 @@ bool WaveformWidgetFactory::widgetTypeSupportsUntilMark() const {
     case WaveformWidgetType::HSV:
     case WaveformWidgetType::Stacked:
     case WaveformWidgetType::ColorSaturated:
+    case WaveformWidgetType::ThreeBand:
         return true;
     default:
         break;
@@ -647,6 +668,7 @@ bool WaveformWidgetFactory::widgetTypeSupportsStems() const {
     case WaveformWidgetType::HSV:
     case WaveformWidgetType::Stacked:
     case WaveformWidgetType::ColorSaturated:
+    case WaveformWidgetType::ThreeBand:
         return true;
     default:
         break;
@@ -1155,6 +1177,7 @@ void WaveformWidgetFactory::evaluateWidgets() {
 #endif
             break;
         case WaveformWidgetType::ColorSaturated:
+        case WaveformWidgetType::ThreeBand:
             // AI-generated (Claude Code). Start of AI-generated text.
             // Allshader only, as Stacked.
             // End of AI-generated text.
@@ -1281,6 +1304,23 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createColorSaturatedWaveformWidge
     }
 }
 
+WaveformWidgetAbstract* WaveformWidgetFactory::createThreeBandWaveformWidget(
+        WWaveformViewer* viewer) {
+    WaveformWidgetBackend backend = getBackendFromConfig();
+
+    switch (backend) {
+    case WaveformWidgetBackend::AllShader:
+#ifdef MIXXX_USE_QOPENGL
+        return createAllshaderWaveformWidget(WaveformWidgetType::Type::ThreeBand, viewer);
+#endif
+    case WaveformWidgetBackend::None:
+    case WaveformWidgetBackend::GL:
+    case WaveformWidgetBackend::GLSL:
+    default:
+        return new EmptyWaveformWidget(viewer->getGroup(), viewer);
+    }
+}
+
 WaveformWidgetAbstract* WaveformWidgetFactory::createSimpleWaveformWidget(
         WWaveformViewer* viewer) {
     WaveformWidgetBackend backend = getBackendFromConfig();
@@ -1340,6 +1380,9 @@ WaveformWidgetAbstract* WaveformWidgetFactory::createWaveformWidget(
             break;
         case WaveformWidgetType::ColorSaturated:
             pWidget = createColorSaturatedWaveformWidget(pViewer);
+            break;
+        case WaveformWidgetType::ThreeBand:
+            pWidget = createThreeBandWaveformWidget(pViewer);
             break;
         default:
             pWidget = new EmptyWaveformWidget(pViewer->getGroup(), pViewer);
@@ -1582,6 +1625,8 @@ QString WaveformWidgetAbstractHandle::getDisplayName(WaveformWidgetType::Type ty
         return QObject::tr("Stacked");
     case WaveformWidgetType::ColorSaturated:
         return QObject::tr("Color Saturated");
+    case WaveformWidgetType::ThreeBand:
+        return QObject::tr("3Band");
     default:
         return QObject::tr("Unknown");
     }
