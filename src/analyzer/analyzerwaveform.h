@@ -164,6 +164,12 @@ class AnalyzerWaveform : public Analyzer {
     void storeIfGreater(float* pDest, float source);
 
     mutable AnalysisDao m_analysisDao;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The stored analysis of an older waveform version that the new analysis
+    // replaces. storeResults removes it after the new waveform is saved.
+    // -1 if there is none.
+    mutable int m_replacedWaveformId;
+    // End of AI-generated text.
 
     WaveformPointer m_waveform;
     WaveformPointer m_waveformSummary;

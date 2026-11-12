@@ -8,6 +8,7 @@
 #include "preferences/configobject.h"
 #include "preferences/upgrade.cpp"
 #include "waveform/renderers/allshader/waveformrenderersignalbase.h"
+#include "waveform/waveformfactory.h"
 
 class UpgradeTest : public testing::Test {
   protected:
@@ -172,3 +173,18 @@ TEST_F(UpgradeTest, useCorrectWaveformType) {
         ASSERT_EQ(options, testCase.expectedOptions);
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// A waveform of the versions that were current before 2205 points per second
+// stays on screen until the new analysis replaces it.
+TEST(WaveformFactoryTest, OldVersionIsShownUntilReplaced) {
+    EXPECT_EQ(WaveformFactory::waveformVersionToVersionClass("Waveform-6.1"),
+            WaveformFactory::VC_SHOW_UNTIL_REPLACED);
+    EXPECT_EQ(WaveformFactory::waveformVersionToVersionClass("Waveform-5.0"),
+            WaveformFactory::VC_SHOW_UNTIL_REPLACED);
+    EXPECT_EQ(WaveformFactory::waveformVersionToVersionClass("Waveform-7.0-mixtwo"),
+            WaveformFactory::VC_USE);
+    EXPECT_EQ(WaveformFactory::waveformVersionToVersionClass("Waveform-4.0"),
+            WaveformFactory::VC_REMOVE);
+}
+// End of AI-generated text.

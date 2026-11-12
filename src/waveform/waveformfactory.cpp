@@ -18,6 +18,14 @@ WaveformFactory::VersionClass WaveformFactory::waveformVersionToVersionClass(con
         return VC_USE;
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (version == WAVEFORM_6_VERSION || version == WAVEFORM_5_VERSION) {
+        // The versions with 441 points per second. Show them until the
+        // analysis with kMainWaveformSampleRate replaces them.
+        return VC_SHOW_UNTIL_REPLACED;
+    }
+    // End of AI-generated text.
+
     if (version == WAVEFORM_4_VERSION) {
         // Used in Mixxx 1.12 beta, suffers Bug #7776
         return VC_REMOVE;

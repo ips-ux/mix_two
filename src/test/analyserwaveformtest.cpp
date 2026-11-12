@@ -6,9 +6,13 @@
 
 #include "analyzer/analyzertrack.h"
 #include "analyzer/analyzerwaveform.h"
+#include "database/mixxxdb.h"
 #include "library/dao/analysisdao.h"
 #include "test/mixxxtest.h"
 #include "track/track.h"
+#include "util/db/dbconnectionpooled.h"
+#include "util/db/dbconnectionpooler.h"
+#include "waveform/waveform.h"
 
 namespace {
 
@@ -129,5 +133,165 @@ TEST_F(AnalyzerWaveformTest, canary) {
     EXPECT_EQ(pWaveformSummary->getCompletion(), 3842);
     EXPECT_DOUBLE_EQ(pWaveformSummary->getAudioVisualRatio(), 1.0);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+constexpr SINT kOneSecondFrames = 44100;
+constexpr int kTrackSampleRate = 44100;
+const QString kOldWaveformVersion = QStringLiteral("Waveform-6.1");
+const QString kNewWaveformVersion = QStringLiteral("Waveform-7.0-mixtwo");
+const QString kSummaryVersion = QStringLiteral("WaveformSummary-5.0");
+
+// The overview size for one second of audio at 44100 Hz, measured before the
+// main waveform went to 2205 points per second. It must not change.
+constexpr int kOneSecondSummaryDataSize = 3842;
+
+TEST_F(AnalyzerWaveformTest, MainWaveformHas2205PointsPerSecond) {
+    ASSERT_TRUE(m_aw.initialize(AnalyzerTrack(m_pTrack),
+            m_pTrack->getSampleRate(),
+            m_pTrack->getChannels(),
+            kOneSecondFrames));
+
+    ConstWaveformPointer pWaveform = m_pTrack->getWaveform();
+    ASSERT_NE(pWaveform, nullptr);
+    EXPECT_DOUBLE_EQ(pWaveform->getVisualSampleRate(), 2205.0);
+    EXPECT_DOUBLE_EQ(pWaveform->getAudioVisualRatio(), 20.0);
+
+    ConstWaveformPointer pWaveformSummary = m_pTrack->getWaveformSummary();
+    ASSERT_NE(pWaveformSummary, nullptr);
+    EXPECT_EQ(pWaveformSummary->getDataSize(), kOneSecondSummaryDataSize);
+    m_aw.cleanup();
+}
+
+// An analysis database in memory and a track with an ID in it.
+class AnalyzerWaveformDb {
+  public:
+    explicit AnalyzerWaveformDb(const UserSettingsPointer& pConfig)
+            : m_mixxxDb(pConfig, true),
+              m_dbConnectionPooler(m_mixxxDb.connectionPool()),
+              m_analysisDao(pConfig) {
+        m_dbConnection = mixxx::DbConnectionPooled(m_mixxxDb.connectionPool());
+        EXPECT_TRUE(MixxxDb::initDatabaseSchema(m_dbConnection));
+        m_analysisDao.initialize(m_dbConnection);
+    }
+
+    const QSqlDatabase& dbConnection() const {
+        return m_dbConnection;
+    }
+
+    AnalysisDao& analysisDao() {
+        return m_analysisDao;
+    }
+
+    static TrackPointer newTrack() {
+        TrackPointer pTrack = Track::newDummy(
+                QDir::temp().filePath(QStringLiteral("analyzerwaveformtest.mp3")),
+                TrackId(QVariant(1)));
+        pTrack->setAudioProperties(
+                mixxx::audio::ChannelCount(kChannelCount),
+                mixxx::audio::SampleRate(kTrackSampleRate),
+                mixxx::audio::Bitrate(),
+                mixxx::Duration::fromMillis(1000));
+        return pTrack;
+    }
+
+    // Stores a waveform and an overview as an older Mix Two version did.
+    void storeOldAnalyses(TrackId trackId) {
+        Waveform waveform(kTrackSampleRate, kOneSecondFrames, 441, -1, 0);
+        waveform.setCompletion(waveform.getDataSize());
+        AnalysisDao::AnalysisInfo analysis;
+        analysis.trackId = trackId;
+        analysis.type = AnalysisDao::TYPE_WAVEFORM;
+        analysis.version = kOldWaveformVersion;
+        analysis.description = QStringLiteral("Waveform 6.1");
+        analysis.data = waveform.toByteArray();
+        ASSERT_TRUE(m_analysisDao.saveAnalysis(&analysis));
+
+        Waveform summary(kTrackSampleRate, kOneSecondFrames, 441, 2 * 1920, 0);
+        summary.setCompletion(summary.getDataSize());
+        AnalysisDao::AnalysisInfo summaryAnalysis;
+        summaryAnalysis.trackId = trackId;
+        summaryAnalysis.type = AnalysisDao::TYPE_WAVESUMMARY;
+        summaryAnalysis.version = kSummaryVersion;
+        summaryAnalysis.description = QStringLiteral("WaveformSummary 5.0");
+        summaryAnalysis.data = summary.toByteArray();
+        ASSERT_TRUE(m_analysisDao.saveAnalysis(&summaryAnalysis));
+    }
+
+  private:
+    MixxxDb m_mixxxDb;
+    mixxx::DbConnectionPooler m_dbConnectionPooler;
+    QSqlDatabase m_dbConnection;
+    AnalysisDao m_analysisDao;
+};
+
+// Gives one second of a constant signal to an initialized analyzer and stores
+// the result.
+void analyseOneSecond(AnalyzerWaveform* pAnalyzer, const TrackPointer& pTrack) {
+    std::vector<CSAMPLE> samples(kOneSecondFrames * kChannelCount, 0.25f);
+    pAnalyzer->processSamples(samples.data(), static_cast<SINT>(samples.size()));
+    pAnalyzer->storeResults(pTrack);
+    pAnalyzer->cleanup();
+}
+
+TEST_F(AnalyzerWaveformTest, OldWaveformStaysUntilNewIsStored) {
+    AnalyzerWaveformDb db(config());
+    TrackPointer pTrack = AnalyzerWaveformDb::newTrack();
+    db.storeOldAnalyses(pTrack->getId());
+
+    AnalyzerWaveform analyzer(config(), db.dbConnection());
+    // initialize returns false when shouldAnalyze returns false.
+    ASSERT_TRUE(analyzer.initialize(AnalyzerTrack(pTrack),
+            pTrack->getSampleRate(),
+            pTrack->getChannels(),
+            kOneSecondFrames));
+    ConstWaveformPointer pShownWaveform = pTrack->getWaveform();
+    ASSERT_NE(pShownWaveform, nullptr);
+    EXPECT_EQ(pShownWaveform->getVersion(), kOldWaveformVersion);
+
+    analyseOneSecond(&analyzer, pTrack);
+    pShownWaveform = pTrack->getWaveform();
+    ASSERT_NE(pShownWaveform, nullptr);
+    EXPECT_EQ(pShownWaveform->getVersion(), kNewWaveformVersion);
+}
+
+TEST_F(AnalyzerWaveformTest, NewWaveformIsNotAnalysedAgain) {
+    AnalyzerWaveformDb db(config());
+    TrackPointer pTrack = AnalyzerWaveformDb::newTrack();
+    db.storeOldAnalyses(pTrack->getId());
+    {
+        AnalyzerWaveform analyzer(config(), db.dbConnection());
+        ASSERT_TRUE(analyzer.initialize(AnalyzerTrack(pTrack),
+                pTrack->getSampleRate(),
+                pTrack->getChannels(),
+                kOneSecondFrames));
+        analyseOneSecond(&analyzer, pTrack);
+    }
+
+    // The same track, and the same track loaded again without waveforms in
+    // memory, need no new analysis.
+    AnalyzerWaveform sameTrackAnalyzer(config(), db.dbConnection());
+    EXPECT_FALSE(sameTrackAnalyzer.initialize(AnalyzerTrack(pTrack),
+            pTrack->getSampleRate(),
+            pTrack->getChannels(),
+            kOneSecondFrames));
+    TrackPointer pReloadedTrack = AnalyzerWaveformDb::newTrack();
+    AnalyzerWaveform reloadedTrackAnalyzer(config(), db.dbConnection());
+    EXPECT_FALSE(reloadedTrackAnalyzer.initialize(AnalyzerTrack(pReloadedTrack),
+            pReloadedTrack->getSampleRate(),
+            pReloadedTrack->getChannels(),
+            kOneSecondFrames));
+
+    int waveformRows = 0;
+    const QList<AnalysisDao::AnalysisInfo> analyses =
+            db.analysisDao().getAnalysesForTrack(pTrack->getId());
+    for (const auto& analysis : analyses) {
+        if (analysis.type == AnalysisDao::TYPE_WAVEFORM) {
+            ++waveformRows;
+            EXPECT_EQ(analysis.version, kNewWaveformVersion);
+        }
+    }
+    EXPECT_EQ(waveformRows, 1);
+}
+// End of AI-generated text.
 
 } // namespace

@@ -19,6 +19,14 @@ enum BandIndex { AllBand = 0,
     BandCount = 4 };
 enum ChannelIndex { Left = 0, Right = 1, ChannelCount = 2};
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Points per second of the main (scrolling) waveform.
+inline constexpr int kMainWaveformSampleRate = 2205;
+// Points per second of the main waveform before 2205. The overview is built
+// with this value, so that it stays the same.
+inline constexpr int kLegacyMainWaveformSampleRate = 441;
+// End of AI-generated text.
+
 struct WaveformFilteredData {
     unsigned char low;
     unsigned char mid;
@@ -96,6 +104,9 @@ class Waveform {
     double getAudioVisualRatio() const {
         return m_audioVisualRatio;
     }
+    double getVisualSampleRate() const {
+        return m_visualSampleRate;
+    }
 
     // Atomically lookup the completion of the waveform. Represents the number
     // of data elements that have been processed out of dataSize.
@@ -149,7 +160,6 @@ class Waveform {
     inline unsigned char& mid(int i) { return m_data[i].filtered.mid;}
     inline unsigned char& high(int i) { return m_data[i].filtered.high;}
     inline unsigned char& all(int i) { return m_data[i].filtered.all;}
-    double getVisualSampleRate() const { return m_visualSampleRate; }
 
     // If stored in the database, the ID of the waveform.
     int m_id;

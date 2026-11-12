@@ -25,6 +25,7 @@ AnalyzerWaveform::AnalyzerWaveform(
         UserSettingsPointer pConfig,
         const QSqlDatabase& dbConnection)
         : m_analysisDao(pConfig),
+          m_replacedWaveformId(-1),
           m_waveformData(nullptr),
           m_waveformSummaryData(nullptr),
           m_stride(0, 0, 0),
@@ -58,8 +59,6 @@ bool AnalyzerWaveform::initialize(const AnalyzerTrack& track,
     destroyFilters();
     createFilters(sampleRate);
 
-    //TODO (vrince) Do we want to expose this as settings or whatever ?
-    constexpr int mainWaveformSampleRate = 441;
     // two visual sample per pixel in full width overview in full hd
     constexpr int summaryWaveformSamples = 2 * 1920;
 
@@ -67,14 +66,24 @@ bool AnalyzerWaveform::initialize(const AnalyzerTrack& track,
             ? 0
             : channelCount / mixxx::kAnalysisChannels;
     m_waveform = WaveformPointer(new Waveform(
-            sampleRate, frameLength, mainWaveformSampleRate, -1, stemCount));
-    m_waveformSummary = WaveformPointer(new Waveform(
-            sampleRate, frameLength, mainWaveformSampleRate, summaryWaveformSamples, stemCount));
+            sampleRate, frameLength, kMainWaveformSampleRate, -1, stemCount));
+    m_waveformSummary = WaveformPointer(new Waveform(sampleRate,
+            frameLength,
+            kLegacyMainWaveformSampleRate,
+            summaryWaveformSamples,
+            stemCount));
 
     // Now, that the Waveform memory is initialized, we can set set them to
     // the track. Be aware that other threads of Mixxx can touch them from
     // now.
-    track.getTrack()->setWaveform(m_waveform);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A waveform that the track already shows stays until storeResults sets
+    // the new one. A track without a waveform shows the new one while it
+    // fills in.
+    // End of AI-generated text.
+    if (!track.getTrack()->getWaveform()) {
+        track.getTrack()->setWaveform(m_waveform);
+    }
     track.getTrack()->setWaveformSummary(m_waveformSummary);
 
     m_waveformData = m_waveform->data();
@@ -109,7 +118,16 @@ bool AnalyzerWaveform::shouldAnalyze(TrackPointer pTrack) const {
 #endif
 
     TrackId trackId = pTrack->getId();
-    bool missingWaveform = pTrackWaveform.isNull();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A waveform of an older version on the track stays on screen, but it is
+    // analysed again.
+    m_replacedWaveformId = -1;
+    ConstWaveformPointer pReplacedWaveform;
+    bool missingWaveform = pTrackWaveform.isNull() ||
+            WaveformFactory::waveformVersionToVersionClass(
+                    pTrackWaveform->getVersion()) ==
+                    WaveformFactory::VC_SHOW_UNTIL_REPLACED;
+    // End of AI-generated text.
     bool missingWavesummary = pTrackWaveformSummary.isNull();
 
     if (trackId.isValid() && (missingWaveform || missingWavesummary)) {
@@ -127,6 +145,18 @@ bool AnalyzerWaveform::shouldAnalyze(TrackPointer pTrack) const {
                     pLoadedTrackWaveform = ConstWaveformPointer(
                             WaveformFactory::loadWaveformFromAnalysis(analysis));
                     missingWaveform = false;
+                } else if (vc == WaveformFactory::VC_SHOW_UNTIL_REPLACED &&
+                        m_replacedWaveformId == -1) {
+                    // AI-generated (Claude Code). Start of AI-generated text.
+                    // Keep the first stored analysis of an older version
+                    // until the new one is stored. Show it if the track has
+                    // no waveform.
+                    m_replacedWaveformId = analysis.analysisId;
+                    if (pTrackWaveform.isNull()) {
+                        pReplacedWaveform = ConstWaveformPointer(
+                                WaveformFactory::loadWaveformFromAnalysis(analysis));
+                    }
+                    // End of AI-generated text.
                 } else if (vc != WaveformFactory::VC_KEEP) {
                     // remove all other Analysis except that one we should keep
                     m_analysisDao.deleteAnalysis(analysis.analysisId);
@@ -158,6 +188,16 @@ bool AnalyzerWaveform::shouldAnalyze(TrackPointer pTrack) const {
     }
 #endif
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (m_replacedWaveformId != -1 && pLoadedTrackWaveform) {
+        // A waveform of the current version is stored too. The older one is
+        // not necessary.
+        m_analysisDao.deleteAnalysis(m_replacedWaveformId);
+        m_replacedWaveformId = -1;
+        pReplacedWaveform.clear();
+    }
+    // End of AI-generated text.
+
     // If we don't need to calculate the waveform/wavesummary, skip.
     if (!missingWaveform && !missingWavesummary) {
         kLogger.debug() << "loadStored - Stored waveform loaded";
@@ -169,6 +209,12 @@ bool AnalyzerWaveform::shouldAnalyze(TrackPointer pTrack) const {
         }
         return false;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Show the waveform of the older version during the analysis.
+    if (pReplacedWaveform) {
+        pTrack->setWaveform(pReplacedWaveform);
+    }
+    // End of AI-generated text.
     return true;
 }
 
@@ -348,6 +394,15 @@ void AnalyzerWaveform::storeResults(TrackPointer pTrack) {
             pTrack->getId(),
             m_waveform,
             m_waveformSummary);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Remove the stored waveform of the older version only when the new one
+    // is saved. If waveform caching is off, nothing is saved or removed.
+    if (m_replacedWaveformId != -1 && m_waveform &&
+            m_waveform->saveState() == Waveform::SaveState::Saved) {
+        m_analysisDao.deleteAnalysis(m_replacedWaveformId);
+    }
+    m_replacedWaveformId = -1;
+    // End of AI-generated text.
 
     // Set waveforms on track AFTER they'been written to disk in order to have
     // a consistency when OverviewCache asks AnalysisDAO for a waveform summary.

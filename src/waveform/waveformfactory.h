@@ -27,7 +27,6 @@ class Waveform;
 #define WAVEFORM_5_DESCRIPTION "Waveform 5.0"
 #define WAVEFORMSUMMARY_5_DESCRIPTION "WaveformSummary 5.0"
 
-#ifdef __STEM__
 // Used from Mixxx 2.6-pre-alpha with Stem data (6.0) and without
 // analyzer/analyzerwaveform.h:scaleSignal (6.1)
 #define WAVEFORM_6_0_VERSION "Waveform-6.0" // Superseded by 6.1
@@ -36,12 +35,15 @@ class Waveform;
 #define WAVEFORM_6_DESCRIPTION "Waveform 6.1"
 #define WAVEFORMSUMMARY_6_DESCRIPTION "WaveformSummary 6.1"
 
-#define WAVEFORM_CURRENT_VERSION WAVEFORM_6_VERSION
-#define WAVEFORM_CURRENT_DESCRIPTION WAVEFORM_6_DESCRIPTION
-#else
-#define WAVEFORM_CURRENT_VERSION WAVEFORM_5_VERSION
-#define WAVEFORM_CURRENT_DESCRIPTION WAVEFORM_5_DESCRIPTION
-#endif
+// AI-generated (Claude Code). Start of AI-generated text.
+// Mix Two: the main waveform has 2205 points per second (kMainWaveformSampleRate).
+// The same version for builds with and without stem support.
+#define WAVEFORM_7_VERSION "Waveform-7.0-mixtwo"
+#define WAVEFORM_7_DESCRIPTION "Waveform 7.0-mixtwo"
+// End of AI-generated text.
+
+#define WAVEFORM_CURRENT_VERSION WAVEFORM_7_VERSION
+#define WAVEFORM_CURRENT_DESCRIPTION WAVEFORM_7_DESCRIPTION
 #define WAVEFORMSUMMARY_CURRENT_VERSION WAVEFORMSUMMARY_5_VERSION
 #define WAVEFORMSUMMARY_CURRENT_DESCRIPTION WAVEFORMSUMMARY_5_DESCRIPTION
 
@@ -50,7 +52,12 @@ class WaveformFactory {
     enum VersionClass {
         VC_USE,
         VC_KEEP,
-        VC_REMOVE
+        VC_REMOVE,
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // An older version: show it until the new analysis is stored, then
+        // remove it.
+        // End of AI-generated text.
+        VC_SHOW_UNTIL_REPLACED
     };
 
     static Waveform* loadWaveformFromAnalysis(
