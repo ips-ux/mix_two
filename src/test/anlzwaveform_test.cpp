@@ -169,6 +169,27 @@ TEST(AnlzWaveformTest, EntryTakesMaximumOfOverlappingVisualSamples) {
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 2 * 3 + 1));
 }
 
+TEST(AnlzWaveformTest, DetailFromFineWaveformIsPeakPerEntry) {
+    // The stored waveform has 2205 points per second (20 frames each at
+    // 44100 Hz). An entry (294 frames) is the peak of the points it covers.
+    // Point 30 covers the frames 600-619, which are in entry 2 (frames
+    // 588-881) only.
+    Waveform waveform(44100, 44100, 2205, -1, 0);
+    ASSERT_EQ(20.0, waveform.getAudioVisualRatio());
+    WaveformData* pData = waveform.data();
+    for (int i = 0; i < waveform.getDataSize(); ++i) {
+        pData[i].filtered.low = 10;
+    }
+    pData[30 * 2].filtered.low = 200;
+    pData[30 * 2 + 1].filtered.low = 200;
+    const AnlzWaveforms w = anlzWaveformsFrom(waveform, 44100, SampleRate(44100));
+    ASSERT_EQ(150, w.detailEntries);
+    // The low byte is the third byte of an entry (mid, high, low).
+    EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 1 * 3 + 2));
+    EXPECT_EQ(200 >> 1, byteAt(w.threeBandDetail, 2 * 3 + 2));
+    EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 3 * 3 + 2));
+}
+
 TEST(AnlzWaveformTest, EntryTakesMaximumOverBothChannels) {
     auto pWaveform = makeWaveform(44100, 44100, [](SINT) { return Bands{}; });
     WaveformData* pData = pWaveform->data();
