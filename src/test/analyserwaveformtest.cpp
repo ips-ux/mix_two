@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QtDebug>
+#include <cmath>
 #include <vector>
 
 #include "analyzer/analyzertrack.h"
@@ -182,6 +183,11 @@ class AnalyzerWaveformDb {
         return m_analysisDao;
     }
 
+    int countRows(TrackId trackId, AnalysisDao::AnalysisType type) {
+        return static_cast<int>(
+                m_analysisDao.getAnalysesForTrackByType(trackId, type).size());
+    }
+
     static TrackPointer newTrack() {
         TrackPointer pTrack = Track::newDummy(
                 QDir::temp().filePath(QStringLiteral("analyzerwaveformtest.mp3")),
@@ -247,11 +253,20 @@ TEST_F(AnalyzerWaveformTest, OldWaveformStaysUntilNewIsStored) {
     ConstWaveformPointer pShownWaveform = pTrack->getWaveform();
     ASSERT_NE(pShownWaveform, nullptr);
     EXPECT_EQ(pShownWaveform->getVersion(), kOldWaveformVersion);
+    // The stored overview stays on the track during the analysis too.
+    ConstWaveformPointer pShownSummary = pTrack->getWaveformSummary();
+    ASSERT_NE(pShownSummary, nullptr);
+    EXPECT_EQ(pShownSummary->getVersion(), kSummaryVersion);
 
     analyseOneSecond(&analyzer, pTrack);
     pShownWaveform = pTrack->getWaveform();
     ASSERT_NE(pShownWaveform, nullptr);
     EXPECT_EQ(pShownWaveform->getVersion(), kNewWaveformVersion);
+    pShownSummary = pTrack->getWaveformSummary();
+    ASSERT_NE(pShownSummary, nullptr);
+    EXPECT_EQ(pShownSummary->getCompletion(), pShownSummary->getDataSize());
+    EXPECT_EQ(db.countRows(pTrack->getId(), AnalysisDao::TYPE_WAVEFORM), 1);
+    EXPECT_EQ(db.countRows(pTrack->getId(), AnalysisDao::TYPE_WAVESUMMARY), 1);
 }
 
 TEST_F(AnalyzerWaveformTest, NewWaveformIsNotAnalysedAgain) {
@@ -266,6 +281,8 @@ TEST_F(AnalyzerWaveformTest, NewWaveformIsNotAnalysedAgain) {
                 kOneSecondFrames));
         analyseOneSecond(&analyzer, pTrack);
     }
+    // Count before the next analyzers look at the database.
+    EXPECT_EQ(db.countRows(pTrack->getId(), AnalysisDao::TYPE_WAVESUMMARY), 1);
 
     // The same track, and the same track loaded again without waveforms in
     // memory, need no new analysis.
@@ -291,6 +308,84 @@ TEST_F(AnalyzerWaveformTest, NewWaveformIsNotAnalysedAgain) {
         }
     }
     EXPECT_EQ(waveformRows, 1);
+    EXPECT_EQ(db.countRows(pTrack->getId(), AnalysisDao::TYPE_WAVESUMMARY), 1);
+}
+
+// A deterministic stereo test signal: an exponential sine sweep with a slow
+// level change, and short bursts of noise from a fixed linear congruential
+// generator. The two channels are different.
+std::vector<CSAMPLE> makeSweepAndNoise(int sampleRate, SINT frames) {
+    std::vector<CSAMPLE> samples(static_cast<std::size_t>(frames) * kChannelCount);
+    const double seconds = static_cast<double>(frames) / sampleRate;
+    quint32 noiseState = 12345u;
+    double phase = 0.0;
+    for (SINT i = 0; i < frames; ++i) {
+        const double t = static_cast<double>(i) / sampleRate;
+        const double frequency = 40.0 * std::pow(300.0, t / seconds);
+        phase += 2.0 * M_PI * frequency / sampleRate;
+        const double level = 0.5 + 0.4 * std::sin(2.0 * M_PI * 0.3 * t);
+        const double sweep = level * std::sin(phase);
+        noiseState = noiseState * 1664525u + 1013904223u;
+        const double noise = static_cast<double>(noiseState >> 8) / (1 << 23) - 1.0;
+        const double burst = std::fmod(t, 0.5) < 0.1 ? noise : 0.0;
+        samples[2 * i] = static_cast<CSAMPLE>(0.6 * sweep + 0.4 * burst);
+        samples[2 * i + 1] = static_cast<CSAMPLE>(0.4 * sweep - 0.3 * burst);
+    }
+    return samples;
+}
+
+// The overview of the test signal. The analyser gets the signal in blocks of
+// 4096 frames, as the analyser thread does.
+ConstWaveformPointer analyseSummary(
+        const UserSettingsPointer& pConfig, int sampleRate, int seconds = 30) {
+    constexpr SINT kBlockFrames = 4096;
+    const SINT frames = static_cast<SINT>(seconds) * sampleRate;
+    TrackPointer pTrack = Track::newTemporary();
+    pTrack->setAudioProperties(
+            mixxx::audio::ChannelCount(kChannelCount),
+            mixxx::audio::SampleRate(sampleRate),
+            mixxx::audio::Bitrate(),
+            mixxx::Duration::fromSeconds(seconds));
+    AnalyzerWaveform analyzer(pConfig, QSqlDatabase());
+    EXPECT_TRUE(analyzer.initialize(AnalyzerTrack(pTrack),
+            pTrack->getSampleRate(),
+            pTrack->getChannels(),
+            frames));
+    const std::vector<CSAMPLE> samples = makeSweepAndNoise(sampleRate, frames);
+    for (SINT frame = 0; frame < frames; frame += kBlockFrames) {
+        const SINT blockFrames = std::min(kBlockFrames, frames - frame);
+        analyzer.processSamples(&samples[static_cast<std::size_t>(frame) * kChannelCount],
+                blockFrames * kChannelCount);
+    }
+    analyzer.storeResults(pTrack);
+    analyzer.cleanup();
+    return pTrack->getWaveformSummary();
+}
+
+// The reference overviews were made by the code before the main waveform
+// went to 2205 points per second. The overview must stay byte for byte the
+// same.
+TEST_F(AnalyzerWaveformTest, SummaryIsUnchangedAt44100) {
+    ConstWaveformPointer pSummary = analyseSummary(config(), 44100);
+    ASSERT_NE(pSummary, nullptr);
+    assertWaveformReference(pSummary, "AnalyzerWaveformSummary44100");
+}
+
+TEST_F(AnalyzerWaveformTest, SummaryIsUnchangedAt48000) {
+    ConstWaveformPointer pSummary = analyseSummary(config(), 48000);
+    ASSERT_NE(pSummary, nullptr);
+    assertWaveformReference(pSummary, "AnalyzerWaveformSummary48000");
+}
+
+// A short track: the overview has more points than legacy strides, so some
+// overview points use the running peak of a legacy stride.
+TEST_F(AnalyzerWaveformTest, SummaryIsUnchangedForShortTrack) {
+    ConstWaveformPointer pSummary44100 = analyseSummary(config(), 44100, 2);
+    ASSERT_NE(pSummary44100, nullptr);
+    assertWaveformReference(pSummary44100, "AnalyzerWaveformSummaryShort44100");
+    ConstWaveformPointer pSummary48000 = analyseSummary(config(), 48000, 2);
+    ASSERT_NE(pSummary48000, nullptr);
+    assertWaveformReference(pSummary48000, "AnalyzerWaveformSummaryShort48000");
 }
 // End of AI-generated text.
 

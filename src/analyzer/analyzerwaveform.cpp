@@ -1,5 +1,6 @@
 #include "analyzer/analyzerwaveform.h"
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -19,6 +20,48 @@ constexpr double kLowMidFreqHz = 600.0;
 
 constexpr double kMidHighFreqHz = 4000.0;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// A local copy of WaveformStride::m_legacyOverallData and
+// m_legacyFilteredData for the loop in processSamples.
+struct LegacyPeaks {
+    float overall[ChannelCount];
+    float low[ChannelCount];
+    float mid[ChannelCount];
+    float high[ChannelCount];
+
+    void loadFrom(const WaveformStride& stride) {
+        for (int c = 0; c < ChannelCount; ++c) {
+            overall[c] = stride.m_legacyOverallData[c];
+            low[c] = stride.m_legacyFilteredData[c][Low];
+            mid[c] = stride.m_legacyFilteredData[c][Mid];
+            high[c] = stride.m_legacyFilteredData[c][High];
+        }
+    }
+
+    void storeTo(WaveformStride* pStride) const {
+        for (int c = 0; c < ChannelCount; ++c) {
+            pStride->m_legacyOverallData[c] = overall[c];
+            pStride->m_legacyFilteredData[c][Low] = low[c];
+            pStride->m_legacyFilteredData[c][Mid] = mid[c];
+            pStride->m_legacyFilteredData[c][High] = high[c];
+        }
+    }
+
+    // The same rule as AnalyzerWaveform::storeIfGreater.
+    void update(const CSAMPLE* pOverall,
+            const CSAMPLE* pLow,
+            const CSAMPLE* pMid,
+            const CSAMPLE* pHigh) {
+        for (int c = 0; c < ChannelCount; ++c) {
+            overall[c] = std::max(overall[c], pOverall[c]);
+            low[c] = std::max(low[c], pLow[c]);
+            mid[c] = std::max(mid[c], pMid[c]);
+            high[c] = std::max(high[c], pHigh[c]);
+        }
+    }
+};
+// End of AI-generated text.
+
 } // namespace
 
 AnalyzerWaveform::AnalyzerWaveform(
@@ -26,9 +69,11 @@ AnalyzerWaveform::AnalyzerWaveform(
         const QSqlDatabase& dbConnection)
         : m_analysisDao(pConfig),
           m_replacedWaveformId(-1),
+          m_replacedSummaryId(-1),
+          m_legacyStrideFrames(0),
           m_waveformData(nullptr),
           m_waveformSummaryData(nullptr),
-          m_stride(0, 0, 0),
+          m_stride(0, 0, 0, 0),
           m_currentStride(0),
           m_currentSummaryStride(0) {
     m_analysisDao.initialize(dbConnection);
@@ -77,21 +122,49 @@ bool AnalyzerWaveform::initialize(const AnalyzerTrack& track,
     // the track. Be aware that other threads of Mixxx can touch them from
     // now.
     // AI-generated (Claude Code). Start of AI-generated text.
-    // A waveform that the track already shows stays until storeResults sets
-    // the new one. A track without a waveform shows the new one while it
-    // fills in.
+    // A waveform or overview that the track already shows stays until
+    // storeResults sets the new one. A track without one shows the new one
+    // while it fills in.
     // End of AI-generated text.
     if (!track.getTrack()->getWaveform()) {
         track.getTrack()->setWaveform(m_waveform);
     }
-    track.getTrack()->setWaveformSummary(m_waveformSummary);
+    if (!track.getTrack()->getWaveformSummary()) {
+        track.getTrack()->setWaveformSummary(m_waveformSummary);
+    }
 
     m_waveformData = m_waveform->data();
     m_waveformSummaryData = m_waveformSummary->data();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The main stride length at kLegacyMainWaveformSampleRate, for the
+    // overview. It comes from the Waveform constructor (with no frames, so
+    // nearly no memory), so that it is bit for bit the value that the
+    // overview used before; with fast floating point math a division here can
+    // give a different last bit and move the stride boundaries.
+    const double legacyAudioVisualRatio =
+            Waveform(sampleRate, 0, kLegacyMainWaveformSampleRate, -1, 0)
+                    .getAudioVisualRatio();
+    // End of AI-generated text.
     m_stride = WaveformStride(m_waveform->getAudioVisualRatio(),
+            legacyAudioVisualRatio,
             m_waveformSummary->getAudioVisualRatio(),
             stemCount);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Whole-number stride lengths where the legacy stride is a multiple of
+    // the main stride: the legacy peaks come from the main stride peaks.
+    m_legacyStrideFrames = 0;
+    const double mainAudioVisualRatio = m_waveform->getAudioVisualRatio();
+    if (mainAudioVisualRatio >= 1 &&
+            mainAudioVisualRatio == std::floor(mainAudioVisualRatio) &&
+            legacyAudioVisualRatio == std::floor(legacyAudioVisualRatio)) {
+        const int mainStrideFrames = static_cast<int>(mainAudioVisualRatio);
+        const int legacyStrideFrames = static_cast<int>(legacyAudioVisualRatio);
+        if (legacyStrideFrames % mainStrideFrames == 0) {
+            m_legacyStrideFrames = legacyStrideFrames;
+        }
+    }
+    // End of AI-generated text.
 
     m_currentStride = 0;
     m_currentSummaryStride = 0;
@@ -122,6 +195,7 @@ bool AnalyzerWaveform::shouldAnalyze(TrackPointer pTrack) const {
     // A waveform of an older version on the track stays on screen, but it is
     // analysed again.
     m_replacedWaveformId = -1;
+    m_replacedSummaryId = -1;
     ConstWaveformPointer pReplacedWaveform;
     bool missingWaveform = pTrackWaveform.isNull() ||
             WaveformFactory::waveformVersionToVersionClass(
@@ -164,10 +238,18 @@ bool AnalyzerWaveform::shouldAnalyze(TrackPointer pTrack) const {
             }
             if (analysis.type == AnalysisDao::TYPE_WAVESUMMARY) {
                 vc = WaveformFactory::waveformSummaryVersionToVersionClass(analysis.version);
-                if (missingWavesummary && vc == WaveformFactory::VC_USE) {
-                    pLoadedTrackWaveformSummary = ConstWaveformPointer(
-                            WaveformFactory::loadWaveformFromAnalysis(analysis));
-                    missingWavesummary = false;
+                if (vc == WaveformFactory::VC_USE && m_replacedSummaryId == -1) {
+                    // AI-generated (Claude Code). Start of AI-generated text.
+                    // Keep the first usable stored overview. If the track is
+                    // analysed, storeResults removes it after the new one is
+                    // saved.
+                    m_replacedSummaryId = analysis.analysisId;
+                    if (missingWavesummary) {
+                        pLoadedTrackWaveformSummary = ConstWaveformPointer(
+                                WaveformFactory::loadWaveformFromAnalysis(analysis));
+                        missingWavesummary = false;
+                    }
+                    // End of AI-generated text.
                 } else if (vc != WaveformFactory::VC_KEEP) {
                     // remove all other Analysis except that one we should keep
                     m_analysisDao.deleteAnalysis(analysis.analysisId);
@@ -210,9 +292,13 @@ bool AnalyzerWaveform::shouldAnalyze(TrackPointer pTrack) const {
         return false;
     }
     // AI-generated (Claude Code). Start of AI-generated text.
-    // Show the waveform of the older version during the analysis.
+    // Show the waveform of the older version and the stored overview during
+    // the analysis.
     if (pReplacedWaveform) {
         pTrack->setWaveform(pReplacedWaveform);
+    }
+    if (pLoadedTrackWaveformSummary) {
+        pTrack->setWaveformSummary(pLoadedTrackWaveformSummary);
     }
     // End of AI-generated text.
     return true;
@@ -279,6 +365,20 @@ bool AnalyzerWaveform::processSamples(const CSAMPLE* pIn, SINT count) {
     m_waveform->setSaveState(Waveform::SaveState::NotSaved);
     m_waveformSummary->setSaveState(Waveform::SaveState::NotSaved);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // If each legacy stride is a whole number of main strides (for example
+    // 100 = 5 x 20 frames at 44100 Hz), the legacy peaks are the maximum of
+    // the main stride peaks: fold them in at each main stride end.
+    // Otherwise update the legacy peaks for each frame. They stay in local
+    // variables in the loop, because through the m_stride members the
+    // compiler must read them from memory again after each write of
+    // waveform data.
+    const bool legacyFromMainStrides = m_legacyStrideFrames > 0;
+    LegacyPeaks legacyPeaks;
+    if (!legacyFromMainStrides) {
+        legacyPeaks.loadFrom(m_stride);
+    }
+    // End of AI-generated text.
     for (SINT i = 0; i < count; i += 2) {
         // Take max value, not average of data
         CSAMPLE cover[2] = {fabs(pWaveformInput[i]), fabs(pWaveformInput[i + 1])};
@@ -306,6 +406,9 @@ bool AnalyzerWaveform::processSamples(const CSAMPLE* pIn, SINT count) {
         storeIfGreater(&m_stride.m_filteredData[Right][Mid], cmid[Right]);
         storeIfGreater(&m_stride.m_filteredData[Left][High], chigh[Left]);
         storeIfGreater(&m_stride.m_filteredData[Right][High], chigh[Right]);
+        if (!legacyFromMainStrides) {
+            legacyPeaks.update(cover, clow, cmid, chigh);
+        }
 
         for (int s = 0; s < stemCount; s++) {
             CSAMPLE cstem[2] = {
@@ -323,15 +426,37 @@ bool AnalyzerWaveform::processSamples(const CSAMPLE* pIn, SINT count) {
                 qWarning() << "AnalyzerWaveform::process - currentStride > waveform size";
                 return false;
             }
+            if (legacyFromMainStrides) {
+                m_stride.foldMainIntoLegacy();
+            }
             m_stride.store(m_waveformData + m_currentStride);
             m_currentStride += ChannelCount;
             m_waveform->setCompletion(m_currentStride);
+            // With whole-number stride lengths, fmod(position, length) < 1
+            // is the same as position % length == 0.
+            if (legacyFromMainStrides && m_stride.m_position % m_legacyStrideFrames == 0) {
+                m_stride.legacyStore();
+            }
+        }
+
+        if (!legacyFromMainStrides &&
+                fmod(m_stride.m_position, m_stride.m_legacyLength) < 1) {
+            legacyPeaks.storeTo(&m_stride);
+            m_stride.legacyStore();
+            legacyPeaks.loadFrom(m_stride);
         }
 
         if (fmod(m_stride.m_position, m_stride.m_averageLength) < 1) {
             VERIFY_OR_DEBUG_ASSERT(m_currentSummaryStride + ChannelCount <= m_waveformSummary->getDataSize()) {
                 qWarning() << "AnalyzerWaveform::process - current summary stride > waveform summary size";
                 return false;
+            }
+            // The running legacy peak (for an overview with more points than
+            // legacy strides) includes the current part of a stride.
+            if (legacyFromMainStrides) {
+                m_stride.foldMainIntoLegacy();
+            } else {
+                legacyPeaks.storeTo(&m_stride);
             }
             m_stride.averageStore(m_waveformSummaryData + m_currentSummaryStride);
             m_currentSummaryStride += ChannelCount;
@@ -348,6 +473,10 @@ bool AnalyzerWaveform::processSamples(const CSAMPLE* pIn, SINT count) {
             test_heatMap->setPixel(point.toPoint(), 0xFF0000FF);
 #endif
         }
+    }
+
+    if (!legacyFromMainStrides) {
+        legacyPeaks.storeTo(&m_stride);
     }
 
     //kLogger.debug() << "process - m_waveform->getCompletion()" << m_waveform->getCompletion() << "off" << m_waveform->getDataSize();
@@ -401,7 +530,12 @@ void AnalyzerWaveform::storeResults(TrackPointer pTrack) {
             m_waveform->saveState() == Waveform::SaveState::Saved) {
         m_analysisDao.deleteAnalysis(m_replacedWaveformId);
     }
+    if (m_replacedSummaryId != -1 && m_waveformSummary &&
+            m_waveformSummary->saveState() == Waveform::SaveState::Saved) {
+        m_analysisDao.deleteAnalysis(m_replacedSummaryId);
+    }
     m_replacedWaveformId = -1;
+    m_replacedSummaryId = -1;
     // End of AI-generated text.
 
     // Set waveforms on track AFTER they'been written to disk in order to have

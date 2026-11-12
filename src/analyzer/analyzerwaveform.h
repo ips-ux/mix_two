@@ -18,11 +18,18 @@ class QImage;
 class EngineFilterIIRBase;
 class QSqlDatabase;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// The main waveform keeps the peak of each main stride (m_length frames).
+// The overview (summary) is the mean of the peaks of the legacy strides
+// (legacySamples frames, the main stride at kLegacyMainWaveformSampleRate),
+// so that the overview does not change when the main point rate changes.
+// End of AI-generated text.
 struct WaveformStride {
-    WaveformStride(double samples, double averageSamples, int stemCount)
+    WaveformStride(double samples, double legacySamples, double averageSamples, int stemCount)
             : m_position(0),
               m_stemCount(stemCount),
               m_length(samples),
+              m_legacyLength(legacySamples),
               m_averageLength(averageSamples),
               m_averagePosition(0),
               m_averageDivisor(0),
@@ -36,8 +43,10 @@ struct WaveformStride {
         m_averageDivisor = 0;
         for (int i = 0; i < ChannelCount; ++i) {
             m_overallData[i] = 0.0f;
+            m_legacyOverallData[i] = 0.0f;
             m_averageOverallData[i] = 0.0f;
             SampleUtil::clear(m_filteredData[i], BandCount);
+            SampleUtil::clear(m_legacyFilteredData[i], BandCount);
             SampleUtil::clear(m_averageFilteredData[i], BandCount);
             if (m_stemCount > 0) {
                 SampleUtil::clear(m_stemData[i], m_stemCount);
@@ -63,13 +72,10 @@ struct WaveformStride {
                         m_postScaleConversion * m_stemData[i][stemIdx] + 0.5));
             }
         }
-        m_averageDivisor++;
         // Reset the stride counters
         for (int i = 0; i < ChannelCount; ++i) {
-            m_averageOverallData[i] += m_overallData[i];
             m_overallData[i] = 0.0f;
             for (int f = 0; f < BandCount; ++f) {
-                m_averageFilteredData[i][f] += m_filteredData[i][f];
                 m_filteredData[i][f] = 0.0f;
             }
             for (int stemIdx = 0; stemIdx < m_stemCount; ++stemIdx) {
@@ -77,6 +83,34 @@ struct WaveformStride {
             }
         }
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Adds the peaks of the current main stride to the legacy stride peaks.
+    // It is used when each legacy stride is a whole number of main strides.
+    // Calling it two times for the same main stride gives the same result.
+    inline void foldMainIntoLegacy() {
+        for (int i = 0; i < ChannelCount; ++i) {
+            m_legacyOverallData[i] = std::max(m_legacyOverallData[i], m_overallData[i]);
+            for (int f = 0; f < BandCount; ++f) {
+                m_legacyFilteredData[i][f] =
+                        std::max(m_legacyFilteredData[i][f], m_filteredData[i][f]);
+            }
+        }
+    }
+
+    // At the end of a legacy stride: add its peaks to the overview mean.
+    inline void legacyStore() {
+        m_averageDivisor++;
+        for (int i = 0; i < ChannelCount; ++i) {
+            m_averageOverallData[i] += m_legacyOverallData[i];
+            m_legacyOverallData[i] = 0.0f;
+            for (int f = 0; f < BandCount; ++f) {
+                m_averageFilteredData[i][f] += m_legacyFilteredData[i][f];
+                m_legacyFilteredData[i][f] = 0.0f;
+            }
+        }
+    }
+    // End of AI-generated text.
 
     inline void averageStore(WaveformData* data) {
         if (m_averageDivisor) {
@@ -99,16 +133,19 @@ struct WaveformStride {
             }
         } else {
             // This is the case if The Overview Waveform has more samples than the detailed waveform
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // Use the running peak of the legacy stride.
+            // End of AI-generated text.
             for (int i = 0; i < ChannelCount; ++i) {
                 WaveformData& datum = *(data + i);
                 datum.filtered.all = static_cast<unsigned char>(std::min(255.0,
-                        m_postScaleConversion * m_overallData[i] + 0.5));
+                        m_postScaleConversion * m_legacyOverallData[i] + 0.5));
                 datum.filtered.low = static_cast<unsigned char>(std::min(255.0,
-                        m_postScaleConversion * m_filteredData[i][Low] + 0.5));
+                        m_postScaleConversion * m_legacyFilteredData[i][Low] + 0.5));
                 datum.filtered.mid = static_cast<unsigned char>(std::min(255.0,
-                        m_postScaleConversion * m_filteredData[i][Mid] + 0.5));
+                        m_postScaleConversion * m_legacyFilteredData[i][Mid] + 0.5));
                 datum.filtered.high = static_cast<unsigned char>(std::min(255.0,
-                        m_postScaleConversion * m_filteredData[i][High] + 0.5));
+                        m_postScaleConversion * m_legacyFilteredData[i][High] + 0.5));
             }
         }
 
@@ -124,6 +161,7 @@ struct WaveformStride {
     int m_position;
     int m_stemCount;
     double m_length;
+    double m_legacyLength;
     double m_averageLength;
     int m_averagePosition;
     int m_averageDivisor;
@@ -131,6 +169,12 @@ struct WaveformStride {
     float m_overallData[ChannelCount];
     float m_filteredData[ChannelCount][BandCount];
     float m_stemData[ChannelCount][mixxx::kMaxSupportedStems];
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Peaks of the current legacy stride, for the overview only.
+    // End of AI-generated text.
+    float m_legacyOverallData[ChannelCount];
+    float m_legacyFilteredData[ChannelCount][BandCount];
 
     float m_averageOverallData[ChannelCount];
     float m_averageFilteredData[ChannelCount][BandCount];
@@ -169,6 +213,11 @@ class AnalyzerWaveform : public Analyzer {
     // replaces. storeResults removes it after the new waveform is saved.
     // -1 if there is none.
     mutable int m_replacedWaveformId;
+    // The same for the stored overview (summary) that the new one replaces.
+    mutable int m_replacedSummaryId;
+    // The legacy stride length in frames if it is a whole multiple of a
+    // whole-number main stride, else 0. See processSamples.
+    int m_legacyStrideFrames;
     // End of AI-generated text.
 
     WaveformPointer m_waveform;
