@@ -1793,6 +1793,7 @@ add_library(
   src/waveform/renderers/waveformrendermark.cpp
   src/waveform/renderers/waveformrendermarkbase.cpp
   src/waveform/renderers/waveformrendermarkrange.cpp
+  src/waveform/renderers/threebandsampler.cpp
   src/waveform/renderers/waveformsignalcolors.cpp
   src/waveform/renderers/waveformwidgetrenderer.cpp
   src/waveform/sharedglcontext.cpp
@@ -3114,6 +3115,7 @@ if(BUILD_TESTING)
     src/test/trackreftest.cpp
     src/test/trackupdate_test.cpp
     src/test/uuid_test.cpp
+    src/test/threebandsampler_test.cpp
     src/test/waveformoverviewrenderer_test.cpp
     src/test/waveformzoom_test.cpp
     src/test/wbatterytest.cpp
