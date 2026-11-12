@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QtDebug>
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -334,6 +336,17 @@ std::vector<CSAMPLE> makeSweepAndNoise(int sampleRate, SINT frames) {
     return samples;
 }
 
+// The hashes of the "all" values of the overviews in the first reference
+// files, before the band split points changed.
+const QByteArray kSummaryAllHash44100 =
+        QByteArrayLiteral("f939d5213589c1e876f41d991d8670ff22eecc32");
+const QByteArray kSummaryAllHash48000 =
+        QByteArrayLiteral("91a67f8215ca32b9b6e486c487e86a47dcb46b5b");
+const QByteArray kSummaryAllHashShort44100 =
+        QByteArrayLiteral("fd6080c2acac3fc04a4aefa1b627aa6363240bf1");
+const QByteArray kSummaryAllHashShort48000 =
+        QByteArrayLiteral("8524bcfbb31592d0d105ebf711f6c23d3c7c61c4");
+
 // The overview of the test signal. The analyser gets the signal in blocks of
 // 4096 frames, as the analyser thread does.
 ConstWaveformPointer analyseSummary(
@@ -362,19 +375,32 @@ ConstWaveformPointer analyseSummary(
     return pTrack->getWaveformSummary();
 }
 
+// The SHA-1 of the "all" values of every point, as hex.
+QByteArray allValuesHash(const ConstWaveformPointer& pWaveform) {
+    QByteArray all;
+    all.reserve(pWaveform->getDataSize());
+    for (int i = 0; i < pWaveform->getDataSize(); ++i) {
+        all.append(static_cast<char>(pWaveform->getAll(i)));
+    }
+    return QCryptographicHash::hash(all, QCryptographicHash::Sha1).toHex();
+}
+
 // The reference overviews were made by the code before the main waveform
-// went to 2205 points per second. The overview must stay byte for byte the
-// same.
+// went to 2205 points per second, then made again when the band split
+// points changed. The "all" values do not use the band filters: their hashes
+// are from the overviews before both changes and must not change.
 TEST_F(AnalyzerWaveformTest, SummaryIsUnchangedAt44100) {
     ConstWaveformPointer pSummary = analyseSummary(config(), 44100);
     ASSERT_NE(pSummary, nullptr);
     assertWaveformReference(pSummary, "AnalyzerWaveformSummary44100");
+    EXPECT_EQ(allValuesHash(pSummary), kSummaryAllHash44100);
 }
 
 TEST_F(AnalyzerWaveformTest, SummaryIsUnchangedAt48000) {
     ConstWaveformPointer pSummary = analyseSummary(config(), 48000);
     ASSERT_NE(pSummary, nullptr);
     assertWaveformReference(pSummary, "AnalyzerWaveformSummary48000");
+    EXPECT_EQ(allValuesHash(pSummary), kSummaryAllHash48000);
 }
 
 // A short track: the overview has more points than legacy strides, so some
@@ -383,9 +409,76 @@ TEST_F(AnalyzerWaveformTest, SummaryIsUnchangedForShortTrack) {
     ConstWaveformPointer pSummary44100 = analyseSummary(config(), 44100, 2);
     ASSERT_NE(pSummary44100, nullptr);
     assertWaveformReference(pSummary44100, "AnalyzerWaveformSummaryShort44100");
+    EXPECT_EQ(allValuesHash(pSummary44100), kSummaryAllHashShort44100);
     ConstWaveformPointer pSummary48000 = analyseSummary(config(), 48000, 2);
     ASSERT_NE(pSummary48000, nullptr);
     assertWaveformReference(pSummary48000, "AnalyzerWaveformSummaryShort48000");
+    EXPECT_EQ(allValuesHash(pSummary48000), kSummaryAllHashShort48000);
+}
+
+struct Bands {
+    int low = 0;
+    int mid = 0;
+    int high = 0;
+};
+
+// The largest band values of the main waveform for one second of a sine.
+// The first quarter second is not used, so that the filters have settled.
+Bands sinePeaks(const UserSettingsPointer& pConfig, double frequency) {
+    TrackPointer pTrack = Track::newTemporary();
+    pTrack->setAudioProperties(
+            mixxx::audio::ChannelCount(kChannelCount),
+            mixxx::audio::SampleRate(kTrackSampleRate),
+            mixxx::audio::Bitrate(),
+            mixxx::Duration::fromMillis(1000));
+    AnalyzerWaveform analyzer(pConfig, QSqlDatabase());
+    EXPECT_TRUE(analyzer.initialize(AnalyzerTrack(pTrack),
+            pTrack->getSampleRate(),
+            pTrack->getChannels(),
+            kOneSecondFrames));
+    std::vector<CSAMPLE> samples(static_cast<std::size_t>(kOneSecondFrames) * kChannelCount);
+    for (SINT i = 0; i < kOneSecondFrames; ++i) {
+        const auto value = static_cast<CSAMPLE>(
+                0.5 * std::sin(2.0 * M_PI * frequency * i / kTrackSampleRate));
+        samples[2 * i] = value;
+        samples[2 * i + 1] = value;
+    }
+    analyzer.processSamples(samples.data(), static_cast<SINT>(samples.size()));
+    analyzer.storeResults(pTrack);
+    analyzer.cleanup();
+
+    Bands peaks;
+    ConstWaveformPointer pWaveform = pTrack->getWaveform();
+    EXPECT_NE(pWaveform, nullptr);
+    if (!pWaveform) {
+        return peaks;
+    }
+    for (int i = pWaveform->getDataSize() / 4; i < pWaveform->getDataSize(); ++i) {
+        peaks.low = std::max<int>(peaks.low, pWaveform->getLow(i));
+        peaks.mid = std::max<int>(peaks.mid, pWaveform->getMid(i));
+        peaks.high = std::max<int>(peaks.high, pWaveform->getHigh(i));
+    }
+    return peaks;
+}
+
+// The bands split as rekordbox's 3-band waveform does: low below 150 Hz,
+// high above 2000 Hz.
+TEST_F(AnalyzerWaveformTest, BandSplit) {
+    const Bands bass = sinePeaks(config(), 100.0);
+    EXPECT_GT(bass.low, bass.mid);
+    EXPECT_GT(bass.low, bass.high);
+
+    const Bands middle = sinePeaks(config(), 1000.0);
+    EXPECT_GT(middle.mid, middle.low);
+    EXPECT_GT(middle.mid, middle.high);
+
+    const Bands treble = sinePeaks(config(), 8000.0);
+    EXPECT_GT(treble.high, treble.low);
+    EXPECT_GT(treble.high, treble.mid);
+
+    // Below the earlier split at 600 Hz, but above the split at 150 Hz.
+    const Bands lowMid = sinePeaks(config(), 400.0);
+    EXPECT_GT(lowMid.mid, lowMid.low);
 }
 // End of AI-generated text.
 

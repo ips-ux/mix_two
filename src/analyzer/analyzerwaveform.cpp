@@ -16,9 +16,14 @@ namespace {
 
 mixxx::Logger kLogger("AnalyzerWaveform");
 
-constexpr double kLowMidFreqHz = 600.0;
+// AI-generated (Claude Code). Start of AI-generated text.
+// The band split points. With these, the three bands follow rekordbox's
+// 3-band waveform most closely (measured on real tracks; the earlier split
+// was 600 Hz and 4000 Hz).
+// End of AI-generated text.
+constexpr double kLowMidFreqHz = 150.0;
 
-constexpr double kMidHighFreqHz = 4000.0;
+constexpr double kMidHighFreqHz = 2000.0;
 
 // AI-generated (Claude Code). Start of AI-generated text.
 // A local copy of WaveformStride::m_legacyOverallData and

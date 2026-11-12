@@ -97,13 +97,16 @@ QByteArray Waveform::toByteArray() const {
     // filtered->set_mid_high_cutoff_frequency(2000);
     // filtered->set_high_cutoff_frequency(2000);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The split points of AnalyzerWaveform (kLowMidFreqHz, kMidHighFreqHz).
+    // End of AI-generated text.
     // Frequency cutoff for bessel_lowpass4
-    filtered->set_low_cutoff_frequency(600);
+    filtered->set_low_cutoff_frequency(150);
     // Frequency cutoff for bessel_bandpass
-    filtered->set_mid_low_cutoff_frequency(600);
-    filtered->set_mid_high_cutoff_frequency(4000);
+    filtered->set_mid_low_cutoff_frequency(150);
+    filtered->set_mid_high_cutoff_frequency(2000);
     // Frequency cutoff for bessel_highpass4
-    filtered->set_high_cutoff_frequency(4000);
+    filtered->set_high_cutoff_frequency(2000);
 
     io::Waveform::Signal* low = filtered->mutable_low();
     io::Waveform::Signal* mid = filtered->mutable_mid();
