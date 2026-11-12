@@ -38,6 +38,8 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-11: Main waveform at 2205 points per second, old waveform shown until re-analysed (commit: see git log, "Waveform: 2205 points per second, old waveform shown until re-analysed")
+- 2026-11-11: Waveform analysis cost benchmark, baseline at 441 points per second (commit: see git log, "test: waveform analysis cost benchmark")
 - 2026-11-11: Mic module meter is a horizontal bar under the knob (commit: see git log, "LateNight: mic level meter as a bar below the knob")
 - 2026-11-11: 2-deck mixer uses the 4-deck channel columns; COLOR knobs in 4-deck mode (commit: see git log, "LateNight: 2-deck mixer in channel columns, COLOR knobs with 4 decks")
 - 2026-11-07: Mic module in the LateNight mixer (commit: see git log, "LateNight: Mic module under the CFX buttons" and the mic commits before and after it)
@@ -48,8 +50,6 @@ The latest changes, newest first.
 - 2026-11-05: 4-deck mode keeps two deck windows (commit: see git log, "LateNight: 4-deck mode keeps two deck windows")
 - 2026-11-04: USB export RGB waveform colours match the screen (commit: see git log, "USB export: RGB waveform colours match the screen")
 - 2026-11-04: Color Saturated whiteness follows the mid band share (commit: see git log, "Color Saturated: whiteness follows the mid band share")
-- 2026-11-04: Legacy Design deck HUD: RGB waveform colours calibrated (commit: see git log, "LateNight: RGB waveform colours calibrated")
-- 2026-11-02: Legacy Design deck HUD, final review fixes (commit: see git log, "A.HOT CUE: a clear on hidden pads only shows the cues; DDJ-800 mixer strip keeps the side")
 
 <!-- mixtwo-status:end -->
 
