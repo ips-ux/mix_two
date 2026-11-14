@@ -2,7 +2,7 @@
 # Mix Two
 
 Mix Two is a fork of Mixxx. It replaces rekordbox 6 for a DJ with a Pioneer
-DDJ-800. The text below shows the status of the work, up to 2026-11-11.
+DDJ-800. The text below shows the status of the work, up to 2026-11-13.
 
 ## Overview
 
@@ -38,6 +38,8 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-13: USB export 3-band waveform bytes in the order low, mid, high (commit: see git log, "USB export: 3-band waveform bytes in the order low, mid, high")
+- 2026-11-11: Band split points as rekordbox 3Band (commit: see git log, "Waveform: band split points as rekordbox 3Band")
 - 2026-11-11: Main waveform at 2205 points per second, old waveform shown until re-analysed (commit: see git log, "Waveform: 2205 points per second, old waveform shown until re-analysed")
 - 2026-11-11: Waveform analysis cost benchmark, baseline at 441 points per second (commit: see git log, "test: waveform analysis cost benchmark")
 - 2026-11-11: Mic module meter is a horizontal bar under the knob (commit: see git log, "LateNight: mic level meter as a bar below the knob")
@@ -48,8 +50,6 @@ The latest changes, newest first.
 - 2026-11-06: Preferences window redesign, dark glass (commit: see git log, "Preferences: new dark glass window with a page rail and search")
 - 2026-11-06: 4-deck master meter moves into the Master panel (commit: see git log, "LateNight: 4-deck master meter in the Master panel")
 - 2026-11-05: 4-deck mode keeps two deck windows (commit: see git log, "LateNight: 4-deck mode keeps two deck windows")
-- 2026-11-04: USB export RGB waveform colours match the screen (commit: see git log, "USB export: RGB waveform colours match the screen")
-- 2026-11-04: Color Saturated whiteness follows the mid band share (commit: see git log, "Color Saturated: whiteness follows the mid band share")
 
 <!-- mixtwo-status:end -->
 
