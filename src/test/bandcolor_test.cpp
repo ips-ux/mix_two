@@ -9,28 +9,31 @@ namespace {
 
 using mixxx::bandcolor::Bands;
 
-TEST(BandColorTest, Height5IsLoudestBandOver8) {
+TEST(BandColorTest, Height5IsScaledLoudestBand) {
     EXPECT_EQ(0, mixxx::bandcolor::height5(Bands{0, 0, 0}));
+    // 100 * 34 / 256 = 13.3 -> 13.
+    EXPECT_EQ(13, mixxx::bandcolor::height5(Bands{100, 10, 10}));
     EXPECT_EQ(31, mixxx::bandcolor::height5(Bands{255, 10, 10}));
     EXPECT_EQ(31, mixxx::bandcolor::height5(Bands{10, 10, 255}));
 }
 
 TEST(BandColorTest, Whiteness3FollowsMidShare) {
     EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{0, 0, 0}));
-    EXPECT_EQ(7, mixxx::bandcolor::whiteness3(Bands{200, 200, 10}));
+    // Mid as loud as the loudest band: 4.5 -> 5.
+    EXPECT_EQ(5, mixxx::bandcolor::whiteness3(Bands{200, 200, 10}));
     EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{200, 0, 10}));
-    // 7 * 100 / 200 = 3.5 -> 4.
-    EXPECT_EQ(4, mixxx::bandcolor::whiteness3(Bands{200, 100, 10}));
+    // 4.5 * 100 / 200 = 2.25 -> 2.
+    EXPECT_EQ(2, mixxx::bandcolor::whiteness3(Bands{200, 100, 10}));
 }
 
 TEST(BandColorTest, ColorDetailEntryPacksBandsAndHeight) {
     // Low only: red. R 7, G 0, B 0, height 31 -> 7 << 13 | 31 << 2.
     EXPECT_EQ(0xE07C, mixxx::bandcolor::colorDetailEntry(Bands{255, 0, 0}));
-    // Mid only: cyan #00e7d3. G 7, B 7 * 0xd3 / 0xe7 = 6.39 -> 6.
-    EXPECT_EQ(0x1F7C, mixxx::bandcolor::colorDetailEntry(Bands{0, 255, 0}));
+    // Mid only: G 7, B 7 * 16 / 119 = 0.94 -> 1.
+    EXPECT_EQ(0x1CFC, mixxx::bandcolor::colorDetailEntry(Bands{0, 255, 0}));
     // High only: blue. B 7.
     EXPECT_EQ(0x03FC, mixxx::bandcolor::colorDetailEntry(Bands{0, 0, 255}));
-    // Low and high: R 7, B 7 * 255 * 0xdc / (255 * 0xff) = 6.04 -> 6.
+    // Low and high: R 7, B 7 * 204 / 232 = 6.16 -> 6.
     EXPECT_EQ(0xE37C, mixxx::bandcolor::colorDetailEntry(Bands{255, 0, 255}));
     // Silence: height 0 and no colour.
     EXPECT_EQ(0x0000, mixxx::bandcolor::colorDetailEntry(Bands{0, 0, 0}));

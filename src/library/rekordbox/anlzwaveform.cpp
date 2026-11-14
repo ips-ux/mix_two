@@ -177,9 +177,12 @@ AnlzWaveforms anlzWaveformsFrom(const Waveform& waveform,
         result.colorPreview.append(static_cast<char>(b0));
         result.colorPreview.append(static_cast<char>(b1));
         result.colorPreview.append(static_cast<char>(meanOf(sumAll, count) >> 1));
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // The band maxima in the order low, mid, high, as rekordbox stores them.
+        // End of AI-generated text.
+        result.colorPreview.append(static_cast<char>(maxLow >> 1));
         result.colorPreview.append(static_cast<char>(maxMid >> 1));
         result.colorPreview.append(static_cast<char>(maxHigh >> 1));
-        result.colorPreview.append(static_cast<char>(maxLow >> 1));
 
         // AI-generated (Claude Code). Start of AI-generated text.
         // Low, mid, high, as rekordbox stores them.

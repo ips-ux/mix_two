@@ -51,6 +51,12 @@ AnlzWaveforms convert(int sampleRate, SINT frames, const BandsAt& bandsAt) {
     return anlzWaveformsFrom(*pWaveform, frames, SampleRate(sampleRate));
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// The detail byte of an entry with all bands at 255: whiteness 5 (4.5
+// rounded), height 31.
+constexpr int kFullEntry = (5 << 5) | 31;
+// End of AI-generated text.
+
 quint8 byteAt(const QByteArray& bytes, int index) {
     return static_cast<quint8>(bytes.at(index));
 }
@@ -96,14 +102,14 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesLowOnly) {
 }
 
 TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesMidOnly) {
-    // mid 255 only -> whiteness 7.
+    // mid 255 only -> whiteness 5 (4.5 rounded).
     const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
         return Bands{0, 255, 0, 255};
     });
     ASSERT_EQ(150, w.detailEntries);
-    EXPECT_EQ(0xFF, byteAt(w.detail, 0));
-    // Cyan: G 7, B 6, height 31.
-    EXPECT_EQ(0x1F7C, u16At(w.colorDetail, 0));
+    EXPECT_EQ((5 << 5) | 31, byteAt(w.detail, 0));
+    // G 7, B 1, height 31.
+    EXPECT_EQ(0x1CFC, u16At(w.colorDetail, 0));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 0));
     EXPECT_EQ(127, byteAt(w.threeBandDetail, 1));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 2));
@@ -123,25 +129,26 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesHighOnly) {
 }
 
 TEST(AnlzWaveformTest, WhitenessIsRoundedFromMidShare) {
-    // max 255, mid 128: 7 * 128 / 255 = 3.51 -> 4. Height 255 >> 3 = 31.
+    // max 255, mid 142: 4.5 * 142 / 255 = 2.51 -> 3. Height 255 * 34 / 256
+    // is more than 31: 31.
     const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
-        return Bands{255, 128, 0, 255};
+        return Bands{255, 142, 0, 255};
     });
-    EXPECT_EQ((4 << 5) | 31, byteAt(w.detail, 0));
-    // max 255, mid 120: 7 * 120 / 255 = 3.29 -> 3.
+    EXPECT_EQ((3 << 5) | 31, byteAt(w.detail, 0));
+    // max 255, mid 141: 4.5 * 141 / 255 = 2.49 -> 2.
     const AnlzWaveforms u = convert(44100, 44100, [](SINT) {
-        return Bands{255, 120, 0, 255};
+        return Bands{255, 141, 0, 255};
     });
-    EXPECT_EQ((3 << 5) | 31, byteAt(u.detail, 0));
-    // max 8, mid 4: 7 * 4 / 8 = 3.5 -> 4. Height 8 >> 3 = 1.
+    EXPECT_EQ((2 << 5) | 31, byteAt(u.detail, 0));
+    // max 8, mid 4: 4.5 * 4 / 8 = 2.25 -> 2. Height 8 * 34 / 256 = 1.06 -> 1.
     const AnlzWaveforms v = convert(44100, 44100, [](SINT) {
         return Bands{8, 4, 0, 8};
     });
-    EXPECT_EQ((4 << 5) | 1, byteAt(v.detail, 0));
+    EXPECT_EQ((2 << 5) | 1, byteAt(v.detail, 0));
 }
 
 TEST(AnlzWaveformTest, HeightBelowEightHasNoWhiteness) {
-    // max 7 >> 3 = 0: height 0 and whiteness 0 although the bands differ.
+    // max 7 * 34 / 256 = 0: height 0 and whiteness 0 although the bands differ.
     const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
         return Bands{7, 0, 0, 7};
     });
@@ -210,8 +217,8 @@ TEST(AnlzWaveformTest, ShortWaveformDoesNotReadPastItsData) {
     const AnlzWaveforms w = anlzWaveformsFrom(*pWaveform, 88200, SampleRate(44100));
     ASSERT_EQ(300, w.detailEntries);
     ASSERT_EQ(300, w.detail.size());
-    EXPECT_EQ(0xFF, byteAt(w.detail, 0));
-    EXPECT_EQ(0xFF, byteAt(w.detail, 149));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail,0));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail,149));
     EXPECT_EQ(0, byteAt(w.detail, 150));
     EXPECT_EQ(0, byteAt(w.detail, 299));
 }
@@ -221,8 +228,8 @@ TEST(AnlzWaveformTest, LastEntryOfOddRateGetsData) {
     // long) still reads a visual sample.
     const AnlzWaveforms w = convert(48000, 48001, flat(255));
     ASSERT_EQ(151, w.detailEntries);
-    EXPECT_EQ(0xFF, byteAt(w.detail, 0));
-    EXPECT_EQ(0xFF, byteAt(w.detail, 150));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail,0));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail,150));
 }
 
 TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
@@ -237,8 +244,8 @@ TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
     });
     ASSERT_EQ(1500, w.detailEntries);
 
-    // Height 31, whiteness 4 (see WhitenessIsRoundedFromMidShare).
-    const quint8 loud = (4 << 5) | 31;
+    // Height 31, whiteness 4.5 * 128 / 255 = 2.26 -> 2.
+    const quint8 loud = (2 << 5) | 31;
     EXPECT_EQ(loud, byteAt(w.preview, 0));
     EXPECT_EQ(loud, byteAt(w.preview, 199));
     EXPECT_EQ(0, byteAt(w.preview, 200));
@@ -250,14 +257,14 @@ TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
     EXPECT_EQ(0, byteAt(w.tinyPreview, 99));
 
     // PWV4 column 0: b0 = 255 >> 1 = 127, b1 = 0x80, b2 = 127, then the
-    // maxima of mid, high and low.
+    // maxima of low, mid and high.
     ASSERT_EQ(7200, w.colorPreview.size());
     EXPECT_EQ(127, byteAt(w.colorPreview, 0));
     EXPECT_EQ(0x80, byteAt(w.colorPreview, 1));
     EXPECT_EQ(127, byteAt(w.colorPreview, 2));
-    EXPECT_EQ(64, byteAt(w.colorPreview, 3));
-    EXPECT_EQ(32, byteAt(w.colorPreview, 4));
-    EXPECT_EQ(127, byteAt(w.colorPreview, 5));
+    EXPECT_EQ(127, byteAt(w.colorPreview, 3));
+    EXPECT_EQ(64, byteAt(w.colorPreview, 4));
+    EXPECT_EQ(32, byteAt(w.colorPreview, 5));
     for (int i = 0; i < 6; ++i) {
         EXPECT_EQ(0, byteAt(w.colorPreview, 1199 * 6 + i)) << i;
     }
@@ -294,6 +301,18 @@ TEST(AnlzWaveformTest, ThreeBandPreviewIsLowMidHigh) {
     EXPECT_EQ(120 >> 1, byteAt(w.threeBandPreview, 1));
     EXPECT_EQ(200 >> 1, byteAt(w.threeBandPreview, 2));
 }
+
+// The colour preview stores the band maxima in bytes 3-5 as low, mid, high,
+// as rekordbox does.
+TEST(AnlzWaveformTest, ColorPreviewBandsAreLowMidHigh) {
+    const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
+        return Bands{40, 120, 200, 200};
+    });
+    ASSERT_EQ(1200 * 6, w.colorPreview.size());
+    EXPECT_EQ(40 >> 1, byteAt(w.colorPreview, 3));
+    EXPECT_EQ(120 >> 1, byteAt(w.colorPreview, 4));
+    EXPECT_EQ(200 >> 1, byteAt(w.colorPreview, 5));
+}
 // End of AI-generated text.
 
 TEST(AnlzWaveformTest, PreviewColumnsRepeatEntriesOfShortTracks) {
@@ -313,17 +332,17 @@ TEST(AnlzWaveformTest, PreviewColumnsRepeatEntriesOfShortTracks) {
 
 TEST(AnlzWaveformTest, PreviewColumnMeanRoundsToNearest) {
     // 4 s = 600 entries, 400 preview columns: column 1 covers the entries
-    // [1, 3) with 600 / 400 = 1.5. Entry 1 has height 31 and whiteness 7,
-    // entry 2 has 0 and 0: means 15.5 -> 16 and 3.5 -> 4.
+    // [1, 3) with 600 / 400 = 1.5. Entry 1 has height 31 and whiteness 5,
+    // entry 2 has 0 and 0: means 15.5 -> 16 and 2.5 -> 3.
     const AnlzWaveforms w = convert(44100, 4 * 44100, [](SINT frame) {
         // Entry 1 is frames [294, 588); the visual samples 3 and 4 (frames
         // 300-499) belong to it only (entry 2 starts at frame 588).
         return (frame == 300 || frame == 400) ? Bands{255, 255, 255, 255} : Bands{};
     });
     ASSERT_EQ(600, w.detailEntries);
-    EXPECT_EQ(0xFF, byteAt(w.detail, 1));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail,1));
     EXPECT_EQ(0, byteAt(w.detail, 2));
-    EXPECT_EQ((4 << 5) | 16, byteAt(w.preview, 1));
+    EXPECT_EQ((3 << 5) | 16, byteAt(w.preview, 1));
 }
 
 TEST(AnlzWaveformTest, SilenceGivesZeros) {

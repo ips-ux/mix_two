@@ -506,6 +506,25 @@ The RGB overview now shows the same colours as the waveform. Before, the
 overview always showed red, green and blue, also when a skin set other
 colours.
 
+<!-- AI-generated (Claude Code, 2026-11-13). Start of AI-generated text. -->
+### Waveform bands and USB export
+
+The waveform analysis now divides the sound into bands at 150 Hz and
+2000 Hz. Before, the limits were 600 Hz and 4000 Hz. The bass, middle and
+high bands are now nearer to the rekordbox 3-band waveform.
+
+The RGB, Filtered, Stacked, HSV and Color Saturated waveforms show slightly
+different colours. In Color Saturated, middle sounds show a little less
+white than before.
+
+USB exports write the 3-band waveform in the correct band order. Before, a
+CDJ showed the bass, middle and high bands in the wrong positions.
+
+The exported blue and RGB waveforms use new values that make them nearer to
+rekordbox for the new bands. The exported RGB colours are not the same as
+the LateNight skin colours now.
+<!-- End of AI-generated text. -->
+
 ### QUANTIZE beat value
 
 Each deck has a QUANTIZE beat value: 1/8, 1/4, 1/2 or 1 beat. The default

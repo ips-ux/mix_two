@@ -18,7 +18,8 @@ struct AnlzWaveforms {
     QByteArray tinyPreview;
     /// PWV3: one byte per detail entry, as PWAV.
     QByteArray detail;
-    /// PWV4: 1200 columns of 6 bytes.
+    /// PWV4: 1200 columns of 6 bytes; bytes 3-5 are the low, mid and high
+    /// maxima.
     QByteArray colorPreview;
     /// PWV5: one big-endian u16 per detail entry.
     QByteArray colorDetail;
