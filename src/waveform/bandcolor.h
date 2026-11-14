@@ -4,8 +4,9 @@
 #include <QtGlobal>
 
 // <!-- AI-generated (Claude Code, 2026-11-02). Start of AI-generated text. -->
-// Band values to picture values. The ANLZ waveform writer and the on-screen
-// waveforms use the same rules, so they show the same picture.
+// Band values to picture values for the ANLZ waveform writer and the
+// on-screen waveforms. The writer has its own height, whiteness and colour
+// constants, fitted to rekordbox's own files; the screen keeps its rules.
 // <!-- End of AI-generated text. -->
 
 namespace mixxx {
@@ -19,13 +20,20 @@ struct Bands {
 };
 
 // <!-- AI-generated (Claude Code, 2026-11-13). Start of AI-generated text. -->
-/// The loudest band times 34 / 256 (0-31).
+/// The exported height: the loudest band times 34 / 256 (0-31). Used by the
+/// USB export only.
 quint8 height5(Bands b);
 
-/// The mid band as a share of the loudest band, 4.5 * mid / loudest rounded
-/// (0-5), as rekordbox's blue waveform does: bass-led columns stay near 0,
-/// mid-led columns go to 5. 0 when the height is 0.
+/// The on-screen whiteness: the mid band as a share of the loudest band,
+/// 7 * mid / loudest rounded (0-7). Bass-led columns stay near 0, mid-led
+/// columns go to 7. 0 when the loudest band is below 8. Used by the Color
+/// Saturated waveform and overview.
 quint8 whiteness3(Bands b);
+
+/// The exported whiteness, as rekordbox's blue waveform does: 4.5 * mid /
+/// loudest rounded (0-5), fitted to rekordbox's own files. 0 when height5 is
+/// 0. Used by the USB export only.
+quint8 exportWhiteness3(Bands b);
 
 /// The 16-bit colour detail word: red, green and blue in 3 bits each, then the
 /// height in 5 bits. The colour is a blend of the bands (red from low, green

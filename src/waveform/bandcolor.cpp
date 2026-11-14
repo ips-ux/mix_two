@@ -12,10 +12,11 @@ int loudestOf(Bands b) {
 }
 
 // <!-- AI-generated (Claude Code, 2026-11-13). Start of AI-generated text. -->
-// The constants are fitted to rekordbox's own waveforms for the band split
-// points of the analyser (150 Hz and 2000 Hz).
-constexpr int kHeightScale = 34;     // height = loudest * 34 / 256
-constexpr int kWhitenessTwice = 9;   // whiteness = 4.5 * mid / loudest
+// The export constants, fitted to rekordbox's own waveforms for the band
+// split points of the analyser (150 Hz and 2000 Hz). The screen does not use
+// them.
+constexpr int kHeightScale = 34;   // height = loudest * 34 / 256
+constexpr int kWhitenessTwice = 9; // whiteness = 4.5 * mid / loudest
 constexpr int kRedFromLow = 232;
 constexpr int kGreenFromMid = 119;
 constexpr int kBlueFromMid = 16;
@@ -29,12 +30,23 @@ quint8 height5(Bands b) {
 
 quint8 whiteness3(Bands b) {
     const int loudest = loudestOf(b);
+    if ((loudest >> 3) == 0) {
+        return 0;
+    }
+    // 7 * mid / loudest, rounded to nearest.
+    return static_cast<quint8>((7 * b.mid + loudest / 2) / loudest);
+}
+
+// <!-- AI-generated (Claude Code, 2026-11-13). Start of AI-generated text. -->
+quint8 exportWhiteness3(Bands b) {
+    const int loudest = loudestOf(b);
     if (height5(b) == 0) {
         return 0;
     }
     // 4.5 * mid / loudest, rounded to nearest.
     return static_cast<quint8>((kWhitenessTwice * b.mid + loudest) / (2 * loudest));
 }
+// <!-- End of AI-generated text. -->
 
 quint16 colorDetailEntry(Bands b) {
     const int red = b.low * kRedFromLow;

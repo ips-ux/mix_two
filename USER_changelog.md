@@ -513,16 +513,27 @@ The waveform analysis now divides the sound into bands at 150 Hz and
 2000 Hz. Before, the limits were 600 Hz and 4000 Hz. The bass, middle and
 high bands are now nearer to the rekordbox 3-band waveform.
 
-The RGB, Filtered, Stacked, HSV and Color Saturated waveforms show slightly
-different colours. In Color Saturated, middle sounds show a little less
-white than before.
+All waveform types that show the bands use the new limits: 3Band, RGB,
+Filtered, Stacked, HSV and Color Saturated, and their overviews. Their
+colours change a little. The on-screen colour rules do not change.
 
-USB exports write the 3-band waveform in the correct band order. Before, a
-CDJ showed the bass, middle and high bands in the wrong positions.
+USB exports now write the bass, middle and high bands in the same order as
+rekordbox. This applies to the 3-band waveform, its small overview, and the
+band values of the small colour overview. Before, the order was different
+from rekordbox.
 
-The exported blue and RGB waveforms use new values that make them nearer to
-rekordbox for the new bands. The exported RGB colours are not the same as
-the LateNight skin colours now.
+The exported RGB waveform uses new colour values. Its colours are now nearer
+to rekordbox than before. They are not the same as the LateNight skin
+colours.
+
+The exported blue waveform also uses new values. In the small blue overview,
+the white parts are now nearer to rekordbox. In the large blue waveform, the
+white parts are a little further from rekordbox than before.
+
+The height of the exported blue and RGB waveforms is a little further from
+rekordbox than before.
+
+NOTE: These export changes are not examined on a CDJ yet.
 <!-- End of AI-generated text. -->
 
 ### QUANTIZE beat value

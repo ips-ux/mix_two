@@ -104,7 +104,7 @@ AnlzWaveforms anlzWaveformsFrom(const Waveform& waveform,
         const EntryBands bands = maxBandsOverFrames(waveform, startFrame, endFrame);
         const bandcolor::Bands entry{bands.low, bands.mid, bands.high};
         const quint8 height = bandcolor::height5(entry);
-        const quint8 whiteness = bandcolor::whiteness3(entry);
+        const quint8 whiteness = bandcolor::exportWhiteness3(entry);
         values.append(bands);
         heights.append(height);
         whitenesses.append(whiteness);

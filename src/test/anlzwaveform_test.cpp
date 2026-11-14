@@ -96,19 +96,25 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesLowOnly) {
     EXPECT_EQ(0x1F, byteAt(w.detail, 0));
     // Red: R 7, G 0, B 0, height 31 -> 7 << 13 | 31 << 2.
     EXPECT_EQ(0xE07C, u16At(w.colorDetail, 0));
+    // AI-generated (Claude Code). Start of AI-generated text.
     EXPECT_EQ(127, byteAt(w.threeBandDetail, 0)); // low
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 1));   // mid
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 2));   // high
+    // End of AI-generated text.
 }
 
 TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesMidOnly) {
-    // mid 255 only -> whiteness 5 (4.5 rounded).
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // mid 255 only -> exported whiteness 5 (4.5 rounded).
+    // End of AI-generated text.
     const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
         return Bands{0, 255, 0, 255};
     });
     ASSERT_EQ(150, w.detailEntries);
     EXPECT_EQ((5 << 5) | 31, byteAt(w.detail, 0));
+    // AI-generated (Claude Code). Start of AI-generated text.
     // G 7, B 1, height 31.
+    // End of AI-generated text.
     EXPECT_EQ(0x1CFC, u16At(w.colorDetail, 0));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 0));
     EXPECT_EQ(127, byteAt(w.threeBandDetail, 1));
@@ -129,6 +135,7 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesHighOnly) {
 }
 
 TEST(AnlzWaveformTest, WhitenessIsRoundedFromMidShare) {
+    // AI-generated (Claude Code). Start of AI-generated text.
     // max 255, mid 142: 4.5 * 142 / 255 = 2.51 -> 3. Height 255 * 34 / 256
     // is more than 31: 31.
     const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
@@ -141,6 +148,7 @@ TEST(AnlzWaveformTest, WhitenessIsRoundedFromMidShare) {
     });
     EXPECT_EQ((2 << 5) | 31, byteAt(u.detail, 0));
     // max 8, mid 4: 4.5 * 4 / 8 = 2.25 -> 2. Height 8 * 34 / 256 = 1.06 -> 1.
+    // End of AI-generated text.
     const AnlzWaveforms v = convert(44100, 44100, [](SINT) {
         return Bands{8, 4, 0, 8};
     });
@@ -148,7 +156,9 @@ TEST(AnlzWaveformTest, WhitenessIsRoundedFromMidShare) {
 }
 
 TEST(AnlzWaveformTest, HeightBelowEightHasNoWhiteness) {
+    // AI-generated (Claude Code). Start of AI-generated text.
     // max 7 * 34 / 256 = 0: height 0 and whiteness 0 although the bands differ.
+    // End of AI-generated text.
     const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
         return Bands{7, 0, 0, 7};
     });
@@ -171,7 +181,9 @@ TEST(AnlzWaveformTest, EntryTakesMaximumOfOverlappingVisualSamples) {
         return Bands{};
     });
     ASSERT_EQ(150, w.detailEntries);
+    // AI-generated (Claude Code). Start of AI-generated text.
     // The high byte is the third byte of an entry (low, mid, high).
+    // End of AI-generated text.
     EXPECT_EQ(80 >> 1, byteAt(w.threeBandDetail, 0 * 3 + 2));
     EXPECT_EQ(160 >> 1, byteAt(w.threeBandDetail, 1 * 3 + 2));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 2 * 3 + 2));
@@ -192,7 +204,9 @@ TEST(AnlzWaveformTest, DetailFromFineWaveformIsPeakPerEntry) {
     pData[30 * 2 + 1].filtered.low = 200;
     const AnlzWaveforms w = anlzWaveformsFrom(waveform, 44100, SampleRate(44100));
     ASSERT_EQ(150, w.detailEntries);
+    // AI-generated (Claude Code). Start of AI-generated text.
     // The low byte is the first byte of an entry (low, mid, high).
+    // End of AI-generated text.
     EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 1 * 3 + 0));
     EXPECT_EQ(200 >> 1, byteAt(w.threeBandDetail, 2 * 3 + 0));
     EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 3 * 3 + 0));
@@ -205,7 +219,9 @@ TEST(AnlzWaveformTest, EntryTakesMaximumOverBothChannels) {
     pData[0].filtered.mid = 10;
     pData[1].filtered.mid = 100;
     const AnlzWaveforms w = anlzWaveformsFrom(*pWaveform, 44100, SampleRate(44100));
+    // AI-generated (Claude Code). Start of AI-generated text.
     EXPECT_EQ(100 >> 1, byteAt(w.threeBandDetail, 1)); // mid
+    // End of AI-generated text.
 }
 
 TEST(AnlzWaveformTest, ShortWaveformDoesNotReadPastItsData) {
@@ -217,8 +233,8 @@ TEST(AnlzWaveformTest, ShortWaveformDoesNotReadPastItsData) {
     const AnlzWaveforms w = anlzWaveformsFrom(*pWaveform, 88200, SampleRate(44100));
     ASSERT_EQ(300, w.detailEntries);
     ASSERT_EQ(300, w.detail.size());
-    EXPECT_EQ(kFullEntry, byteAt(w.detail,0));
-    EXPECT_EQ(kFullEntry, byteAt(w.detail,149));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail, 0));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail, 149));
     EXPECT_EQ(0, byteAt(w.detail, 150));
     EXPECT_EQ(0, byteAt(w.detail, 299));
 }
@@ -228,8 +244,8 @@ TEST(AnlzWaveformTest, LastEntryOfOddRateGetsData) {
     // long) still reads a visual sample.
     const AnlzWaveforms w = convert(48000, 48001, flat(255));
     ASSERT_EQ(151, w.detailEntries);
-    EXPECT_EQ(kFullEntry, byteAt(w.detail,0));
-    EXPECT_EQ(kFullEntry, byteAt(w.detail,150));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail, 0));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail, 150));
 }
 
 TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
@@ -244,7 +260,9 @@ TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
     });
     ASSERT_EQ(1500, w.detailEntries);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Height 31, whiteness 4.5 * 128 / 255 = 2.26 -> 2.
+    // End of AI-generated text.
     const quint8 loud = (2 << 5) | 31;
     EXPECT_EQ(loud, byteAt(w.preview, 0));
     EXPECT_EQ(loud, byteAt(w.preview, 199));
@@ -256,8 +274,10 @@ TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
     EXPECT_EQ(0, byteAt(w.tinyPreview, 50));
     EXPECT_EQ(0, byteAt(w.tinyPreview, 99));
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     // PWV4 column 0: b0 = 255 >> 1 = 127, b1 = 0x80, b2 = 127, then the
     // maxima of low, mid and high.
+    // End of AI-generated text.
     ASSERT_EQ(7200, w.colorPreview.size());
     EXPECT_EQ(127, byteAt(w.colorPreview, 0));
     EXPECT_EQ(0x80, byteAt(w.colorPreview, 1));
@@ -269,7 +289,9 @@ TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
         EXPECT_EQ(0, byteAt(w.colorPreview, 1199 * 6 + i)) << i;
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     // PWV6: mean of the PWV7 bytes (low, mid, high).
+    // End of AI-generated text.
     ASSERT_EQ(3600, w.threeBandPreview.size());
     EXPECT_EQ(127, byteAt(w.threeBandPreview, 0));
     EXPECT_EQ(64, byteAt(w.threeBandPreview, 1));
@@ -331,16 +353,18 @@ TEST(AnlzWaveformTest, PreviewColumnsRepeatEntriesOfShortTracks) {
 }
 
 TEST(AnlzWaveformTest, PreviewColumnMeanRoundsToNearest) {
+    // AI-generated (Claude Code). Start of AI-generated text.
     // 4 s = 600 entries, 400 preview columns: column 1 covers the entries
     // [1, 3) with 600 / 400 = 1.5. Entry 1 has height 31 and whiteness 5,
     // entry 2 has 0 and 0: means 15.5 -> 16 and 2.5 -> 3.
+    // End of AI-generated text.
     const AnlzWaveforms w = convert(44100, 4 * 44100, [](SINT frame) {
         // Entry 1 is frames [294, 588); the visual samples 3 and 4 (frames
         // 300-499) belong to it only (entry 2 starts at frame 588).
         return (frame == 300 || frame == 400) ? Bands{255, 255, 255, 255} : Bands{};
     });
     ASSERT_EQ(600, w.detailEntries);
-    EXPECT_EQ(kFullEntry, byteAt(w.detail,1));
+    EXPECT_EQ(kFullEntry, byteAt(w.detail, 1));
     EXPECT_EQ(0, byteAt(w.detail, 2));
     EXPECT_EQ((3 << 5) | 16, byteAt(w.preview, 1));
 }

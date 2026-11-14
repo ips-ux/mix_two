@@ -19,12 +19,31 @@ TEST(BandColorTest, Height5IsScaledLoudestBand) {
 
 TEST(BandColorTest, Whiteness3FollowsMidShare) {
     EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{0, 0, 0}));
-    // Mid as loud as the loudest band: 4.5 -> 5.
-    EXPECT_EQ(5, mixxx::bandcolor::whiteness3(Bands{200, 200, 10}));
+    EXPECT_EQ(7, mixxx::bandcolor::whiteness3(Bands{200, 200, 10}));
     EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{200, 0, 10}));
-    // 4.5 * 100 / 200 = 2.25 -> 2.
-    EXPECT_EQ(2, mixxx::bandcolor::whiteness3(Bands{200, 100, 10}));
+    // 7 * 100 / 200 = 3.5 -> 4.
+    EXPECT_EQ(4, mixxx::bandcolor::whiteness3(Bands{200, 100, 10}));
 }
+
+// <!-- AI-generated (Claude Code, 2026-11-13). Start of AI-generated text. -->
+TEST(BandColorTest, Whiteness3IsBlackBelowEight) {
+    // Loudest band 7: no whiteness on screen, as before.
+    EXPECT_EQ(0, mixxx::bandcolor::whiteness3(Bands{7, 7, 0}));
+    // Loudest band 8: 7 * 8 / 8 = 7.
+    EXPECT_EQ(7, mixxx::bandcolor::whiteness3(Bands{8, 8, 0}));
+}
+
+TEST(BandColorTest, ExportWhiteness3FollowsMidShare) {
+    EXPECT_EQ(0, mixxx::bandcolor::exportWhiteness3(Bands{0, 0, 0}));
+    // Mid as loud as the loudest band: 4.5 -> 5.
+    EXPECT_EQ(5, mixxx::bandcolor::exportWhiteness3(Bands{200, 200, 10}));
+    EXPECT_EQ(0, mixxx::bandcolor::exportWhiteness3(Bands{200, 0, 10}));
+    // 4.5 * 100 / 200 = 2.25 -> 2.
+    EXPECT_EQ(2, mixxx::bandcolor::exportWhiteness3(Bands{200, 100, 10}));
+    // Exported height 7 * 34 / 256 = 0: no whiteness.
+    EXPECT_EQ(0, mixxx::bandcolor::exportWhiteness3(Bands{7, 7, 0}));
+}
+// <!-- End of AI-generated text. -->
 
 TEST(BandColorTest, ColorDetailEntryPacksBandsAndHeight) {
     // Low only: red. R 7, G 0, B 0, height 31 -> 7 << 13 | 31 << 2.
