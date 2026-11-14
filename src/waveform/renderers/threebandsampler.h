@@ -16,10 +16,13 @@ inline constexpr double kLowHoldSeconds = 0.016;
 inline constexpr double kMidHoldSeconds = 0.004;
 
 // AI-generated (Claude Code). Start of AI-generated text.
-/// Height scale of each band, relative to the full half height.
+/// Height scale of each band, relative to the full half height. Set so
+/// that, with the default visual gain and ReplayGain on, the mean height
+/// of each band is near the mean height in rekordbox's 3-band waveform
+/// (measured on 30 tracks at the default zoom).
 // End of AI-generated text.
-inline constexpr float kLowGain = 0.75f;
-inline constexpr float kMidGain = 0.68f;
+inline constexpr float kLowGain = 0.82f;
+inline constexpr float kMidGain = 0.66f;
 inline constexpr float kHighGain = 0.5f;
 
 struct Peaks {

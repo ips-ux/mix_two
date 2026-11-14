@@ -536,6 +536,49 @@ rekordbox than before.
 NOTE: These export changes are not examined on a CDJ yet.
 <!-- End of AI-generated text. -->
 
+<!-- AI-generated (Claude Code, 2026-11-13). Start of AI-generated text. -->
+### Waveform type: 3Band
+
+There is a new waveform type, **3Band**. It shows the bass, middle and high
+sounds as three layers, as the rekordbox 3-band waveform does. Bass sounds
+show in blue, middle sounds in orange and high sounds in white. The high
+layer is in front, the bass layer is at the back. Each layer is brightest
+at the center line and has a bright edge.
+
+3Band is now the default waveform type. When you start Mix Two for the
+first time after this change, Mix Two sets the waveform type to 3Band one
+time. To use a different type, open Preferences > Waveforms and set
+**Type**. Mix Two keeps your selection.
+
+3Band needs "Use acceleration".
+
+The EQ knobs and the band gains in Preferences > Waveforms change the height
+of the layers, as with the other types.
+
+### Deeper waveform zoom
+
+You can now zoom in on the waveform more than before. At the deepest zoom,
+one pixel shows approximately half a millisecond of the track. This helps
+when you put a cue or the beat grid exactly on a kick.
+
+The waveform zoom buttons now change the zoom by the same proportion at each
+step. Each step makes the waveform 1.25 times larger or smaller. Before, the
+steps were large when you zoomed in and small when you zoomed out.
+
+The default zoom does not change.
+
+### Waveforms are analysed again
+
+To show the deeper zoom, the waveform analysis keeps 5 times more detail
+than before. Thus, Mix Two analyses each track again when you load it for
+the first time after this change.
+
+Until the new analysis is complete, the deck shows the waveform from the
+earlier analysis. Then the deck shows the new waveform. For most tracks, this takes
+some seconds or less. After that, Mix Two does not analyse the track
+again.
+<!-- End of AI-generated text. -->
+
 ### QUANTIZE beat value
 
 Each deck has a QUANTIZE beat value: 1/8, 1/4, 1/2 or 1 beat. The default
