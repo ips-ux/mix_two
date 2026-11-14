@@ -111,9 +111,12 @@ AnlzWaveforms anlzWaveformsFrom(const Waveform& waveform,
 
         result.detail.append(static_cast<char>((whiteness << 5) | height));
         appendU16BigEndian(&result.colorDetail, bandcolor::colorDetailEntry(entry));
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Low, mid, high, as rekordbox stores them.
+        // End of AI-generated text.
+        result.threeBandDetail.append(static_cast<char>(bands.low >> 1));
         result.threeBandDetail.append(static_cast<char>(bands.mid >> 1));
         result.threeBandDetail.append(static_cast<char>(bands.high >> 1));
-        result.threeBandDetail.append(static_cast<char>(bands.low >> 1));
     }
 
     // PWAV: the mean height and whiteness of the entries of each column.
@@ -178,9 +181,12 @@ AnlzWaveforms anlzWaveformsFrom(const Waveform& waveform,
         result.colorPreview.append(static_cast<char>(maxHigh >> 1));
         result.colorPreview.append(static_cast<char>(maxLow >> 1));
 
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Low, mid, high, as rekordbox stores them.
+        // End of AI-generated text.
+        result.threeBandPreview.append(static_cast<char>(meanOf(sumLow, count)));
         result.threeBandPreview.append(static_cast<char>(meanOf(sumMid, count)));
         result.threeBandPreview.append(static_cast<char>(meanOf(sumHigh, count)));
-        result.threeBandPreview.append(static_cast<char>(meanOf(sumLow, count)));
     }
 
     return result;

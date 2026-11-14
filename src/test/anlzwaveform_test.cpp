@@ -90,9 +90,9 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesLowOnly) {
     EXPECT_EQ(0x1F, byteAt(w.detail, 0));
     // Red: R 7, G 0, B 0, height 31 -> 7 << 13 | 31 << 2.
     EXPECT_EQ(0xE07C, u16At(w.colorDetail, 0));
-    EXPECT_EQ(0, byteAt(w.threeBandDetail, 0));   // mid
-    EXPECT_EQ(0, byteAt(w.threeBandDetail, 1));   // high
-    EXPECT_EQ(127, byteAt(w.threeBandDetail, 2)); // low
+    EXPECT_EQ(127, byteAt(w.threeBandDetail, 0)); // low
+    EXPECT_EQ(0, byteAt(w.threeBandDetail, 1));   // mid
+    EXPECT_EQ(0, byteAt(w.threeBandDetail, 2));   // high
 }
 
 TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesMidOnly) {
@@ -104,8 +104,8 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesMidOnly) {
     EXPECT_EQ(0xFF, byteAt(w.detail, 0));
     // Cyan: G 7, B 6, height 31.
     EXPECT_EQ(0x1F7C, u16At(w.colorDetail, 0));
-    EXPECT_EQ(127, byteAt(w.threeBandDetail, 0));
-    EXPECT_EQ(0, byteAt(w.threeBandDetail, 1));
+    EXPECT_EQ(0, byteAt(w.threeBandDetail, 0));
+    EXPECT_EQ(127, byteAt(w.threeBandDetail, 1));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 2));
 }
 
@@ -118,8 +118,8 @@ TEST(AnlzWaveformTest, BitLayoutOfDetailEntriesHighOnly) {
     // Blue: B 7 << 7 | height 31 << 2.
     EXPECT_EQ(0x03FC, u16At(w.colorDetail, 0));
     EXPECT_EQ(0, byteAt(w.threeBandDetail, 0));
-    EXPECT_EQ(127, byteAt(w.threeBandDetail, 1));
-    EXPECT_EQ(0, byteAt(w.threeBandDetail, 2));
+    EXPECT_EQ(0, byteAt(w.threeBandDetail, 1));
+    EXPECT_EQ(127, byteAt(w.threeBandDetail, 2));
 }
 
 TEST(AnlzWaveformTest, WhitenessIsRoundedFromMidShare) {
@@ -164,9 +164,10 @@ TEST(AnlzWaveformTest, EntryTakesMaximumOfOverlappingVisualSamples) {
         return Bands{};
     });
     ASSERT_EQ(150, w.detailEntries);
-    EXPECT_EQ(80 >> 1, byteAt(w.threeBandDetail, 0 * 3 + 1));
-    EXPECT_EQ(160 >> 1, byteAt(w.threeBandDetail, 1 * 3 + 1));
-    EXPECT_EQ(0, byteAt(w.threeBandDetail, 2 * 3 + 1));
+    // The high byte is the third byte of an entry (low, mid, high).
+    EXPECT_EQ(80 >> 1, byteAt(w.threeBandDetail, 0 * 3 + 2));
+    EXPECT_EQ(160 >> 1, byteAt(w.threeBandDetail, 1 * 3 + 2));
+    EXPECT_EQ(0, byteAt(w.threeBandDetail, 2 * 3 + 2));
 }
 
 TEST(AnlzWaveformTest, DetailFromFineWaveformIsPeakPerEntry) {
@@ -184,10 +185,10 @@ TEST(AnlzWaveformTest, DetailFromFineWaveformIsPeakPerEntry) {
     pData[30 * 2 + 1].filtered.low = 200;
     const AnlzWaveforms w = anlzWaveformsFrom(waveform, 44100, SampleRate(44100));
     ASSERT_EQ(150, w.detailEntries);
-    // The low byte is the third byte of an entry (mid, high, low).
-    EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 1 * 3 + 2));
-    EXPECT_EQ(200 >> 1, byteAt(w.threeBandDetail, 2 * 3 + 2));
-    EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 3 * 3 + 2));
+    // The low byte is the first byte of an entry (low, mid, high).
+    EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 1 * 3 + 0));
+    EXPECT_EQ(200 >> 1, byteAt(w.threeBandDetail, 2 * 3 + 0));
+    EXPECT_EQ(10 >> 1, byteAt(w.threeBandDetail, 3 * 3 + 0));
 }
 
 TEST(AnlzWaveformTest, EntryTakesMaximumOverBothChannels) {
@@ -197,7 +198,7 @@ TEST(AnlzWaveformTest, EntryTakesMaximumOverBothChannels) {
     pData[0].filtered.mid = 10;
     pData[1].filtered.mid = 100;
     const AnlzWaveforms w = anlzWaveformsFrom(*pWaveform, 44100, SampleRate(44100));
-    EXPECT_EQ(100 >> 1, byteAt(w.threeBandDetail, 0));
+    EXPECT_EQ(100 >> 1, byteAt(w.threeBandDetail, 1)); // mid
 }
 
 TEST(AnlzWaveformTest, ShortWaveformDoesNotReadPastItsData) {
@@ -261,15 +262,39 @@ TEST(AnlzWaveformTest, PreviewIsMeanOfDetail) {
         EXPECT_EQ(0, byteAt(w.colorPreview, 1199 * 6 + i)) << i;
     }
 
-    // PWV6: mean of the PWV7 bytes (mid, high, low).
+    // PWV6: mean of the PWV7 bytes (low, mid, high).
     ASSERT_EQ(3600, w.threeBandPreview.size());
-    EXPECT_EQ(64, byteAt(w.threeBandPreview, 0));
-    EXPECT_EQ(32, byteAt(w.threeBandPreview, 1));
-    EXPECT_EQ(127, byteAt(w.threeBandPreview, 2));
+    EXPECT_EQ(127, byteAt(w.threeBandPreview, 0));
+    EXPECT_EQ(64, byteAt(w.threeBandPreview, 1));
+    EXPECT_EQ(32, byteAt(w.threeBandPreview, 2));
     EXPECT_EQ(0, byteAt(w.threeBandPreview, 1199 * 3 + 0));
     EXPECT_EQ(0, byteAt(w.threeBandPreview, 1199 * 3 + 1));
     EXPECT_EQ(0, byteAt(w.threeBandPreview, 1199 * 3 + 2));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// The 3-band tags store low, mid, high, as rekordbox does. Three different
+// band values show a swap of any two bytes.
+TEST(AnlzWaveformTest, ThreeBandDetailIsLowMidHigh) {
+    const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
+        return Bands{40, 120, 200, 200};
+    });
+    ASSERT_EQ(150 * 3, w.threeBandDetail.size());
+    EXPECT_EQ(40 >> 1, byteAt(w.threeBandDetail, 0));
+    EXPECT_EQ(120 >> 1, byteAt(w.threeBandDetail, 1));
+    EXPECT_EQ(200 >> 1, byteAt(w.threeBandDetail, 2));
+}
+
+TEST(AnlzWaveformTest, ThreeBandPreviewIsLowMidHigh) {
+    const AnlzWaveforms w = convert(44100, 44100, [](SINT) {
+        return Bands{40, 120, 200, 200};
+    });
+    ASSERT_EQ(1200 * 3, w.threeBandPreview.size());
+    EXPECT_EQ(40 >> 1, byteAt(w.threeBandPreview, 0));
+    EXPECT_EQ(120 >> 1, byteAt(w.threeBandPreview, 1));
+    EXPECT_EQ(200 >> 1, byteAt(w.threeBandPreview, 2));
+}
+// End of AI-generated text.
 
 TEST(AnlzWaveformTest, PreviewColumnsRepeatEntriesOfShortTracks) {
     // 1 s = 150 entries for 400 preview columns: column c covers the entry
