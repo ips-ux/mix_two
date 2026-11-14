@@ -562,10 +562,18 @@ one pixel shows approximately half a millisecond of the track. This helps
 when you put a cue or the beat grid exactly on a kick.
 
 The waveform zoom buttons now change the zoom by the same proportion at each
-step. Each step makes the waveform 1.25 times larger or smaller. Before, the
-steps were large when you zoomed in and small when you zoomed out.
+step. Controller mappings that use the zoom up and zoom down controls, for
+example the DDJ-800 mapping, do this too. Each step makes the waveform 1.25
+times larger or smaller. Before, each step changed the zoom
+value by 1, from 1 to 10. Thus, a step near the deepest zoom was large, and
+a step near the widest zoom was small.
 
-The default zoom does not change.
+These items do not change:
+
+- The default zoom.
+- The zoom step of the mouse wheel.
+- The list of default zoom values in Preferences > Waveforms (1 to 10).
+- The shape of the overview waveform.
 
 ### Waveforms are analysed again
 
@@ -574,9 +582,9 @@ than before. Thus, Mix Two analyses each track again when you load it for
 the first time after this change.
 
 Until the new analysis is complete, the deck shows the waveform from the
-earlier analysis. Then the deck shows the new waveform. For most tracks, this takes
-some seconds or less. After that, Mix Two does not analyse the track
-again.
+earlier analysis. Then the deck shows the new waveform. On the test
+computer, this took approximately 1 second for a track of 3 minutes. After
+that, Mix Two does not analyse the track again.
 <!-- End of AI-generated text. -->
 
 ### QUANTIZE beat value
