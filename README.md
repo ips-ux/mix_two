@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-13: USB export colours re-fitted to the new bands; colour preview band order low, mid, high (commit: see git log, "USB export: waveform colours fitted to the new band split")
 - 2026-11-13: USB export 3-band waveform bytes in the order low, mid, high (commit: see git log, "USB export: 3-band waveform bytes in the order low, mid, high")
 - 2026-11-11: Band split points as rekordbox 3Band (commit: see git log, "Waveform: band split points as rekordbox 3Band")
 - 2026-11-11: Main waveform at 2205 points per second, old waveform shown until re-analysed (commit: see git log, "Waveform: 2205 points per second, old waveform shown until re-analysed")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-07: Mix Two logo and Contributions page (commit: see git log, "Branding: Mix Two logo and a Contributions page")
 - 2026-11-06: Preferences window redesign, dark glass (commit: see git log, "Preferences: new dark glass window with a page rail and search")
 - 2026-11-06: 4-deck master meter moves into the Master panel (commit: see git log, "LateNight: 4-deck master meter in the Master panel")
-- 2026-11-05: 4-deck mode keeps two deck windows (commit: see git log, "LateNight: 4-deck mode keeps two deck windows")
 
 <!-- mixtwo-status:end -->
 
