@@ -1105,7 +1105,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>KEY SHIFT: set the key to -1 semitones.</Tooltip>
+                            <Tooltip>KEY SHIFT: set the key to -1 semitone.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <LeftClickIsPushButton>true</LeftClickIsPushButton>
@@ -1155,7 +1155,7 @@ End of AI-generated text.
                         <Children>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>KEY SHIFT: set the key to +1 semitones.</Tooltip>
+                            <Tooltip>KEY SHIFT: set the key to +1 semitone.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <LeftClickIsPushButton>true</LeftClickIsPushButton>
@@ -1644,7 +1644,7 @@ End of AI-generated text.
                     <Children>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 1. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 1. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>1</Text><Alignment>center</Alignment></State>
@@ -1663,7 +1663,7 @@ End of AI-generated text.
                       <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 2. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 2. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>2</Text><Alignment>center</Alignment></State>
@@ -1682,7 +1682,7 @@ End of AI-generated text.
                       <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 3. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 3. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>3</Text><Alignment>center</Alignment></State>
@@ -1701,7 +1701,7 @@ End of AI-generated text.
                       <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 4. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 4. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>4</Text><Alignment>center</Alignment></State>
@@ -1726,7 +1726,7 @@ End of AI-generated text.
                     <Children>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 5. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 5. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>5</Text><Alignment>center</Alignment></State>
@@ -1745,7 +1745,7 @@ End of AI-generated text.
                       <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 6. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 6. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>6</Text><Alignment>center</Alignment></State>
@@ -1764,7 +1764,7 @@ End of AI-generated text.
                       <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 7. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 7. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>7</Text><Alignment>center</Alignment></State>
@@ -1783,7 +1783,7 @@ End of AI-generated text.
                       <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                       <PushButton>
                         <ObjectName>HudPad</ObjectName>
-                        <Tooltip>MEMORY CUE: go to memory cue 8. The pad is lit when the memory cue is set.</Tooltip>
+                        <Tooltip>MEMORY CUE: go to memory cue 8. The pad is on while the memory cue exists.</Tooltip>
                         <Size>0me,26f</Size>
                         <NumberStates>2</NumberStates>
                         <State><Number>0</Number><Text>8</Text><Alignment>center</Alignment></State>
@@ -1822,7 +1822,7 @@ End of AI-generated text.
                         <Children>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 1. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 1. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>1</Text><Alignment>center</Alignment></State>
@@ -1841,7 +1841,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 2. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 2. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>2</Text><Alignment>center</Alignment></State>
@@ -1860,7 +1860,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 3. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 3. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>3</Text><Alignment>center</Alignment></State>
@@ -1879,7 +1879,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 4. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 4. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>4</Text><Alignment>center</Alignment></State>
@@ -1904,7 +1904,7 @@ End of AI-generated text.
                         <Children>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 5. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 5. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>5</Text><Alignment>center</Alignment></State>
@@ -1923,7 +1923,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 6. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 6. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>6</Text><Alignment>center</Alignment></State>
@@ -1942,7 +1942,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 7. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 7. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>7</Text><Alignment>center</Alignment></State>
@@ -1961,7 +1961,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 8. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 8. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>8</Text><Alignment>center</Alignment></State>
@@ -1992,7 +1992,7 @@ End of AI-generated text.
                         <Children>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 9. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 9. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>9</Text><Alignment>center</Alignment></State>
@@ -2011,7 +2011,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 10. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 10. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>10</Text><Alignment>center</Alignment></State>
@@ -2030,7 +2030,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 11. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 11. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>11</Text><Alignment>center</Alignment></State>
@@ -2049,7 +2049,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 12. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 12. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>12</Text><Alignment>center</Alignment></State>
@@ -2074,7 +2074,7 @@ End of AI-generated text.
                         <Children>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 13. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 13. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>13</Text><Alignment>center</Alignment></State>
@@ -2093,7 +2093,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 14. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 14. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>14</Text><Alignment>center</Alignment></State>
@@ -2112,7 +2112,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 15. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 15. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>15</Text><Alignment>center</Alignment></State>
@@ -2131,7 +2131,7 @@ End of AI-generated text.
                           <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
                           <PushButton>
                             <ObjectName>HudPad</ObjectName>
-                            <Tooltip>MEMORY CUE: go to memory cue 16. The pad is lit when the memory cue is set.</Tooltip>
+                            <Tooltip>MEMORY CUE: go to memory cue 16. The pad is on while the memory cue exists.</Tooltip>
                             <Size>0me,26f</Size>
                             <NumberStates>2</NumberStates>
                             <State><Number>0</Number><Text>16</Text><Alignment>center</Alignment></State>

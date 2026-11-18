@@ -688,7 +688,7 @@ void Tooltips::addStandardTooltips() {
 
     add("main_cue")
             << tr("Master Cue")
-            << tr("Sends the master output to the headphone cue, so it is heard in the "
+            << tr("Sends the master output to the headphone cue. You then hear it in the "
                   "headphones at any MIXING position.");
 
     add("master_tempo")
