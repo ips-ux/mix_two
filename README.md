@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 375 | 216 | 191 | 49 | 0 | 0 | 72 |
+| Features | 375 | 215 | 192 | 49 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-18: Beat FX effect list locked while the DDJ-800 is connected (commit: see git log, "Skin: Beat FX list locked while the DDJ-800 is connected")
 - 2026-11-18: STE word check script for the text that the user reads (commit: see git log, "tools: STE word check for the text that the user reads")
 - 2026-11-18: DDJ-800 mapping comments match the code, option text in STE (commit: see git log, "DDJ-800 mapping: header comments match the code, option text in plain technical English")
 - 2026-11-13: 3Band waveform tuned and seen on screen; zoomed waveform / 3Band programme state (commit: see git log, "Waveform: 3Band band gains fitted to rekordbox's band balance")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-11: Mic module meter is a horizontal bar under the knob (commit: see git log, "LateNight: mic level meter as a bar below the knob")
 - 2026-11-11: 2-deck mixer uses the 4-deck channel columns; COLOR knobs in 4-deck mode (commit: see git log, "LateNight: 2-deck mixer in channel columns, COLOR knobs with 4 decks")
 - 2026-11-07: Mic module in the LateNight mixer (commit: see git log, "LateNight: Mic module under the CFX buttons" and the mic commits before and after it)
-- 2026-11-07: Preferences window belongs to the main window, frameless, asks before it discards changes (commit: see git log, "Preferences: frameless window owned by the main window")
 
 <!-- mixtwo-status:end -->
 
