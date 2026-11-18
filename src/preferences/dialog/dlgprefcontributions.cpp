@@ -51,9 +51,9 @@ DlgPrefContributions::DlgPrefContributions(QWidget* pParent)
             tr("Mix Two is a fork of Mixxx, the free and open-source DJ software."),
             pOrigin));
     pOriginLayout->addWidget(makeText(
-            tr("The Mixxx team and its contributors made most of this app: the "
-               "audio engine, the effects, the library, the analysis, the "
-               "controller system and the skins. Mix Two adds the DDJ-800 "
+            tr("The Mixxx team and its contributors made most of this app. They "
+               "made the audio engine, the effects, the library, the analysis, "
+               "the controller system and the skins. Mix Two adds the DDJ-800 "
                "work and the rekordbox-style changes to their work."),
             pOrigin));
     pOriginLayout->addWidget(makeText(

@@ -23,7 +23,7 @@ EffectManifestPointer BeatFxReverbEffect::getManifest() {
     beatfx::setCommonManifest(pManifest,
             getId(),
             QStringLiteral("REVERB"),
-            QObject::tr("A reverberation is added to the sound. The BEAT "
+            QObject::tr("The effect adds a reverberation to the sound. The BEAT "
                         "buttons set its extent."));
     beatfx::addBeatParameter(pManifest);
     beatfx::addDepthParameter(pManifest,

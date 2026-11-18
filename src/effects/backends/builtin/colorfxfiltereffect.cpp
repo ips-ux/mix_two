@@ -45,7 +45,7 @@ EffectManifestPointer ColorFxFilterEffect<Noise>::getManifest() {
         colorfx::setCommonManifest(pManifest,
                 getId(),
                 QStringLiteral("NOISE"),
-                QObject::tr("White noise through a filter is mixed into the sound."),
+                QObject::tr("The effect mixes filtered white noise into the sound."),
                 QObject::tr("Left: the noise filter's cutoff goes down. "
                             "Right: it goes up. Farther from the centre is louder."));
     } else {

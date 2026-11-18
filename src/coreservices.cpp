@@ -896,9 +896,9 @@ void CoreServices::askToCloseRekordbox() {
     while (isRekordboxRunning()) {
         QMessageBox msgBox(QMessageBox::Warning,
                 tr("rekordbox is running"),
-                tr("rekordbox is open. While it runs it holds the DJ controller, "
-                   "and Pioneer's audio driver can crash when Mix Two starts at "
-                   "the same time.<br><br>Quit rekordbox, then click "
+                tr("rekordbox is open. rekordbox holds the DJ controller while it "
+                   "runs. Pioneer's audio driver can crash when Mix Two starts "
+                   "at the same time.<br><br>Quit rekordbox. Then click "
                    "<b>Retry</b>."));
         QPushButton* pRetry = msgBox.addButton(tr("Retry"), QMessageBox::AcceptRole);
         QPushButton* pStartAnyway = msgBox.addButton(

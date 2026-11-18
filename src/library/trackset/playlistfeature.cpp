@@ -731,7 +731,7 @@ void PlaylistFeature::slotDeleteFolder() {
     const QString question = playlistIds.isEmpty()
             ? tr("Do you really want to delete the folder \"%1\"?").arg(name)
             : tr("Do you really want to delete the folder \"%1\" and the %2 "
-                 "playlist(s) in it?<br>This operation can not be undone!")
+                 "playlist(s) in it?<br>You cannot undo this action.")
                       .arg(name, QString::number(playlistIds.size()));
     const QMessageBox::StandardButton btn = QMessageBox::question(nullptr,
             tr("Confirm Deletion"),

@@ -22,7 +22,7 @@ EffectManifestPointer BeatFxTransEffect::getManifest() {
     beatfx::setCommonManifest(pManifest,
             getId(),
             QStringLiteral("TRANS"),
-            QObject::tr("The sound is cut at the beat fraction."));
+            QObject::tr("The effect cuts the sound at the beat fraction."));
     pManifest->setAddDryToWet(false);
     beatfx::addBeatParameter(pManifest);
     beatfx::addDepthParameter(pManifest,

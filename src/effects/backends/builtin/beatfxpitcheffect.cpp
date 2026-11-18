@@ -41,7 +41,7 @@ EffectManifestPointer BeatFxPitchEffect::getManifest() {
     beatfx::setCommonManifest(pManifest,
             getId(),
             QStringLiteral("PITCH"),
-            QObject::tr("The pitch of the sound is changed, from -50 to +100 %."));
+            QObject::tr("The effect changes the pitch of the sound, from -50 to +100 %."));
     pManifest->setAddDryToWet(false);
     beatfx::addBeatParameter(pManifest);
     beatfx::addDepthParameter(pManifest,
