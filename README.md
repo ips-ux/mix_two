@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-18: Beat FX list unlocked again, Beat FX on/off locked to the DDJ-800 (commit: see git log, "Skin: Beat FX list free again, on/off locked to the DDJ-800")
 - 2026-11-18: Beat FX effect list locked while the DDJ-800 is connected (commit: see git log, "Skin: Beat FX list locked while the DDJ-800 is connected")
 - 2026-11-18: STE word check script for the text that the user reads (commit: see git log, "tools: STE word check for the text that the user reads")
 - 2026-11-18: DDJ-800 mapping comments match the code, option text in STE (commit: see git log, "DDJ-800 mapping: header comments match the code, option text in plain technical English")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-11: Waveform analysis cost benchmark, baseline at 441 points per second (commit: see git log, "test: waveform analysis cost benchmark")
 - 2026-11-11: Mic module meter is a horizontal bar under the knob (commit: see git log, "LateNight: mic level meter as a bar below the knob")
 - 2026-11-11: 2-deck mixer uses the 4-deck channel columns; COLOR knobs in 4-deck mode (commit: see git log, "LateNight: 2-deck mixer in channel columns, COLOR knobs with 4 decks")
-- 2026-11-07: Mic module in the LateNight mixer (commit: see git log, "LateNight: Mic module under the CFX buttons" and the mic commits before and after it)
 
 <!-- mixtwo-status:end -->
 
