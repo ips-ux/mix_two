@@ -205,8 +205,8 @@ rekordbox. You hear the track at the speed of the jog wheel, and one turn
 moves the track 1.8 seconds. This operates with the two scratch algorithms.
 Before this change, the track moved much too far.
 
-When Mix Two starts, or when you load the DDJ-800 mapping again, Mix Two
-now gets the positions of the knobs and faders from the DDJ-800. The
+When Mix Two starts, it now gets the positions of the knobs and faders from
+the DDJ-800. This also occurs when you load the DDJ-800 mapping again. The
 on-screen knobs then agree with the controller. MASTER LEVEL, BOOTH LEVEL
 and the headphone knobs are not included: the DDJ-800 does not send them
 until you move them.
@@ -311,17 +311,18 @@ Each Sound Color FX button shows the name of its effect. A long name shows on
 two lines. If the name is too long, it is cut and ends with "...".
 
 Below MASTER is the EFFECTS section for Beat FX:
-- S 3 1 2 4 M (the order of the DDJ-800 selector) shows where Beat FX is
-  assigned: the sampler, a channel, or the master. Turn the BEAT FX CH
+- S 3 1 2 4 M shows where Beat FX is assigned: the sampler, a channel, or
+  the master. The order is that of the DDJ-800 selector. Turn the BEAT FX CH
   SELECT on the DDJ-800. When no DDJ-800 is connected, click a segment.
 - BEAT shows the beat fraction. Click ◀ or ▶ to change it, as the BEAT
   buttons on the DDJ-800. Click the value to select from the list.
 - Select the effect in the list. The BEAT FX selector on the DDJ-800 selects
   it also. The first 14 effects in the list are in the order of the DDJ-800
   selector.
-- Mix Two now has all 14 DDJ-800 BEAT FX, made from the DDJ-800 manual:
-  LOW CUT ECHO, ECHO, MULTI TAP DELAY, SPIRAL, REVERB, TRANS, ENIGMA JET,
-  FLANGER, PHASER, PITCH, SLIP ROLL, ROLL, MOBIUS (SAW) and MOBIUS (TRI).
+- Mix Two now has all 14 DDJ-800 BEAT FX, made from the DDJ-800 manual.
+  The first seven are LOW CUT ECHO, ECHO, MULTI TAP DELAY, SPIRAL, REVERB,
+  TRANS and ENIGMA JET. The other seven are FLANGER, PHASER, PITCH,
+  SLIP ROLL, ROLL, MOBIUS (SAW) and MOBIUS (TRI).
   FLANGER and PHASER sweep one time for each beat fraction, in step with
   the beat grid. ENIGMA JET and the two MOBIUS effects rise one octave for
   each beat fraction without end. To make them fall, enable "Descend" in
@@ -774,9 +775,10 @@ editing**.
 
 ### Mix Two logo
 
-The Mix Two logo replaces the Mixxx logo: on the start screen, in the
-toolbar of the skins, in the About window, in the Windows taskbar and on the
-app icon. The icon shows the Mix Two creature on a dark tile.
+The Mix Two logo replaces the Mixxx logo. You see it on the start screen, in
+the toolbar of the skins and in the About window. You also see it in the
+Windows taskbar and on the app icon. The icon shows the Mix Two creature on
+a dark tile.
 
 ### Contributions page
 
