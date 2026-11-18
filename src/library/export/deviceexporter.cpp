@@ -181,7 +181,7 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
                                        .arg(summary.playlistsExported);
                 if (!summary.skipped.isEmpty()) {
                     text += QStringLiteral("\n\n") +
-                            tr("%n tracks were not exported.", nullptr, summary.skipped.size());
+                            tr("Mix Two did not export %n tracks.", nullptr, summary.skipped.size());
                 }
                 QMessageBox box(QMessageBox::Information,
                         tr("Export completed"),

@@ -677,8 +677,8 @@ void Tooltips::addStandardTooltips() {
 
     add("tempo_slider_bpm")
             << tr("Tempo Slider BPM")
-            << tr("The BPM the controller's tempo slider is set to. Shown in orange while the "
-                  "deck plays at another tempo, e.g. because it follows the master deck. Move the "
+            << tr("The BPM the controller's tempo slider is set to. It shows in orange while the "
+                  "deck plays at another tempo, for example when it follows the master deck. Move the "
                   "slider until it turns white to take over the tempo.");
 
     add("rate_range_next")
