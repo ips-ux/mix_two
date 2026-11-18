@@ -316,9 +316,11 @@ Below MASTER is the EFFECTS section for Beat FX:
   SELECT on the DDJ-800. When no DDJ-800 is connected, click a segment.
 - BEAT shows the beat fraction. Click ◀ or ▶ to change it, as the BEAT
   buttons on the DDJ-800. Click the value to select from the list.
-- Select the effect in the list. The BEAT FX selector on the DDJ-800 selects
-  it also. The first 14 effects in the list are in the order of the DDJ-800
-  selector.
+- Select the effect in the list. The first 14 effects in the list are in the
+  order of the DDJ-800 selector. While the DDJ-800 is connected, the list is
+  locked: only the BEAT FX selector on the DDJ-800 selects the effect. The
+  deck number in each deck window and the S 3 1 2 4 M segments are locked in
+  the same way.
 - Mix Two now has all 14 DDJ-800 BEAT FX, made from the DDJ-800 manual.
   The first seven are LOW CUT ECHO, ECHO, MULTI TAP DELAY, SPIRAL, REVERB,
   TRANS and ENIGMA JET. The other seven are FLANGER, PHASER, PITCH,
