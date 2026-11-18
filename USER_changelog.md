@@ -290,8 +290,8 @@ The HEADPHONES section is now at the top of the left mixer column.
 
 Below HEADPHONES are four Sound Color FX buttons: DUB ECHO, SWEEP, NOISE and
 FILTER. Push a button to use that effect with the COLOR knobs. The button
-comes on in blue. The buttons on the screen and on the DDJ-800 operate
-together:
+comes on in blue. The buttons on the screen and on the DDJ-800 obey the same
+rules:
 - Push an effect that is off: only that effect is on.
 - Push an effect that is on: all effects stop.
 - Hold SHIFT and push an effect: only that effect starts or stops. The other
@@ -304,8 +304,12 @@ screen shows which effects are on.
 
 When more than one effect is on, the COLOR knob controls all of them.
 
+While the DDJ-800 is connected, a click on a Sound Color FX button on the
+screen does not start or stop the effect. Use the CFX buttons on the DDJ-800.
+
 To change the effect of a Sound Color FX button, right-click the button.
-Then select an effect in the list. Mix Two keeps your selection.
+Then select an effect in the list. Mix Two keeps your selection. The
+right-click operates also while the DDJ-800 is connected.
 
 Each Sound Color FX button shows the name of its effect. A long name shows on
 two lines. If the name is too long, it is cut and ends with "...".

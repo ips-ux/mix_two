@@ -5,6 +5,7 @@
 #include <QMouseEvent>
 #include <QResizeEvent>
 
+#include "control/controlobject.h"
 #include "effects/effectsmanager.h"
 #include "effects/presets/effectchainpreset.h"
 #include "moc_wsoundcolorfxbutton.cpp"
@@ -42,8 +43,13 @@ void WSoundColorFxButton::mousePressEvent(QMouseEvent* pEvent) {
     // A left click is a press with the same rules as the DDJ-800's buttons;
     // the keyboard's SHIFT works as SHIFT on the deck.
     if (pEvent->button() == Qt::LeftButton && m_index >= 0 && m_pEffectsManager) {
-        m_pEffectsManager->pressSoundColorFx(m_index,
-                pEvent->modifiers().testFlag(Qt::ShiftModifier));
+        // While a DDJ-800 is connected, only its CFX buttons set on and
+        // off. The right-click menu stays available.
+        if (ControlObject::get(ConfigKey(QStringLiteral("[Skin]"),
+                    QStringLiteral("ddj800_connected"))) <= 0) {
+            m_pEffectsManager->pressSoundColorFx(m_index,
+                    pEvent->modifiers().testFlag(Qt::ShiftModifier));
+        }
         pEvent->accept();
         return;
     }

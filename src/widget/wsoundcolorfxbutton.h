@@ -7,7 +7,9 @@ class QPoint;
 
 /// Mix Two: one of the four Sound Color FX buttons ([SoundColorFX],cfxN).
 /// A left click is a press (EffectsManager::pressSoundColorFx(); SHIFT +
-/// click keeps the other effects on). A right click opens a menu to select
+/// click keeps the other effects on); while a DDJ-800 is connected
+/// ([Skin],ddj800_connected) a left click does nothing, because the
+/// controller's CFX buttons set on and off. A right click opens a menu to select
 /// the QuickEffect chain preset that the button loads.
 class WSoundColorFxButton : public WPushButton {
     Q_OBJECT
