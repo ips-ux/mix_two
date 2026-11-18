@@ -1,0 +1,45 @@
+# AI-generated (Claude Code, 2026-11-18). Start of AI-generated text.
+# Names for tools/ste_check.py. One name on each line. The script keeps
+# these names exactly as written: it does not report them as words to avoid,
+# and it does not split a sentence inside them.
+# A line "wrong -> right" is a name that the text must not use. The script
+# reports it and gives the right name.
+# Lines that start with # are comments.
+#
+# Names printed on Pioneer equipment or shown in rekordbox:
+SYNC
+MASTER
+KEY SYNC
+BEAT FX
+SOUND COLOR FX
+SWEEP
+Device Library Plus
+My Settings
+Sync Manager
+Collection
+Tag List
+My Tag
+HOT CUE
+BEAT JUMP
+BEAT LOOP
+KEY SHIFT
+SAMPLER
+KEYBOARD
+PAD FX
+SLIP
+QUANTIZE
+MEMORY
+RELOOP/EXIT
+TRACK SEARCH
+LOAD
+SHIFT
+VINYL
+LINE
+PHONO
+CUE
+TRIM
+BOOTH
+#
+# Names that must not be used:
+OneLibrary -> Device Library Plus
+# End of AI-generated text.
