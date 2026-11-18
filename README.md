@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 415 | 212 | 186 | 17 | 0 | 0 | 72 |
+| Features | 399 | 211 | 190 | 30 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -29,8 +29,8 @@ feature is complete only when the owner tests it on the DDJ-800.
 | Legacy Design (performance) | High | 72 | 0 % | Yes |
 | Hardware Design + skin system | Medium | 13 | 0 % | Yes |
 | Hardware link | Medium | 63 | 0 % | Yes |
-| AI-Truth Keeping | High | 66 | 3 % |  |
-| STE-Document Handling | Low | 26 | 4 % |  |
+| AI-Truth Keeping | High | 66 | 23 % |  |
+| STE-Document Handling | Low | 26 | 8 % |  |
 | Portability | High | 27 | 5 % |  |
 | Streaming | Low | 8 | 0 % |  |
 
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-18: DDJ-800 mapping comments match the code, option text in STE (commit: see git log, "DDJ-800 mapping: header comments match the code, option text in plain technical English")
 - 2026-11-13: 3Band waveform tuned and seen on screen; zoomed waveform / 3Band programme state (commit: see git log, "Waveform: 3Band band gains fitted to rekordbox's band balance")
 - 2026-11-13: USB export colours re-fitted to the new bands; colour preview band order low, mid, high (commit: see git log, "USB export: waveform colours fitted to the new band split")
 - 2026-11-13: USB export 3-band waveform bytes in the order low, mid, high (commit: see git log, "USB export: 3-band waveform bytes in the order low, mid, high")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-07: Mic module in the LateNight mixer (commit: see git log, "LateNight: Mic module under the CFX buttons" and the mic commits before and after it)
 - 2026-11-07: Preferences window belongs to the main window, frameless, asks before it discards changes (commit: see git log, "Preferences: frameless window owned by the main window")
 - 2026-11-07: Mix Two logo and Contributions page (commit: see git log, "Branding: Mix Two logo and a Contributions page")
-- 2026-11-06: Preferences window redesign, dark glass (commit: see git log, "Preferences: new dark glass window with a page rail and search")
 
 <!-- mixtwo-status:end -->
 
