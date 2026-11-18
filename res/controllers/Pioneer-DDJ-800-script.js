@@ -5,7 +5,10 @@
 // * AI-generated (Claude Code). Derived from the MIDI message table that
 // * rekordbox ships for this controller (MidiMappings/DDJ-800.midi.csv) and
 // * from the DDJ-400/FLX4 mappings for shared Pioneer conventions.
-// * Not yet tested on hardware; see "Needs hardware verification" below.
+// * The owner tested most controls on a DDJ-800 on 2026-10-26. Some controls
+// * are not tested; see "Needs hardware verification" below.
+// * No keep-alive SysEx is necessary: the knob, jog and button messages
+// * do not depend on it.
 // * End of AI-generated notice.
 // ****************************************************************************
 //
@@ -26,7 +29,8 @@
 //        slider, slip, reverse, slip reverse, vinyl mode, quantize,
 //        track search, key sync/reset
 //      * Jog wheels: scratch, pitch bend, search, loop in/out adjust,
-//        beat grid slide/adjust while the GRID buttons are held
+//        SHIFT + jog slides the beat grid (the GRID ADJUST and GRID SLIDE
+//        notes 0x79 and 0x0A, when held, make the jog adjust or slide it)
 //      * Loop section: in/out, 4 beat (long press), reloop/exit,
 //        1/2x / 2x when a loop is active, memory cue call prev/next
 //        otherwise
@@ -45,8 +49,6 @@
 //        capture of the deck in rekordbox (rekordbox's own constant too);
 //        check that one turn moves 1.8 s in Mix Two
 //      * Pad LED velocities (single colour vs. palette)
-//      * No keep-alive SysEx needed (the knob, jog and button messages
-//        do not depend on it)
 //      * Meaning of the "Permission_PadMode" page flags
 //      * Jog LCD (sent over the vendor HID interface, not MIDI)
 
@@ -600,7 +602,7 @@ PioneerDDJ800.initBeatFx = function() {
     PioneerDDJ800.bindButton(S.fxNote, 0x47, function() {
         PioneerDDJ800.toggle(slot, "enabled");
     });
-    // SHIFT + ON ("Release FX"): switch the effect off immediately.
+    // SHIFT + ON: switch the Beat FX off immediately.
     PioneerDDJ800.bindButton(S.fxNote, 0x43, function() {
         engine.setValue(slot, "enabled", 0);
     });
