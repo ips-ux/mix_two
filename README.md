@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 375 | 215 | 192 | 49 | 0 | 0 | 72 |
+| Features | 372 | 215 | 183 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -29,8 +29,8 @@ feature is complete only when the owner tests it on the DDJ-800.
 | Legacy Design (performance) | High | 72 | 0 % | Yes |
 | Hardware Design + skin system | Medium | 13 | 0 % | Yes |
 | Hardware link | Medium | 63 | 0 % | Yes |
-| AI-Truth Keeping | High | 66 | 52 % |  |
-| STE-Document Handling | Low | 26 | 12 % |  |
+| AI-Truth Keeping | High | 66 | 69 % |  |
+| STE-Document Handling | Low | 26 | 15 % |  |
 | Portability | High | 27 | 5 % |  |
 | Streaming | Low | 8 | 0 % |  |
 
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-18: in-app text wording pass for STE (commit: see git log, "In-app text: wording pass for Simplified Technical English" and "In-app text: two more strings in STE")
 - 2026-11-18: Sound Color FX buttons on the screen locked for on/off while the DDJ-800 is connected (commit: see git log, "Sound Color FX buttons: no on/off by click while the DDJ-800 is connected")
 - 2026-11-18: Beat FX list unlocked again, Beat FX on/off locked to the DDJ-800 (commit: see git log, "Skin: Beat FX list free again, on/off locked to the DDJ-800")
 - 2026-11-18: Beat FX effect list locked while the DDJ-800 is connected (commit: see git log, "Skin: Beat FX list locked while the DDJ-800 is connected")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-11: Band split points as rekordbox 3Band (commit: see git log, "Waveform: band split points as rekordbox 3Band")
 - 2026-11-11: Main waveform at 2205 points per second, old waveform shown until re-analysed (commit: see git log, "Waveform: 2205 points per second, old waveform shown until re-analysed")
 - 2026-11-11: Waveform analysis cost benchmark, baseline at 441 points per second (commit: see git log, "test: waveform analysis cost benchmark")
-- 2026-11-11: Mic module meter is a horizontal bar under the knob (commit: see git log, "LateNight: mic level meter as a bar below the knob")
 
 <!-- mixtwo-status:end -->
 
