@@ -12,11 +12,11 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 378 | 212 | 191 | 49 | 0 | 0 | 72 |
+| Features | 375 | 216 | 191 | 49 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
-| Controller (DDJ-800 mapping) | Critical | 103 | 0 % | Yes |
+| Controller (DDJ-800 mapping) | Critical | 104 | 0 % | Yes |
 | Sound: effects | Critical | 81 | 0 % | Yes |
 | Sound: deck | Critical | 18 | 0 % | Yes |
 | Device export | Critical | 82 | 0 % | Yes |
