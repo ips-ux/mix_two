@@ -37,7 +37,10 @@
 //      * Memory cues: MEMORY stores a memory cue (or the active loop as a
 //        memory loop), DELETE removes the one just stored or called
 //      * Mixer: gain, 3-band EQ, channel faders, crossfader, headphone
-//        cue, master cue, VU meters, fader start
+//        cue, master cue, VU meters, fader start. After a side changes its
+//        deck, TRIM, EQ, COLOR and the channel fader of that deck wait
+//        (soft takeover in the script) until the control reaches the value
+//        of the deck. The tempo slider has Mixxx's soft takeover.
 //      * Sound Color FX: CFX buttons set [SoundColorFX],cfx1..4 (the engine
 //        loads each button's preset), COLOR knobs drive the super knob
 //      * Beat FX: effect selector, channel assign, depth, on/off
@@ -200,8 +203,61 @@ PioneerDDJ800.showDeckOnSide = function(deck) {
 PioneerDDJ800.setSideAlt = function(control, alt) {
     if (PioneerDDJ800.numDecks >= 3 && engine.getValue("[Skin]", control) !== alt) {
         engine.setValue("[Skin]", control, alt);
+        // The side now has the other deck: its strip controls are in the
+        // positions of the old deck. Not while the position report at start
+        // sets the sides.
+        if (!PioneerDDJ800.startReportOpen) {
+            PioneerDDJ800.startPickup((control === "left_deck_alt" ? 0 : 1) + 2 * alt);
+        }
     }
 };
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// Soft takeover of the mixer strip (TRIM, EQ, channel fader, COLOR) after a
+// side changes its deck. Mixxx's own soft takeover is not used: it always
+// ignores the first value, which would block the position report at start,
+// and it lets fast movements through. Instead a deck waits for pickup until
+// the control gets close to the software value or crosses it.
+PioneerDDJ800.pickupDistance = 0.02;
+// Time in which the position report at start can set the sides, in ms.
+PioneerDDJ800.startReportMs = 1000;
+PioneerDDJ800.stripPickup = {};
+
+PioneerDDJ800.stripControls = function(deck) {
+    const group = PioneerDDJ800.deckGroup(deck);
+    const eqGroup = "[EqualizerRack1_" + group + "_Effect1]";
+    return {
+        trim: [group, "pregain"],
+        eqHigh: [eqGroup, "parameter3"],
+        eqMid: [eqGroup, "parameter2"],
+        eqLow: [eqGroup, "parameter1"],
+        fader: [group, "volume"],
+        color: ["[QuickEffectRack1_" + group + "]", "super1"],
+    };
+};
+
+PioneerDDJ800.startPickup = function(deck) {
+    for (const name of Object.keys(PioneerDDJ800.stripControls(deck))) {
+        PioneerDDJ800.stripPickup[deck + name] = {last: null};
+    }
+};
+
+// Sets a strip control of a deck from a controller value (0..1).
+PioneerDDJ800.setStrip = function(deck, name, value) {
+    const [group, key] = PioneerDDJ800.stripControls(deck)[name];
+    const wait = PioneerDDJ800.stripPickup[deck + name];
+    if (wait) {
+        const current = engine.getParameter(group, key);
+        const crossed = wait.last !== null && (wait.last - current) * (value - current) <= 0;
+        if (!crossed && Math.abs(value - current) > PioneerDDJ800.pickupDistance) {
+            wait.last = value;
+            return;
+        }
+        delete PioneerDDJ800.stripPickup[deck + name];
+    }
+    engine.setParameter(group, key, value);
+};
+// End of AI-generated text.
 
 PioneerDDJ800.bindButton = function(status, midino, onPress) {
     PioneerDDJ800.bind(status, midino, function(_channel, _control, value) {
@@ -302,6 +358,15 @@ PioneerDDJ800.init = function() {
         });
     }
 
+    PioneerDDJ800.stripPickup = {};
+    PioneerDDJ800.startReportOpen = PioneerDDJ800.numDecks >= 3;
+    if (PioneerDDJ800.startReportOpen) {
+        PioneerDDJ800.startReportTimer = engine.beginTimer(PioneerDDJ800.startReportMs, function() {
+            PioneerDDJ800.startReportOpen = false;
+            PioneerDDJ800.startReportTimer = 0;
+        }, true);
+    }
+
     PioneerDDJ800.initBrowser();
     PioneerDDJ800.initMixer();
     PioneerDDJ800.initCfx();
@@ -328,6 +393,10 @@ PioneerDDJ800.init = function() {
 PioneerDDJ800.SYSEX_SEND_ALL = [0xF0, 0x00, 0x40, 0x05, 0x00, 0x00, 0x02, 0x09, 0x00, 0x03, 0x01, 0xF7];
 
 PioneerDDJ800.shutdown = function() {
+    if (PioneerDDJ800.startReportTimer) {
+        engine.stopTimer(PioneerDDJ800.startReportTimer);
+        PioneerDDJ800.startReportTimer = 0;
+    }
     engine.setValue("[Skin]", "ddj800_connected", 0);
     engine.setValue("[Skin]", "ddj800_mic_on", 0);
     engine.setValue("[Skin]", "ddj800_mic1_level", 0);
@@ -526,9 +595,8 @@ PioneerDDJ800.initCfx = function() {
     const S = PioneerDDJ800.STATUS;
     const knobs = [0x17, 0x18, 0x19, 0x1A];
     for (let channel = 0; channel < 4; channel++) {
-        const group = "[QuickEffectRack1_[Channel" + (channel + 1) + "]]";
         PioneerDDJ800.bindHiRes(S.globalCC, knobs[channel], function(value) {
-            engine.setParameter(group, "super1", value);
+            PioneerDDJ800.setStrip(channel, "color", value);
         });
     }
     // The CFX state lives in [SoundColorFX],cfx1..cfx4, shared with the
@@ -645,7 +713,6 @@ PioneerDDJ800.initDeck = function(deck) {
     const cc = S.deckCC + deck;
     const group = PioneerDDJ800.deckGroup(deck);
     const state = PioneerDDJ800.decks[deck];
-    const eqGroup = "[EqualizerRack1_" + group + "_Effect1]";
 
     const pushButton = function(midino, key) {
         PioneerDDJ800.bind(note, midino, function(_channel, _control, value) {
@@ -784,11 +851,11 @@ PioneerDDJ800.initDeck = function(deck) {
     });
 
     // Mixer channel
-    PioneerDDJ800.bindHiRes(cc, 0x04, function(value) { engine.setParameter(group, "pregain", value); });
-    PioneerDDJ800.bindHiRes(cc, 0x07, function(value) { engine.setParameter(eqGroup, "parameter3", value); });
-    PioneerDDJ800.bindHiRes(cc, 0x0B, function(value) { engine.setParameter(eqGroup, "parameter2", value); });
-    PioneerDDJ800.bindHiRes(cc, 0x0F, function(value) { engine.setParameter(eqGroup, "parameter1", value); });
-    PioneerDDJ800.bindHiRes(cc, 0x13, function(value) { engine.setParameter(group, "volume", value); });
+    PioneerDDJ800.bindHiRes(cc, 0x04, function(value) { PioneerDDJ800.setStrip(deck, "trim", value); });
+    PioneerDDJ800.bindHiRes(cc, 0x07, function(value) { PioneerDDJ800.setStrip(deck, "eqHigh", value); });
+    PioneerDDJ800.bindHiRes(cc, 0x0B, function(value) { PioneerDDJ800.setStrip(deck, "eqMid", value); });
+    PioneerDDJ800.bindHiRes(cc, 0x0F, function(value) { PioneerDDJ800.setStrip(deck, "eqLow", value); });
+    PioneerDDJ800.bindHiRes(cc, 0x13, function(value) { PioneerDDJ800.setStrip(deck, "fader", value); });
     toggleButton(0x54, "pfl");
     PioneerDDJ800.connectLed(group, "pfl", note, 0x54);
     pushButton(0x68, "bpm_tap");

@@ -16,6 +16,7 @@ const leds = [];
 const conns = {};
 const handlers = {};
 const key = (g, k) => g + "," + k;
+const params = {};
 
 const engine = {
     getValue: (g, k) => (key(g, k) in values ? values[key(g, k)] : (k === "num_samplers" ? 16 : 0)),
@@ -24,8 +25,8 @@ const engine = {
         sets.push([g, k, v]);
         (conns[key(g, k)] || []).forEach(cb => cb(v, g, k));
     },
-    getParameter: () => 0,
-    setParameter: (g, k, v) => sets.push([g, k, v]),
+    getParameter: (g, k) => params[key(g, k)] || 0,
+    setParameter: (g, k, v) => { params[key(g, k)] = v; sets.push([g, k, v]); },
     getSetting: () => undefined,
     makeConnection: (g, k, cb) => {
         (conns[key(g, k)] = conns[key(g, k)] || []).push(cb);
@@ -34,7 +35,7 @@ const engine = {
     softTakeover: () => {},
     scratchEnable: () => {}, scratchDisable: () => {}, scratchTick: () => {},
     isScratching: () => false,
-    beginTimer: (ms, cb) => { timers[++timerId] = {ms, cb}; return timerId; },
+    beginTimer: (ms, cb, oneShot) => { timers[++timerId] = {ms, cb, oneShot}; return timerId; },
     stopTimer: id => { delete timers[id]; },
 };
 const timers = {};
@@ -63,6 +64,12 @@ function check(name, ok) {
     console.log((ok ? "PASS " : "FAIL ") + name);
     if (!ok) failures++;
 }
+const cc14 = (status, midino, v) => {
+    const raw = Math.round(v * 0x3FFF);
+    send(status, midino, raw >> 7);
+    send(status, midino + 0x20, raw & 0x7F);
+};
+const near = (a, b) => Math.abs(a - b) < 0.001;
 const setsSince = n => sets.slice(n);
 const did = (from, g, k, v) => setsSince(from).some(s => s[0] === g && s[1] === k && (v === undefined || s[2] === v));
 
@@ -340,6 +347,10 @@ for (const k of Object.keys(handlers)) delete handlers[k];
 P.init("DDJ-800", false);
 send(0x91, 0x0B, 0x7F);
 check("2 decks: sides stay 0", values["[Skin],left_deck_alt"] === 0 && values["[Skin],right_deck_alt"] === 0);
+params["[Channel2],volume"] = 0.2;
+send(0x91, 0x0B, 0x7F);
+cc14(0xB1, 0x13, 0.98);
+check("2 decks: fader acts at once, no pickup", near(params["[Channel2],volume"], 0.98));
 values["[App],num_decks"] = 4;
 for (const k of Object.keys(handlers)) delete handlers[k];
 P.init("DDJ-800", false);
@@ -374,6 +385,85 @@ check("shutdown after mic messages resets on, levels and EQ",
         && engine.getValue("[Skin]", "ddj800_mic_eq_low") === 0.5);
 for (const k of Object.keys(handlers)) delete handlers[k];
 P.init("DDJ-800", false);
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// Soft takeover of the mixer strip after a side changes its deck. A deck
+// waits for pickup until its physical control reaches the software value.
+const stripOf = deck => ({
+    group: "[Channel" + (deck + 1) + "]",
+    eq: "[EqualizerRack1_[Channel" + (deck + 1) + "]_Effect1]",
+    cfx: "[QuickEffectRack1_[Channel" + (deck + 1) + "]]",
+});
+const faderParam = deck => params[stripOf(deck).group + ",volume"];
+// The position report at start: the selected deck takes its values at once.
+cc14(0xB0, 0x13, 0.5);
+check("start report: deck 1 fader acts at once", near(faderParam(0), 0.5));
+const startTimer = Object.values(timers).filter(tm => tm.oneShot).pop();
+check("start report window is a one-shot timer", !!startTimer);
+// A side change inside the window is part of the report: no pickup.
+send(0x92, 0x0B, 0x7F);
+cc14(0xB2, 0x13, 0.9);
+check("start report: deck 3 selected by the report acts at once", near(faderParam(2), 0.9));
+send(0x90, 0x0B, 0x7F);
+if (startTimer) { startTimer.cb(); }
+cc14(0xB0, 0x13, 0.6);
+check("no switch: fader acts at once", near(faderParam(0), 0.6));
+cc14(0xB0, 0x13, 1.0);
+check("no switch: fader at 1.0 acts at once", near(faderParam(0), 1.0));
+
+// Switch left from deck 1 to deck 3 (software values 0.2, 0.3, 0.4, 0.6).
+params["[Channel3],volume"] = 0.2;
+params["[Channel3],pregain"] = 0.3;
+params[stripOf(2).eq + ",parameter3"] = 0.4;
+params[stripOf(2).cfx + ",super1"] = 0.6;
+send(0x92, 0x0B, 0x7F);
+check("deck 3 shown after the switch", values["[Skin],left_deck_alt"] === 1);
+n = sets.length;
+cc14(0xB2, 0x13, 0.98);
+check("switch: fader at 0.98 does not change deck 3 volume", near(faderParam(2), 0.2) && !did(n, "[Channel3]", "volume"));
+cc14(0xB2, 0x13, 0.5);
+check("switch: fader at 0.5 still waits", near(faderParam(2), 0.2));
+cc14(0xB2, 0x13, 0.1);
+check("switch: fader crosses 0.2 and deck 3 follows", near(faderParam(2), 0.1));
+cc14(0xB2, 0x13, 0.5);
+check("switch: later message at 0.5 sets 0.5", near(faderParam(2), 0.5));
+// Each control waits on its own.
+cc14(0xB2, 0x04, 0.9);
+check("switch: TRIM at 0.9 waits", near(params["[Channel3],pregain"], 0.3));
+cc14(0xB2, 0x04, 0.31);
+check("switch: TRIM close to 0.3 takes over", near(params["[Channel3],pregain"], 0.31));
+cc14(0xB2, 0x04, 0.8);
+check("switch: TRIM follows after takeover", near(params["[Channel3],pregain"], 0.8));
+cc14(0xB2, 0x07, 0.0);
+check("switch: EQ HI at 0.0 waits", near(params[stripOf(2).eq + ",parameter3"], 0.4));
+cc14(0xB2, 0x07, 0.7);
+check("switch: EQ HI crosses 0.4 and follows", near(params[stripOf(2).eq + ",parameter3"], 0.7));
+send(0xB6, 0x19, 0x7F); send(0xB6, 0x39, 0x7F);
+check("switch: COLOR at 1.0 waits", near(params[stripOf(2).cfx + ",super1"] || 0.6, 0.6));
+cc14(0xB6, 0x19, 0.2);
+check("switch: COLOR crosses 0.6 and follows", near(params[stripOf(2).cfx + ",super1"], 0.2));
+// The other deck of the side and the other side keep acting at once.
+cc14(0xB1, 0x13, 0.4);
+check("switch left: deck 2 on the right side acts at once", near(faderParam(1), 0.4));
+// Switch back: deck 1 waits for pickup too.
+params["[Channel1],volume"] = 0.7;
+send(0x90, 0x0B, 0x7F);
+cc14(0xB0, 0x13, 0.05);
+check("switch back: deck 1 fader at 0.05 waits", near(faderParam(0), 0.7));
+cc14(0xB0, 0x13, 0.8);
+check("switch back: deck 1 fader crosses 0.7 and follows", near(faderParam(0), 0.8));
+// Deck 4 was never touched by the strip: the first switch is soft too.
+params["[Channel4],volume"] = 0.2;
+send(0x93, 0x0B, 0x7F);
+cc14(0xB3, 0x13, 0.95);
+check("never touched deck 4: first fader value does not jump", near(faderParam(3), 0.2));
+// Same deck again: no new pickup.
+cc14(0xB3, 0x13, 0.1);
+cc14(0xB3, 0x13, 0.9);
+send(0x93, 0x0C, 0x7F);
+cc14(0xB3, 0x13, 0.95);
+check("same deck message does not start a new pickup", near(faderParam(3), 0.95));
 // End of AI-generated text.
 
 // Every bound handler runs without throwing (press and release).

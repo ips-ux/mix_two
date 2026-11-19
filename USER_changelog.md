@@ -167,6 +167,10 @@ The screen shows the deck that each side of the DDJ-800 controls. Push
 DECK 1/3 or DECK 2/4 to change the deck. The window for that side follows.
 At start, a side shows deck 1 or deck 2 until you use a control on it.
 
+After you change a side to its other deck, each knob and fader of that
+channel has no effect at first. Move each one to the value that the deck
+has on the screen. This prevents a jump in level.
+
 ### Memory cues
 
 You can now set memory cues and memory loops. There is no limit to the
