@@ -768,6 +768,61 @@ check("tempo: rateRange not a number writes the unrounded value", values["[Chann
 values["[Channel1],rateRange"] = 0;
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Instant Double: the second LOAD copies the deck that the other side controls.
+const ctxDate = vm.runInContext("Date", ctx);
+const realDateNow = ctxDate.now;
+let fakeNow = 1000000;
+ctxDate.now = () => fakeNow;
+function loadTwice(deckIndex, gap, leftAlt, rightAlt) {
+    values["[Skin],left_deck_alt"] = leftAlt;
+    values["[Skin],right_deck_alt"] = rightAlt;
+    fakeNow += 10000;
+    const from = sets.length;
+    send(0x96, 0x46 + deckIndex, 0x7F);
+    send(0x96, 0x46 + deckIndex, 0x00);
+    fakeNow += gap;
+    send(0x96, 0x46 + deckIndex, 0x7F);
+    send(0x96, 0x46 + deckIndex, 0x00);
+    values["[Skin],left_deck_alt"] = 0;
+    values["[Skin],right_deck_alt"] = 0;
+    return from;
+}
+const cloneOf = (from, group) => setsSince(from).filter(s => s[0] === group && s[1] === "CloneFromDeck").map(s => s[2]);
+n = loadTwice(0, 100, 0, 0);
+check("instant double: sides 0/0, LOAD on deck 1 -> CloneFromDeck 2", JSON.stringify(cloneOf(n, "[Channel1]")) === "[2]");
+n = loadTwice(1, 100, 0, 0);
+check("instant double: sides 0/0, LOAD on deck 2 -> CloneFromDeck 1", JSON.stringify(cloneOf(n, "[Channel2]")) === "[1]");
+n = loadTwice(0, 100, 0, 1);
+check("instant double: right side shows deck 4, LOAD on deck 1 -> CloneFromDeck 4", JSON.stringify(cloneOf(n, "[Channel1]")) === "[4]");
+n = loadTwice(1, 100, 1, 0);
+check("instant double: left side shows deck 3, LOAD on deck 2 -> CloneFromDeck 3", JSON.stringify(cloneOf(n, "[Channel2]")) === "[3]");
+n = loadTwice(2, 100, 1, 0);
+check("instant double: right side shows deck 2, LOAD on deck 3 -> CloneFromDeck 2", JSON.stringify(cloneOf(n, "[Channel3]")) === "[2]");
+n = loadTwice(3, 100, 1, 1);
+check("instant double: left side shows deck 3, LOAD on deck 4 -> CloneFromDeck 3", JSON.stringify(cloneOf(n, "[Channel4]")) === "[3]");
+n = loadTwice(2, 100, 1, 1);
+check("instant double: right side shows deck 4, LOAD on deck 3 -> CloneFromDeck 4", JSON.stringify(cloneOf(n, "[Channel3]")) === "[4]");
+n = loadTwice(0, 100, 0, 0);
+check("instant double: first push loads the selected track", did(n, "[Channel1]", "LoadSelectedTrack", 1));
+n = sets.length;
+fakeNow += 10000;
+send(0x96, 0x46, 0x7F);
+send(0x96, 0x46, 0x00);
+check("single LOAD sends LoadSelectedTrack and no CloneFromDeck", did(n, "[Channel1]", "LoadSelectedTrack", 1) && !did(n, "[Channel1]", "CloneFromDeck"));
+n = loadTwice(0, 5000, 0, 1);
+check("two LOAD pushes outside the window send no CloneFromDeck", !did(n, "[Channel1]", "CloneFromDeck"));
+{
+    const savedDecks = P.numDecks;
+    P.numDecks = 2;
+    n = loadTwice(0, 100, 0, 1);
+    P.numDecks = savedDecks;
+    check("instant double: deck 4 does not exist -> falls back to deck 2", JSON.stringify(cloneOf(n, "[Channel1]")) === "[2]");
+}
+ctxDate.now = realDateNow;
+check("instant double checks leave both sides at 0", values["[Skin],left_deck_alt"] === 0 && values["[Skin],right_deck_alt"] === 0);
+// End of AI-generated text.
+
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;
 for (const k of Object.keys(handlers)) {

@@ -110,6 +110,10 @@ The window closes after 5 seconds if you do not select a deck.
 
 The LOAD buttons load the track directly when the window is closed.
 
+Push LOAD two times quickly. The deck gets a copy of the track and position of
+the deck that the other side of the DDJ-800 controls at that time. For example, if DECK 4 is on the right side, LOAD of
+deck 1 copies deck 4.
+
 ### Sync
 
 Push SYNC to start sync. Push SYNC again to stop sync.

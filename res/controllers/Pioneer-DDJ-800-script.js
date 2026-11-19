@@ -513,15 +513,25 @@ PioneerDDJ800.initBrowser = function() {
     }
 };
 
-// A second press within the window clones the track playing on the
-// neighbouring deck (rekordbox "Instant Double").
+// AI-generated (Claude Code). Start of AI-generated text.
+// A second press within the window clones the deck that the other side of
+// the controller operates now (rekordbox "Instant Double"; manual p.12).
+// Returns that deck as a number from 1 to 4 for the LOAD of deck index
+// "deck" (0-3). A deck above numDecks gives the lower deck of that side.
+PioneerDDJ800.instantDoubleSource = function(deck) {
+    const otherSideControl = deck % 2 === 0 ? "right_deck_alt" : "left_deck_alt";
+    const lowerDeck = deck % 2 === 0 ? 2 : 1;
+    const source = lowerDeck + (engine.getValue("[Skin]", otherSideControl) ? 2 : 0);
+    return source > PioneerDDJ800.numDecks ? lowerDeck : source;
+};
+// End of AI-generated text.
+
 PioneerDDJ800.loadPressed = function(deck) {
     const state = PioneerDDJ800.decks[deck];
     const group = PioneerDDJ800.deckGroup(deck);
     const now = Date.now();
     if (now - state.lastLoadPress < PioneerDDJ800.instantDoubleWindowMs) {
-        const otherDeck = (deck % 2 === 0 ? deck + 1 : deck - 1) + 1;
-        engine.setValue(group, "CloneFromDeck", otherDeck);
+        engine.setValue(group, "CloneFromDeck", PioneerDDJ800.instantDoubleSource(deck));
         state.lastLoadPress = 0;
         return;
     }
