@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 370 | 214 | 186 | 61 | 0 | 0 | 72 |
+| Features | 369 | 212 | 189 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-18: DDJ-800 sampler pads use slots 1-8 and 9-16 of one shared bank; Beat FX selector order pinned by a test (commit: see git log, "DDJ-800 mapping: sampler pads use slots 1-8 and 9-16 of one shared bank" and "test: Beat FX selector order of the DDJ-800 is pinned")
 - 2026-11-18: DDJ-800 mixer strip waits for pickup after a deck change (commit: see git log, "DDJ-800 mapping: soft takeover for the mixer strip after a deck change" and "DDJ-800 mapping: pickup sees a control that jumped over the value")
 - 2026-11-18: in-app text wording pass for STE (commit: see git log, "In-app text: wording pass for Simplified Technical English" and "In-app text: two more strings in STE")
 - 2026-11-18: Sound Color FX buttons on the screen locked for on/off while the DDJ-800 is connected (commit: see git log, "Sound Color FX buttons: no on/off by click while the DDJ-800 is connected")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-13: USB export colours re-fitted to the new bands; colour preview band order low, mid, high (commit: see git log, "USB export: waveform colours fitted to the new band split")
 - 2026-11-13: USB export 3-band waveform bytes in the order low, mid, high (commit: see git log, "USB export: 3-band waveform bytes in the order low, mid, high")
 - 2026-11-11: Band split points as rekordbox 3Band (commit: see git log, "Waveform: band split points as rekordbox 3Band")
-- 2026-11-11: Main waveform at 2205 points per second, old waveform shown until re-analysed (commit: see git log, "Waveform: 2205 points per second, old waveform shown until re-analysed")
 
 <!-- mixtwo-status:end -->
 
