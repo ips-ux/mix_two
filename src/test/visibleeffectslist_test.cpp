@@ -53,6 +53,20 @@ class VisibleEffectsListTest : public MixxxTest {
         return idsOf(visible.getList().mid(0, count));
     }
 
+    // Every id must be in the list once, and the list must hold exactly the
+    // effects of the built-in backend (taken from the backend, not from the
+    // list under test).
+    void expectAllBuiltInsOnce(const VisibleEffectsList& visible) const {
+        const QStringList builtInIds =
+                idsOf(m_pBackendManager->getManifestsForBackend(
+                        EffectBackendType::BuiltIn));
+        const QStringList ids = idsOf(visible.getList());
+        EXPECT_EQ(builtInIds.size(), ids.size());
+        EXPECT_EQ(ids.size(), QSet<QString>(ids.begin(), ids.end()).size());
+        EXPECT_EQ(QSet<QString>(builtInIds.begin(), builtInIds.end()),
+                QSet<QString>(ids.begin(), ids.end()));
+    }
+
     // A document with a saved visible list holding the given effect ids.
     QDomDocument documentWithVisible(const QStringList& ids) const {
         QDomDocument doc;
@@ -92,6 +106,7 @@ TEST_F(VisibleEffectsListTest, FirstStartPutsBeatFxFirstInPrintedOrder) {
     ASSERT_GE(visible.getList().size(), kExpectedBeatFxOrder.size());
     EXPECT_EQ(kExpectedBeatFxOrder.join(", ").toStdString(),
             firstIds(visible, kExpectedBeatFxOrder.size()).join(", ").toStdString());
+    expectAllBuiltInsOnce(visible);
 }
 
 TEST_F(VisibleEffectsListTest, SavedOrderDoesNotMoveBeatFxPositions) {
@@ -122,11 +137,7 @@ TEST_F(VisibleEffectsListTest, SavedOrderDoesNotMoveBeatFxPositions) {
             firstIds(visible, kExpectedBeatFxOrder.size()).join(", ").toStdString());
 
     // No effect is lost or doubled.
-    const QStringList ids = idsOf(visible.getList());
-    EXPECT_EQ(referenceIds.size(), ids.size());
-    EXPECT_EQ(ids.size(), QSet<QString>(ids.begin(), ids.end()).size());
-    EXPECT_EQ(QSet<QString>(referenceIds.begin(), referenceIds.end()),
-            QSet<QString>(ids.begin(), ids.end()));
+    expectAllBuiltInsOnce(visible);
 }
 
 } // namespace
