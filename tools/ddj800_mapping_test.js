@@ -474,6 +474,147 @@ cc14(0xB3, 0x13, 0.95);
 check("same deck message does not start a new pickup", near(faderParam(3), 0.95));
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Sampler pads as rekordbox has them: the left decks play slots 1-8 of the
+// bank, the right decks slots 9-16, one bank of 16 slots for the controller.
+// A plain pad plays a loaded slot; SHIFT + pad stops a playing slot or loads
+// an empty one.
+const SAMPLER_MODE_BUTTON = 0x22, SAMPLER_PAD = 0x30;
+const samplerPad = (deck, pad, shift) => send(0x97 + deck * 2 + (shift ? 1 : 0), SAMPLER_PAD + pad, 0x7F);
+const samplerPadUp = (deck, pad) => send(0x97 + deck * 2, SAMPLER_PAD + pad, 0x00);
+const setNumSamplers = count => { values["[App],num_samplers"] = count; };
+const shiftPageLeft = deck => send(0x90 + deck, 0x04, 0x7F);
+const shiftPageRight = deck => send(0x90 + deck, 0x7C, 0x7F);
+const samplerPlayed = (from, i) => did(from, "[Sampler" + i + "]", "cue_gotoandplay", 1);
+const lastPadLed = (deck, pad) => {
+    const m = leds.filter(x => x[0] === 0x97 + deck * 2 && x[1] === SAMPLER_PAD + pad).pop();
+    return m ? m[2] > 0 : null;
+};
+for (let d = 0; d < 4; d++) {
+    send(0x90 + d, SAMPLER_MODE_BUTTON, 0x7F);
+}
+for (let i = 1; i <= 64; i++) {
+    values["[Sampler" + i + "],track_loaded"] = 0;
+    values["[Sampler" + i + "],play"] = 0;
+}
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: plain pad on an empty slot sends nothing", setsSince(n).length === 0);
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: plain pad on an empty slot does not load a track", !did(n, "[Sampler1]", "LoadSelectedTrack"));
+for (const i of [1, 9, 16]) {
+    values["[Sampler" + i + "],track_loaded"] = 1;
+}
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: deck 1 pad 1 -> [Sampler1] cue_gotoandplay", samplerPlayed(n, 1));
+n = sets.length;
+samplerPad(1, 0);
+check("sampler: deck 2 pad 1 -> [Sampler9] cue_gotoandplay", samplerPlayed(n, 9));
+n = sets.length;
+samplerPad(1, 7);
+check("sampler: deck 2 pad 8 -> [Sampler16] cue_gotoandplay", samplerPlayed(n, 16));
+n = sets.length;
+samplerPad(2, 0);
+check("sampler: deck 3 pad 1 -> [Sampler1]", samplerPlayed(n, 1));
+n = sets.length;
+samplerPad(3, 0);
+check("sampler: deck 4 pad 1 -> [Sampler9]", samplerPlayed(n, 9));
+values["[Sampler1],play"] = 1;
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: a plain pad on a playing slot starts it again", samplerPlayed(n, 1) && !did(n, "[Sampler1]", "cue_gotoandstop"));
+n = sets.length;
+samplerPadUp(0, 0);
+check("sampler: pad release does nothing", setsSince(n).length === 0);
+
+// SHIFT + pad.
+n = sets.length;
+samplerPad(0, 0, true);
+check("sampler: SHIFT + pad on a playing slot -> cue_gotoandstop", did(n, "[Sampler1]", "cue_gotoandstop", 1) && !did(n, "[Sampler1]", "LoadSelectedTrack"));
+values["[Sampler1],play"] = 0;
+n = sets.length;
+samplerPad(0, 0, true);
+check("sampler: SHIFT + pad on a loaded slot that does not play does nothing", setsSince(n).length === 0);
+n = sets.length;
+samplerPad(0, 1, true);
+check("sampler: SHIFT + pad on an empty slot -> LoadSelectedTrack", did(n, "[Sampler2]", "LoadSelectedTrack", 1) && !did(n, "[Sampler2]", "cue_gotoandstop"));
+n = sets.length;
+samplerPad(1, 1, true);
+check("sampler: SHIFT + pad on deck 2 pad 2 loads [Sampler10]", did(n, "[Sampler10]", "LoadSelectedTrack", 1));
+
+// One shared bank of 16 slots.
+setNumSamplers(64);
+for (const i of [17, 25, 33, 49]) {
+    values["[Sampler" + i + "],track_loaded"] = 1;
+}
+l = leds.length;
+shiftPageRight(0);
+const bankLeds = leds.slice(l);
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: 64 samplers, SHIFT + PAGE right -> deck 1 pad 1 is [Sampler17]", samplerPlayed(n, 17));
+n = sets.length;
+samplerPad(1, 0);
+check("sampler: the bank is shared -> deck 2 pad 1 is [Sampler25]", samplerPlayed(n, 25));
+n = sets.length;
+samplerPad(2, 0);
+check("sampler: the bank is shared -> deck 3 pad 1 is [Sampler17]", samplerPlayed(n, 17));
+check("sampler: bank change refreshes the pad LEDs of every deck in sampler mode",
+        [0x97, 0x99, 0x9B, 0x9D].every(st => bankLeds.some(m => m[0] === st)));
+check("sampler: bank 1 LEDs: deck 1 pad 1 on, deck 2 pad 1 on, deck 1 pad 2 off",
+        bankLeds.some(m => m[0] === 0x97 && m[1] === SAMPLER_PAD && m[2] > 0) &&
+        bankLeds.some(m => m[0] === 0x99 && m[1] === SAMPLER_PAD && m[2] > 0) &&
+        !bankLeds.some(m => m[0] === 0x97 && m[1] === SAMPLER_PAD + 1 && m[2] > 0));
+send(0x91, 0x2F, 0x7F); // plain PAGE right in sampler mode, on deck 2
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: PAGE right in sampler mode steps the shared bank -> [Sampler33]", samplerPlayed(n, 33));
+shiftPageRight(2);
+shiftPageRight(3);
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: four steps right return to bank 0 -> [Sampler1]", samplerPlayed(n, 1));
+shiftPageLeft(0);
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: one step left from bank 0 gives the last bank -> [Sampler49]", samplerPlayed(n, 49));
+shiftPageRight(0);
+setNumSamplers(16);
+shiftPageRight(0);
+n = sets.length;
+samplerPad(0, 0);
+check("sampler: 16 samplers, SHIFT + PAGE right keeps bank 0", samplerPlayed(n, 1));
+shiftPageLeft(0);
+n = sets.length;
+samplerPad(1, 0);
+check("sampler: 16 samplers, SHIFT + PAGE left keeps bank 0", samplerPlayed(n, 9));
+
+// A slot that does not exist.
+setNumSamplers(8);
+n = sets.length;
+samplerPad(1, 0);
+samplerPad(1, 0, true);
+check("sampler: 8 samplers, a right-deck pad sends nothing", setsSince(n).length === 0);
+send(0x91, SAMPLER_MODE_BUTTON, 0x7F);
+check("sampler: 8 samplers, the LED of a right-deck pad is off", lastPadLed(1, 0) === false);
+setNumSamplers(16);
+
+// LEDs.
+values["[Sampler1],track_loaded"] = 0;
+values["[Sampler9],track_loaded"] = 0;
+send(0x90, SAMPLER_MODE_BUTTON, 0x7F);
+send(0x91, SAMPLER_MODE_BUTTON, 0x7F);
+l = leds.length;
+engine.setValue("[Sampler9]", "track_loaded", 1);
+const slotLeds = leds.slice(l);
+check("sampler: loaded [Sampler9] lights deck 2 pad 1",
+        slotLeds.some(m => m[0] === 0x99 && m[1] === SAMPLER_PAD && m[2] > 0));
+check("sampler: loaded [Sampler9] does not light deck 1 pad 1",
+        !slotLeds.some(m => m[0] === 0x97 && m[1] === SAMPLER_PAD && m[2] > 0));
+// End of AI-generated text.
+
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;
 for (const k of Object.keys(handlers)) {

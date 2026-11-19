@@ -59,6 +59,14 @@ To change the mapping settings, go to Preferences > Controllers, then select the
 
 The jog display on the DDJ-800 does not operate yet.
 
+In SAMPLER mode, the pads of deck 1 and deck 3 play sampler slots 1 to 8. The
+pads of deck 2 and deck 4 play slots 9 to 16. The two sides use one bank.
+Push SHIFT + PAGE ◀ or PAGE ▶ to change the bank for both sides together.
+
+In SAMPLER mode, push a pad to play the slot from the start. A pad on an
+empty slot does nothing. Push SHIFT + pad to load the selected track into an
+empty slot. Push SHIFT + pad on a slot that plays to stop it.
+
 In HOT CUE mode, you have 16 hot cues on two pages. Push PAGE ▶ to use hot
 cues I to P. Push PAGE ◀ to go back to hot cues A to H.
 

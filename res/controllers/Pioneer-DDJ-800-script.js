@@ -338,6 +338,8 @@ PioneerDDJ800.init = function() {
             engine.setValue("[Skin]", control, 0);
         }
     }
+    // One sampler bank for the whole controller.
+    PioneerDDJ800.samplerBank = 0;
     PioneerDDJ800.decks = [];
     for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
         PioneerDDJ800.decks.push({
@@ -347,7 +349,6 @@ PioneerDDJ800.init = function() {
             beatJumpScale: 1,
             beatLoopScale: 1,
             rollScale: 1,
-            samplerBank: 0,
             keyboardBase: 0,
             keyShiftBase: 0,
             // Hot cue keyboard mode plays; 0 until the DJ picks one with a pad.
@@ -1192,16 +1193,25 @@ PioneerDDJ800.changePage = function(deck, mode, direction) {
     PioneerDDJ800.refreshPads(deck, mode);
 };
 
-PioneerDDJ800.changeSamplerBank = function(deck, direction) {
-    const state = PioneerDDJ800.decks[deck];
-    const banks = Math.max(1, Math.ceil(engine.getValue("[App]", "num_samplers") / 8));
-    state.samplerBank = (state.samplerBank + direction + banks) % banks;
-    PioneerDDJ800.refreshPads(deck, PioneerDDJ800.PAD_MODE.sampler);
+// AI-generated (Claude Code). Start of AI-generated text.
+// As in rekordbox, one bank of 16 slots serves the whole controller. The
+// pads of the left decks (1, 3) are slots 1-8 of the bank and the pads of
+// the right decks (2, 4) are slots 9-16. The deck argument is only the
+// source of the button push.
+PioneerDDJ800.changeSamplerBank = function(_deck, direction) {
+    const banks = Math.max(1, Math.floor(engine.getValue("[App]", "num_samplers") / 16));
+    PioneerDDJ800.samplerBank = (PioneerDDJ800.samplerBank + direction + banks) % banks;
+    for (let d = 0; d < PioneerDDJ800.numDecks; d++) {
+        PioneerDDJ800.refreshPads(d, PioneerDDJ800.PAD_MODE.sampler);
+    }
 };
 
+// Group of the sampler slot of a pad, or null when that slot does not exist.
 PioneerDDJ800.samplerGroup = function(deck, pad) {
-    return "[Sampler" + (PioneerDDJ800.decks[deck].samplerBank * 8 + pad + 1) + "]";
+    const slot = PioneerDDJ800.samplerBank * 16 + (deck % 2) * 8 + pad + 1;
+    return slot <= engine.getValue("[App]", "num_samplers") ? "[Sampler" + slot + "]" : null;
 };
+// End of AI-generated text.
 
 PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
     const M = PioneerDDJ800.PAD_MODE;
@@ -1234,14 +1244,25 @@ PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
         if (!pressed) {
             break;
         }
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // As in rekordbox: a pad plays a loaded slot from the start. SHIFT +
+        // pad stops a slot that plays, or loads the selected track into an
+        // empty slot. It never overwrites a loaded slot.
         const sampler = PioneerDDJ800.samplerGroup(deck, pad);
-        if (shift) {
-            engine.setValue(sampler, "cue_gotoandstop", 1);
-        } else if (engine.getValue(sampler, "track_loaded")) {
-            engine.setValue(sampler, "cue_gotoandplay", 1);
-        } else {
-            engine.setValue(sampler, "LoadSelectedTrack", 1);
+        if (sampler === null) {
+            break;
         }
+        const loaded = engine.getValue(sampler, "track_loaded") > 0;
+        if (!shift) {
+            if (loaded) {
+                engine.setValue(sampler, "cue_gotoandplay", 1);
+            }
+        } else if (!loaded) {
+            engine.setValue(sampler, "LoadSelectedTrack", 1);
+        } else if (engine.getValue(sampler, "play") > 0) {
+            engine.setValue(sampler, "cue_gotoandstop", 1);
+        }
+        // End of AI-generated text.
         break;
     }
     case M.keyboard:
@@ -1344,9 +1365,11 @@ PioneerDDJ800.refreshPads = function(deck, mode) {
         case M.beatJump:
             on = true;
             break;
-        case M.sampler:
-            on = engine.getValue(PioneerDDJ800.samplerGroup(deck, pad), "track_loaded") > 0;
+        case M.sampler: {
+            const sampler = PioneerDDJ800.samplerGroup(deck, pad);
+            on = sampler !== null && engine.getValue(sampler, "track_loaded") > 0;
             break;
+        }
         case M.keyboard:
             // Before a hot cue is picked, show which pads have one.
             on = state.keyboardCue ?
