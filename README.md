@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 372 | 215 | 183 | 61 | 0 | 0 | 72 |
+| Features | 370 | 214 | 186 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-18: DDJ-800 mixer strip waits for pickup after a deck change (commit: see git log, "DDJ-800 mapping: soft takeover for the mixer strip after a deck change" and "DDJ-800 mapping: pickup sees a control that jumped over the value")
 - 2026-11-18: in-app text wording pass for STE (commit: see git log, "In-app text: wording pass for Simplified Technical English" and "In-app text: two more strings in STE")
 - 2026-11-18: Sound Color FX buttons on the screen locked for on/off while the DDJ-800 is connected (commit: see git log, "Sound Color FX buttons: no on/off by click while the DDJ-800 is connected")
 - 2026-11-18: Beat FX list unlocked again, Beat FX on/off locked to the DDJ-800 (commit: see git log, "Skin: Beat FX list free again, on/off locked to the DDJ-800")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-13: USB export 3-band waveform bytes in the order low, mid, high (commit: see git log, "USB export: 3-band waveform bytes in the order low, mid, high")
 - 2026-11-11: Band split points as rekordbox 3Band (commit: see git log, "Waveform: band split points as rekordbox 3Band")
 - 2026-11-11: Main waveform at 2205 points per second, old waveform shown until re-analysed (commit: see git log, "Waveform: 2205 points per second, old waveform shown until re-analysed")
-- 2026-11-11: Waveform analysis cost benchmark, baseline at 441 points per second (commit: see git log, "test: waveform analysis cost benchmark")
 
 <!-- mixtwo-status:end -->
 
