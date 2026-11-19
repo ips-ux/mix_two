@@ -222,6 +222,8 @@ PioneerDDJ800.pickupDistance = 0.02;
 // Time in which the position report at start can set the sides, in ms.
 PioneerDDJ800.startReportMs = 1000;
 PioneerDDJ800.stripPickup = {};
+// Last physical value of each strip control per side, from any deck of the side.
+PioneerDDJ800.stripLast = {};
 
 PioneerDDJ800.stripControls = function(deck) {
     const group = PioneerDDJ800.deckGroup(deck);
@@ -238,19 +240,22 @@ PioneerDDJ800.stripControls = function(deck) {
 
 PioneerDDJ800.startPickup = function(deck) {
     for (const name of Object.keys(PioneerDDJ800.stripControls(deck))) {
-        PioneerDDJ800.stripPickup[deck + name] = {last: null};
+        PioneerDDJ800.stripPickup[deck + name] = true;
     }
 };
 
 // Sets a strip control of a deck from a controller value (0..1).
 PioneerDDJ800.setStrip = function(deck, name, value) {
     const [group, key] = PioneerDDJ800.stripControls(deck)[name];
-    const wait = PioneerDDJ800.stripPickup[deck + name];
-    if (wait) {
+    // The last value is kept on every message, so a jump over the software
+    // value is seen even when it happens at the deck change.
+    const lastId = (deck % 2) + name;
+    const last = lastId in PioneerDDJ800.stripLast ? PioneerDDJ800.stripLast[lastId] : null;
+    PioneerDDJ800.stripLast[lastId] = value;
+    if (PioneerDDJ800.stripPickup[deck + name]) {
         const current = engine.getParameter(group, key);
-        const crossed = wait.last !== null && (wait.last - current) * (value - current) <= 0;
+        const crossed = last !== null && (last - current) * (value - current) <= 0;
         if (!crossed && Math.abs(value - current) > PioneerDDJ800.pickupDistance) {
-            wait.last = value;
             return;
         }
         delete PioneerDDJ800.stripPickup[deck + name];
@@ -359,6 +364,7 @@ PioneerDDJ800.init = function() {
     }
 
     PioneerDDJ800.stripPickup = {};
+    PioneerDDJ800.stripLast = {};
     PioneerDDJ800.startReportOpen = PioneerDDJ800.numDecks >= 3;
     if (PioneerDDJ800.startReportOpen) {
         PioneerDDJ800.startReportTimer = engine.beginTimer(PioneerDDJ800.startReportMs, function() {

@@ -440,7 +440,7 @@ check("switch: EQ HI at 0.0 waits", near(params[stripOf(2).eq + ",parameter3"], 
 cc14(0xB2, 0x07, 0.7);
 check("switch: EQ HI crosses 0.4 and follows", near(params[stripOf(2).eq + ",parameter3"], 0.7));
 send(0xB6, 0x19, 0x7F); send(0xB6, 0x39, 0x7F);
-check("switch: COLOR at 1.0 waits", near(params[stripOf(2).cfx + ",super1"] || 0.6, 0.6));
+check("switch: COLOR at 1.0 waits", near(params[stripOf(2).cfx + ",super1"], 0.6));
 cc14(0xB6, 0x19, 0.2);
 check("switch: COLOR crosses 0.6 and follows", near(params[stripOf(2).cfx + ",super1"], 0.2));
 // The other deck of the side and the other side keep acting at once.
@@ -453,6 +453,14 @@ cc14(0xB0, 0x13, 0.05);
 check("switch back: deck 1 fader at 0.05 waits", near(faderParam(0), 0.7));
 cc14(0xB0, 0x13, 0.8);
 check("switch back: deck 1 fader crosses 0.7 and follows", near(faderParam(0), 0.8));
+// The fader stands at 0.3 on deck 1; deck 3 has 0.2. The first message after
+// the switch is 0.1: the fader jumped over 0.2 between two messages.
+cc14(0xB0, 0x13, 0.3);
+params["[Channel3],volume"] = 0.2;
+send(0x92, 0x0B, 0x7F);
+cc14(0xB2, 0x13, 0.1);
+check("switch: first message after a jump over the value picks up (crossing seen across the switch)",
+        near(faderParam(2), 0.1));
 // Deck 4 was never touched by the strip: the first switch is soft too.
 params["[Channel4],volume"] = 0.2;
 send(0x93, 0x0B, 0x7F);
