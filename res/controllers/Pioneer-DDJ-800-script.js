@@ -982,12 +982,13 @@ PioneerDDJ800.tempoRate = function(group, position) {
     const row = PioneerDDJ800.tempoSteps.find(function(r) {
         return range <= r.maxRange + PioneerDDJ800.tempoRangeEpsilon;
     });
+    // The ends stay exact, also when the end is not a multiple of the step.
+    if (Math.abs(position) >= 1) {
+        return position < 0 ? -1 : 1;
+    }
     const percent = position * range * 100;
     const rate = Math.round(percent / row.step) * row.step / (range * 100);
-    if (Math.abs(rate) > 1 - 1e-12) {
-        return rate < 0 ? -1 : 1;
-    }
-    return rate + 0; // no -0
+    return Math.min(1, Math.max(-1, rate)) + 0; // no -0
 };
 // End of AI-generated text.
 
@@ -1234,10 +1235,15 @@ PioneerDDJ800.samplerBanks = function() {
     return Math.max(1, Math.floor(engine.getValue("[App]", "num_samplers") / 16));
 };
 
+// The bank in use. The sampler count can fall after a bank change, so the
+// stored bank can point past the last bank; this wraps it without a write.
+PioneerDDJ800.validSamplerBank = function() {
+    return PioneerDDJ800.samplerBank % PioneerDDJ800.samplerBanks();
+};
+
 PioneerDDJ800.changeSamplerBank = function(_deck, direction) {
     const banks = PioneerDDJ800.samplerBanks();
-    // The count can be smaller than at the last change: wrap the bank first.
-    PioneerDDJ800.samplerBank = ((PioneerDDJ800.samplerBank % banks) + direction + banks) % banks;
+    PioneerDDJ800.samplerBank = (PioneerDDJ800.validSamplerBank() + direction + banks) % banks;
     for (let d = 0; d < PioneerDDJ800.numDecks; d++) {
         PioneerDDJ800.refreshPads(d, PioneerDDJ800.PAD_MODE.sampler);
     }
@@ -1245,9 +1251,7 @@ PioneerDDJ800.changeSamplerBank = function(_deck, direction) {
 
 // Group of the sampler slot of a pad, or null when that slot does not exist.
 PioneerDDJ800.samplerGroup = function(deck, pad) {
-    // The sampler count can fall after a bank change: keep the bank valid.
-    PioneerDDJ800.samplerBank %= PioneerDDJ800.samplerBanks();
-    const slot = PioneerDDJ800.samplerBank * 16 + (deck % 2) * 8 + pad + 1;
+    const slot = PioneerDDJ800.validSamplerBank() * 16 + (deck % 2) * 8 + pad + 1;
     return slot <= engine.getValue("[App]", "num_samplers") ? "[Sampler" + slot + "]" : null;
 };
 // End of AI-generated text.
@@ -1339,7 +1343,9 @@ PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
         PioneerDDJ800.setPadLed(deck, mode, pad, pressed);
         break;
     case M.beatLoop:
+        // AI-generated (Claude Code). Start of AI-generated text.
         // SHIFT + pad has no function (rekordbox 6).
+        // End of AI-generated text.
         if (pressed && !shift) {
             // Starts a loop of this size, or ends it when it is the active one.
             const size = PioneerDDJ800.beatLoopSizes[pad] * state.beatLoopScale;

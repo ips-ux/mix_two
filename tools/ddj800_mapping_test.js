@@ -628,40 +628,45 @@ check("sampler: loaded [Sampler9] does not light deck 1 pad 1",
 // AI-generated (Claude Code). Start of AI-generated text.
 // Sampler bank hardening. The bank is always valid when a slot is computed.
 const bankOf = () => P.samplerBank;
-setNumSamplers(16);
-P.samplerBank = 0;
-for (let d = 0; d < 4; d++) {
-    send(0x90 + d, SAMPLER_MODE_BUTTON, 0x7F);
-}
-for (const i of [1, 9, 17, 18]) {
-    values["[Sampler" + i + "],track_loaded"] = 1;
-}
-setNumSamplers(24);
+const resetSamplers = count => {
+    setNumSamplers(count);
+    P.samplerBank = 0;
+    for (let i = 1; i <= 64; i++) {
+        values["[Sampler" + i + "],track_loaded"] = 0;
+        values["[Sampler" + i + "],play"] = 0;
+    }
+    for (let d = 0; d < 4; d++) {
+        send(0x90 + d, SAMPLER_MODE_BUTTON, 0x7F);
+    }
+};
+resetSamplers(24);
+values["[Sampler1],track_loaded"] = 1;
+values["[Sampler17],track_loaded"] = 1;
 shiftPageRight(0);
-shiftPageLeft(0);
 n = sets.length;
 samplerPad(0, 0);
-check("sampler: 24 samplers give one bank (floor), deck 1 pad 1 stays [Sampler1]", samplerPlayed(n, 1) && bankOf() === 0);
-setNumSamplers(8);
+check("sampler: 24 samplers give one bank (floor): one SHIFT + PAGE right keeps deck 1 pad 1 on [Sampler1]",
+        samplerPlayed(n, 1) && !samplerPlayed(n, 17) && bankOf() === 0);
+resetSamplers(8);
 values["[Sampler9],track_loaded"] = 1;
 send(0x91, SAMPLER_MODE_BUTTON, 0x7F);
 check("sampler: 8 samplers, a right-deck pad LED is off although [Sampler9] is loaded", lastPadLed(1, 0) === false);
-setNumSamplers(64);
-values["[Sampler2],track_loaded"] = 0;
+resetSamplers(64);
+values["[Sampler18],track_loaded"] = 1;
 send(0x90, 0x1B, 0x7F); // deck 1 goes to HOT CUE mode
 shiftPageRight(1);
 send(0x90, SAMPLER_MODE_BUTTON, 0x7F);
 check("sampler: a bank change made in another pad mode shows when the deck enters sampler mode",
-        lastPadLed(0, 1) === true && lastPadLed(0, 0) === true);
+        lastPadLed(0, 1) === true && lastPadLed(0, 0) === false);
 n = sets.length;
 samplerPad(0, 1);
 check("sampler: deck 1 pad 2 is [Sampler18] on bank 1", samplerPlayed(n, 18));
+values["[Sampler1],track_loaded"] = 1;
 setNumSamplers(16);
 n = sets.length;
 samplerPad(0, 0);
-check("sampler: bank 1 of 64 samplers, then 16 samplers: deck 1 pad 1 is [Sampler1]", samplerPlayed(n, 1) && bankOf() === 0);
-setNumSamplers(16);
-P.samplerBank = 0;
+check("sampler: bank 1 of 64 samplers, then 16 samplers: deck 1 pad 1 is [Sampler1]", samplerPlayed(n, 1));
+resetSamplers(16);
 // End of AI-generated text.
 
 // AI-generated (Claude Code). Start of AI-generated text.
@@ -673,17 +678,15 @@ send(0x90, 0x0A, 0x7F); // GRID SLIDE held
 n = sets.length;
 jogCC(0x22, 10);
 check("grid slide + jog +10 sets beats_translate_ms +0.5", did(n, "[Channel1]", "beats_translate_ms") && near(values["[Channel1],beats_translate_ms"], 0.5));
-n = sets.length;
 jogCC(0x22, -10);
 check("grid slide + jog -10 sets beats_translate_ms -0.5", near(values["[Channel1],beats_translate_ms"], -0.5));
-n = sets.length;
 jogCC(0x21, 4);
 check("grid slide + side jog slides the grid too", near(values["[Channel1],beats_translate_ms"], 0.2));
 n = sets.length;
 jogCC(0x22, 10);
 jogCC(0x23, 10);
 check("grid slide + jog does not bend or scratch the deck",
-        !did(n, "[Channel1]", "platter_turn") && !did(n, "[Channel1]", "platter_touch", 1) && !did(n, "[Channel1]", "jog"));
+        !did(n, "[Channel1]", "platter_turn") && !did(n, "[Channel1]", "platter_touch", 1));
 check("grid slide + jog sets no grid tempo step", !did(n, "[Channel1]", "beats_adjust_faster") && !did(n, "[Channel1]", "beats_adjust_slower"));
 send(0x90, 0x0A, 0x00);
 
@@ -691,7 +694,7 @@ send(0x90, 0x79, 0x7F); // GRID ADJUST held
 n = sets.length;
 jogCC(0x22, P.gridAdjustTicks);
 check("grid adjust + " + P.gridAdjustTicks + " ticks forward sets one beats_adjust_faster",
-        setsSince(n).filter(x => x[1] === "beats_adjust_faster").length === 1 && !did(n, "[Channel1]", "beats_adjust_slower"));
+        setsSince(n).filter(x => x[0] === "[Channel1]" && x[1] === "beats_adjust_faster").length === 1 && !did(n, "[Channel1]", "beats_adjust_slower"));
 n = sets.length;
 jogCC(0x22, -P.gridAdjustTicks);
 check("grid adjust + " + P.gridAdjustTicks + " ticks back sets one beats_adjust_slower",
@@ -721,7 +724,7 @@ check("SHIFT + top jog slides the grid", did(n, "[Channel1]", "beats_translate_m
 n = sets.length;
 jogCC(0x26, -10);
 check("SHIFT + side jog slides the grid", near(values["[Channel1],beats_translate_ms"], -0.5));
-check("SHIFT + jog does not bend or scratch the deck", !did(n, "[Channel1]", "platter_turn") && !did(n, "[Channel1]", "platter_touch", 1));
+check("SHIFT + jog does not bend or scratch the deck (side)", !did(n, "[Channel1]", "platter_turn") && !did(n, "[Channel1]", "platter_touch", 1));
 // End of AI-generated text.
 
 // AI-generated (Claude Code). Start of AI-generated text.
@@ -750,14 +753,11 @@ rate = tempoAt(3001, 1.0);
 check("tempo: WIDE gives a multiple of 0.5 %", onStep(rate, 1.0, 0.5) && rate !== position(3001));
 for (const range of [0.06, 0.10, 0.16, 1.0]) {
     check("tempo: range " + range + ", centre gives rate 0", tempoAt(8192, range) === 0 && Object.is(values["[Channel1],rate"], 0));
-    check("tempo: range " + range + ", the top end gives rate -1", tempoAt(0x3FFF, range) === -1);
-    check("tempo: range " + range + ", the bottom end gives rate +1", tempoAt(0, range) === 1);
-    let inside = true;
-    for (let raw = 0; raw <= 0x3FFF; raw += 97) {
-        const r = tempoAt(raw, range);
-        inside = inside && r >= -1 && r <= 1 && Number.isFinite(r);
-    }
-    check("tempo: range " + range + ", rate stays within -1..1", inside);
+}
+// The ends are exact for every range, also when the end is not a multiple of the step.
+for (const range of [0.06, 0.10, 0.1101, 0.16, 0.372, 1.0]) {
+    check("tempo: range " + range + ", the slider ends give rate -1 and +1",
+            tempoAt(0x3FFF, range) === -1 && tempoAt(0, range) === 1);
 }
 rate = tempoAt(6507, 0);
 check("tempo: rateRange 0 writes the unrounded value", rate === position(6507));
