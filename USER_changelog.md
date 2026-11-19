@@ -59,6 +59,10 @@ To change the mapping settings, go to Preferences > Controllers, then select the
 
 The jog display on the DDJ-800 does not operate yet.
 
+The TEMPO slider of the DDJ-800 now changes the tempo in steps, as rekordbox
+does. The step is 0.02 % at the ±6 % range and 0.04 % at ±10 % and ±16 %.
+The step is 0.5 % at WIDE. In BEAT LOOP mode, SHIFT + pad does nothing.
+
 In SAMPLER mode, the pads of deck 1 and deck 3 play sampler slots 1 to 8. The
 pads of deck 2 and deck 4 play slots 9 to 16. The two sides use one bank.
 Push SHIFT + PAGE ◀ or PAGE ▶ to change the bank for both sides together.

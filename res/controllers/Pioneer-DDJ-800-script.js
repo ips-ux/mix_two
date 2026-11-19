@@ -138,6 +138,17 @@ PioneerDDJ800.instantDoubleWindowMs = 300;
 PioneerDDJ800.FOCUS_TRACKS_TABLE = 3;
 PioneerDDJ800.loopAdjustMultiply = 50;
 PioneerDDJ800.gridAdjustTicks = 8;
+// AI-generated (Claude Code). Start of AI-generated text.
+// TEMPO slider steps of rekordbox, in percent of the speed. A range (a
+// fraction, like [ChannelN],rateRange) up to maxRange uses that step. The
+// epsilon keeps 0.06, 0.10 and 0.16 inside their rows.
+PioneerDDJ800.tempoSteps = [
+    {maxRange: 0.06, step: 0.02},
+    {maxRange: 0.16, step: 0.04},
+    {maxRange: Infinity, step: 0.5},
+];
+PioneerDDJ800.tempoRangeEpsilon = 1e-6;
+// End of AI-generated text.
 // GRID SLIDE / SHIFT + jog: fine enough to place the grid on a kick when
 // zoomed in, yet a quarter turn still moves it about 80 ms.
 PioneerDDJ800.gridSlideMsPerTick = 0.05;
@@ -750,7 +761,7 @@ PioneerDDJ800.initDeck = function(deck) {
     engine.softTakeover(group, "rate", true);
     const tempo = function(value) {
         engine.setValue(group, "rate_physical", 1 - 2 * value);
-        engine.setValue(group, "rate", 1 - 2 * value);
+        engine.setValue(group, "rate", PioneerDDJ800.tempoRate(group, 1 - 2 * value));
     };
     PioneerDDJ800.bindHiRes(cc, 0x00, tempo);
     PioneerDDJ800.bindHiRes(cc, 0x05, tempo);
@@ -958,6 +969,27 @@ PioneerDDJ800.memoryCue = function(deck) {
 PioneerDDJ800.deleteCue = function(deck) {
     engine.setValue(PioneerDDJ800.deckGroup(deck), "memory_cue_delete", 1);
 };
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// The slider position (-1..1) rounded to the nearest step of rekordbox. The
+// centre stays 0 and the ends stay -1 and +1; the value never leaves -1..1.
+// Without a valid range, the position stays as it is.
+PioneerDDJ800.tempoRate = function(group, position) {
+    const range = engine.getValue(group, "rateRange");
+    if (typeof range !== "number" || !(range > 0) || !isFinite(range)) {
+        return position;
+    }
+    const row = PioneerDDJ800.tempoSteps.find(function(r) {
+        return range <= r.maxRange + PioneerDDJ800.tempoRangeEpsilon;
+    });
+    const percent = position * range * 100;
+    const rate = Math.round(percent / row.step) * row.step / (range * 100);
+    if (Math.abs(rate) > 1 - 1e-12) {
+        return rate < 0 ? -1 : 1;
+    }
+    return rate + 0; // no -0
+};
+// End of AI-generated text.
 
 //
 // Jog wheels
@@ -1198,9 +1230,14 @@ PioneerDDJ800.changePage = function(deck, mode, direction) {
 // pads of the left decks (1, 3) are slots 1-8 of the bank and the pads of
 // the right decks (2, 4) are slots 9-16. The deck argument is only the
 // source of the button push.
+PioneerDDJ800.samplerBanks = function() {
+    return Math.max(1, Math.floor(engine.getValue("[App]", "num_samplers") / 16));
+};
+
 PioneerDDJ800.changeSamplerBank = function(_deck, direction) {
-    const banks = Math.max(1, Math.floor(engine.getValue("[App]", "num_samplers") / 16));
-    PioneerDDJ800.samplerBank = (PioneerDDJ800.samplerBank + direction + banks) % banks;
+    const banks = PioneerDDJ800.samplerBanks();
+    // The count can be smaller than at the last change: wrap the bank first.
+    PioneerDDJ800.samplerBank = ((PioneerDDJ800.samplerBank % banks) + direction + banks) % banks;
     for (let d = 0; d < PioneerDDJ800.numDecks; d++) {
         PioneerDDJ800.refreshPads(d, PioneerDDJ800.PAD_MODE.sampler);
     }
@@ -1208,6 +1245,8 @@ PioneerDDJ800.changeSamplerBank = function(_deck, direction) {
 
 // Group of the sampler slot of a pad, or null when that slot does not exist.
 PioneerDDJ800.samplerGroup = function(deck, pad) {
+    // The sampler count can fall after a bank change: keep the bank valid.
+    PioneerDDJ800.samplerBank %= PioneerDDJ800.samplerBanks();
     const slot = PioneerDDJ800.samplerBank * 16 + (deck % 2) * 8 + pad + 1;
     return slot <= engine.getValue("[App]", "num_samplers") ? "[Sampler" + slot + "]" : null;
 };
@@ -1300,7 +1339,8 @@ PioneerDDJ800.padPressed = function(deck, mode, pad, pressed, shift) {
         PioneerDDJ800.setPadLed(deck, mode, pad, pressed);
         break;
     case M.beatLoop:
-        if (pressed) {
+        // SHIFT + pad has no function (rekordbox 6).
+        if (pressed && !shift) {
             // Starts a loop of this size, or ends it when it is the active one.
             const size = PioneerDDJ800.beatLoopSizes[pad] * state.beatLoopScale;
             engine.setValue(group, "beatloop_" + size + "_toggle", 1);
