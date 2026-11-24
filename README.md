@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 343 | 230 | 197 | 61 | 0 | 0 | 72 |
+| Features | 342 | 229 | 199 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: history after 60 seconds of audible play; question before duplicates go into a playlist (commit: see git log, "History: add a track after 60 seconds of play" and the commits after it)
 - 2026-11-24: Beat FX VINYL BRAKE; Beat FX BPM modes AUTO and TAP (commit: see git log, "Beat FX: VINYL BRAKE" and "Beat FX: BPM modes AUTO and TAP")
 - 2026-11-24: stick functions: restore the newest backup; delete a playlist with its unused tracks (commit: see git log, "Device export: restore the newest backup of a stick" and "Device export: delete a playlist from a stick with its unused tracks")
 - 2026-11-24: 256-frame buffer for a new DDJ-800 sound setup; Preview volume in the sound preferences (commit: see git log, "Sound: 256-frame buffer for the DDJ-800; preview volume in the sound preferences")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-18: in-app text wording pass for STE (commit: see git log, "In-app text: wording pass for Simplified Technical English" and "In-app text: two more strings in STE")
 - 2026-11-18: Sound Color FX buttons on the screen locked for on/off while the DDJ-800 is connected (commit: see git log, "Sound Color FX buttons: no on/off by click while the DDJ-800 is connected")
 - 2026-11-18: Beat FX list unlocked again, Beat FX on/off locked to the DDJ-800 (commit: see git log, "Skin: Beat FX list free again, on/off locked to the DDJ-800")
-- 2026-11-18: Beat FX effect list locked while the DDJ-800 is connected (commit: see git log, "Skin: Beat FX list locked while the DDJ-800 is connected")
 
 <!-- mixtwo-status:end -->
 
