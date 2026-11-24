@@ -50,6 +50,12 @@ class TrackDAO : public QObject, public virtual DAO, public virtual GlobalTrackC
 
     void finish();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Clears the played mark of all tracks in the library database.
+    // Returns true on success.
+    bool clearPlayed();
+    // End of AI-generated text.
+
     QList<TrackId> resolveTrackIds(
             const QList<QUrl>& urls,
             ResolveTrackIdFlags flags = ResolveTrackIdFlag::ResolveOnly);

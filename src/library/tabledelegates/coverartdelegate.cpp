@@ -3,9 +3,12 @@
 #include <QPainter>
 #include <QTableView>
 #include <algorithm>
+#include <atomic>
 
 #include "library/coverartcache.h"
 #include "library/dao/trackschema.h"
+#include "library/library_prefs.h"
+#include "library/libraryviewprefs.h"
 #include "library/trackmodel.h"
 #include "moc_coverartdelegate.cpp"
 #include "track/track.h"
@@ -24,7 +27,18 @@ inline TrackModel* asTrackModel(
     return pTrackModel;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+std::atomic<bool> s_showWholeArtwork{mixxx::library::prefs::kCoverArtShowWholeDefault};
+// End of AI-generated text.
+
 } // anonymous namespace
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// static
+void CoverArtDelegate::setShowWholeArtwork(bool showWhole) {
+    s_showWholeArtwork.store(showWhole);
+}
+// End of AI-generated text.
 
 CoverArtDelegate::CoverArtDelegate(QTableView* parent)
         : TableItemDelegate(parent),
@@ -152,7 +166,16 @@ void CoverArtDelegate::paintItem(
         } else {
             // Cache hit
             pixmap.setDevicePixelRatio(scaleFactor);
-            painter->drawPixmap(option.rect.topLeft(), pixmap);
+            // AI-generated (Claude Code). Start of AI-generated text.
+            const QSize imageSize = pixmap.deviceIndependentSize().toSize();
+            const mixxx::library::CoverArtPaintRects rects =
+                    mixxx::library::coverArtPaintRects(
+                            s_showWholeArtwork.load(), imageSize, option.rect);
+            const QRect source(rects.source.topLeft() * scaleFactor,
+                    rects.source.size() * scaleFactor);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform);
+            painter->drawPixmap(rects.target, pixmap, source);
+            // End of AI-generated text.
             drewPixmap = true;
         }
     }

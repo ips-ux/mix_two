@@ -18,6 +18,7 @@
 #include "library/externaltrackcollection.h"
 #include "library/itunes/itunesfeature.h"
 #include "library/library_prefs.h"
+#include "library/libraryviewprefs.h"
 #include "library/librarycontrol.h"
 #include "library/libraryfeature.h"
 #include "library/mixxxlibraryfeature.h"
@@ -287,11 +288,19 @@ Library::Library(
             ConfigKey(kConfigGroup, "RowHeight"), kDefaultRowHeightPx);
     QString fontStr =
             m_pConfig->getValueString(ConfigKey(kConfigGroup, "Font"));
-    if (!fontStr.isEmpty()) {
-        m_trackTableFont.fromString(fontStr);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A font saved before the "Bold" option existed keeps its own weight.
+    bool fontBold = mixxx::library::prefs::kLibraryFontBoldDefault;
+    if (m_pConfig->exists(mixxx::library::prefs::kLibraryFontBoldConfigKey)) {
+        fontBold = m_pConfig->getValue(
+                mixxx::library::prefs::kLibraryFontBoldConfigKey, fontBold);
     } else {
-        m_trackTableFont = QApplication::font();
+        QFont saved;
+        fontBold = !fontStr.isEmpty() && saved.fromString(fontStr) && saved.bold();
     }
+    m_trackTableFont = mixxx::library::libraryFontFromConfig(
+            fontStr, fontBold, QApplication::font());
+    // End of AI-generated text.
 
     m_editMetadataSelectedClick = m_pConfig->getValue(
             kEditMetadataSelectedClickConfigKey,

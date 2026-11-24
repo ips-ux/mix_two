@@ -69,6 +69,25 @@ extern const ConfigKey kSidebarHoverExpandDelayConfigKey;
 // AI-generated (Claude Code). Start of AI-generated text.
 // Hold the mouse button on a track row for one second to open the track menu.
 extern const ConfigKey kHoldToOpenMenuConfigKey;
+// Show the track count in the labels of playlists and crates in the sidebar.
+extern const ConfigKey kShowTrackCountInSidebarConfigKey;
+const bool kShowTrackCountInSidebarDefault = false;
+
+// Bold weight of the library font.
+extern const ConfigKey kLibraryFontBoldConfigKey;
+const bool kLibraryFontBoldDefault = false;
+
+// Clear the played mark of all tracks when the program exits.
+extern const ConfigKey kResetPlayedOnExitConfigKey;
+const bool kResetPlayedOnExitDefault = true;
+
+// Scroll the track list so that the selected track is in the middle.
+extern const ConfigKey kCenterSelectedTrackConfigKey;
+const bool kCenterSelectedTrackDefault = false;
+
+// Show the whole cover picture in the artwork column. Off shows the upper part.
+extern const ConfigKey kCoverArtShowWholeConfigKey;
+const bool kCoverArtShowWholeDefault = false;
 // End of AI-generated text.
 
 } // namespace prefs

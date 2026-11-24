@@ -504,6 +504,23 @@ In the track menu, **Add to Playlist** shows the folders as submenus.
 You cannot drag playlists into folders yet. Mix Two sorts the tree
 alphabetically, with folders first.
 
+### Library preferences
+
+The sidebar no longer shows the track count after the name of a playlist or
+crate. To show it again, go to Preferences > Library, then select **Show the
+track count in sidebar labels**. Restart Mix Two to see the change.
+
+To show the track list in bold, select **Bold** next to the library font.
+
+The artwork column shows the upper part of each picture. To show the whole
+picture, select **Show the whole artwork**.
+
+To keep the selected track in the middle of the track list, select **Show the
+selected track in the center**.
+
+Mix Two clears the played mark of all tracks when you quit. To keep the marks,
+clear **Reset played tracks on exit**. To clear the marks now, push **RESET**.
+
 ### rekordbox USB devices
 
 The BPM of an imported rekordbox beat grid is now stable. The tempo of synced

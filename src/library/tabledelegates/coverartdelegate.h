@@ -24,6 +24,12 @@ class CoverArtDelegate : public TableItemDelegate {
             const QStyleOptionViewItem& option,
             const QModelIndex& index) const final;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Choose between the whole picture and the upper part of the picture in
+    // the artwork column. Set from the library preferences.
+    static void setShowWholeArtwork(bool showWhole);
+    // End of AI-generated text.
+
   signals:
     // Sent when rows need to be refreshed
     void rowsChanged(const QList<int>& rows);

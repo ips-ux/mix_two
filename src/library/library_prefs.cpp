@@ -135,4 +135,28 @@ const ConfigKey mixxx::library::prefs::kHoldToOpenMenuConfigKey =
         ConfigKey{
                 mixxx::library::prefs::kConfigGroup,
                 QStringLiteral("HoldToOpenTrackMenu")};
+const ConfigKey mixxx::library::prefs::kShowTrackCountInSidebarConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("ShowTrackCountInSidebar")};
+
+const ConfigKey mixxx::library::prefs::kLibraryFontBoldConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("FontBold")};
+
+const ConfigKey mixxx::library::prefs::kResetPlayedOnExitConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("ResetPlayedOnExit")};
+
+const ConfigKey mixxx::library::prefs::kCenterSelectedTrackConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("CenterSelectedTrack")};
+
+const ConfigKey mixxx::library::prefs::kCoverArtShowWholeConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("CoverArtShowWhole")};
 // End of AI-generated text.

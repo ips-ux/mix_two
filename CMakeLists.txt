@@ -1487,6 +1487,7 @@ add_library(
   src/library/itunes/itunestrackmodel.cpp
   src/library/itunes/itunesxmlimporter.cpp
   src/library/library_prefs.cpp
+  src/library/libraryviewprefs.cpp
   src/library/library.cpp
   src/library/librarycontrol.cpp
   src/library/libraryfeature.cpp
@@ -3087,6 +3088,7 @@ if(BUILD_TESTING)
     src/test/playlisttest.cpp
     src/test/playtimegate_test.cpp
     src/test/trackviewkeys_test.cpp
+    src/test/sidebarlabel_test.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp
     src/test/quantizebeats_test.cpp

@@ -121,17 +121,30 @@ TrackDAO::~TrackDAO() {
     addTracksFinish(true);
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+bool TrackDAO::clearPlayed() {
+    // Note: without "where", this call updates every row which takes long
+    QSqlQuery query(m_database);
+    if (!query.exec("UPDATE library SET played=0 where played>0")) {
+        LOG_FAILED_QUERY(query)
+                << "Error clearing played value";
+        return false;
+    }
+    return true;
+}
+// End of AI-generated text.
+
 void TrackDAO::finish() {
     kLogger.debug() << "finish()";
 
     // clear out played information on exit
     // crash prevention: if mixxx crashes, played information will be maintained
-    kLogger.debug() << "Clearing played information for this session";
-    QSqlQuery query(m_database);
-    if (!query.exec("UPDATE library SET played=0 where played>0")) {
-        // Note: without where, this call updates every row which takes long
-        LOG_FAILED_QUERY(query)
-                << "Error clearing played value";
+    // The user can switch this off ("Reset on exit" in the library preferences).
+    if (m_pConfig->getValue(
+                mixxx::library::prefs::kResetPlayedOnExitConfigKey,
+                mixxx::library::prefs::kResetPlayedOnExitDefault)) {
+        kLogger.debug() << "Clearing played information for this session";
+        clearPlayed();
     }
 
     // Do housekeeping on the LibraryHashes/track_locations tables.

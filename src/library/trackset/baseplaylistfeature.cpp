@@ -12,6 +12,7 @@
 #include "library/export/trackexportwizard.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryviewprefs.h"
 #include "library/parser.h"
 #include "library/parsercsv.h"
 #include "library/playlisttablemodel.h"
@@ -1003,16 +1004,20 @@ QString BasePlaylistFeature::createPlaylistLabel(const QString& name,
         int count,
         int duration) const {
     // Show duration only if playlist has tracks
-    if (count > 0) {
-        return QStringLiteral("%1 (%2) %3")
-                .arg(name,
-                        QString::number(count),
-                        mixxx::Duration::formatTime(
-                                duration, mixxx::Duration::Precision::SECONDS));
-    } else {
-        return QStringLiteral("%1 (%2)").arg(name,
-                QString::number(count));
-    }
+    const QString durationText = count > 0
+            ? mixxx::Duration::formatTime(
+                      duration, mixxx::Duration::Precision::SECONDS)
+            : QString();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The count and the duration show only when the user switches them on in
+    // the library preferences.
+    return mixxx::library::sidebarLabel(name,
+            count,
+            durationText,
+            m_pConfig->getValue(
+                    mixxx::library::prefs::kShowTrackCountInSidebarConfigKey,
+                    mixxx::library::prefs::kShowTrackCountInSidebarDefault));
+    // End of AI-generated text.
 }
 
 void BasePlaylistFeature::slotResetSelectedTrack() {

@@ -276,6 +276,17 @@
        </widget>
       </item>
 
+      <item row="8" column="3">
+       <widget class="QCheckBox" name="checkBox_library_font_bold">
+        <property name="toolTip">
+         <string>Show the text of the track list in bold.</string>
+        </property>
+        <property name="text">
+         <string>Bold</string>
+        </property>
+       </widget>
+      </item>
+
       <item row="9" column="0">
        <widget class="QLabel" name="label_bpm_precision">
         <property name="text">
@@ -343,6 +354,49 @@
       </item>
 
       <item row="12" column="0" colspan="4">
+       <widget class="QCheckBox" name="checkBox_center_selected_track">
+        <property name="toolTip">
+         <string>When you select a track, the list scrolls to put that track in the middle of the view.</string>
+        </property>
+        <property name="text">
+         <string>Show the selected track in the center</string>
+        </property>
+       </widget>
+      </item>
+
+      <item row="13" column="0" colspan="4">
+       <widget class="QCheckBox" name="checkBox_artwork_whole">
+        <property name="toolTip">
+         <string>Show the whole artwork picture in the artwork column. When this is off, the column shows the upper part of the picture.</string>
+        </property>
+        <property name="text">
+         <string>Show the whole artwork</string>
+        </property>
+       </widget>
+      </item>
+
+      <item row="14" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBox_reset_played_on_exit">
+        <property name="toolTip">
+         <string>When this is on, Mix Two clears the played mark of all tracks when you quit.</string>
+        </property>
+        <property name="text">
+         <string>Reset played tracks on exit</string>
+        </property>
+       </widget>
+      </item>
+      <item row="14" column="2" colspan="2">
+       <widget class="QPushButton" name="pushButton_reset_played">
+        <property name="toolTip">
+         <string>Clear the played mark of all tracks now.</string>
+        </property>
+        <property name="text">
+         <string>RESET</string>
+        </property>
+       </widget>
+      </item>
+
+      <item row="15" column="0" colspan="4">
        <widget class="QCheckBox" name="checkBox_hold_to_open_menu">
         <property name="toolTip">
          <string>Hold the left mouse button on a track for 1 second to open the track menu. The right-click menu also works.</string>
@@ -465,6 +519,17 @@
         </property>
         <property name="singleStep">
          <number>50</number>
+        </property>
+       </widget>
+      </item>
+
+      <item row="1" column="0" colspan="3">
+       <widget class="QCheckBox" name="checkBox_show_track_count">
+        <property name="toolTip">
+         <string>Show the number of tracks and the play time after the name of a playlist or crate. The change shows after you restart Mix Two.</string>
+        </property>
+        <property name="text">
+         <string>Show the track count in sidebar labels</string>
         </property>
        </widget>
       </item>
@@ -792,15 +857,21 @@
   <tabstop>radioButton_dbclick_ignore</tabstop>
   <tabstop>spinBox_row_height</tabstop>
   <tabstop>btn_library_font</tabstop>
+  <tabstop>checkBox_library_font_bold</tabstop>
   <tabstop>spinbox_bpm_precision</tabstop>
   <tabstop>checkbox_played_track_color</tabstop>
   <tabstop>comboBox_dateFormat</tabstop>
   <tabstop>checkBox_hold_to_open_menu</tabstop>
+  <tabstop>checkBox_center_selected_track</tabstop>
+  <tabstop>checkBox_artwork_whole</tabstop>
+  <tabstop>checkBox_reset_played_on_exit</tabstop>
+  <tabstop>pushButton_reset_played</tabstop>
   <tabstop>spinBox_search_debouncing_timeout</tabstop>
   <tabstop>checkBox_enable_search_completions</tabstop>
   <tabstop>checkBox_enable_search_history_shortcuts</tabstop>
   <tabstop>comboBox_search_bpm_fuzzy_range</tabstop>
   <tabstop>spinBox_sidebar_hover_expand_delay</tabstop>
+  <tabstop>checkBox_show_track_count</tabstop>
   <tabstop>spinbox_history_track_duplicate_distance</tabstop>
   <tabstop>spinbox_history_min_tracks_to_keep</tabstop>
   <tabstop>checkBox_show_rhythmbox</tabstop>

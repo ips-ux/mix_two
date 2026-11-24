@@ -16,6 +16,8 @@
 #include "library/dlgtrackmetadataexport.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryviewprefs.h"
+#include "library/tabledelegates/coverartdelegate.h"
 #include "library/searchquery.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -23,6 +25,7 @@
 #include "util/desktophelper.h"
 #include "widget/holdtomenu.h"
 #include "widget/wsearchlineedit.h"
+#include "widget/wtracktableview.h"
 
 namespace {
 constexpr int kDefaultFuzzyRateRangePercent = 75;
@@ -134,6 +137,14 @@ DlgPrefLibrary::DlgPrefLibrary(
             &DlgPrefLibrary::slotDateFormatChanged);
 
     connect(btn_library_font, &QAbstractButton::clicked, this, &DlgPrefLibrary::slotSelectFont);
+    connect(checkBox_library_font_bold,
+            &QAbstractButton::toggled,
+            this,
+            &DlgPrefLibrary::slotFontBoldToggled);
+    connect(pushButton_reset_played,
+            &QAbstractButton::clicked,
+            this,
+            &DlgPrefLibrary::slotResetPlayedClicked);
 
     // TODO(XXX) this string should be extracted from the soundsources
     QString builtInFormatsStr = "Ogg Vorbis, FLAC, WAVE, AIFF";
@@ -302,6 +313,13 @@ void DlgPrefLibrary::slotResetToDefaults() {
 
     spinBox_sidebar_hover_expand_delay->setValue(kSidebarHoverExpandDelayDefault);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    checkBox_show_track_count->setChecked(kShowTrackCountInSidebarDefault);
+    checkBox_center_selected_track->setChecked(kCenterSelectedTrackDefault);
+    checkBox_artwork_whole->setChecked(kCoverArtShowWholeDefault);
+    checkBox_reset_played_on_exit->setChecked(kResetPlayedOnExitDefault);
+    // End of AI-generated text.
+
     checkBox_show_rhythmbox->setChecked(true);
     checkBox_show_banshee->setChecked(true);
     checkBox_show_itunes->setChecked(true);
@@ -423,6 +441,21 @@ void DlgPrefLibrary::slotUpdate() {
     checkBox_enable_search_history_shortcuts->setChecked(m_pConfig->getValue(
             kEnableSearchHistoryShortcutsConfigKey,
             WSearchLineEdit::kHistoryShortcutsEnabledDefault));
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    checkBox_show_track_count->setChecked(m_pConfig->getValue(
+            kShowTrackCountInSidebarConfigKey, kShowTrackCountInSidebarDefault));
+    const bool centerSelectedTrack = m_pConfig->getValue(
+            kCenterSelectedTrackConfigKey, kCenterSelectedTrackDefault);
+    checkBox_center_selected_track->setChecked(centerSelectedTrack);
+    WTrackTableView::setCenterSelectedTrack(centerSelectedTrack);
+    const bool artworkWhole = m_pConfig->getValue(
+            kCoverArtShowWholeConfigKey, kCoverArtShowWholeDefault);
+    checkBox_artwork_whole->setChecked(artworkWhole);
+    CoverArtDelegate::setShowWholeArtwork(artworkWhole);
+    checkBox_reset_played_on_exit->setChecked(m_pConfig->getValue(
+            kResetPlayedOnExitConfigKey, kResetPlayedOnExitDefault));
+    // End of AI-generated text.
 
     // Library reads font from config during construction
     m_originalTrackTableFont = m_pLibrary->getTrackTableFont();
@@ -675,6 +708,19 @@ void DlgPrefLibrary::slotApply() {
         m_originalTrackTableFont = font;
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pConfig->setValue(kLibraryFontBoldConfigKey, checkBox_library_font_bold->isChecked());
+    m_pConfig->setValue(kShowTrackCountInSidebarConfigKey,
+            checkBox_show_track_count->isChecked());
+    m_pConfig->setValue(kCenterSelectedTrackConfigKey,
+            checkBox_center_selected_track->isChecked());
+    WTrackTableView::setCenterSelectedTrack(checkBox_center_selected_track->isChecked());
+    m_pConfig->setValue(kCoverArtShowWholeConfigKey, checkBox_artwork_whole->isChecked());
+    CoverArtDelegate::setShowWholeArtwork(checkBox_artwork_whole->isChecked());
+    m_pConfig->setValue(kResetPlayedOnExitConfigKey,
+            checkBox_reset_played_on_exit->isChecked());
+    // End of AI-generated text.
+
     int rowHeight = spinBox_row_height->value();
     if (m_iOriginalTrackTableRowHeight != rowHeight) {
         m_pConfig->set(ConfigKey("[Library]", "RowHeight"),
@@ -739,6 +785,13 @@ void DlgPrefLibrary::setLibraryFont(const QFont& font) {
     }
     fontDescription += ' ' + QString::number(font.pointSizeF()) + QStringLiteral("pt");
     lineEdit_library_font->setText(fontDescription);
+    {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Keep the "Bold" check box equal to the font weight.
+        const QSignalBlocker blocker(checkBox_library_font_bold);
+        checkBox_library_font_bold->setChecked(font.bold());
+        // End of AI-generated text.
+    }
 
     // Apply the font
     m_pLibrary->setFont(font);
@@ -763,6 +816,25 @@ void DlgPrefLibrary::slotSelectFont() {
         setLibraryFont(font);
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void DlgPrefLibrary::slotFontBoldToggled(bool bold) {
+    setLibraryFont(mixxx::library::libraryFontFromConfig(
+            m_pLibrary->getTrackTableFont().toString(),
+            bold,
+            m_pLibrary->getTrackTableFont()));
+}
+
+void DlgPrefLibrary::slotResetPlayedClicked() {
+    TrackDAO& trackDao = m_pLibrary->trackCollectionManager()
+                                 ->internalCollection()
+                                 ->getTrackDAO();
+    if (trackDao.clearPlayed()) {
+        // Tell the track lists to read the played marks again.
+        emit trackDao.forceModelUpdate();
+    }
+}
+// End of AI-generated text.
 
 void DlgPrefLibrary::slotSearchDebouncingTimeoutMillisChanged(int searchDebouncingTimeoutMillis) {
     m_pConfig->setValue(

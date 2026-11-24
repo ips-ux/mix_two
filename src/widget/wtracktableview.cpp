@@ -11,12 +11,14 @@
 #include <QStylePainter>
 #include <QTimer>
 #include <QUrl>
+#include <atomic>
 
 #include "control/controlobject.h"
 #include "library/dao/trackschema.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
 #include "library/librarytablemodel.h"
+#include "library/libraryviewprefs.h"
 #include "library/searchqueryparser.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -101,10 +103,23 @@ WTrackTableView::~WTrackTableView() {
         pHeader->saveHeaderState();
     }
 }
-#ifdef __LINUX__
+namespace {
+// AI-generated (Claude Code). Start of AI-generated text.
+std::atomic<bool> s_centerSelectedTrack{mixxx::library::prefs::kCenterSelectedTrackDefault};
+// End of AI-generated text.
+} // namespace
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// static
+void WTrackTableView::setCenterSelectedTrack(bool center) {
+    s_centerSelectedTrack.store(center);
+}
+// End of AI-generated text.
+
 void WTrackTableView::currentChanged(
         const QModelIndex& current,
         const QModelIndex& previous) {
+#ifdef __LINUX__
     // This override fixes https://github.com/mixxxdj/mixxx/pull/14734
     // On Ubuntu-based distros it may happen that the InputMethod management
     // isn't working correctly for some reason. When the focused cell in the
@@ -122,8 +137,15 @@ void WTrackTableView::currentChanged(
         // is opened on hover.
         setAttribute(Qt::WA_InputMethodEnabled, false);
     }
-}
+#else
+    QTableView::currentChanged(current, previous);
 #endif
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (s_centerSelectedTrack.load() && current.isValid()) {
+        mixxx::library::scrollRowToCenter(this, current);
+    }
+    // End of AI-generated text.
+}
 
 void WTrackTableView::enableCachedOnly() {
     if (!m_loadCachedOnly) {

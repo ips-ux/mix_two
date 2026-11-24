@@ -11,6 +11,7 @@
 #include "library/export/trackexportwizard.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryviewprefs.h"
 #include "library/parser.h"
 #include "library/parsercsv.h"
 #include "library/trackcollection.h"
@@ -31,12 +32,15 @@
 namespace {
 
 QString formatLabel(
-        const CrateSummary& crateSummary) {
-    return QStringLiteral("%1 (%2) %3")
-            .arg(
-                    crateSummary.getName(),
-                    QString::number(crateSummary.getTrackCount()),
-                    crateSummary.getTrackDurationText());
+        const CrateSummary& crateSummary, bool showCount) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The count and the duration show only when the user switches them on in
+    // the library preferences.
+    return mixxx::library::sidebarLabel(crateSummary.getName(),
+            crateSummary.getTrackCount(),
+            crateSummary.getTrackDurationText(),
+            showCount);
+    // End of AI-generated text.
 }
 
 const ConfigKey kConfigKeyLastImportExportCrateDirectoryKey(
@@ -249,7 +253,10 @@ void CrateFeature::updateTreeItemForCrateSummary(
         DEBUG_ASSERT(CrateId(pTreeItem->getData()) == crateSummary.getId());
     }
     // Update mutable properties
-    pTreeItem->setLabel(formatLabel(crateSummary));
+    pTreeItem->setLabel(formatLabel(crateSummary,
+            m_pConfig->getValue(
+                    mixxx::library::prefs::kShowTrackCountInSidebarConfigKey,
+                    mixxx::library::prefs::kShowTrackCountInSidebarDefault)));
     pTreeItem->setIcon(crateSummary.isLocked() ? m_lockedCrateIcon : QIcon());
 }
 

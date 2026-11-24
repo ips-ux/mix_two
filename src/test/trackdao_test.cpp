@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "library/library_prefs.h"
 #include "test/librarytest.h"
 #include "track/globaltrackcache.h"
 #include "track/track.h"
@@ -159,3 +160,51 @@ TEST_F(TrackDAOTest, markTrackLocationsAsVerifiedRecoversPresentFilesOnly) {
     EXPECT_EQ(1, readQuery.value(1).toInt())
             << "needs_verification must remain set so verifyRemainingTracks can confirm deletion";
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+int countPlayedTracks(const QSqlDatabase& db) {
+    QSqlQuery query(db);
+    EXPECT_TRUE(query.exec(QStringLiteral("SELECT COUNT(*) FROM library WHERE played>0")));
+    return query.next() ? query.value(0).toInt() : -1;
+}
+
+} // namespace
+
+TEST_F(TrackDAOTest, clearPlayedClearsAllPlayedMarks) {
+    TrackPointer pTrack = getOrAddTrackByLocation(
+            getTestDir().filePath(QStringLiteral("id3-test-data/artist.mp3")));
+    ASSERT_TRUE(pTrack);
+    QSqlQuery update(dbConnection());
+    ASSERT_TRUE(update.exec(QStringLiteral("UPDATE library SET played=1")));
+    ASSERT_EQ(1, countPlayedTracks(dbConnection()));
+
+    EXPECT_TRUE(internalCollection()->getTrackDAO().clearPlayed());
+    EXPECT_EQ(0, countPlayedTracks(dbConnection()));
+}
+
+TEST_F(TrackDAOTest, finishClearsPlayedByDefault) {
+    EXPECT_TRUE(mixxx::library::prefs::kResetPlayedOnExitDefault);
+    TrackPointer pTrack = getOrAddTrackByLocation(
+            getTestDir().filePath(QStringLiteral("id3-test-data/artist.mp3")));
+    ASSERT_TRUE(pTrack);
+    QSqlQuery update(dbConnection());
+    ASSERT_TRUE(update.exec(QStringLiteral("UPDATE library SET played=1")));
+
+    internalCollection()->getTrackDAO().finish();
+    EXPECT_EQ(0, countPlayedTracks(dbConnection()));
+}
+
+TEST_F(TrackDAOTest, finishKeepsPlayedWhenResetOnExitIsOff) {
+    config()->setValue(mixxx::library::prefs::kResetPlayedOnExitConfigKey, false);
+    TrackPointer pTrack = getOrAddTrackByLocation(
+            getTestDir().filePath(QStringLiteral("id3-test-data/artist.mp3")));
+    ASSERT_TRUE(pTrack);
+    QSqlQuery update(dbConnection());
+    ASSERT_TRUE(update.exec(QStringLiteral("UPDATE library SET played=1")));
+
+    internalCollection()->getTrackDAO().finish();
+    EXPECT_EQ(1, countPlayedTracks(dbConnection()));
+}
+// End of AI-generated text.

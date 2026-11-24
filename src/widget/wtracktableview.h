@@ -34,9 +34,12 @@ class WTrackTableView : public WLibraryTableView {
             Library* pLibrary,
             double backgroundColorOpacity);
     ~WTrackTableView() override;
-#ifdef __LINUX__
     void currentChanged(const QModelIndex& current, const QModelIndex& previous) override;
-#endif
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // When on, a change of the current row scrolls that row to the middle of
+    // the view. Set from the library preferences.
+    static void setCenterSelectedTrack(bool center);
+    // End of AI-generated text.
     void contextMenuEvent(QContextMenuEvent * event) override;
     QString columnNameOfIndex(const QModelIndex& index) const;
     void onSearch(const QString& text) override;
