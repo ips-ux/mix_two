@@ -78,6 +78,20 @@ def run_process(args):
     )
 
 
+def split_command(command, windows=None):
+    """Split a command line. On Windows the backslash is not an escape
+    character, so the split keeps it and strips the quote marks."""
+    if windows is None:
+        windows = os.name == "nt"
+    if not windows:
+        return shlex.split(command)
+    parts = shlex.split(command, posix=False)
+    return [
+        part[1:-1] if len(part) > 1 and part[0] == part[-1] and part[0] in "\"'" else part
+        for part in parts
+    ]
+
+
 def missing_package(output):
     """Name of the missing Python package in the output, or None."""
     match = NO_MODULE.search(output)
@@ -91,7 +105,7 @@ class ScriptJudge(Judge):
     uses_reference = False
 
     def command(self, stick, reference):
-        args = [sys.executable, "-I", str(TOOLS_DIR / self.script), str(stick)]
+        args = [sys.executable, str(TOOLS_DIR / self.script), str(stick)]
         if reference and self.uses_reference:
             args += ["--reference", str(reference)]
         return args
@@ -192,7 +206,11 @@ class CrateDiggerJudge(Judge):
                 "crate-digger is a Java library with no command. "
                 "Set CRATE_DIGGER_CMD to a command that takes the stick path."
             )
-        done = run_process(shlex.split(command) + [str(stick)])
+        args = split_command(command) + [str(stick)]
+        try:
+            done = run_process(args)
+        except FileNotFoundError:
+            return NOT_INSTALLED, f"CRATE_DIGGER_CMD program {args[0]} does not exist."
         if done.returncode == 0:
             return PASS, "CRATE_DIGGER_CMD exit code 0."
         reason = first_line(done.stderr + done.stdout, "No output.")

@@ -160,6 +160,60 @@ class ExportVerifyTest(unittest.TestCase):
         self.assertEqual(result, ev.NOT_INSTALLED)
         self.assertIn("CRATE_DIGGER_CMD", detail)
 
+    def test_split_command_keeps_windows_backslashes(self):
+        self.assertEqual(
+            ev.split_command(r"java -jar C:	ools\cd.jar", windows=True),
+            ["java", "-jar", r"C:	ools\cd.jar"],
+        )
+        self.assertEqual(
+            ev.split_command(r'java -jar "C:	ools\cd.jar" -x', windows=True),
+            ["java", "-jar", r"C:	ools\cd.jar", "-x"],
+        )
+        self.assertEqual(
+            ev.split_command("java -jar 'a b.jar'", windows=False),
+            ["java", "-jar", "a b.jar"],
+        )
+
+    def test_crate_digger_program_missing_is_not_installed(self):
+        old = os.environ.get("CRATE_DIGGER_CMD")
+        os.environ["CRATE_DIGGER_CMD"] = "no-such-program-xyz --flag"
+        try:
+            result, detail = ev.CrateDiggerJudge().run(self.stick, None)
+        finally:
+            if old is None:
+                del os.environ["CRATE_DIGGER_CMD"]
+            else:
+                os.environ["CRATE_DIGGER_CMD"] = old
+        self.assertEqual(result, ev.NOT_INSTALLED)
+        self.assertIn("no-such-program-xyz", detail)
+
+    def run_fake_script(self, body):
+        path = os.path.join(self.stick, "fake_verify.py")
+        with open(path, "w", newline="\n") as handle:
+            handle.write(body)
+
+        class Fake(ev.ScriptJudge):
+            name = "fake"
+            script = path
+
+        return Fake().run(self.stick, None)
+
+    def test_script_judge_exit_0_is_pass(self):
+        result, _ = self.run_fake_script("print('PASS a')\n")
+        self.assertEqual(result, ev.PASS)
+
+    def test_script_judge_exit_1_is_fail(self):
+        result, detail = self.run_fake_script(
+            "import sys\nprint('FAIL x: bad')\nsys.exit(1)\n"
+        )
+        self.assertEqual(result, ev.FAIL)
+        self.assertEqual(detail, "FAIL x: bad")
+
+    def test_script_judge_import_error_is_not_installed(self):
+        result, detail = self.run_fake_script("import no_such_pkg_xyz\n")
+        self.assertEqual(result, ev.NOT_INSTALLED)
+        self.assertIn("no_such_pkg_xyz", detail)
+
     def test_rekordbox_is_skipped(self):
         result, detail = ev.RekordboxJudge().run(self.stick, None)
         self.assertEqual(result, ev.SKIPPED)
