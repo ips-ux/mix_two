@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QString>
+#include <QStringList>
 #include <QtGlobal>
 
 namespace mixxx {
@@ -71,6 +72,52 @@ QString dlpBackupLibrary(const QString& stickRoot,
         const QDateTime& now,
         QString* pErrorMessage);
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// What dlpRestoreLibrary() did.
+struct DlpRestoreResult {
+    bool ok = false;
+    /// A message for the user (ASD-STE100) when `ok` is false.
+    QString errorMessage;
+    /// The time-stamp folder of the backup that the function restored.
+    QString restoredFrom;
+    /// The backup that the function made of the library on the stick before it
+    /// restored (empty when the stick had no library). The user can restore
+    /// this backup to undo the restore.
+    QString safetyBackup;
+    /// The files that the function wrote to the stick, as paths from the root
+    /// of the stick.
+    QStringList restoredFiles;
+};
+
+/// Restores the newest backup of this stick (the newest `yyyyMMdd-HHmmss`
+/// folder with a library in `<backupBaseDir>/<fatSafeName(deviceName)>/`, the
+/// folder that dlpBackupLibrary() writes) to the stick. The backup of another
+/// stick (another device name) is never used. The function
+/// 1. checks the stick (ready, not read-only) and finds the backup;
+/// 2. copies the backup to a temporary file next to the library on the stick;
+/// 3. makes a backup of the library on the stick with dlpBackupLibrary() (a
+///    folder with a time stamp that no backup has yet, so that it replaces no
+///    backup); it does not go on when this fails;
+/// 4. renames the temporary file over the library (`QSaveFile`).
+/// The library on the stick is never half written: a failure before step 4
+/// leaves it as it was. It restores the files that dlpBackupLibrary() copies
+/// (the library file), and it deletes no other file of the stick. A stick
+/// without a library gets the restored one, and step 3 does not apply. `now`
+/// is the time of the backup of step 3.
+DlpRestoreResult dlpRestoreLibrary(const QString& stickRoot,
+        const QString& backupBaseDir,
+        const QString& deviceName,
+        const QDateTime& now);
+
+/// Like the function above, with the data of the stick that dlpStickInfo()
+/// gave (`info.root` is the stick root). For a caller that has the data
+/// already, and for tests.
+DlpRestoreResult dlpRestoreLibrary(const DlpStickInfo& info,
+        const QString& backupBaseDir,
+        const QString& deviceName,
+        const QDateTime& now);
+// End of AI-generated text.
+
 /// Moves the files in `PIONEER/rekordbox` of the stick that an export that
 /// did not finish can leave, `exportLibrary.db.XXXXXX` (6 letters or digits)
 /// and `exportLibrary.db.tmp`, to the computer (Ruling R16): into
@@ -119,6 +166,10 @@ QString dlpMessageHasLegacyLibrary();
 QString dlpMessageNoTrackExported();
 /// The backup of the library failed for the reason in `reason`.
 QString dlpMessageBackupFailed(const QString& reason);
+// AI-generated (Claude Code). Start of AI-generated text.
+/// The restore of the backup failed for the reason in `reason`.
+QString dlpMessageRestoreFailed(const QString& reason);
+// End of AI-generated text.
 
 } // namespace rekordbox
 } // namespace mixxx

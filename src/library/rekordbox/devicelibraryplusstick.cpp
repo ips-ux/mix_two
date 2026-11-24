@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QLocale>
 #include <QRegularExpression>
+#include <QSaveFile>
 #include <QStorageInfo>
 #include <QStringList>
 #include <QtDebug>
@@ -128,6 +129,44 @@ void removeOldBackups(const QDir& deviceDir, const QString& keep) {
     }
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// The time-stamp folder of `time`: the name that dlpBackupLibrary() gives it.
+QString stampOf(const QDateTime& time) {
+    return QLocale::c().toString(time, kBackupFolderFormat);
+}
+
+DlpRestoreResult failedRestore(const QString& reason) {
+    DlpRestoreResult result;
+    result.errorMessage = dlpMessageRestoreFailed(reason);
+    return result;
+}
+
+QString copyFailedReason(const QString& stickPath) {
+    return QCoreApplication::translate("DeviceLibraryPlus",
+            "Mix Two cannot write the file %1 to the stick.")
+            .arg(stickPath);
+}
+
+/// The newest time-stamp folder in `deviceDir` that holds a library file, or an
+/// empty string.
+QString newestBackupStamp(const QDir& deviceDir) {
+    const QRegularExpression stampPattern = anchored(QStringLiteral("\\d{8}-\\d{6}"));
+    const QStringList stamps = deviceDir
+                                       .entryList(QDir::Dirs | QDir::NoSymLinks |
+                                                       QDir::NoDotAndDotDot,
+                                               QDir::Name)
+                                       .filter(stampPattern);
+    // The names sort as text in time order. The newest is the last.
+    for (auto it = stamps.crbegin(); it != stamps.crend(); ++it) {
+        const QFileInfo library(QDir(deviceDir.filePath(*it)).filePath(kLibraryFileName));
+        if (library.isFile() && !library.isSymLink()) {
+            return *it;
+        }
+    }
+    return QString();
+}
+// End of AI-generated text.
+
 } // namespace
 
 DlpFileSystem dlpFileSystemFromType(const QByteArray& type) {
@@ -229,6 +268,117 @@ QString dlpBackupLibrary(const QString& stickRoot,
     removeOldBackups(deviceDir, stamp);
     return target;
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+DlpRestoreResult dlpRestoreLibrary(const QString& stickRoot,
+        const QString& backupBaseDir,
+        const QString& deviceName,
+        const QDateTime& now) {
+    // An empty path would be a path below the working folder: do not even
+    // read the stick.
+    if (isBlank(stickRoot)) {
+        return failedRestore(QCoreApplication::translate("DeviceLibraryPlus",
+                "The path of the stick is empty."));
+    }
+    return dlpRestoreLibrary(dlpStickInfo(stickRoot), backupBaseDir, deviceName, now);
+}
+
+DlpRestoreResult dlpRestoreLibrary(const DlpStickInfo& info,
+        const QString& backupBaseDir,
+        const QString& deviceName,
+        const QDateTime& now) {
+    if (isBlank(info.root)) {
+        return failedRestore(QCoreApplication::translate("DeviceLibraryPlus",
+                "The path of the stick is empty."));
+    }
+    if (isBlank(backupBaseDir)) {
+        return failedRestore(QCoreApplication::translate("DeviceLibraryPlus",
+                "The path of the backup folder is empty."));
+    }
+    if (!now.isValid()) {
+        return failedRestore(QCoreApplication::translate("DeviceLibraryPlus",
+                "The time of the backup is not valid."));
+    }
+    if (!info.isReady) {
+        return failedRestore(QCoreApplication::translate("DeviceLibraryPlus",
+                "The stick is not ready."));
+    }
+    if (info.isReadOnly) {
+        DlpRestoreResult result;
+        result.errorMessage = dlpMessageCannotWrite();
+        return result;
+    }
+
+    // The backups of this stick: the folder that dlpBackupLibrary() uses.
+    const QDir deviceDir(QDir(backupBaseDir).filePath(fatSafeName(deviceName)));
+    const QString stamp = newestBackupStamp(deviceDir);
+    if (stamp.isEmpty()) {
+        return failedRestore(QCoreApplication::translate("DeviceLibraryPlus",
+                "Mix Two has no backup of the library of this stick."));
+    }
+    const QString backupFolder = deviceDir.filePath(stamp);
+    const QString source = QDir(backupFolder).filePath(kLibraryFileName);
+    const QString target = QDir(info.root).filePath(DeviceLibraryPlusDb::kRelativePath);
+    const QString stickPath = QStringLiteral("/") + DeviceLibraryPlusDb::kRelativePath;
+
+    // Step 2: copy the backup to a temporary file next to the library. The
+    // copy has its own bytes, so a later step cannot change it. Nothing is
+    // written to the library until commit().
+    if (!QDir().mkpath(QFileInfo(target).absolutePath())) {
+        return failedRestore(copyFailedReason(stickPath));
+    }
+    QSaveFile staged(target);
+    QFile backup(source);
+    if (!backup.open(QIODevice::ReadOnly) || !staged.open(QIODevice::WriteOnly)) {
+        return failedRestore(copyFailedReason(stickPath));
+    }
+    constexpr qint64 kChunk = 1024 * 1024;
+    while (!backup.atEnd()) {
+        const QByteArray chunk = backup.read(kChunk);
+        if (chunk.isEmpty() || staged.write(chunk) != chunk.size()) {
+            staged.cancelWriting();
+            return failedRestore(copyFailedReason(stickPath));
+        }
+    }
+    if (backup.error() != QFileDevice::NoError) {
+        staged.cancelWriting();
+        return failedRestore(copyFailedReason(stickPath));
+    }
+
+    DlpRestoreResult result;
+    // Step 3: a backup of the library that the restore replaces. The time
+    // stamp is one that no folder has: the backup replaces no folder, also not
+    // the one that is restored (the same second).
+    if (QFileInfo(target).isFile()) {
+        QDateTime safetyTime = now;
+        for (int tries = 0; tries < 3600 && QFileInfo::exists(deviceDir.filePath(stampOf(safetyTime)));
+                ++tries) {
+            safetyTime = safetyTime.addSecs(1);
+        }
+        QString backupError;
+        result.safetyBackup = dlpBackupLibrary(
+                info.root, backupBaseDir, deviceName, safetyTime, &backupError);
+        if (result.safetyBackup.isEmpty()) {
+            staged.cancelWriting();
+            DlpRestoreResult failed;
+            failed.errorMessage = backupError;
+            return failed;
+        }
+    }
+
+    // Step 4: the rename. The library is the old file or the new file, never
+    // a part of either.
+    if (!staged.commit()) {
+        DlpRestoreResult failed = failedRestore(copyFailedReason(stickPath));
+        failed.safetyBackup = result.safetyBackup;
+        return failed;
+    }
+    result.ok = true;
+    result.restoredFrom = backupFolder;
+    result.restoredFiles.append(stickPath);
+    return result;
+}
+// End of AI-generated text.
 
 int dlpMoveLeftoverFiles(const QString& stickRoot,
         const QString& backupBaseDir,
@@ -337,6 +487,14 @@ QString dlpMessageBackupFailed(const QString& reason) {
             "Mix Two cannot make a backup of the library on the stick: %1")
             .arg(reason);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+QString dlpMessageRestoreFailed(const QString& reason) {
+    return QCoreApplication::translate("DeviceLibraryPlus",
+            "Mix Two cannot restore the backup of the library: %1")
+            .arg(reason);
+}
+// End of AI-generated text.
 
 } // namespace rekordbox
 } // namespace mixxx

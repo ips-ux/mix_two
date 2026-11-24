@@ -29,6 +29,11 @@ using mixxx::rekordbox::dlpBytesNeeded;
 using mixxx::rekordbox::DlpFileSystem;
 using mixxx::rekordbox::dlpFileSystemFromType;
 using mixxx::rekordbox::dlpMoveLeftoverFiles;
+// AI-generated (Claude Code). Start of AI-generated text.
+using mixxx::rekordbox::DlpRestoreResult;
+using mixxx::rekordbox::dlpRestoreLibrary;
+using mixxx::rekordbox::DlpStickInfo;
+// End of AI-generated text.
 using mixxx::rekordbox::dlpRemoveAnlzLeftovers;
 using mixxx::rekordbox::dlpRemoveOldWorkingCopies;
 using mixxx::rekordbox::dlpStickInfo;
@@ -533,6 +538,267 @@ TEST_F(DeviceLibraryPlusStickTest, RemoveAnlzLeftoversRefusesEmptyPath) {
     EXPECT_EQ(0, dlpRemoveAnlzLeftovers(QStringLiteral(" 	")));
     EXPECT_TRUE(QFileInfo::exists(leftover));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+QByteArray readFileBytes(const QString& path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return QByteArray();
+    }
+    return file.readAll();
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreCopiesBackupBack) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    const QByteArray original(5000, 'a');
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), original));
+    ASSERT_TRUE(writeFile(QDir(stick.path()).filePath("Contents/a.mp3"), "mp3"));
+    QString error;
+    const QDateTime backupTime(QDate(2026, 11, 2), QTime(13, 5, 9));
+    ASSERT_FALSE(dlpBackupLibrary(stick.path(), backups.path(), "Stick", backupTime, &error)
+                         .isEmpty())
+            << error.toStdString();
+    // The DJ changes the library on the stick.
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), QByteArray(7000, 'b')));
+
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+    const DlpRestoreResult result =
+            dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
+    EXPECT_TRUE(result.errorMessage.isEmpty());
+    EXPECT_EQ(original, readFileBytes(libraryPath(stick.path())));
+    EXPECT_EQ(QStringLiteral("20261102-130509"), QFileInfo(result.restoredFrom).fileName());
+    EXPECT_EQ(QStringList{QStringLiteral("/PIONEER/rekordbox/exportLibrary.db")},
+            result.restoredFiles);
+    // Nothing else changes on the stick, and no temporary file stays.
+    EXPECT_EQ(QByteArray("mp3"), readFileBytes(QDir(stick.path()).filePath("Contents/a.mp3")));
+    EXPECT_EQ(QStringList{QStringLiteral("exportLibrary.db")},
+            QDir(rekordboxFolder(stick.path())).entryList(QDir::Files | QDir::Hidden));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreMakesBackupOfPresentLibrary) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "first"));
+    QString error;
+    ASSERT_FALSE(dlpBackupLibrary(stick.path(),
+            backups.path(),
+            "Stick",
+            QDateTime(QDate(2026, 11, 2), QTime(13, 5, 9)),
+            &error)
+                         .isEmpty());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "second"));
+
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+    const DlpRestoreResult result =
+            dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
+    EXPECT_EQ(QByteArray("first"), readFileBytes(libraryPath(stick.path())));
+    // The backup of the library that the restore replaced is there.
+    const QString deviceDir = QDir(backups.path()).filePath("Stick");
+    EXPECT_EQ((QStringList{"20261102-130509", "20261103-090000"}), folderNames(deviceDir));
+    EXPECT_EQ(QDir(deviceDir).filePath("20261103-090000/exportLibrary.db"), result.safetyBackup);
+    EXPECT_EQ(QByteArray("second"), readFileBytes(result.safetyBackup));
+    // The backup that was restored stays.
+    EXPECT_EQ(QByteArray("first"),
+            readFileBytes(QDir(deviceDir).filePath("20261102-130509/exportLibrary.db")));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreKeepsTheRestoredBackupInTheSameSecond) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "first"));
+    const QDateTime time(QDate(2026, 11, 2), QTime(13, 5, 9));
+    QString error;
+    ASSERT_FALSE(dlpBackupLibrary(stick.path(), backups.path(), "Stick", time, &error).isEmpty());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "second"));
+
+    // The same second as the backup: the backup of "second" must not replace
+    // the backup that the restore uses.
+    const DlpRestoreResult result = dlpRestoreLibrary(stick.path(), backups.path(), "Stick", time);
+    ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
+    EXPECT_EQ(QByteArray("first"), readFileBytes(libraryPath(stick.path())));
+    EXPECT_EQ(QByteArray("first"),
+            readFileBytes(QDir(backups.path()).filePath("Stick/20261102-130509/exportLibrary.db")));
+    EXPECT_EQ(QByteArray("second"), readFileBytes(result.safetyBackup));
+    EXPECT_NE(QFileInfo(result.safetyBackup).absolutePath(), result.restoredFrom);
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreFailsWithoutBackup) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "present"));
+    // A folder that is not a time stamp and an empty time-stamp folder are no
+    // backups.
+    ASSERT_TRUE(QDir().mkpath(backups.path() + "/Stick/notes"));
+    ASSERT_TRUE(QDir().mkpath(backups.path() + "/Stick/20260101-000000"));
+
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+    const DlpRestoreResult result = dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    EXPECT_FALSE(result.ok);
+    EXPECT_FALSE(result.errorMessage.isEmpty());
+    EXPECT_EQ(QByteArray("present"), readFileBytes(libraryPath(stick.path())));
+    // No backup of the stick was made: the restore stopped first.
+    EXPECT_EQ((QStringList{"20260101-000000", "notes"}), folderNames(backups.path() + "/Stick"));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreDoesNotUseBackupOfAnotherStick) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "mine"));
+    ASSERT_TRUE(writeFile(backups.path() + "/Other/20261102-130509/exportLibrary.db", "theirs"));
+
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+    const DlpRestoreResult result = dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    EXPECT_FALSE(result.ok);
+    EXPECT_FALSE(result.errorMessage.isEmpty());
+    EXPECT_EQ(QByteArray("mine"), readFileBytes(libraryPath(stick.path())));
+    EXPECT_EQ(QByteArray("theirs"),
+            readFileBytes(backups.path() + "/Other/20261102-130509/exportLibrary.db"));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreUsesNewestOfThreeBackups) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "now"));
+    ASSERT_TRUE(writeFile(backups.path() + "/Stick/20261101-100000/exportLibrary.db", "oldest"));
+    ASSERT_TRUE(writeFile(backups.path() + "/Stick/20261103-100000/exportLibrary.db", "newest"));
+    ASSERT_TRUE(writeFile(backups.path() + "/Stick/20261102-100000/exportLibrary.db", "middle"));
+    // A newer folder without a library is not a backup.
+    ASSERT_TRUE(QDir().mkpath(backups.path() + "/Stick/20261104-100000"));
+
+    const QDateTime now(QDate(2026, 11, 5), QTime(9, 0, 0));
+    const DlpRestoreResult result = dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
+    EXPECT_EQ(QByteArray("newest"), readFileBytes(libraryPath(stick.path())));
+    EXPECT_EQ(QStringLiteral("20261103-100000"), QFileInfo(result.restoredFrom).fileName());
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreKeepsRestoredBackupWhenFiveExist) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "now"));
+    for (int day = 1; day <= 5; ++day) {
+        ASSERT_TRUE(writeFile(QStringLiteral("%1/Stick/2026110%2-100000/exportLibrary.db")
+                                      .arg(backups.path())
+                                      .arg(day),
+                QByteArray::number(day)));
+    }
+    // The time of the restore is older than all backups.
+    const QDateTime now(QDate(2026, 10, 1), QTime(9, 0, 0));
+    const DlpRestoreResult result = dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
+    EXPECT_EQ(QByteArray("5"), readFileBytes(libraryPath(stick.path())));
+    EXPECT_TRUE(QFileInfo::exists(result.safetyBackup));
+    EXPECT_TRUE(QFileInfo::exists(backups.path() + "/Stick/20261105-100000/exportLibrary.db"));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreFailsOnMissingOrReadOnlyStick) {
+    QTemporaryDir backups;
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(backups.path() + "/Stick/20261102-130509/exportLibrary.db", "backup"));
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+
+    // A stick that is not there.
+    QTemporaryDir parent;
+    ASSERT_TRUE(parent.isValid());
+    const QString missing = parent.filePath("no-stick");
+    DlpRestoreResult result = dlpRestoreLibrary(missing, backups.path(), "Stick", now);
+    EXPECT_FALSE(result.ok);
+    EXPECT_FALSE(result.errorMessage.isEmpty());
+    EXPECT_FALSE(QFileInfo::exists(missing));
+    EXPECT_EQ(QStringList{"20261102-130509"}, folderNames(backups.path() + "/Stick"));
+
+    // A stick that the operating system reports as read-only.
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "present"));
+    DlpStickInfo info = dlpStickInfo(stick.path());
+    ASSERT_TRUE(info.isReady);
+    info.isReadOnly = true;
+    result = dlpRestoreLibrary(info, backups.path(), "Stick", now);
+    EXPECT_FALSE(result.ok);
+    EXPECT_EQ(mixxx::rekordbox::dlpMessageCannotWrite(), result.errorMessage);
+    EXPECT_EQ(QByteArray("present"), readFileBytes(libraryPath(stick.path())));
+    EXPECT_EQ(QStringList{"20261102-130509"}, folderNames(backups.path() + "/Stick"));
+
+    // A stick that is not ready.
+    info.isReadOnly = false;
+    info.isReady = false;
+    result = dlpRestoreLibrary(info, backups.path(), "Stick", now);
+    EXPECT_FALSE(result.ok);
+    EXPECT_FALSE(result.errorMessage.isEmpty());
+    EXPECT_EQ(QByteArray("present"), readFileBytes(libraryPath(stick.path())));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreRefusesEmptyPathsAndInvalidTime) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(libraryPath(stick.path()), "present"));
+    ASSERT_TRUE(writeFile(backups.path() + "/Stick/20261102-130509/exportLibrary.db", "backup"));
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+    EXPECT_FALSE(dlpRestoreLibrary(QString(), backups.path(), "Stick", now).ok);
+    EXPECT_FALSE(dlpRestoreLibrary(QStringLiteral("  "), backups.path(), "Stick", now).ok);
+    EXPECT_FALSE(dlpRestoreLibrary(stick.path(), QString(), "Stick", now).ok);
+    EXPECT_FALSE(dlpRestoreLibrary(stick.path(), backups.path(), "Stick", QDateTime()).ok);
+    EXPECT_EQ(QByteArray("present"), readFileBytes(libraryPath(stick.path())));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreToStickWithoutLibrary) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(backups.path() + "/Stick/20261102-130509/exportLibrary.db", "backup"));
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+    const DlpRestoreResult result = dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
+    EXPECT_EQ(QByteArray("backup"), readFileBytes(libraryPath(stick.path())));
+    // The stick had no library, so there is nothing to back up.
+    EXPECT_TRUE(result.safetyBackup.isEmpty());
+    EXPECT_EQ(QStringList{"20261102-130509"}, folderNames(backups.path() + "/Stick"));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreFailureNamesTheFile) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    ASSERT_TRUE(writeFile(backups.path() + "/Stick/20261102-130509/exportLibrary.db", "backup"));
+    // A file named PIONEER at the root: the folder for the library cannot be
+    // made, so the copy fails.
+    ASSERT_TRUE(writeFile(QDir(stick.path()).filePath("PIONEER"), "not a folder"));
+    const QDateTime now(QDate(2026, 11, 3), QTime(9, 0, 0));
+    const DlpRestoreResult result = dlpRestoreLibrary(stick.path(), backups.path(), "Stick", now);
+    EXPECT_FALSE(result.ok);
+    EXPECT_TRUE(result.errorMessage.contains(QStringLiteral("exportLibrary.db")))
+            << result.errorMessage.toStdString();
+    EXPECT_TRUE(result.restoredFiles.isEmpty());
+    EXPECT_EQ(QByteArray("not a folder"), readFileBytes(QDir(stick.path()).filePath("PIONEER")));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, RestoreMessageIsFilled) {
+    EXPECT_EQ(QString("Mix Two cannot restore the backup of the library: disk full"),
+            mixxx::rekordbox::dlpMessageRestoreFailed("disk full"));
+}
+// End of AI-generated text.
 
 TEST_F(DeviceLibraryPlusStickTest, MessagesAreFilled) {
     using namespace mixxx::rekordbox;
