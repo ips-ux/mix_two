@@ -470,9 +470,9 @@ quickly does not go into History.
 A track that is shorter than 60 seconds goes into History when it played for
 90 percent of its length.
 
-The play count and the played mark of a track now change at the same point:
-after 60 seconds of play, or after 90 percent of a short track. Before, they
-changed when the track started.
+The play count and the played mark of a track now change when the track goes
+into History. This is after 60 seconds of play, or after 90 percent of a short
+track. Before, they changed when the track started.
 
 When you add tracks to a playlist and the playlist holds some of them, Mix Two
 asks what to do. Push **Add them** to add all tracks again. Push **Skip
