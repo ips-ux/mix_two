@@ -829,10 +829,8 @@ void DlgPrefLibrary::slotResetPlayedClicked() {
     TrackDAO& trackDao = m_pLibrary->trackCollectionManager()
                                  ->internalCollection()
                                  ->getTrackDAO();
-    if (trackDao.clearPlayed()) {
-        // Tell the track lists to read the played marks again.
-        emit trackDao.forceModelUpdate();
-    }
+    // The track lists lose the played colour at once.
+    trackDao.clearPlayed();
 }
 // End of AI-generated text.
 

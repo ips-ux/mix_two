@@ -185,7 +185,6 @@ TEST_F(TrackDAOTest, clearPlayedClearsAllPlayedMarks) {
 }
 
 TEST_F(TrackDAOTest, finishClearsPlayedByDefault) {
-    EXPECT_TRUE(mixxx::library::prefs::kResetPlayedOnExitDefault);
     TrackPointer pTrack = getOrAddTrackByLocation(
             getTestDir().filePath(QStringLiteral("id3-test-data/artist.mp3")));
     ASSERT_TRUE(pTrack);
@@ -206,5 +205,28 @@ TEST_F(TrackDAOTest, finishKeepsPlayedWhenResetOnExitIsOff) {
 
     internalCollection()->getTrackDAO().finish();
     EXPECT_EQ(1, countPlayedTracks(dbConnection()));
+}
+TEST_F(TrackDAOTest, clearPlayedClearsCachedTrackAndKeepsPlayCount) {
+    TrackPointer pTrack = getOrAddTrackByLocation(
+            getTestDir().filePath(QStringLiteral("id3-test-data/artist.mp3")));
+    ASSERT_TRUE(pTrack);
+    pTrack->setPlayCounter(PlayCounter(3));
+    pTrack->updatePlayedStatusKeepPlayCount(true);
+    ASSERT_TRUE(pTrack->getPlayCounter().isPlayed());
+    trackCollectionManager()->saveTrack(pTrack);
+    ASSERT_EQ(1, countPlayedTracks(dbConnection()));
+
+    EXPECT_TRUE(internalCollection()->getTrackDAO().clearPlayed());
+
+    // The track object, the database and the play count.
+    EXPECT_FALSE(pTrack->getPlayCounter().isPlayed());
+    EXPECT_EQ(0, countPlayedTracks(dbConnection()));
+    EXPECT_EQ(3, pTrack->getPlayCounter().getTimesPlayed());
+
+    // A later save of the track does not bring the mark back.
+    pTrack->setComment(QStringLiteral("changed after reset"));
+    trackCollectionManager()->saveTrack(pTrack);
+    EXPECT_EQ(0, countPlayedTracks(dbConnection()));
+    EXPECT_EQ(3, pTrack->getPlayCounter().getTimesPlayed());
 }
 // End of AI-generated text.

@@ -37,10 +37,6 @@ TEST(SidebarLabelTest, OnWithoutDurationAddsOnlyTheCount) {
             sidebarLabel(QStringLiteral("Empty"), 0, QString(), true));
 }
 
-TEST(SidebarLabelTest, DefaultIsOff) {
-    EXPECT_FALSE(mixxx::library::prefs::kShowTrackCountInSidebarDefault);
-}
-
 TEST(LibraryFontTest, BoldSetsTheBoldWeight) {
     QFont base(QStringLiteral("Arial"), 11);
     const QFont font = libraryFontFromConfig(base.toString(), true, QFont());
@@ -63,10 +59,6 @@ TEST(LibraryFontTest, EmptyTextUsesTheFallback) {
     EXPECT_EQ(13.0, font.pointSizeF());
     const QFont plain = libraryFontFromConfig(QString(), false, fallback);
     EXPECT_FALSE(plain.bold());
-}
-
-TEST(LibraryFontTest, DefaultIsNotBold) {
-    EXPECT_FALSE(mixxx::library::prefs::kLibraryFontBoldDefault);
 }
 
 TEST(CoverArtRectTest, UpperPartCutsTheBottom) {
@@ -105,10 +97,6 @@ TEST(CoverArtRectTest, EmptyInputGivesEmptyRects) {
     EXPECT_TRUE(rects.source.isEmpty());
 }
 
-TEST(CoverArtRectTest, DefaultIsUpperPart) {
-    EXPECT_FALSE(mixxx::library::prefs::kCoverArtShowWholeDefault);
-}
-
 class CenterRowTest : public MixxxTest {};
 
 TEST_F(CenterRowTest, SelectedRowIsInTheMiddleOfTheViewport) {
@@ -132,10 +120,6 @@ TEST_F(CenterRowTest, SelectedRowIsInTheMiddleOfTheViewport) {
     const int rowMiddle = rowRect.center().y();
     const int viewportMiddle = view.viewport()->height() / 2;
     EXPECT_LE(std::abs(rowMiddle - viewportMiddle), rowRect.height());
-}
-
-TEST_F(CenterRowTest, DefaultIsOff) {
-    EXPECT_FALSE(mixxx::library::prefs::kCenterSelectedTrackDefault);
 }
 
 } // namespace

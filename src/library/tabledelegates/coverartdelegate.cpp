@@ -173,8 +173,11 @@ void CoverArtDelegate::paintItem(
                             s_showWholeArtwork.load(), imageSize, option.rect);
             const QRect source(rects.source.topLeft() * scaleFactor,
                     rects.source.size() * scaleFactor);
+            const bool wasSmooth =
+                    painter->testRenderHint(QPainter::SmoothPixmapTransform);
             painter->setRenderHint(QPainter::SmoothPixmapTransform);
             painter->drawPixmap(rects.target, pixmap, source);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform, wasSmooth);
             // End of AI-generated text.
             drewPixmap = true;
         }

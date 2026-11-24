@@ -279,7 +279,7 @@
       <item row="8" column="3">
        <widget class="QCheckBox" name="checkBox_library_font_bold">
         <property name="toolTip">
-         <string>Show the text of the track list in bold.</string>
+         <string>Show the text of the track list in bold. The list shows the change at once. Cancel undoes it.</string>
         </property>
         <property name="text">
          <string>Bold</string>
@@ -356,7 +356,7 @@
       <item row="12" column="0" colspan="4">
        <widget class="QCheckBox" name="checkBox_center_selected_track">
         <property name="toolTip">
-         <string>When you select a track, the list scrolls to put that track in the middle of the view.</string>
+         <string>When you select a track, the list scrolls to put that track in the middle of the view. This starts when you push Apply or OK.</string>
         </property>
         <property name="text">
          <string>Show the selected track in the center</string>
@@ -367,7 +367,7 @@
       <item row="13" column="0" colspan="4">
        <widget class="QCheckBox" name="checkBox_artwork_whole">
         <property name="toolTip">
-         <string>Show the whole artwork picture in the artwork column. When this is off, the column shows the upper part of the picture.</string>
+         <string>Show the whole artwork picture in the artwork column. When this is off, the column shows the upper part of the picture. This starts when you push Apply or OK.</string>
         </property>
         <property name="text">
          <string>Show the whole artwork</string>
@@ -378,7 +378,7 @@
       <item row="14" column="0" colspan="2">
        <widget class="QCheckBox" name="checkBox_reset_played_on_exit">
         <property name="toolTip">
-         <string>When this is on, Mix Two clears the played mark of all tracks when you quit.</string>
+         <string>When this is on, Mix Two clears the played mark of all tracks when you quit. This starts when you push Apply or OK.</string>
         </property>
         <property name="text">
          <string>Reset played tracks on exit</string>
@@ -388,7 +388,7 @@
       <item row="14" column="2" colspan="2">
        <widget class="QPushButton" name="pushButton_reset_played">
         <property name="toolTip">
-         <string>Clear the played mark of all tracks now.</string>
+         <string>Clear the played mark of all tracks now. The play counts stay. This does not wait for Apply.</string>
         </property>
         <property name="text">
          <string>RESET</string>

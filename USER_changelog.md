@@ -510,16 +510,18 @@ The sidebar no longer shows the track count after the name of a playlist or
 crate. To show it again, go to Preferences > Library, then select **Show the
 track count in sidebar labels**. Restart Mix Two to see the change.
 
-To show the track list in bold, select **Bold** next to the library font.
+To show the track list in bold, select **Bold** next to the library font. The list changes at once.
 
 The artwork column shows the upper part of each picture. To show the whole
-picture, select **Show the whole artwork**.
+picture, select **Show the whole artwork**, then push **Apply**.
 
 To keep the selected track in the middle of the track list, select **Show the
-selected track in the center**.
+selected track in the center**, then push **Apply**.
 
 Mix Two clears the played mark of all tracks when you quit. To keep the marks,
-clear **Reset played tracks on exit**. To clear the marks now, push **RESET**.
+clear **Reset played tracks on exit**, then push **Apply**. To clear the marks
+now, push **RESET**. The track list and the loaded tracks lose the mark at
+once. The play counts stay.
 
 ### rekordbox USB devices
 

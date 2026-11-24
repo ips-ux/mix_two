@@ -123,12 +123,47 @@ TrackDAO::~TrackDAO() {
 
 // AI-generated (Claude Code). Start of AI-generated text.
 bool TrackDAO::clearPlayed() {
+    // Remember the tracks that show the played mark, so that the track lists
+    // can read them again after the change.
+    QSet<TrackId> playedTrackIds;
+    {
+        QSqlQuery selectQuery(m_database);
+        if (selectQuery.exec("SELECT id FROM library WHERE played>0")) {
+            while (selectQuery.next()) {
+                playedTrackIds.insert(TrackId(selectQuery.value(0)));
+            }
+        } else {
+            LOG_FAILED_QUERY(selectQuery) << "Error reading played tracks";
+        }
+    }
+
     // Note: without "where", this call updates every row which takes long
     QSqlQuery query(m_database);
     if (!query.exec("UPDATE library SET played=0 where played>0")) {
         LOG_FAILED_QUERY(query)
                 << "Error clearing played value";
         return false;
+    }
+
+    // Tracks in the cache keep the flag in memory. A later save of such a
+    // track would write the mark back. The play count stays as it is.
+    QList<TrackPointer> cachedTracks;
+    {
+        GlobalTrackCacheLocker cacheLocker;
+        const QSet<TrackId> cachedIds = cacheLocker.getCachedTrackIds();
+        for (const TrackId& trackId : cachedIds) {
+            TrackPointer pTrack = cacheLocker.lookupTrackById(trackId);
+            if (pTrack) {
+                cachedTracks.append(std::move(pTrack));
+            }
+        }
+    }
+    for (const TrackPointer& pTrack : std::as_const(cachedTracks)) {
+        pTrack->updatePlayedStatusKeepPlayCount(false);
+    }
+
+    if (!playedTrackIds.isEmpty()) {
+        emit tracksChanged(playedTrackIds);
     }
     return true;
 }
