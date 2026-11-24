@@ -28,6 +28,7 @@ using mixxx::rekordbox::dlpBackupLibrary;
 using mixxx::rekordbox::dlpBytesNeeded;
 using mixxx::rekordbox::DlpFileSystem;
 using mixxx::rekordbox::dlpFileSystemFromType;
+using mixxx::rekordbox::dlpFindPathNoCase;
 using mixxx::rekordbox::dlpMoveLeftoverFiles;
 // AI-generated (Claude Code). Start of AI-generated text.
 using mixxx::rekordbox::DlpRestoreResult;
@@ -813,5 +814,48 @@ TEST_F(DeviceLibraryPlusStickTest, MessagesAreFilled) {
     EXPECT_EQ(QString("Mix Two cannot make a backup of the library on the stick: disk full"),
             dlpMessageBackupFailed("disk full"));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusStickTest, FindPathNoCaseFindsLowerCaseFolders) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QString file = QDir(stick.path()).filePath("pioneer/rekordbox/export.pdb");
+    ASSERT_TRUE(writeFile(file, "pdb"));
+
+    EXPECT_EQ(file, dlpFindPathNoCase(stick.path(), "PIONEER/rekordbox/export.pdb"));
+    EXPECT_EQ(file, dlpFindPathNoCase(stick.path(), "/PIONEER/REKORDBOX/EXPORT.PDB"));
+    EXPECT_EQ(QString(), dlpFindPathNoCase(stick.path(), "PIONEER/rekordbox/other.pdb"));
+    EXPECT_EQ(QString(), dlpFindPathNoCase(stick.path(), ".PIONEER/rekordbox/export.pdb"));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, FindPathNoCaseFindsAnalysisFolder) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QString file = QDir(stick.path()).filePath("pioneer/usbanlz/p0ab/1234abcd/anlz0000.dat");
+    ASSERT_TRUE(writeFile(file, "dat"));
+
+    EXPECT_EQ(file, dlpFindPathNoCase(stick.path(), "/PIONEER/USBANLZ/P0AB/1234ABCD/ANLZ0000.DAT"));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, FindPathNoCasePrefersTheExactName) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QString exact = QDir(stick.path()).filePath("PIONEER/export.pdb");
+    ASSERT_TRUE(writeFile(exact, "a"));
+    EXPECT_EQ(exact, dlpFindPathNoCase(stick.path(), "PIONEER/export.pdb"));
+    EXPECT_EQ(QString(), dlpFindPathNoCase(QString(), "PIONEER/export.pdb"));
+    EXPECT_EQ(QString(), dlpFindPathNoCase(stick.path() + "/missing", "PIONEER/export.pdb"));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, StickInfoFindsLibrariesInLowerCaseFolders) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(writeFile(QDir(stick.path()).filePath("pioneer/rekordbox/exportlibrary.db"), "plus"));
+    ASSERT_TRUE(writeFile(QDir(stick.path()).filePath("pioneer/rekordbox/export.pdb"), "pdb"));
+    const auto info = dlpStickInfo(stick.path());
+    EXPECT_TRUE(info.hasPlusLibrary);
+    EXPECT_TRUE(info.hasLegacyLibrary);
+}
+// End of AI-generated text.
 
 } // namespace

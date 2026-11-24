@@ -14,6 +14,7 @@
 #include "library/trackcollectionmanager.h"
 #include "library/treeitem.h"
 #include "moc_browsefeature.cpp"
+#include "util/removablevolume.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
 #include "widget/wlibrarytextbrowser.h"
@@ -27,14 +28,12 @@ const QString kQuickLinksSeparator = QStringLiteral("-+-");
 const ConfigKey kQuickLinksCfgKey = ConfigKey("[Browse]", "QuickLinks");
 
 #if defined(__LINUX__)
+// AI-generated (Claude Code). Start of AI-generated text.
+// The mount parents come from the shared removable volume check.
 const QStringList removableDriveRootPaths() {
-    QStringList paths;
-    const QString user = QString::fromLocal8Bit(qgetenv("USER"));
-    paths.append("/media");
-    paths.append(QStringLiteral("/media/") + user);
-    paths.append(QStringLiteral("/run/media/") + user);
-    return paths;
+    return mixxx::removableMountParentPaths();
 }
+// End of AI-generated text.
 #endif
 
 } // anonymous namespace

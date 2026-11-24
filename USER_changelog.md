@@ -534,7 +534,17 @@ clear **Reset played tracks on exit**, then push **Apply**. To clear the marks
 now, push **RESET**. The track list and the loaded tracks lose the mark at
 once. The play counts stay.
 
+### Track files on removable drives
+
+Mix Two does not move a track file to the trash when the file is on a removable
+drive, such as a USB stick. The file stays on the drive. The track stays in the
+library. The list of files that Mix Two could not move shows the file.
+
 ### rekordbox USB devices
+
+Mix Two now finds the rekordbox library of a USB stick when the folder names
+`PIONEER`, `rekordbox` and `USBANLZ` have lower-case or mixed-case letters.
+The analysis files of the tracks are also found.
 
 The BPM of an imported rekordbox beat grid is now stable. The tempo of synced
 decks is also stable.

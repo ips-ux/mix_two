@@ -1755,6 +1755,7 @@ add_library(
   src/util/rangelist.cpp
   src/util/readaheadsamplebuffer.cpp
   src/util/ringdelaybuffer.cpp
+  src/util/removablevolume.cpp
   src/util/rotary.cpp
   src/util/runtimeloggingcategory.cpp
   src/util/safelywritablefile.cpp
@@ -2038,6 +2039,7 @@ set(
   src/util/regex.h
   src/util/rescaler.h
   src/util/ringdelaybuffer.h
+  src/util/removablevolume.h
   src/util/rotary.h
   src/util/runtimeloggingcategory.h
   src/util/safelywritablefile.h
@@ -3049,6 +3051,7 @@ if(BUILD_TESTING)
     src/test/platterrender_test.cpp
     src/test/rekordboxanlz_test.cpp
     src/test/rekordboxbeats_test.cpp
+    src/test/removablevolume_test.cpp
     src/test/sqlciphercodec_test.cpp
     src/test/devicelibraryplusdb_test.cpp
     src/test/devicelibraryplusexporter_test.cpp

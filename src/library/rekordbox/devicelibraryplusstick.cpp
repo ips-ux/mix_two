@@ -193,6 +193,37 @@ DlpFileSystem dlpFileSystemFromType(const QByteArray& type) {
     return DlpFileSystem::Unknown;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+QString dlpFindPathNoCase(const QString& root, const QString& relativePath) {
+    if (root.trimmed().isEmpty() || !QFileInfo(root).isDir()) {
+        return {};
+    }
+    QString current = root;
+    const QStringList names = relativePath.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    for (const QString& name : names) {
+        const QDir folder(current);
+        const QStringList entries = folder.entryList(
+                QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot,
+                QDir::Name);
+        QString match;
+        for (const QString& entry : entries) {
+            if (entry == name) {
+                match = entry;
+                break;
+            }
+            if (match.isEmpty() && entry.compare(name, Qt::CaseInsensitive) == 0) {
+                match = entry;
+            }
+        }
+        if (match.isEmpty()) {
+            return {};
+        }
+        current = folder.filePath(match);
+    }
+    return current;
+}
+// End of AI-generated text.
+
 DlpStickInfo dlpStickInfo(const QString& root) {
     DlpStickInfo info;
     info.root = root;
@@ -205,10 +236,13 @@ DlpStickInfo dlpStickInfo(const QString& root) {
         info.bytesFree = storage.bytesAvailable();
     }
     const QDir rootDir(root);
-    info.hasPlusLibrary = QFileInfo(rootDir.filePath(DeviceLibraryPlusDb::kRelativePath)).isFile();
+    // The folder names on the stick can have any letter case.
+    info.hasPlusLibrary = QFileInfo(rootDir.filePath(DeviceLibraryPlusDb::kRelativePath)).isFile() ||
+            QFileInfo(dlpFindPathNoCase(root, DeviceLibraryPlusDb::kRelativePath)).isFile();
     const QString legacyPath = QFileInfo(DeviceLibraryPlusDb::kRelativePath).path() +
             QStringLiteral("/export.pdb");
-    info.hasLegacyLibrary = QFileInfo(rootDir.filePath(legacyPath)).isFile();
+    info.hasLegacyLibrary = QFileInfo(rootDir.filePath(legacyPath)).isFile() ||
+            QFileInfo(dlpFindPathNoCase(root, legacyPath)).isFile();
     return info;
 }
 

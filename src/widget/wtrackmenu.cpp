@@ -42,6 +42,7 @@
 #include "util/desktophelper.h"
 #include "util/parented_ptr.h"
 #include "util/qt.h"
+#include "util/removablevolume.h"
 #include "util/widgethelper.h"
 #include "widget/findonweblast.h"
 #include "widget/findonwebmenufactory.h"
@@ -2537,11 +2538,12 @@ class RemoveTrackFilesFromDiskTrackPointerOperation : public mixxx::TrackPointer
         }
         QString location = pTrack->getLocation();
         QFile file(location);
-#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
-        if (file.exists() && !file.remove()) {
-#else
-        if (file.exists() && !file.moveToTrash()) {
-#endif
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // A file on a removable volume is never moved to the trash. It joins
+        // the files that the Failed Deletions warning lists.
+        if (file.exists() &&
+                mixxx::moveToTrashChecked(location) != mixxx::TrashResult::Moved) {
+            // End of AI-generated text.
             // Deletion failed, log warning and queue location for the
             // Failed Deletions warning.
             qWarning()

@@ -4,6 +4,7 @@
 #include <rekordbox_pdb.h>
 
 #include <QDir>
+#include <QFileInfo>
 #include <QMap>
 #include <QMessageBox>
 #include <QSettings>
@@ -17,6 +18,7 @@
 #include "library/library.h"
 #include "library/queryutil.h"
 #include "library/rekordbox/devicelibraryplusmapping.h"
+#include "library/rekordbox/devicelibraryplusstick.h"
 #include "library/rekordbox/rekordboxanlz.h"
 #include "library/rekordbox/rekordboxbeats.h"
 #include "library/rekordbox/rekordboxconstants.h"
@@ -61,6 +63,15 @@ QString findRekordboxPdbPath(const QString& devicePath) {
             return pdbFileInfo.filePath();
         }
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A stick can have the folder names in any letter case.
+    for (const auto& pdbPath : kPdbPaths) {
+        const QFileInfo pdbFileInfo(mixxx::rekordbox::dlpFindPathNoCase(devicePath, pdbPath));
+        if (pdbFileInfo.isFile()) {
+            return pdbFileInfo.filePath();
+        }
+    }
+    // End of AI-generated text.
     return {};
 }
 
@@ -390,6 +401,17 @@ void insertTrack(
     QString comment = getText(track->comment());
     QString tracknumber = QString::number(track->track_number());
     QString anlzPath = devicePath + getText(track->analyze_path());
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A stick can have the USBANLZ folders in any letter case. The search
+    // runs only when the path of the database does not exist.
+    if (!QFileInfo::exists(anlzPath)) {
+        const QString found = mixxx::rekordbox::dlpFindPathNoCase(
+                devicePath, getText(track->analyze_path()));
+        if (!found.isEmpty()) {
+            anlzPath = found;
+        }
+    }
+    // End of AI-generated text.
 
     query.bindValue(":rb_id", rbID);
     query.bindValue(":artist", artist);

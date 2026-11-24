@@ -18,6 +18,16 @@ namespace rekordbox {
 /// The largest file that a FAT32 stick holds.
 constexpr qint64 kFat32MaxFileSize = 4294967295;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// Finds the file or folder `relativePath` below `root`, with any letter case
+/// in every folder and file name (a stick from a player or from another
+/// system can have `pioneer/RekordBox/EXPORT.PDB`). A name with the exact
+/// case wins over a name that differs in case. Returns the path with the
+/// names as they are on the disk, or an empty string when a name is missing.
+/// The separator of `relativePath` is `/`; a leading `/` is allowed.
+QString dlpFindPathNoCase(const QString& root, const QString& relativePath);
+// End of AI-generated text.
+
 /// The file system of a stick, as far as the players are concerned.
 enum class DlpFileSystem {
     Fat32,
