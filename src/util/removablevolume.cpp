@@ -59,20 +59,14 @@ QStringList removableMountParentPaths() {
 #endif
 }
 
-bool isRemovableVolume(const QString& path,
-        const QList<VolumeInfo>& volumes,
-        const QStringList& mountParents) {
-    if (path.trimmed().isEmpty()) {
-        return false;
-    }
-    const QString normalized = normalizedPath(path);
-    for (const QString& parent : mountParents) {
-        const QString normalizedParent = normalizedPath(parent);
-        if (!normalizedParent.isEmpty() && normalizedParent != QLatin1String("/") &&
-                isBelow(normalized, normalizedParent)) {
-            return true;
-        }
-    }
+namespace {
+
+bool isNetworkPath(const QString& path) {
+    return QDir::fromNativeSeparators(path.trimmed()).startsWith(QLatin1String("//"));
+}
+
+/// The volume with the longest root that holds the normalized path.
+const VolumeInfo* volumeOf(const QString& normalized, const QList<VolumeInfo>& volumes) {
     const VolumeInfo* pBest = nullptr;
     int bestLength = -1;
     for (const VolumeInfo& volume : volumes) {
@@ -85,10 +79,21 @@ bool isRemovableVolume(const QString& path,
             pBest = &volume;
         }
     }
-    return pBest && pBest->isRemovableDrive;
+    return pBest;
 }
 
-bool isRemovableVolume(const QString& path) {
+bool isBelowMountParent(const QString& normalized, const QStringList& mountParents) {
+    for (const QString& parent : mountParents) {
+        const QString normalizedParent = normalizedPath(parent);
+        if (!normalizedParent.isEmpty() && normalizedParent != QLatin1String("/") &&
+                isBelow(normalized, normalizedParent)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+QList<VolumeInfo> systemVolumes() {
     QList<VolumeInfo> volumes;
     const QList<QStorageInfo> mounted = QStorageInfo::mountedVolumes();
     volumes.reserve(mounted.size());
@@ -99,21 +104,85 @@ bool isRemovableVolume(const QString& path) {
         const QString nativeRoot = QDir::toNativeSeparators(storage.rootPath());
         const UINT type = GetDriveTypeW(reinterpret_cast<LPCWSTR>(nativeRoot.utf16()));
         volume.isRemovableDrive = type == DRIVE_REMOVABLE || type == DRIVE_CDROM;
+        volume.isNetworkDrive = type == DRIVE_REMOTE;
 #endif
         volumes.append(volume);
     }
-    return isRemovableVolume(QFileInfo(path).absoluteFilePath(),
-            volumes,
-            removableMountParentPaths());
+    return volumes;
+}
+
+QString canonicalPathOrEmpty(const QString& path) {
+    return QFileInfo(path).canonicalFilePath();
+}
+
+} // namespace
+
+bool isRemovableVolume(const QString& path,
+        const QList<VolumeInfo>& volumes,
+        const QStringList& mountParents) {
+    if (path.trimmed().isEmpty()) {
+        return false;
+    }
+    const QString normalized = normalizedPath(path);
+    if (isBelowMountParent(normalized, mountParents)) {
+        return true;
+    }
+    const VolumeInfo* pVolume = volumeOf(normalized, volumes);
+    return pVolume && pVolume->isRemovableDrive;
+}
+
+bool isTrashSafeVolume(const QString& path,
+        const QList<VolumeInfo>& volumes,
+        const QStringList& mountParents) {
+    if (path.trimmed().isEmpty()) {
+        return true;
+    }
+    if (isNetworkPath(path) || isRemovableVolume(path, volumes, mountParents)) {
+        return false;
+    }
+    const VolumeInfo* pVolume = volumeOf(normalizedPath(path), volumes);
+    return !(pVolume && pVolume->isNetworkDrive);
+}
+
+bool isTrashSafeVolume(const QString& path,
+        const std::function<QString(const QString&)>& resolve) {
+    return isTrashSafeVolume(path, resolve, systemVolumes(), removableMountParentPaths());
+}
+
+bool isTrashSafeVolume(const QString& path,
+        const std::function<QString(const QString&)>& resolve,
+        const QList<VolumeInfo>& volumes,
+        const QStringList& parents) {
+    if (!isTrashSafeVolume(QFileInfo(path).absoluteFilePath(), volumes, parents)) {
+        return false;
+    }
+    // A junction, a link or a substitute drive can point to a stick or a
+    // share. Judge the target too. A file that does not exist has no target.
+    const QString resolved = resolve(path);
+    return resolved.isEmpty() || isTrashSafeVolume(resolved, volumes, parents);
+}
+
+bool isTrashSafeVolume(const QString& path) {
+    return isTrashSafeVolume(path, canonicalPathOrEmpty);
+}
+
+bool isRemovableVolume(const QString& path) {
+    const QList<VolumeInfo> volumes = systemVolumes();
+    const QStringList parents = removableMountParentPaths();
+    if (isRemovableVolume(QFileInfo(path).absoluteFilePath(), volumes, parents)) {
+        return true;
+    }
+    const QString resolved = canonicalPathOrEmpty(path);
+    return !resolved.isEmpty() && isRemovableVolume(resolved, volumes, parents);
 }
 
 TrashResult moveToTrashChecked(const QString& path,
-        const std::function<bool(const QString&)>& isRemovable,
+        const std::function<bool(const QString&)>& isTrashSafe,
         const std::function<bool(const QString&)>& moveToTrash) {
-    // Choice: a file on a removable volume is never moved. The caller tells
-    // the user that the file stays.
-    if (isRemovable(path)) {
-        return TrashResult::RefusedRemovable;
+    // Choice: a file where the trash is not safe (removable or network
+    // drive) is never moved. The caller tells the user that the file stays.
+    if (!isTrashSafe(path)) {
+        return TrashResult::RefusedUnsafe;
     }
     return moveToTrash(path) ? TrashResult::Moved : TrashResult::Failed;
 }
@@ -121,7 +190,7 @@ TrashResult moveToTrashChecked(const QString& path,
 TrashResult moveToTrashChecked(const QString& path) {
     return moveToTrashChecked(
             path,
-            [](const QString& file) { return isRemovableVolume(file); },
+            [](const QString& file) { return isTrashSafeVolume(file); },
             [](const QString& file) {
 #if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
                 return QFile::remove(file);

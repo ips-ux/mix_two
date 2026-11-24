@@ -537,8 +537,10 @@ once. The play counts stay.
 ### Track files on removable drives
 
 Mix Two does not move a track file to the trash when the file is on a removable
-drive, such as a USB stick. The file stays on the drive. The track stays in the
-library. The list of files that Mix Two could not move shows the file.
+drive, such as a USB stick. It does the same for a file on a network drive.
+These drives have no trash that keeps the file. The file stays on the drive. The track stays in the
+library. The list of files that Mix Two could not move shows each file. It also
+gives the reason. Mix Two also checks the target of a link or a substitute drive.
 
 ### rekordbox USB devices
 

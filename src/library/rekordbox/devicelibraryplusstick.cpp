@@ -199,7 +199,8 @@ QString dlpFindPathNoCase(const QString& root, const QString& relativePath) {
         return {};
     }
     QString current = root;
-    const QStringList names = relativePath.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    QStringList names = relativePath.split(QLatin1Char('/'));
+    names.removeAll(QString());
     for (const QString& name : names) {
         const QDir folder(current);
         const QStringList entries = folder.entryList(

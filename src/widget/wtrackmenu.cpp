@@ -2523,10 +2523,19 @@ class RemoveTrackFilesFromDiskTrackPointerOperation : public mixxx::TrackPointer
     const QList<QString>& getTracksToKeep() const {
         return mTracksToKeep;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// True when a file stayed because it is on a removable or network drive.
+    bool anyRefusedUnsafe() const {
+        return mAnyRefusedUnsafe;
+    }
+    // End of AI-generated text.
 
   private:
     mutable QList<TrackRef> mTracksToPurge;
     mutable QList<QString> mTracksToKeep;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    mutable bool mAnyRefusedUnsafe = false;
+    // End of AI-generated text.
 
     void doApply(
             const TrackPointer& pTrack) const override {
@@ -2539,10 +2548,15 @@ class RemoveTrackFilesFromDiskTrackPointerOperation : public mixxx::TrackPointer
         QString location = pTrack->getLocation();
         QFile file(location);
         // AI-generated (Claude Code). Start of AI-generated text.
-        // A file on a removable volume is never moved to the trash. It joins
-        // the files that the Failed Deletions warning lists.
-        if (file.exists() &&
-                mixxx::moveToTrashChecked(location) != mixxx::TrashResult::Moved) {
+        // A file on a removable or network drive is never moved to the trash.
+        // It joins the files that the Failed Deletions warning lists.
+        const mixxx::TrashResult trashResult = file.exists()
+                ? mixxx::moveToTrashChecked(location)
+                : mixxx::TrashResult::Moved;
+        if (trashResult == mixxx::TrashResult::RefusedUnsafe) {
+            mAnyRefusedUnsafe = true;
+        }
+        if (trashResult != mixxx::TrashResult::Moved) {
             // End of AI-generated text.
             // Deletion failed, log warning and queue location for the
             // Failed Deletions warning.
@@ -2787,6 +2801,13 @@ void WTrackMenu::slotRemoveFromDisk() {
         msgText = tr("This track file could not be moved to trash");
 #endif
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (trackOperator.anyRefusedUnsafe()) {
+        msgText += QChar(QChar::LineFeed);
+        msgText += tr("A file is on a removable drive or a network drive. "
+                "Mix Two does not delete files there.");
+    }
+    // End of AI-generated text.
     pNotDeletedLabel->setText(msgText);
     pNotDeletedLabel->setTextFormat(Qt::RichText);
 

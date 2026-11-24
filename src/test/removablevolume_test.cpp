@@ -10,6 +10,7 @@
 namespace {
 
 using mixxx::isRemovableVolume;
+using mixxx::isTrashSafeVolume;
 using mixxx::moveToTrashChecked;
 using mixxx::TrashResult;
 using mixxx::VolumeInfo;
@@ -60,12 +61,56 @@ TEST(RemovableVolumeTest, EmptyPathIsNotRemovable) {
 }
 
 TEST(RemovableVolumeTest, RealCheckOfATempFolder) {
-    // The temporary folder is on the system disk in a normal set-up. The
-    // test only proves that the real check runs for a path that exists.
+    // The temporary folder is on the system drive in a normal set-up.
     QTemporaryDir dir;
     ASSERT_TRUE(dir.isValid());
-    (void)isRemovableVolume(dir.path());
-    SUCCEED();
+    const QString path = dir.filePath(QStringLiteral("a.txt"));
+    QFile file(path);
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    file.close();
+    EXPECT_FALSE(isRemovableVolume(path));
+    EXPECT_TRUE(isTrashSafeVolume(path));
+}
+
+QList<VolumeInfo> volumesWithShare() {
+    return {{QStringLiteral("C:/"), false, false},
+            {QStringLiteral("E:/"), true, false},
+            {QStringLiteral("Z:/"), false, true}};
+}
+
+TEST(TrashSafeVolumeTest, FixedDriveIsSafe) {
+    EXPECT_TRUE(isTrashSafeVolume(QStringLiteral("C:/Music/a.mp3"), volumesWithShare(), {}));
+    EXPECT_TRUE(isTrashSafeVolume(QStringLiteral("/home/u/a.mp3"), volumesWithShare(), kParents));
+}
+
+TEST(TrashSafeVolumeTest, RemovableAndNetworkDrivesAreNot) {
+    EXPECT_FALSE(isTrashSafeVolume(QStringLiteral("E:/Music/a.mp3"), volumesWithShare(), {}));
+    EXPECT_FALSE(isTrashSafeVolume(QStringLiteral("Z:/Music/a.mp3"), volumesWithShare(), {}));
+    EXPECT_FALSE(isTrashSafeVolume(QStringLiteral("/media/u/X/a.mp3"), {}, kParents));
+    // A network drive is not a removable drive.
+    EXPECT_FALSE(isRemovableVolume(QStringLiteral("Z:/Music/a.mp3"), volumesWithShare(), {}));
+}
+
+TEST(TrashSafeVolumeTest, NetworkPathsAreNot) {
+    EXPECT_FALSE(isTrashSafeVolume(QStringLiteral("//server/share/a.mp3"), volumesWithShare(), {}));
+    EXPECT_FALSE(isTrashSafeVolume(
+            QStringLiteral("\\\\server\\share\\a.mp3"), volumesWithShare(), {}));
+}
+
+TEST(TrashSafeVolumeTest, LinkIsJudgedByItsTarget) {
+    // The resolver stands for a junction or a substitute drive on a fixed
+    // disk that points to a stick, or to a share.
+    const auto toStick = [](const QString&) { return QStringLiteral("E:/a.mp3"); };
+    const auto toShare = [](const QString&) { return QStringLiteral("//server/share/a.mp3"); };
+    const auto toFixed = [](const QString&) { return QStringLiteral("C:/other/a.mp3"); };
+    const auto noTarget = [](const QString&) { return QString(); };
+    QTemporaryDir dir;
+    ASSERT_TRUE(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("link.mp3"));
+    EXPECT_FALSE(isTrashSafeVolume(path, toStick, volumesWithShare(), {}));
+    EXPECT_FALSE(isTrashSafeVolume(path, toShare, volumesWithShare(), {}));
+    EXPECT_TRUE(isTrashSafeVolume(path, toFixed, volumesWithShare(), {}));
+    EXPECT_TRUE(isTrashSafeVolume(path, noTarget, volumesWithShare(), {}));
 }
 
 TEST(MoveToTrashCheckedTest, RemovableFileStays) {
@@ -80,21 +125,27 @@ TEST(MoveToTrashCheckedTest, RemovableFileStays) {
     int trashCalls = 0;
     const auto result = moveToTrashChecked(
             path,
-            [](const QString&) { return true; },
+            [](const QString&) { return false; },
             [&](const QString&) {
                 ++trashCalls;
                 return true;
             });
-    EXPECT_EQ(TrashResult::RefusedRemovable, result);
+    EXPECT_EQ(TrashResult::RefusedUnsafe, result);
     EXPECT_EQ(0, trashCalls);
     EXPECT_TRUE(QFile::exists(path));
+}
+
+TEST(MoveToTrashCheckedTest, UnsafeFileOfTheRealCheckStaysWhenTheTargetIsUnsafe) {
+    // The real overload refuses a network path and does not touch it.
+    EXPECT_EQ(TrashResult::RefusedUnsafe,
+            moveToTrashChecked(QStringLiteral("//server/share/none.mp3")));
 }
 
 TEST(MoveToTrashCheckedTest, NormalFileGoesToTheTrash) {
     QString trashed;
     const auto result = moveToTrashChecked(
             QStringLiteral("/home/u/a.mp3"),
-            [](const QString&) { return false; },
+            [](const QString&) { return true; },
             [&](const QString& path) {
                 trashed = path;
                 return true;
@@ -106,7 +157,7 @@ TEST(MoveToTrashCheckedTest, NormalFileGoesToTheTrash) {
 TEST(MoveToTrashCheckedTest, FailureOfTheSystemIsReported) {
     const auto result = moveToTrashChecked(
             QStringLiteral("/home/u/a.mp3"),
-            [](const QString&) { return false; },
+            [](const QString&) { return true; },
             [](const QString&) { return false; });
     EXPECT_EQ(TrashResult::Failed, result);
 }
