@@ -1347,6 +1347,7 @@ add_library(
   src/effects/effectknobparameterslot.cpp
   src/effects/effectparameter.cpp
   src/effects/effectparameterslotbase.cpp
+  src/effects/fxbpmtap.cpp
   src/effects/effectslot.cpp
   src/effects/effectsmanager.cpp
   src/effects/effectsmessenger.cpp
@@ -3127,6 +3128,7 @@ if(BUILD_TESTING)
     src/test/wcombobox_test.cpp
     src/test/beatfxbeat_test.cpp
     src/test/beatfxdelay_test.cpp
+    src/test/fxbpmtap_test.cpp
     src/test/visibleeffectslist_test.cpp
     src/test/wmemorycuelist_test.cpp
     src/test/wpushbutton_test.cpp

@@ -1,5 +1,6 @@
 #include "engine/effects/engineeffectchain.h"
 
+#include "effects/fxbpmtap.h"
 #include "engine/effects/engineeffect.h"
 #include "util/defs.h"
 #include "util/sample.h"
@@ -11,6 +12,7 @@ EngineEffectChain::EngineEffectChain(const QString& group,
           m_enableState(true),
           m_mixMode(EffectChainMixMode::DrySlashWet),
           m_dMix(0),
+          m_tapBpm(0.0),
           m_buffer1(kMaxEngineSamples),
           m_buffer2(kMaxEngineSamples) {
     // Try to prevent memory allocation.
@@ -80,6 +82,7 @@ bool EngineEffectChain::updateParameters(const EffectsRequest& message) {
     // TODO(rryan): Parameter interpolation.
     m_mixMode = message.SetEffectChainParameters.mix_mode;
     m_dMix = static_cast<CSAMPLE>(message.SetEffectChainParameters.mix);
+    m_tapBpm = message.SetEffectChainParameters.tap_bpm;
     m_enableState = message.SetEffectParameters.enabled;
     return true;
 }
@@ -111,7 +114,8 @@ bool EngineEffectChain::processEffectsRequest(const EffectsRequest& message,
             qDebug() << debugString() << this << "SET_EFFECT_CHAIN_PARAMETERS"
                      << "enabled =" << message.SetEffectChainParameters.enabled
                      << "mix =" << message.SetEffectChainParameters.mix
-                     << "mix_mode =" << static_cast<int>(message.SetEffectChainParameters.mix_mode);
+                     << "mix_mode =" << static_cast<int>(message.SetEffectChainParameters.mix_mode)
+                     << "tap_bpm =" << message.SetEffectChainParameters.tap_bpm;
         }
         response.success = updateParameters(message);
         break;
@@ -222,6 +226,17 @@ bool EngineEffectChain::process(const ChannelHandle& inputHandle,
     CSAMPLE currentMixKnob = m_dMix;
     CSAMPLE lastCallbackMixKnob = channelStatus.oldMixKnob;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // In TAP mode the effects get the tapped tempo and no grid position, for
+    // every input channel. The copy is a few numbers on the stack.
+    GroupFeatureState tappedFeatures;
+    const GroupFeatureState* pFeatures = &groupFeatures;
+    if (m_tapBpm > 0.0) {
+        tappedFeatures = applyFxTapBpm(groupFeatures, m_tapBpm);
+        pFeatures = &tappedFeatures;
+    }
+    // End of AI-generated text.
+
     bool processingOccured = false;
     if (effectiveChainEnableState != EffectEnableState::Disabled) {
         // Ramping code inside the effects need to access the original samples
@@ -249,7 +264,7 @@ bool EngineEffectChain::process(const ChannelHandle& inputHandle,
                             numSamples,
                             sampleRate,
                             effectiveChainEnableState,
-                            groupFeatures)) {
+                            *pFeatures)) {
                     if (pEffect->getManifest()->addDryToWet()) {
                         // Skip adding the dry signal to the effect's wet output
                         // when it is the first addDryToWet type effect in

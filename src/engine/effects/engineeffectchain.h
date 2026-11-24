@@ -69,6 +69,11 @@ class EngineEffectChain final : public EffectsRequestHandler {
     bool m_enableState;
     EffectChainMixMode::Type m_mixMode;
     CSAMPLE m_dMix;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The tapped BPM (TAP mode) or 0 (AUTO mode). The effects of the chain get
+    // a beat length of this tempo and no grid position.
+    double m_tapBpm;
+    // End of AI-generated text.
     QList<EngineEffect*> m_effects;
     mixxx::SampleBuffer m_buffer1;
     mixxx::SampleBuffer m_buffer2;

@@ -89,6 +89,10 @@ struct EffectsRequest {
             bool enabled;
             EffectChainMixMode::Type mix_mode;
             double mix;
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // The tapped BPM of the unit in TAP mode, or 0 in AUTO mode.
+            double tap_bpm;
+            // End of AI-generated text.
         } SetEffectChainParameters;
         struct {
             bool enabled;

@@ -65,6 +65,11 @@ goes down. This is the same as in the DDJ-800 manual.
 
 The BEAT FX ON/OFF button flashes while the Beat FX is on.
 
+The Beat FX can use a tapped tempo. Hold SHIFT and push BEAT ▶ three times or
+more in time with the music. The Beat FX then uses that tempo (TAP). Hold
+SHIFT and push BEAT ◀ to go back to the tempo of the deck (AUTO). SHIFT + BEAT
+◀ also sets the beat value to 1 beat, as before.
+
 Fader start sets the cue point of a paused deck. Hold SHIFT and move the
 channel fader fully down, or the crossfader fully to its side. Mix Two sets
 the cue point at the current position. When the deck plays, it goes back to

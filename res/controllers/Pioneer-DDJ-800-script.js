@@ -754,7 +754,11 @@ PioneerDDJ800.initBeatFx = function() {
     // back into it (ControlPotmeterBehavior::setFilter), so one step up or
     // down also stops at both ends. SHIFT + BEAT < resets the control to its
     // default, which is 1 beat for every Beat FX (the default of the
-    // manifest parameter, set in EffectKnobParameterSlot::loadParameter).
+    // manifest parameter, set in EffectKnobParameterSlot::loadParameter),
+    // and also returns the unit to AUTO mode (the tempo of the deck).
+    // SHIFT + BEAT > is one tap of the TAP mode (DDJ-800 manual p.64-66): the
+    // effect unit measures the tempo and switches to TAP mode after the third
+    // tap (fx_bpm_tap, fx_bpm_mode).
     // End of AI-generated text.
     const stepBeat = function(delta) {
         engine.setValue(slot, "parameter1", engine.getValue(slot, "parameter1") + delta);
@@ -762,7 +766,12 @@ PioneerDDJ800.initBeatFx = function() {
     PioneerDDJ800.bindButton(S.fxNote, 0x4A, function() { stepBeat(-1); });
     PioneerDDJ800.bindButton(S.fxNote, 0x4B, function() { stepBeat(1); });
     PioneerDDJ800.bindButton(S.fxNote, 0x66, function() {
+        engine.setValue(unit, "fx_bpm_mode", 0);
         engine.reset(slot, "parameter1");
+    });
+    PioneerDDJ800.bindButton(S.fxNote, 0x6B, function() {
+        engine.setValue(unit, "fx_bpm_tap", 1);
+        engine.setValue(unit, "fx_bpm_tap", 0);
     });
 };
 

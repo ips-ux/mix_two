@@ -1,5 +1,7 @@
 #include "effects/effectchain.h"
 
+#include <chrono>
+
 #include "control/controlencoder.h"
 #include "control/controlpotmeter.h"
 #include "control/controlpushbutton.h"
@@ -154,6 +156,28 @@ EffectChain::EffectChain(const QString& group,
             true);
     m_pControlChainFocusedEffect->setButtonMode(mixxx::control::ButtonMode::Toggle);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Tapped tempo (DDJ-800 manual p.64-66). The mode and the BPM are not
+    // saved between sessions.
+    m_pControlFxBpmTap = std::make_unique<ControlPushButton>(ConfigKey(m_group, "fx_bpm_tap"));
+    connect(m_pControlFxBpmTap.get(),
+            &ControlObject::valueChanged,
+            this,
+            &EffectChain::slotControlFxBpmTap);
+
+    m_pControlFxBpmMode = std::make_unique<ControlPushButton>(ConfigKey(m_group, "fx_bpm_mode"));
+    m_pControlFxBpmMode->setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_pControlFxBpmMode->setDefaultValue(0.0);
+    m_pControlFxBpmMode->set(0.0);
+    connect(m_pControlFxBpmMode.get(),
+            &ControlObject::valueChanged,
+            this,
+            &EffectChain::slotControlFxBpmMode);
+
+    m_pControlFxBpm = std::make_unique<ControlObject>(ConfigKey(m_group, "fx_bpm"));
+    m_pControlFxBpm->setReadOnly();
+    // End of AI-generated text.
+
     addToEngine();
 }
 
@@ -264,8 +288,43 @@ void EffectChain::sendParameterUpdate() {
     pRequest->SetEffectChainParameters.enabled = m_pControlChainEnabled->toBool();
     pRequest->SetEffectChainParameters.mix_mode = mixMode();
     pRequest->SetEffectChainParameters.mix = m_pControlChainMix->get();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // 0 means AUTO: the effects use the tempo of the deck.
+    pRequest->SetEffectChainParameters.tap_bpm =
+            m_fxBpmTap.isTapMode() ? m_fxBpmTap.bpm() : 0.0;
+    // End of AI-generated text.
     m_pMessenger->writeRequest(pRequest);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void EffectChain::slotControlFxBpmTap(double value) {
+    if (value <= 0.0) {
+        return;
+    }
+    const std::int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+                                       .count();
+    if (!m_fxBpmTap.tap(nowMs)) {
+        return;
+    }
+    m_pControlFxBpm->forceSet(m_fxBpmTap.bpm());
+    // The mode control is a toggle, so set it only when it differs. Its slot
+    // sends the update to the engine.
+    if (m_pControlFxBpmMode->get() <= 0.0) {
+        m_pControlFxBpmMode->set(1.0);
+    }
+    sendParameterUpdate();
+}
+
+void EffectChain::slotControlFxBpmMode(double value) {
+    m_fxBpmTap.setTapMode(value > 0.0);
+    if (value > 0.0 && !m_fxBpmTap.isTapMode()) {
+        // No tapped BPM yet: stay in AUTO mode.
+        m_pControlFxBpmMode->set(0.0);
+    }
+    sendParameterUpdate();
+}
+// End of AI-generated text.
 
 QString EffectChain::group() const {
     return m_group;

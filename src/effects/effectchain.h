@@ -6,6 +6,7 @@
 
 #include "effects/defs.h"
 #include "effects/effectchainmixmode.h"
+#include "effects/fxbpmtap.h"
 #include "engine/channelhandle.h"
 #include "util/class.h"
 
@@ -121,6 +122,10 @@ class EffectChain : public QObject {
   private slots:
     void slotControlLoadedChainPresetRequest(double value);
     void slotControlChainPresetSelector(double value);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void slotControlFxBpmTap(double value);
+    void slotControlFxBpmMode(double value);
+    // End of AI-generated text.
     void slotControlNextChainPreset(double value);
     void slotControlPrevChainPreset(double value);
     void slotChannelStatusChanged(double value, const ChannelHandleAndGroup& handleGroup);
@@ -145,6 +150,15 @@ class EffectChain : public QObject {
     std::unique_ptr<ControlPushButton> m_pControlPrevChainPreset;
 
     void setControlLoadedPresetIndex(int index);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The tapped tempo of the unit (fx_bpm_tap, fx_bpm_mode, fx_bpm). The
+    // engine side gets the tempo in the chain parameters message.
+    FxBpmTap m_fxBpmTap;
+    std::unique_ptr<ControlPushButton> m_pControlFxBpmTap;
+    std::unique_ptr<ControlPushButton> m_pControlFxBpmMode;
+    std::unique_ptr<ControlObject> m_pControlFxBpm;
+    // End of AI-generated text.
 
     // These COs do not affect how the effects are processed;
     // they are defined here for skins and controller mappings to communicate

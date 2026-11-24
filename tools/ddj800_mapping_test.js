@@ -339,6 +339,24 @@ delete ranges[beatKey];
 // End of AI-generated text.
 
 // AI-generated (Claude Code). Start of AI-generated text.
+// SHIFT + BEAT > is one tap of the Beat FX tempo (fx_bpm_tap on the Beat FX
+// unit). SHIFT + BEAT < returns to AUTO (fx_bpm_mode 0) and still resets the
+// beat value (parameter1).
+n = sets.length;
+send(0x94, 0x6B, 0x7F);
+check("SHIFT + BEAT > sets fx_bpm_tap to 1 on the Beat FX unit", did(n, unitGroup, "fx_bpm_tap", 1));
+check("SHIFT + BEAT > sets fx_bpm_tap back to 0", values[key(unitGroup, "fx_bpm_tap")] === 0);
+n = sets.length;
+send(0x94, 0x6B, 0x00);
+check("releasing SHIFT + BEAT > does not tap", !did(n, unitGroup, "fx_bpm_tap"));
+values[key(unitGroup, "fx_bpm_mode")] = 1;
+n = sets.length;
+send(0x94, 0x66, 0x7F);
+check("SHIFT + BEAT < sets fx_bpm_mode to 0", did(n, unitGroup, "fx_bpm_mode", 0));
+check("SHIFT + BEAT < still resets parameter1", did(n, fxSlot, "parameter1"));
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
 // The deck shown on each side follows the deck that sends messages.
 check("init: both deck sides are 0", initialAlt[0] === 0 && initialAlt[1] === 0);
 n = sets.length;
