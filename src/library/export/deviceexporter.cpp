@@ -93,7 +93,9 @@ void DeviceExporter::requestExportWithOptionalInitialSelection(
 
     m_pDialog->refresh();
     m_pDialog->setInitialSelection(initialSelectedCrateId, initialSelectedPlaylistId);
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Tracks replace the choice of the line above: the mode "Selected tracks".
+    // End of AI-generated text.
     if (!initialTrackIds.isEmpty()) {
         m_pDialog->setInitialTracks(initialTrackIds);
     }

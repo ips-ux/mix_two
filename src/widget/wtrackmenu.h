@@ -59,8 +59,10 @@ class WTrackMenu : public QMenu {
         SelectInLibrary = 1 << 15,
         Analyze = 1 << 16,
         FindOnWeb = 1 << 17,
+        // AI-generated (Claude Code). Start of AI-generated text.
         // Mix Two: "Export Track", the export of the tracks to a stick.
         ExportTrack = 1 << 18,
+        // End of AI-generated text.
         TrackModelFeatures = Remove | HideUnhidePurge,
         All = AutoDJ | LoadTo | Playlist | Crate | Remove | Metadata | Reset | Analyze |
                 BPM | Color | HideUnhidePurge | RemoveFromDisk | FileBrowser |

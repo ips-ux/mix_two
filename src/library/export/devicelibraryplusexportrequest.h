@@ -40,11 +40,13 @@ struct DeviceLibraryPlusExportRequest {
     /// library is exported.
     QSet<int> playlistIds;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     /// The tracks to export, as library track IDs (the "Export Track" item of
     /// the track menu). Mix Two exports these tracks only, with no crate and
     /// no playlist. The set counts only when `crateIds` and `playlistIds` are
     /// empty. With all three sets empty, the whole library is exported.
     QSet<int> trackIds;
+    // End of AI-generated text.
 };
 
 /// Mix Two: what an export did. The job sends it with `completed`.

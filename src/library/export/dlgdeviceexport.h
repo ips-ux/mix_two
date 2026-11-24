@@ -41,6 +41,7 @@ class DlgDeviceExport : public QDialog {
     /// library". An unknown crate or playlist is ignored.
     void setInitialSelection(std::optional<CrateId> crateId, std::optional<int> playlistId);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     /// Selects the mode "Selected tracks" for these tracks (the "Export
     /// Track" item of the track menu). An empty list selects the mode "Whole
     /// library". A call of setInitialSelection() replaces the tracks.
@@ -49,6 +50,7 @@ class DlgDeviceExport : public QDialog {
     /// The request for the stick at `stickRoot`, with the choice of tracks
     /// that the dialog shows now. The dialog sends it with `startExport`.
     QSharedPointer<DeviceLibraryPlusExportRequest> makeRequest(const QString& stickRoot) const;
+    // End of AI-generated text.
 
     /// Reads the sticks, the crates and the playlists again.
     void refresh();
@@ -69,9 +71,11 @@ class DlgDeviceExport : public QDialog {
     /// else the first stick.
     void fillStickCombo(const QString& wantedRoot);
     QString currentStickRoot() const;
+    // AI-generated (Claude Code). Start of AI-generated text.
     /// Shows the radio button "Selected tracks" when the dialog has tracks.
     void updateSelectedTracksRadio();
     void clearCratesAndPlaylistsSelection();
+    // End of AI-generated text.
     void browseForStick();
 
     UserSettingsPointer m_pConfig;
@@ -79,8 +83,10 @@ class DlgDeviceExport : public QDialog {
 
     /// The folder that the user chose with "Browse...", else empty.
     QString m_browsedFolder;
+    // AI-generated (Claude Code). Start of AI-generated text.
     /// The tracks of the "Export Track" item of the track menu, else empty.
     QList<TrackId> m_trackIds;
+    // End of AI-generated text.
     /// The index in the stick combo before the user chose "Browse...".
     int m_previousStickIndex;
 

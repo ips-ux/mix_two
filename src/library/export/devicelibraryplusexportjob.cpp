@@ -171,9 +171,11 @@ void DeviceLibraryPlusExportJob::loadIds() {
 
     if (m_request.crateIds.isEmpty() && m_request.playlistIds.isEmpty() &&
             !m_request.trackIds.isEmpty()) {
+        // AI-generated (Claude Code). Start of AI-generated text.
         // The tracks of the request only, with no crate and no playlist. A
         // hidden track is exported too: the user chose it. The order of the
         // library keeps the export the same for the same tracks.
+        // End of AI-generated text.
         for (const TrackId& trackId : std::as_const(orderedIds)) {
             if (m_request.trackIds.contains(trackId.toVariant().toInt())) {
                 addTrack(trackId);

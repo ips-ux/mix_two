@@ -316,4 +316,56 @@ TEST_F(DeviceLibraryPlusExportJobTest, DialogGivesTheSelectedTrackIdsToTheReques
 }
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusExportJobTest, SelectedTracksKeepTheOtherRowsOfAStick) {
+    // The stick holds the export of a playlist. A later export of one other
+    // track adds its row and changes no playlist and no other track.
+    TrackPointer pFirst = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
+    TrackPointer pSecond = addTrack(QStringLiteral("all.mp3"), QStringLiteral("b"));
+    ASSERT_TRUE(pFirst && pSecond);
+    storeWaveform(pFirst);
+    storeWaveform(pSecond);
+    PlaylistDAO& playlists = internalCollection()->getPlaylistDAO();
+    const int playlistId = playlists.createPlaylist(QStringLiteral("On Stick"));
+    ASSERT_TRUE(playlists.appendTracksToPlaylist({pFirst->getId()}, playlistId));
+
+    DeviceLibraryPlusExportRequest playlistRequest = request();
+    playlistRequest.playlistIds.insert(playlistId);
+    const Outcome first = runJob(playlistRequest);
+    ASSERT_EQ(1, first.completedCount) << qPrintable(first.failure);
+
+    QList<DlpContentRef> before;
+    {
+        QString error;
+        auto pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+        ASSERT_TRUE(pDb) << qPrintable(error);
+        before = pDb->listContents();
+        ASSERT_EQ(1, before.size());
+    }
+
+    DeviceLibraryPlusExportRequest trackRequest = request();
+    trackRequest.trackIds.insert(pSecond->getId().toVariant().toInt());
+    const Outcome second = runJob(trackRequest);
+    ASSERT_EQ(1, second.completedCount) << qPrintable(second.failure);
+    EXPECT_EQ(1, second.summary.tracksExported);
+    EXPECT_EQ(0, second.summary.playlistsExported);
+
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    const QList<DlpContentRef> after = pDb->listContents();
+    ASSERT_EQ(2, after.size());
+    bool firstKept = false;
+    for (const DlpContentRef& row : after) {
+        if (row.masterContentId == before[0].masterContentId) {
+            firstKept = true;
+            EXPECT_EQ(before[0].id, row.id);
+            EXPECT_EQ(before[0].path, row.path);
+        }
+    }
+    EXPECT_TRUE(firstKept);
+    EXPECT_TRUE(pDb->findPlaylistOnly(QStringLiteral("On Stick"), 0));
+}
+// End of AI-generated text.
+
 } // namespace mixxx

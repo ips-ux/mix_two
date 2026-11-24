@@ -55,9 +55,11 @@ class DeviceExporter : public QWidget {
                 std::nullopt, std::make_optional(initialSelectedPlaylistId));
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     /// Shows the dialog of the export with these tracks selected (the "Export
     /// Track" item of the track menu).
     void slotRequestExportWithInitialTracks(const QList<TrackId>& trackIds);
+    // End of AI-generated text.
 
   private slots:
     void beginExport(QSharedPointer<mixxx::DeviceLibraryPlusExportRequest> pRequest);

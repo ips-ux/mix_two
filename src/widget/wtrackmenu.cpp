@@ -401,10 +401,12 @@ void WTrackMenu::createActions() {
     }
 
     if (featureIsEnabled(Feature::ExportTrack)) {
+        // AI-generated (Claude Code). Start of AI-generated text.
         // Mix Two: as rekordbox does, the item exports the selected tracks to
         // a USB stick. It opens the dialog of the export to a stick.
         m_pExportTrackAct = make_parented<QAction>(tr("Export Track"), this);
         connect(m_pExportTrackAct, &QAction::triggered, this, &WTrackMenu::slotExportTrack);
+        // End of AI-generated text.
     }
 
     if (featureIsEnabled(Feature::SelectInLibrary)) {
@@ -1250,6 +1252,14 @@ void WTrackMenu::updateMenus() {
         }
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (featureIsEnabled(Feature::ExportTrack)) {
+        // A view whose model has no library track ID (for example a folder
+        // view) cannot export: the item is off.
+        m_pExportTrackAct->setEnabled(!getTrackIds().isEmpty());
+    }
+    // End of AI-generated text.
+
     if (featureIsEnabled(Feature::SelectInLibrary)) {
         bool enabled = false;
         if (m_pTrack) {
@@ -1462,6 +1472,7 @@ void WTrackMenu::slotOpenInFileBrowser() {
     mixxx::DesktopHelper::openInFileBrowser(locations);
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
 void WTrackMenu::slotExportTrack() {
     const TrackIdList trackIds = getTrackIds();
     if (trackIds.isEmpty()) {
@@ -1469,6 +1480,7 @@ void WTrackMenu::slotExportTrack() {
     }
     emit m_pLibrary->exportTracksToDevice(trackIds);
 }
+// End of AI-generated text.
 
 void WTrackMenu::slotSelectInLibrary() {
     if (m_pTrack) {
@@ -3123,8 +3135,10 @@ bool WTrackMenu::featureIsEnabled(Feature flag) const {
         return true;
     case Feature::FindOnWeb:
         return true;
+    // AI-generated (Claude Code). Start of AI-generated text.
     case Feature::ExportTrack:
         return m_pLibrary != nullptr;
+    // End of AI-generated text.
     case Feature::Properties:
         return m_pTrackModel->hasCapabilities(TrackModel::Capability::Properties);
     case Feature::SearchRelated:

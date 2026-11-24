@@ -71,8 +71,10 @@ QString fileSystemWarning(const rekordbox::DlpStickInfo& info) {
     return rekordbox::dlpMessageFileSystemNotForPlayers(fileSystemName(info.root));
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
 /// The size of the warning icon next to the text about the stick.
 constexpr int kWarningIconSize = 24;
+// End of AI-generated text.
 
 QString toNativePath(const QString& path) {
     return QDir::toNativeSeparators(path);
@@ -95,6 +97,7 @@ DlgDeviceExport::DlgDeviceExport(
     m_pStickCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     m_pStickInfoLabel = make_parented<QLabel>(this);
     m_pStickInfoLabel->setWordWrap(true);
+    // AI-generated (Claude Code). Start of AI-generated text.
     // The warning icon for a file system that players cannot read. It shows
     // next to the text, and only when the text is about that file system.
     m_pStickWarningIcon = make_parented<QLabel>(this);
@@ -104,6 +107,7 @@ DlgDeviceExport::DlgDeviceExport(
     m_pStickWarningIcon->setToolTip(
             tr("Players cannot read the file system of this stick."));
     m_pStickWarningIcon->setVisible(false);
+    // End of AI-generated text.
     connect(m_pStickCombo,
             QOverload<int>::of(&QComboBox::activated),
             this,
@@ -121,10 +125,12 @@ DlgDeviceExport::DlgDeviceExport(
     m_pWholeLibraryRadio->setChecked(true);
     m_pCratesAndPlaylistsRadio =
             make_parented<QRadioButton>(tr("Selected crates and playlists"), this);
+    // AI-generated (Claude Code). Start of AI-generated text.
     // The mode for the "Export Track" item of the track menu. It shows only
     // when the dialog has tracks.
     m_pSelectedTracksRadio = make_parented<QRadioButton>(this);
     m_pSelectedTracksRadio->setVisible(false);
+    // End of AI-generated text.
     auto pCratesLabel = make_parented<QLabel>(tr("Crates"), this);
     m_pCratesList = make_parented<QListWidget>(this);
     m_pCratesList->setSelectionMode(QListWidget::ExtendedSelection);
@@ -188,6 +194,7 @@ void DlgDeviceExport::refresh() {
     updateModeAndFormat();
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
 void DlgDeviceExport::setInitialTracks(const QList<TrackId>& trackIds) {
     m_trackIds.clear();
     QSet<TrackId> known;
@@ -217,11 +224,14 @@ void DlgDeviceExport::clearCratesAndPlaylistsSelection() {
     m_pCratesList->clearSelection();
     m_pPlaylistsList->clearSelection();
 }
+// End of AI-generated text.
 
 void DlgDeviceExport::setInitialSelection(
         std::optional<CrateId> crateId, std::optional<int> playlistId) {
+    // AI-generated (Claude Code). Start of AI-generated text.
     // A choice of a crate or a playlist replaces the tracks.
     m_trackIds.clear();
+    // End of AI-generated text.
     updateSelectedTracksRadio();
     selectInitialListItems(m_pCratesList, m_pPlaylistsList, crateId, playlistId);
     // Without a crate and a playlist the mode is "Whole library".
@@ -376,14 +386,22 @@ void DlgDeviceExport::exportRequested() {
         if (!fileSystemText.isEmpty()) {
             question = fileSystemText + QStringLiteral("\n\n");
         }
-        if (info.hasPlusLibrary) {
+        if (info.hasPlusLibrary && m_pSelectedTracksRadio->isChecked()) {
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // The mode "Selected tracks" writes no playlist.
+            question += tr("Mix Two adds the selected tracks to the stick. "
+                           "Do you want to continue?");
+            // End of AI-generated text.
+        } else if (info.hasPlusLibrary) {
             question += tr("Playlists on the stick that have the same name get the new "
                            "track list. Do you want to continue?");
         } else {
             question += tr("Do you want to continue?");
         }
+        // AI-generated (Claude Code). Start of AI-generated text.
         // A file system that players cannot read gets the warning icon.
         QMessageBox box(fileSystemText.isEmpty() ? QMessageBox::Question : QMessageBox::Warning,
+        // End of AI-generated text.
                 tr("Export to a USB stick"),
                 question,
                 QMessageBox::Yes | QMessageBox::No,
@@ -398,6 +416,7 @@ void DlgDeviceExport::exportRequested() {
     accept();
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
 QSharedPointer<DeviceLibraryPlusExportRequest> DlgDeviceExport::makeRequest(
         const QString& stickRoot) const {
     auto pRequest = QSharedPointer<DeviceLibraryPlusExportRequest>::create();
@@ -416,5 +435,6 @@ QSharedPointer<DeviceLibraryPlusExportRequest> DlgDeviceExport::makeRequest(
     }
     return pRequest;
 }
+// End of AI-generated text.
 
 } // namespace mixxx
