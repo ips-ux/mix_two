@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 341 | 224 | 205 | 61 | 0 | 0 | 72 |
+| Features | 338 | 223 | 209 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: Export Track in the track menu; files on removable and network drives are never sent to the trash (commit: see git log, "Track menu: Export Track ..." and "Track delete never trashes files on removable drives ...")
 - 2026-11-24: library preferences; alphabet search; hold a row for the track menu (commit: see git log, "Library preferences: sidebar track count, bold font, played reset, centre selection, artwork crop" and "Library: alphabet search ...")
 - 2026-11-24: history after 60 seconds of audible play; question before duplicates go into a playlist (commit: see git log, "History: add a track after 60 seconds of play" and the commits after it)
 - 2026-11-24: Beat FX VINYL BRAKE; Beat FX BPM modes AUTO and TAP (commit: see git log, "Beat FX: VINYL BRAKE" and "Beat FX: BPM modes AUTO and TAP")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-18: DDJ-800 sampler pads use slots 1-8 and 9-16 of one shared bank; Beat FX selector order pinned by a test (commit: see git log, "DDJ-800 mapping: sampler pads use slots 1-8 and 9-16 of one shared bank" and "test: Beat FX selector order of the DDJ-800 is pinned")
 - 2026-11-18: DDJ-800 mixer strip waits for pickup after a deck change (commit: see git log, "DDJ-800 mapping: soft takeover for the mixer strip after a deck change" and "DDJ-800 mapping: pickup sees a control that jumped over the value")
 - 2026-11-18: in-app text wording pass for STE (commit: see git log, "In-app text: wording pass for Simplified Technical English" and "In-app text: two more strings in STE")
-- 2026-11-18: Sound Color FX buttons on the screen locked for on/off while the DDJ-800 is connected (commit: see git log, "Sound Color FX buttons: no on/off by click while the DDJ-800 is connected")
 
 <!-- mixtwo-status:end -->
 
