@@ -1311,6 +1311,7 @@ add_library(
   src/effects/backends/builtin/beatfxrolleffect.cpp
   src/effects/backends/builtin/beatfxspiraleffect.cpp
   src/effects/backends/builtin/beatfxtranseffect.cpp
+  src/effects/backends/builtin/beatfxvinylbrakeeffect.cpp
   src/effects/backends/builtin/echoeffect.cpp
   src/effects/backends/builtin/filtereffect.cpp
   src/effects/backends/builtin/flangereffect.cpp
@@ -3129,6 +3130,7 @@ if(BUILD_TESTING)
     src/test/beatfxbeat_test.cpp
     src/test/beatfxdelay_test.cpp
     src/test/fxbpmtap_test.cpp
+    src/test/beatfxvinylbrake_test.cpp
     src/test/visibleeffectslist_test.cpp
     src/test/wmemorycuelist_test.cpp
     src/test/wpushbutton_test.cpp

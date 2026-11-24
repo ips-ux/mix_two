@@ -47,6 +47,7 @@
 #include "effects/backends/builtin/beatfxrolleffect.h"
 #include "effects/backends/builtin/beatfxspiraleffect.h"
 #include "effects/backends/builtin/beatfxtranseffect.h"
+#include "effects/backends/builtin/beatfxvinylbrakeeffect.h"
 #include "effects/backends/builtin/gaineffect.h"
 #include "effects/backends/builtin/tremoloeffect.h"
 #include "effects/backends/builtin/whitenoiseeffect.h"
@@ -113,6 +114,7 @@ BuiltInBackend::BuiltInBackend() {
     // Mix Two: BEAT FX that the DDJ-800 selector does not have
     registerEffect<BeatFxDelayEffect>();
     registerEffect<BeatFxPingPongEffect>();
+    registerEffect<BeatFxVinylBrakeEffect>();
     registerEffect<AutoGainControlEffect>();
     registerEffect<GainEffect>();
 }

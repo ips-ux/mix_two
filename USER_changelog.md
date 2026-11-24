@@ -398,6 +398,10 @@ Below MASTER is the EFFECTS section for Beat FX:
   repeat. PING PONG gives repeats that go from left to right. You select
   them on the screen. The BEAT FX SELECT control of the DDJ-800 does not
   have them. Their sound is not yet compared with rekordbox.
+- Mix Two has one more Beat FX, VINYL BRAKE. It slows the sound of the
+  channel to a stop, as a record does when you stop the turntable. The BEAT
+  buttons set the brake time. LEVEL/DEPTH sets how much it slows. You
+  select it on the screen. Its sound is not yet compared with rekordbox.
 - LEVEL/DEPTH is the effect level.
 - The ENABLED / DISABLED button starts and stops the effect. It is the same
   as the ON/OFF button on the DDJ-800.
