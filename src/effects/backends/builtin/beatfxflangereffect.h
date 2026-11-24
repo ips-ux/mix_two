@@ -1,7 +1,8 @@
 #pragma once
 
 // Mix Two: BEAT FX FLANGER and PHASER (DDJ-800 manual p.71): one sweep
-// cycle per BEAT fraction, in step with the beat grid. LEVEL/DEPTH: all the
+// cycle per BEAT fraction (1/16 to 64 beats), in step with the beat grid for
+// a cycle of one beat or less. LEVEL/DEPTH: all the
 // way counterclockwise is the original sound only; clockwise stresses the
 // effect. The sweep phase is shared code; FLANGER sweeps a short delay,
 // PHASER a chain of all-pass stages.

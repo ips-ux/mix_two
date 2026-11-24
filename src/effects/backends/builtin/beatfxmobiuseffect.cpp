@@ -24,17 +24,8 @@ EffectManifestPointer BeatFxMobiusEffect<Triangle>::getManifest() {
             QObject::tr("A wave whose pitch seems to rise or fall without "
                         "end, one octave per beat fraction, mixed into the sound."));
     pManifest->setAddDryToWet(false);
-    beatfx::addBeatParameter(pManifest);
+    beatfx::addSignedBeatParameter(pManifest);
     beatfx::addDepthParameter(pManifest, QObject::tr("Volume of the wave"));
-    EffectManifestParameterPointer descend = pManifest->addParameter();
-    descend->setId("descend");
-    descend->setName(QObject::tr("Descend"));
-    descend->setShortName(QObject::tr("Down"));
-    descend->setDescription(QObject::tr("The pitch falls instead of rising "
-                                        "(the DDJ-800's negative beat fractions)"));
-    descend->setValueScaler(EffectManifestParameter::ValueScaler::Toggle);
-    descend->setUnitsHint(EffectManifestParameter::UnitsHint::Unknown);
-    descend->setRange(0, 0, 1);
     return pManifest;
 }
 
@@ -43,7 +34,6 @@ void BeatFxMobiusEffect<Triangle>::loadEngineEffectParameters(
         const QMap<QString, EngineEffectParameterPointer>& parameters) {
     m_pBeat = parameters.value("beat");
     m_pDepth = parameters.value("depth");
-    m_pDescend = parameters.value("descend");
 }
 
 template<bool Triangle>
@@ -54,10 +44,16 @@ void BeatFxMobiusEffect<Triangle>::processChannel(BeatFxMobiusState* pState,
         const EffectEnableState enableState,
         const GroupFeatureState& groupFeatures) {
     const double sampleRate = engineParameters.sampleRate();
-    const double octaveFrames = beatfx::beatFraction(m_pBeat->value()) *
-            beatfx::beatSeconds(groupFeatures) * sampleRate;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The magnitude of the beat value is the length of one octave; a
+    // negative value makes the pitch fall. There is no buffer whose size
+    // depends on it: a 64-beat octave at 60 BPM only makes the step per
+    // frame very small.
+    // End of AI-generated text.
+    const double beats = beatfx::signedBeats(m_pBeat->value());
+    const double octaveFrames = std::abs(beats) * beatfx::beatSeconds(groupFeatures) * sampleRate;
     // One octave per beat fraction = 1/kVoices of the span.
-    const double sweepStep = (m_pDescend->toBool() ? -1.0 : 1.0) /
+    const double sweepStep = (beats < 0 ? -1.0 : 1.0) /
             (octaveFrames * BeatFxMobiusState::kVoices);
     const auto depth = static_cast<CSAMPLE_GAIN>(m_pDepth->value());
     const RampingValue<CSAMPLE_GAIN> level(pState->prevDepth, depth, engineParameters.framesPerBuffer());

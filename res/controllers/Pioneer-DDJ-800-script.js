@@ -746,17 +746,23 @@ PioneerDDJ800.initBeatFx = function() {
         PioneerDDJ800.setBeatFxFlash(S.fxNote, 0x47, value > 0);
     });
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     // BEAT </>: step the effect's first parameter, which is the BEAT
-    // fraction of the Mix Two BEAT FX (9 steps, 1/16 to 16 beats; 1 beat is
-    // the centre). SHIFT + BEAT < puts it back to 1 beat.
+    // fraction of the Mix Two BEAT FX. It has 9, 11 or 22 steps, so the
+    // script does not use a normalised step. The control's raw value is the
+    // step number (0 to steps - 1), and a value outside the range is brought
+    // back into it (ControlPotmeterBehavior::setFilter), so one step up or
+    // down also stops at both ends. SHIFT + BEAT < resets the control to its
+    // default, which is 1 beat for every Beat FX (the default of the
+    // manifest parameter, set in EffectKnobParameterSlot::loadParameter).
+    // End of AI-generated text.
     const stepBeat = function(delta) {
-        const value = engine.getParameter(slot, "parameter1") + delta;
-        engine.setParameter(slot, "parameter1", Math.min(1, Math.max(0, value)));
+        engine.setValue(slot, "parameter1", engine.getValue(slot, "parameter1") + delta);
     };
-    PioneerDDJ800.bindButton(S.fxNote, 0x4A, function() { stepBeat(-0.125); });
-    PioneerDDJ800.bindButton(S.fxNote, 0x4B, function() { stepBeat(0.125); });
+    PioneerDDJ800.bindButton(S.fxNote, 0x4A, function() { stepBeat(-1); });
+    PioneerDDJ800.bindButton(S.fxNote, 0x4B, function() { stepBeat(1); });
     PioneerDDJ800.bindButton(S.fxNote, 0x66, function() {
-        engine.setParameter(slot, "parameter1", 0.5);
+        engine.reset(slot, "parameter1");
     });
 };
 

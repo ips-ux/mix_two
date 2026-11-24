@@ -7,22 +7,14 @@
 #include <cmath>
 
 #include "control/controlproxy.h"
+#include "effects/backends/builtin/beatfxcommon.h"
 #include "moc_wbeatfxbeatselector.cpp"
 #include "skin/legacy/skincontext.h"
 
 namespace {
-// The DDJ-800's BEAT fractions, in the order of its buttons (the same table
-// as beatfxcommon.h).
-const QStringList kLabels = {QStringLiteral("1/16"),
-        QStringLiteral("1/8"),
-        QStringLiteral("1/4"),
-        QStringLiteral("1/2"),
-        QStringLiteral("1"),
-        QStringLiteral("2"),
-        QStringLiteral("4"),
-        QStringLiteral("8"),
-        QStringLiteral("16")};
 constexpr int kArrowWidth = 16;
+// Without an effect the control keeps the nine steps of most Beat FX.
+constexpr int kDefaultStepCount = 9;
 } // namespace
 
 WBeatFxBeatSelector::WBeatFxBeatSelector(QWidget* pParent)
@@ -39,21 +31,40 @@ void WBeatFxBeatSelector::setup(const QDomNode& node, const SkinContext& context
     setCursor(Qt::PointingHandCursor);
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// The number of steps of the loaded effect's beat parameter: the parameter
+// control runs from value 0 to value (steps - 1), so one step is the
+// normalised position of value 1. This is 9, 11 or 22 for the Mix Two BEAT FX.
+int WBeatFxBeatSelector::stepCount() const {
+    if (m_pBeat) {
+        const double step = m_pBeat->getParameterForValue(1.0);
+        if (step > 0.0 && step <= 1.0) {
+            return static_cast<int>(std::lround(1.0 / step)) + 1;
+        }
+    }
+    return kDefaultStepCount;
+}
+
 int WBeatFxBeatSelector::index() const {
     int i = static_cast<int>(std::lround(m_value));
-    return std::max(0, std::min(i, static_cast<int>(kLabels.size()) - 1));
+    return std::max(0, std::min(i, stepCount() - 1));
 }
 
 void WBeatFxBeatSelector::setIndex(int i) {
-    i = std::max(0, std::min(i, static_cast<int>(kLabels.size()) - 1));
+    i = std::max(0, std::min(i, stepCount() - 1));
     if (m_pBeat) {
         m_pBeat->set(i);
     }
 }
 
 QString WBeatFxBeatSelector::label(int i) const {
-    return kLabels.value(i, QStringLiteral("-"));
+    double beats = 0;
+    if (!beatfx::beatStepValue(stepCount(), i, &beats)) {
+        return QStringLiteral("-");
+    }
+    return beatfx::beatLabel(beats);
 }
+// End of AI-generated text.
 
 void WBeatFxBeatSelector::slotValueChanged(double value) {
     m_value = value;
@@ -75,14 +86,14 @@ void WBeatFxBeatSelector::paintEvent(QPaintEvent* pEvent) {
     painter.drawText(QRect(r.left(), r.top(), kArrowWidth, r.height()),
             Qt::AlignCenter,
             QStringLiteral("◀"));
-    painter.setPen(i < kLabels.size() - 1 ? palette().color(QPalette::WindowText) : dim);
+    painter.setPen(i < stepCount() - 1 ? palette().color(QPalette::WindowText) : dim);
     painter.drawText(QRect(r.right() - kArrowWidth + 1, r.top(), kArrowWidth, r.height()),
             Qt::AlignCenter,
             QStringLiteral("▶"));
     painter.setPen(palette().color(QPalette::WindowText));
     painter.drawText(QRect(r.left() + kArrowWidth, r.top(), r.width() - 2 * kArrowWidth, r.height()),
             Qt::AlignCenter,
-            label(i) + (i == 4 ? QStringLiteral(" beat") : QStringLiteral(" beats")));
+            label(i) + (label(i) == QStringLiteral("1") ? QStringLiteral(" beat") : QStringLiteral(" beats")));
 }
 
 void WBeatFxBeatSelector::mousePressEvent(QMouseEvent* pEvent) {
@@ -97,7 +108,7 @@ void WBeatFxBeatSelector::mousePressEvent(QMouseEvent* pEvent) {
         setIndex(index() + 1);
     } else {
         QMenu menu(this);
-        for (int i = 0; i < kLabels.size(); ++i) {
+        for (int i = 0; i < stepCount(); ++i) {
             QAction* pAction = menu.addAction(label(i));
             pAction->setCheckable(true);
             pAction->setChecked(i == index());

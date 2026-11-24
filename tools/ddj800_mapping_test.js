@@ -17,13 +17,26 @@ const conns = {};
 const handlers = {};
 const key = (g, k) => g + "," + k;
 const params = {};
+const ranges = {};
 
 const engine = {
     getValue: (g, k) => (key(g, k) in values ? values[key(g, k)] : (k === "num_samplers" ? 16 : 0)),
     setValue: (g, k, v) => {
+        // A control with a range keeps its value inside it, as the real
+        // control does (ControlPotmeterBehavior::setFilter, which the
+        // stepped integer behaviour of the Beat FX beat parameter uses).
+        const range = ranges[key(g, k)];
+        if (range) {
+            v = Math.min(range.max, Math.max(range.min, v));
+        }
         values[key(g, k)] = v;
         sets.push([g, k, v]);
         (conns[key(g, k)] || []).forEach(cb => cb(v, g, k));
+    },
+    // reset() sets the control to its default value, as ControlProxy::reset().
+    reset: (g, k) => {
+        const range = ranges[key(g, k)];
+        engine.setValue(g, k, range ? range.def : 0);
     },
     getParameter: (g, k) => params[key(g, k)] || 0,
     setParameter: (g, k, v) => { params[key(g, k)] = v; sets.push([g, k, v]); },
@@ -274,7 +287,7 @@ send(0x94, 0x14, 0x7F);
 check("selector M (0x14) -> master only", assigned().join() === "[Master]");
 
 // BEAT FX: LEVEL/DEPTH -> the slot's meta knob; BEAT > steps the beat
-// fraction (parameter1) by one of nine steps; SHIFT + BEAT < resets it.
+// fraction (parameter1) by one step; SHIFT + BEAT < resets it.
 const fxSlot = "[EffectRack1_EffectUnit1_Effect1]";
 n = sets.length;
 send(0xB4, 0x02, 0x40); send(0xB4, 0x22, 0x00);
@@ -285,9 +298,45 @@ engine.setValue(fxSlot, "loaded_effect", 3); // FX SELECT loads a new effect
 check("a new effect takes the knob's position", did(n, fxSlot, "parameter2"));
 n = sets.length;
 send(0x94, 0x4B, 0x7F);
-check("BEAT > -> parameter1 + 1/8", did(n, fxSlot, "parameter1", 0.125));
-send(0x94, 0x66, 0x7F);
-check("SHIFT + BEAT < -> parameter1 = 0.5 (1 beat)", did(n, fxSlot, "parameter1", 0.5));
+// AI-generated (Claude Code). Start of AI-generated text.
+// BEAT < and BEAT > move the beat parameter by one step, whatever its number
+// of steps: 9 (most Beat FX), 11 (FLANGER, PHASER) or 22 (ENIGMA JET,
+// MOBIUS). SHIFT + BEAT < sets the default (1 beat). The mock keeps the
+// value of the parameter inside its range, as the real control does.
+const beatKey = key(fxSlot, "parameter1");
+const beatValue = () => engine.getValue(fxSlot, "parameter1");
+[{steps: 9, def: 4}, {steps: 11, def: 4}, {steps: 22, def: 15}].forEach(c => {
+    const label = c.steps + "-step beat parameter: ";
+    ranges[beatKey] = {min: 0, max: c.steps - 1, def: c.def};
+    values[beatKey] = c.def;
+    send(0x94, 0x4B, 0x7F);
+    check(label + "BEAT > moves one step up", beatValue() === c.def + 1);
+    send(0x94, 0x4A, 0x7F);
+    send(0x94, 0x4A, 0x7F);
+    check(label + "BEAT < moves one step down", beatValue() === c.def - 1);
+    values[beatKey] = c.steps - 1;
+    send(0x94, 0x4B, 0x7F);
+    check(label + "BEAT > at the last step does not move or wrap", beatValue() === c.steps - 1);
+    send(0x94, 0x4A, 0x7F);
+    check(label + "BEAT < from the last step moves one step down", beatValue() === c.steps - 2);
+    values[beatKey] = 0;
+    send(0x94, 0x4A, 0x7F);
+    check(label + "BEAT < at the first step does not move or wrap", beatValue() === 0);
+    send(0x94, 0x4B, 0x7F);
+    check(label + "BEAT > from the first step moves one step up", beatValue() === 1);
+    values[beatKey] = c.steps - 1;
+    send(0x94, 0x66, 0x7F);
+    check(label + "SHIFT + BEAT < sets the default (1 beat)", beatValue() === c.def);
+    values[beatKey] = 0;
+    send(0x94, 0x66, 0x7F);
+    check(label + "SHIFT + BEAT < from the first step sets the default", beatValue() === c.def);
+});
+n = sets.length;
+send(0x94, 0x4B, 0x7F);
+check("BEAT > writes the raw value of parameter1, not a normalised one",
+        did(n, fxSlot, "parameter1") && !setsSince(n).some(x => x[1] === "parameter1" && x[2] > 21));
+delete ranges[beatKey];
+// End of AI-generated text.
 
 // AI-generated (Claude Code). Start of AI-generated text.
 // The deck shown on each side follows the deck that sends messages.

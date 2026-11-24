@@ -3122,6 +3122,7 @@ if(BUILD_TESTING)
     src/test/waveformzoom_test.cpp
     src/test/wbatterytest.cpp
     src/test/wcombobox_test.cpp
+    src/test/beatfxbeat_test.cpp
     src/test/visibleeffectslist_test.cpp
     src/test/wmemorycuelist_test.cpp
     src/test/wpushbutton_test.cpp

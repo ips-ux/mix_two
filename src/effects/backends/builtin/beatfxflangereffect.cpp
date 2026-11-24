@@ -14,12 +14,18 @@ constexpr CSAMPLE_GAIN kPhaserFeedback = 0.4f;
 
 // Sweep phase at the buffer start, in step with the beat grid when there
 // is one (as TRANS); otherwise the free-running phase.
+// AI-generated (Claude Code). Start of AI-generated text.
+// The grid gives only the position inside one beat. A cycle of one beat or
+// less fits in that position, so it is locked to the grid. A cycle of more
+// than one beat does not: the position inside the beat would restart the
+// sweep at every beat. For those cycles the free-running phase is used.
+// End of AI-generated text.
 double sweepPhase(const BeatFxSweepState* pState,
         const GroupFeatureState& groupFeatures,
         double fraction,
         double sampleRate,
         int frames) {
-    if (groupFeatures.beat_fraction_buffer_end.has_value() &&
+    if (fraction <= 1.0 && groupFeatures.beat_fraction_buffer_end.has_value() &&
             groupFeatures.beat_length.has_value()) {
         const double beatFrames = groupFeatures.beat_length->seconds * sampleRate;
         double beatPhase = *groupFeatures.beat_fraction_buffer_end - frames / beatFrames;
@@ -46,7 +52,7 @@ EffectManifestPointer BeatFxSweepEffect<Phaser>::getManifest() {
             Phaser ? QObject::tr("A phaser sweeps once per beat fraction.")
                    : QObject::tr("A flanger sweeps once per beat fraction."));
     pManifest->setAddDryToWet(false);
-    beatfx::addBeatParameter(pManifest);
+    beatfx::addWideBeatParameter(pManifest);
     beatfx::addDepthParameter(pManifest,
             QObject::tr("Counterclockwise: the original sound only. "
                         "Clockwise: more effect."));
@@ -67,7 +73,7 @@ void BeatFxSweepEffect<Phaser>::processChannel(BeatFxSweepState* pState,
         const mixxx::EngineParameters& engineParameters,
         const EffectEnableState enableState,
         const GroupFeatureState& groupFeatures) {
-    const double fraction = beatfx::beatFraction(m_pBeat->value());
+    const double fraction = beatfx::wideBeatFraction(m_pBeat->value());
     const double sampleRate = engineParameters.sampleRate();
     const double cycleFrames = fraction * beatfx::beatSeconds(groupFeatures) * sampleRate;
     const int frames = engineParameters.framesPerBuffer();

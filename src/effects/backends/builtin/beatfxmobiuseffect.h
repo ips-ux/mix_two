@@ -57,7 +57,6 @@ class BeatFxMobiusEffect : public EffectProcessorImpl<BeatFxMobiusState> {
 
     EngineEffectParameterPointer m_pBeat;
     EngineEffectParameterPointer m_pDepth;
-    EngineEffectParameterPointer m_pDescend;
 
     DISALLOW_COPY_AND_ASSIGN(BeatFxMobiusEffect);
 };

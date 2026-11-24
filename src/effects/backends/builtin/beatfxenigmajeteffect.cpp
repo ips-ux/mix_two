@@ -26,19 +26,10 @@ EffectManifestPointer BeatFxEnigmaJetEffect::getManifest() {
             QObject::tr("A flanger whose pitch seems to rise or fall without "
                         "end, one sweep per beat fraction."));
     pManifest->setAddDryToWet(false);
-    beatfx::addBeatParameter(pManifest);
+    beatfx::addSignedBeatParameter(pManifest);
     beatfx::addDepthParameter(pManifest,
             QObject::tr("Counterclockwise: the original sound only. "
                         "Clockwise: more effect."));
-    EffectManifestParameterPointer descend = pManifest->addParameter();
-    descend->setId("descend");
-    descend->setName(QObject::tr("Descend"));
-    descend->setShortName(QObject::tr("Down"));
-    descend->setDescription(QObject::tr("The pitch falls instead of rising "
-                                        "(the DDJ-800's negative beat fractions)"));
-    descend->setValueScaler(EffectManifestParameter::ValueScaler::Toggle);
-    descend->setUnitsHint(EffectManifestParameter::UnitsHint::Unknown);
-    descend->setRange(0, 0, 1);
     return pManifest;
 }
 
@@ -46,7 +37,6 @@ void BeatFxEnigmaJetEffect::loadEngineEffectParameters(
         const QMap<QString, EngineEffectParameterPointer>& parameters) {
     m_pBeat = parameters.value("beat");
     m_pDepth = parameters.value("depth");
-    m_pDescend = parameters.value("descend");
 }
 
 void BeatFxEnigmaJetEffect::processChannel(BeatFxEnigmaJetState* pState,
@@ -56,9 +46,15 @@ void BeatFxEnigmaJetEffect::processChannel(BeatFxEnigmaJetState* pState,
         const EffectEnableState enableState,
         const GroupFeatureState& groupFeatures) {
     const double sampleRate = engineParameters.sampleRate();
-    const double cycleFrames = beatfx::beatFraction(m_pBeat->value()) *
-            beatfx::beatSeconds(groupFeatures) * sampleRate;
-    const double step = (m_pDescend->toBool() ? -1.0 : 1.0) / cycleFrames;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The magnitude of the beat value is the sweep length; a negative value
+    // makes the pitch fall. The delay line is 50 ms long whatever the sweep
+    // length, so a 64-beat sweep at 60 BPM (about 3 million frames) only
+    // makes the step per frame very small.
+    // End of AI-generated text.
+    const double beats = beatfx::signedBeats(m_pBeat->value());
+    const double cycleFrames = std::abs(beats) * beatfx::beatSeconds(groupFeatures) * sampleRate;
+    const double step = (beats < 0 ? -1.0 : 1.0) / cycleFrames;
     const auto depth = static_cast<CSAMPLE_GAIN>(m_pDepth->value());
     const RampingValue<CSAMPLE_GAIN> mix(pState->prevDepth, depth, engineParameters.framesPerBuffer());
     const double logRange = std::log(kMaxMs / kMinMs);
