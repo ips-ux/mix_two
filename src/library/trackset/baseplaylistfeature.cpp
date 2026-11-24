@@ -4,6 +4,8 @@
 #include <QFileInfo>
 #include <QInputDialog>
 #include <QList>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QSqlTableModel>
 #include <QStandardPaths>
 
@@ -436,6 +438,51 @@ void BasePlaylistFeature::slotCreatePlaylist() {
 
 /// Returns a playlist that is a sibling inside the same parent
 /// as the start index
+// AI-generated (Claude Code). Start of AI-generated text.
+// static
+std::optional<QList<TrackId>> BasePlaylistFeature::askAboutDuplicateTracks(
+        const PlaylistDAO& playlistDao,
+        int playlistId,
+        const QList<TrackId>& trackIds,
+        QWidget* pParent) {
+    if (playlistDao.getHiddenType(playlistId) != PlaylistDAO::PLHT_NOT_HIDDEN) {
+        return trackIds;
+    }
+    const QList<TrackId> newTrackIds =
+            playlistDao.tracksNotInPlaylist(playlistId, trackIds);
+    int duplicateCount = 0;
+    for (const TrackId& trackId : trackIds) {
+        if (playlistDao.isTrackInPlaylist(trackId, playlistId)) {
+            ++duplicateCount;
+        }
+    }
+    if (duplicateCount == 0) {
+        return trackIds;
+    }
+
+    // Choice: the wording of this question and the button names.
+    QMessageBox box(QMessageBox::Question,
+            tr("Tracks in the playlist already"),
+            //: %1 is the number of tracks that the playlist holds already
+            tr("%1 of the tracks are in this playlist already.").arg(duplicateCount),
+            QMessageBox::NoButton,
+            pParent);
+    box.setInformativeText(tr("Add them again or skip them?"));
+    QPushButton* pAddButton = box.addButton(tr("Add them"), QMessageBox::AcceptRole);
+    QPushButton* pSkipButton = box.addButton(tr("Skip duplicates"), QMessageBox::ActionRole);
+    box.addButton(QMessageBox::Cancel);
+    box.setDefaultButton(pSkipButton);
+    box.exec();
+    if (box.clickedButton() == pAddButton) {
+        return trackIds;
+    }
+    if (box.clickedButton() == pSkipButton) {
+        return newTrackIds;
+    }
+    return std::nullopt;
+}
+// End of AI-generated text.
+
 int BasePlaylistFeature::getSiblingPlaylistIdOf(QModelIndex& start) {
     QModelIndex nextIndex = start.sibling(start.row() + 1, start.column());
     if (!nextIndex.isValid() && start.row() > 0) {

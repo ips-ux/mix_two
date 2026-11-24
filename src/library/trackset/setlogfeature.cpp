@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <QMenu>
+#include <QTimer>
 #include <QSqlTableModel>
 
 #include "library/library.h"
@@ -124,12 +125,60 @@ QVariant SetlogFeature::title() {
 void SetlogFeature::bindLibraryWidget(
         WLibrary* pLibraryWidget, KeyboardEventFilter* pKeyboard) {
     BasePlaylistFeature::bindLibraryWidget(pLibraryWidget, pKeyboard);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A track goes into the history after it played for 60 seconds, as in
+    // rekordbox. Each deck counts its own play time.
     connect(&PlayerInfo::instance(),
-            &PlayerInfo::currentPlayingTrackChanged,
+            &PlayerInfo::trackChanged,
             this,
-            &SetlogFeature::slotPlayingTrackChanged);
+            [this](const QString& group, TrackPointer, TrackPointer) {
+                m_playTimeGate.reset(group);
+            });
+    if (!m_pPlayTimeTimer) {
+        m_pPlayTimeTimer = make_parented<QTimer>(this);
+        m_pPlayTimeTimer->setInterval(500);
+        connect(m_pPlayTimeTimer.get(),
+                &QTimer::timeout,
+                this,
+                &SetlogFeature::slotCountPlayTime);
+        m_playTimeClock.start();
+        m_pPlayTimeTimer->start();
+    }
+    // End of AI-generated text.
     m_pLibraryWidget = QPointer(pLibraryWidget);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void SetlogFeature::slotCountPlayTime() {
+    // The clock covers the whole interval since the last tick, also when
+    // the timer fires late. A very long gap (for example a sleeping
+    // computer) counts at most 5 seconds.
+    const double elapsedSeconds =
+            qMin(m_playTimeClock.restart() / 1000.0, 5.0);
+    PlayerInfo& playerInfo = PlayerInfo::instance();
+    const int numDecks = playerInfo.numDecks();
+    for (int deck = 1; deck <= numDecks; ++deck) {
+        const QString group = QStringLiteral("[Channel%1]").arg(deck);
+        TrackPointer pTrack = playerInfo.getTrackInfo(group);
+        if (!pTrack) {
+            m_playTimeGate.reset(group);
+            continue;
+        }
+        auto it = m_playControls.find(group);
+        if (it == m_playControls.end()) {
+            it = m_playControls
+                         .emplace(group,
+                                 std::make_unique<PollingControlProxy>(
+                                         group, QStringLiteral("play")))
+                         .first;
+        }
+        const bool playing = it->second->toBool();
+        if (m_playTimeGate.advance(group, pTrack->getId(), playing, elapsedSeconds)) {
+            slotPlayingTrackChanged(pTrack);
+        }
+    }
+}
+// End of AI-generated text.
 
 void SetlogFeature::deleteAllUnlockedPlaylistsWithFewerTracks() {
     ScopedTransaction transaction(m_pLibrary->trackCollectionManager()

@@ -133,6 +133,12 @@ class PlaylistDAO : public QObject, public virtual DAO {
     // shuffles all tracks in the position List
     void shuffleTracks(const int playlistId, const QList<int>& positions, const QHash<int,TrackId>& allIds);
     bool isTrackInPlaylist(TrackId trackId, const int playlistId) const;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Returns the tracks of `trackIds` that the playlist does not hold yet,
+    // in the same order. A track that repeats in `trackIds` shows once.
+    QList<TrackId> tracksNotInPlaylist(
+            const int playlistId, const QList<TrackId>& trackIds) const;
+    // End of AI-generated text.
 
     void getPlaylistsTrackIsIn(TrackId trackId, QSet<int>* playlistSet) const;
 

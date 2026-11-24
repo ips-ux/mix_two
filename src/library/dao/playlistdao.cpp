@@ -1488,6 +1488,22 @@ bool PlaylistDAO::isTrackInPlaylist(TrackId trackId, const int playlistId) const
     return m_playlistsTrackIsIn.contains(trackId, playlistId);
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+QList<TrackId> PlaylistDAO::tracksNotInPlaylist(
+        const int playlistId, const QList<TrackId>& trackIds) const {
+    QList<TrackId> result;
+    QSet<TrackId> seen;
+    for (const TrackId& trackId : trackIds) {
+        if (seen.contains(trackId) || isTrackInPlaylist(trackId, playlistId)) {
+            continue;
+        }
+        seen.insert(trackId);
+        result.append(trackId);
+    }
+    return result;
+}
+// End of AI-generated text.
+
 void PlaylistDAO::getPlaylistsTrackIsIn(TrackId trackId,
         QSet<int>* playlistSet) const {
     playlistSet->clear();

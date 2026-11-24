@@ -193,8 +193,13 @@ bool PlaylistFeature::dropAcceptChild(
         return false;
     }
 
+    const auto toAdd = askAboutDuplicateTracks(m_playlistDao, playlistId, trackIds);
+    if (!toAdd || toAdd->isEmpty()) {
+        return false;
+    }
+
     // Return whether appendTracksToPlaylist succeeded.
-    return m_playlistDao.appendTracksToPlaylist(trackIds, playlistId);
+    return m_playlistDao.appendTracksToPlaylist(*toAdd, playlistId);
 }
 
 bool PlaylistFeature::dragMoveAcceptChild(const QModelIndex& index, const QList<QUrl>& urls) {

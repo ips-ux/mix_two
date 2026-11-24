@@ -2,6 +2,7 @@
 
 #include <QDataStream>
 #include <QDebug>
+#include <QTemporaryDir>
 #include <QTemporaryFile>
 #include <QUrl>
 #include <QtGlobal>
@@ -10,6 +11,9 @@
 #include "library/parsercsv.h"
 #include "library/parserm3u.h"
 #include "library/parserpls.h"
+#include "library/dao/playlistdao.h"
+#include "test/librarytest.h"
+#include "track/track.h"
 
 class DummyParser : public Parser {
   public:
@@ -207,3 +211,51 @@ TEST_F(PlaylistTest, PlsEndOfLine) {
     EXPECT_TRUE(entries.at(0).endsWith(QStringLiteral("cr.mp3")));
     EXPECT_TRUE(entries.at(1).endsWith(QStringLiteral("lf.mp3")));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+class PlaylistDuplicateTest : public LibraryTest {
+  protected:
+    QTemporaryDir m_music;
+
+    PlaylistDAO& dao() const {
+        return internalCollection()->getPlaylistDAO();
+    }
+
+    TrackId addTrack(const QString& name) const {
+        // Copy one test file to a new name, so each call gives a new track.
+        const QString source =
+                getOrInitTestDir().filePath(QStringLiteral("id3-test-data/artist.mp3"));
+        const QString target = m_music.filePath(name);
+        EXPECT_TRUE(QFile::copy(source, target)) << qPrintable(target);
+        QFile::setPermissions(target, QFile::ReadOwner | QFile::WriteOwner);
+        TrackPointer pTrack = getOrAddTrackByLocation(target);
+        return pTrack ? pTrack->getId() : TrackId();
+    }
+};
+
+TEST_F(PlaylistDuplicateTest, TracksNotInPlaylistKeepsOnlyNewTracks) {
+    const TrackId a = addTrack(QStringLiteral("dup_a.mp3"));
+    const TrackId b = addTrack(QStringLiteral("dup_b.mp3"));
+    const TrackId c = addTrack(QStringLiteral("dup_c.mp3"));
+    ASSERT_TRUE(a.isValid() && b.isValid() && c.isValid());
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    ASSERT_NE(kInvalidPlaylistId, playlist);
+    ASSERT_TRUE(dao().appendTracksToPlaylist({a, b}, playlist));
+
+    EXPECT_EQ(QList<TrackId>({c}), dao().tracksNotInPlaylist(playlist, {a, c, b}));
+    EXPECT_TRUE(dao().tracksNotInPlaylist(playlist, {a, b}).isEmpty());
+    EXPECT_EQ(QList<TrackId>({c}), dao().tracksNotInPlaylist(playlist, {c}));
+    EXPECT_TRUE(dao().tracksNotInPlaylist(playlist, {}).isEmpty());
+}
+
+TEST_F(PlaylistDuplicateTest, TracksNotInPlaylistKeepsOrderAndDropsRepeatsInTheInput) {
+    const TrackId a = addTrack(QStringLiteral("dup_d.mp3"));
+    const TrackId b = addTrack(QStringLiteral("dup_e.mp3"));
+    const int playlist = dao().createPlaylist(QStringLiteral("Empty"));
+    ASSERT_NE(kInvalidPlaylistId, playlist);
+
+    // An empty playlist: all tracks are new. The helper does not change the order.
+    EXPECT_EQ(QList<TrackId>({b, a}), dao().tracksNotInPlaylist(playlist, {b, a}));
+    EXPECT_EQ(QList<TrackId>({a}), dao().tracksNotInPlaylist(playlist, {a, a}));
+}
+// End of AI-generated text.

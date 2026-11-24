@@ -5,6 +5,7 @@
 #include "library/queryutil.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
+#include "library/trackset/baseplaylistfeature.h"
 #include "moc_playlisttablemodel.cpp"
 
 namespace {
@@ -202,11 +203,22 @@ void PlaylistTableModel::selectPlaylist(int playlistId) {
 }
 
 int PlaylistTableModel::addTracksWithTrackIds(const QModelIndex& insertionIndex,
-        const QList<TrackId>& trackIds,
+        const QList<TrackId>& allTrackIds,
         int* pOutInsertionPos) {
-    if (trackIds.isEmpty()) {
+    if (allTrackIds.isEmpty()) {
         return 0;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Ask the user about tracks that the playlist holds already.
+    const auto toAdd = BasePlaylistFeature::askAboutDuplicateTracks(
+            m_pTrackCollectionManager->internalCollection()->getPlaylistDAO(),
+            m_iPlaylistId,
+            allTrackIds);
+    if (!toAdd || toAdd->isEmpty()) {
+        return 0;
+    }
+    const QList<TrackId>& trackIds = *toAdd;
+    // End of AI-generated text.
 
     const int positionColumn = fieldIndex(ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION);
     int position = index(insertionIndex.row(), positionColumn).data().toInt();

@@ -461,6 +461,15 @@ Hardware.
 
 ### Playlist folders
 
+The History list now adds a track only after it played for 60 seconds. This
+is the same as in rekordbox. Each deck counts its own play time. A pause does
+not add time. A track that you load and eject quickly does not go into History.
+
+When you add tracks to a playlist and the playlist holds some of them, Mix Two
+asks what to do. Push **Add them** to add all tracks again. Push **Skip
+duplicates** to add only the new tracks. Push **Cancel** to add nothing. This
+applies to the track menu and to drag and drop.
+
 You can now put playlists into folders. You can put folders into folders.
 
 Right-click in the playlist tree to use these commands:

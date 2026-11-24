@@ -26,6 +26,7 @@
 #include "library/trackmodel.h"
 #include "library/trackmodeliterator.h"
 #include "library/trackprocessing.h"
+#include "library/trackset/baseplaylistfeature.h"
 #include "library/trackset/crate/crate.h"
 #include "library/trackset/crate/cratefeaturehelper.h"
 #include "library/trackset/crate/cratesummary.h"
@@ -1693,8 +1694,13 @@ void WTrackMenu::addSelectionToPlaylist(int iPlaylistId) {
     }
 
     // TODO(XXX): Care whether the append succeeded.
-    m_pLibrary->trackCollectionManager()->unhideTracks(trackIds);
-    playlistDao.appendTracksToPlaylist(trackIds, iPlaylistId);
+    const auto toAdd = BasePlaylistFeature::askAboutDuplicateTracks(
+            playlistDao, iPlaylistId, trackIds, this);
+    if (!toAdd || toAdd->isEmpty()) {
+        return;
+    }
+    m_pLibrary->trackCollectionManager()->unhideTracks(*toAdd);
+    playlistDao.appendTracksToPlaylist(*toAdd, iPlaylistId);
 }
 
 void WTrackMenu::slotPopulateCrateMenu() {

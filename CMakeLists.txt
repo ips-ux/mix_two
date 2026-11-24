@@ -1561,6 +1561,7 @@ add_library(
   src/library/trackset/crate/cratestorage.cpp
   src/library/trackset/crate/cratetablemodel.cpp
   src/library/trackset/playlistfeature.cpp
+  src/library/trackset/playtimegate.cpp
   src/library/trackset/setlogfeature.cpp
   src/library/trackset/tracksettablemodel.cpp
   src/library/traktor/traktorfeature.cpp
@@ -3083,6 +3084,7 @@ if(BUILD_TESTING)
     src/test/prefsearch_test.cpp
     src/test/prefsnapshot_test.cpp
     src/test/playlisttest.cpp
+    src/test/playtimegate_test.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp
     src/test/quantizebeats_test.cpp

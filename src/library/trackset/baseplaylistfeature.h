@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QList>
 #include <QModelIndex>
 #include <QPointer>
 #include <QSet>
 #include <QString>
+#include <optional>
 
 #include "library/dao/playlistdao.h"
 #include "library/trackset/basetracksetfeature.h"
@@ -17,6 +19,7 @@ class TreeItem;
 class WLibrarySidebar;
 class QAction;
 class QUrl;
+class QWidget;
 
 class BasePlaylistFeature : public BaseTrackSetFeature {
     Q_OBJECT
@@ -38,6 +41,20 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     void bindSidebarWidget(WLibrarySidebar* pSidebarWidget) override;
     void selectPlaylistInSidebar(int playlistId, bool select = true);
     int getSiblingPlaylistIdOf(QModelIndex& start);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Call it before tracks go into a normal playlist. When the playlist
+    /// holds some of the tracks already, it asks the user: "Add them" (all
+    /// tracks), "Skip duplicates" (new tracks only) or "Cancel". Returns the
+    /// tracks to add, or no value when the user cancels. It asks nothing when
+    /// no track is in the playlist already or when the playlist is a
+    /// special one (history, Auto DJ).
+    static std::optional<QList<TrackId>> askAboutDuplicateTracks(
+            const PlaylistDAO& playlistDao,
+            int playlistId,
+            const QList<TrackId>& trackIds,
+            QWidget* pParent = nullptr);
+    // End of AI-generated text.
 
   public slots:
     void activateChild(const QModelIndex& index) override;
