@@ -577,6 +577,7 @@ TEST_F(EngineBufferTest, RatePermTest) {
     RateControl::setPermanentRateChangeFineAmount(2);
 
     ControlObject::set(ConfigKey(m_sGroup1, "rate_dir"), 1);
+    ControlObject::set(ConfigKey(m_sGroup1, "rateRange"), 0.06);
     ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
     ProcessBuffer();
     EXPECT_EQ(1.0, m_pChannel1->getEngineBuffer()->m_speed_old);
@@ -589,5 +590,92 @@ TEST_F(EngineBufferTest, RatePermTest) {
     ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up_small"), 1);
     ProcessBuffer();
     ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up_small"), 0);
-    EXPECT_EQ(1.06, m_pChannel1->getEngineBuffer()->m_speed_old);
+    // The small button uses the rekordbox step of the tempo range (0.02 % at
+    // 6 %), not the preference value.
+    EXPECT_NEAR(1.0402, m_pChannel1->getEngineBuffer()->m_speed_old, 1e-9);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST(RateControlStepTest, PermanentFineStepTable) {
+    EXPECT_DOUBLE_EQ(0.02, RateControl::permanentFineStepPercent(0.06));
+    EXPECT_DOUBLE_EQ(0.04, RateControl::permanentFineStepPercent(0.10));
+    EXPECT_DOUBLE_EQ(0.04, RateControl::permanentFineStepPercent(0.16));
+    EXPECT_DOUBLE_EQ(0.5, RateControl::permanentFineStepPercent(0.5));
+    EXPECT_DOUBLE_EQ(0.5, RateControl::permanentFineStepPercent(0.9));
+    EXPECT_DOUBLE_EQ(0.5, RateControl::permanentFineStepPercent(1.0));
+    // A hair around the limits.
+    EXPECT_DOUBLE_EQ(0.02, RateControl::permanentFineStepPercent(0.06 - 1e-9));
+    EXPECT_DOUBLE_EQ(0.02, RateControl::permanentFineStepPercent(0.06 + 1e-9));
+    EXPECT_DOUBLE_EQ(0.04, RateControl::permanentFineStepPercent(0.06 + 1e-3));
+    EXPECT_DOUBLE_EQ(0.04, RateControl::permanentFineStepPercent(0.16 - 1e-9));
+    EXPECT_DOUBLE_EQ(0.04, RateControl::permanentFineStepPercent(0.16 + 1e-9));
+    EXPECT_DOUBLE_EQ(0.5, RateControl::permanentFineStepPercent(0.16 + 1e-3));
+    // 0.1 + 0.06 style sums that miss 0.16 by rounding still count as 16 %.
+    EXPECT_DOUBLE_EQ(0.04, RateControl::permanentFineStepPercent(0.1 + 0.06));
+}
+
+TEST_F(EngineBufferTest, RatePermSmallStepFollowsTempoRange) {
+    // Preference values must not matter for the small buttons.
+    RateControl::setPermanentRateChangeFineAmount(2);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate_dir"), 1);
+    const struct {
+        double range;
+        double stepPercent;
+    } cases[] = {{0.06, 0.02}, {0.10, 0.04}, {0.16, 0.04}, {0.50, 0.5}, {1.00, 0.5}};
+    for (const auto& c : cases) {
+        ControlObject::set(ConfigKey(m_sGroup1, "rateRange"), c.range);
+        ControlObject::set(ConfigKey(m_sGroup1, "rate"), 0.0);
+        ProcessBuffer();
+        EXPECT_NEAR(1.0, ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")), 1e-12)
+                << "range " << c.range;
+
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up_small"), 1);
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up_small"), 0);
+        EXPECT_NEAR(1.0 + c.stepPercent / 100,
+                ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")),
+                1e-9)
+                << "up, range " << c.range;
+
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_down_small"), 1);
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_down_small"), 0);
+        EXPECT_NEAR(1.0,
+                ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")),
+                1e-9)
+                << "back, range " << c.range;
+
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_down_small"), 1);
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_down_small"), 0);
+        EXPECT_NEAR(1.0 - c.stepPercent / 100,
+                ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")),
+                1e-9)
+                << "down, range " << c.range;
+    }
+}
+
+TEST_F(EngineBufferTest, RatePermSmallFiftyPushesAddOnePercent) {
+    ControlObject::set(ConfigKey(m_sGroup1, "rate_dir"), 1);
+    ControlObject::set(ConfigKey(m_sGroup1, "rateRange"), 0.06);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate"), 0.0);
+    for (int i = 0; i < 50; ++i) {
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up_small"), 1);
+        ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up_small"), 0);
+    }
+    // 1.00 % of the track tempo; also in the unit of the rate control.
+    EXPECT_NEAR(1.01, ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")), 1e-9);
+    EXPECT_NEAR(0.01 / 0.06, ControlObject::get(ConfigKey(m_sGroup1, "rate")), 1e-9);
+}
+
+TEST_F(EngineBufferTest, RatePermCoarseStillUsesPreference) {
+    RateControl::setPermanentRateChangeCoarseAmount(0.5);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate_dir"), 1);
+    ControlObject::set(ConfigKey(m_sGroup1, "rateRange"), 0.06);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate"), 0.0);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up"), 1);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_up"), 0);
+    EXPECT_NEAR(1.005, ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")), 1e-9);
+    RateControl::setPermanentRateChangeCoarseAmount(1.0);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_down"), 1);
+    ControlObject::set(ConfigKey(m_sGroup1, "rate_perm_down"), 0);
+    EXPECT_NEAR(0.995, ControlObject::get(ConfigKey(m_sGroup1, "rate_ratio")), 1e-9);
+}
+// End of AI-generated text.

@@ -483,6 +483,14 @@ DlgPrefDeck::DlgPrefDeck(QWidget* parent, UserSettingsPointer pConfig)
     spinBoxTemporaryRateFine->setValue(m_dRateTempFine);
     spinBoxPermanentRateCoarse->setValue(m_dRatePermCoarse);
     spinBoxPermanentRateFine->setValue(m_dRatePermFine);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The small permanent tempo buttons use the steps of rekordbox. The saved
+    // value stays in the settings, but it has no effect.
+    spinBoxPermanentRateFine->setEnabled(false);
+    spinBoxPermanentRateFine->setToolTip(
+            tr("Mix Two uses the tempo steps of rekordbox for these buttons. "
+               "The step depends on the tempo range."));
+    // End of AI-generated text.
 
     RateControl::setTemporaryRateChangeCoarseAmount(m_dRateTempCoarse);
     RateControl::setTemporaryRateChangeFineAmount(m_dRateTempFine);

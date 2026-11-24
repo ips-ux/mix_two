@@ -66,6 +66,12 @@ public:
   // Set rate change when perm rate small button is pressed
   static void setPermanentRateChangeFineAmount(double v);
   static double getPermanentRateChangeFineAmount();
+  // AI-generated (Claude Code). Start of AI-generated text.
+  // Step of the small permanent tempo buttons, in percent of the track tempo,
+  // for a tempo range (a fraction, like 0.06 for +-6 %). The steps are those
+  // of rekordbox: 0.02 % up to 6 %, 0.04 % up to 16 %, 0.5 % above.
+  static double permanentFineStepPercent(double rateRange);
+  // End of AI-generated text.
   // Set Rate Ramp Mode
   static void setRateRampMode(RampMode mode);
   static RampMode getRateRampMode();

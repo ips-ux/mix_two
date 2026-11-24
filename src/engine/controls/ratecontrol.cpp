@@ -427,6 +427,22 @@ void RateControl::setPermanentRateChangeFineAmount(double v) {
     m_dPermanentRateChangeFine.setValue(v);
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+//static
+double RateControl::permanentFineStepPercent(double rateRange) {
+    // The epsilon keeps 0.06 and 0.16 (not exact as floating-point numbers)
+    // inside their rows, as the DDJ-800 TEMPO slider does.
+    constexpr double kRangeEpsilon = 1e-6;
+    if (rateRange <= 0.06 + kRangeEpsilon) {
+        return 0.02;
+    }
+    if (rateRange <= 0.16 + kRangeEpsilon) {
+        return 0.04;
+    }
+    return 0.5;
+}
+// End of AI-generated text.
+
 //static
 double RateControl::getTemporaryRateChangeCoarseAmount() {
     return m_dTemporaryRateChangeCoarse.getValue();
@@ -888,7 +904,7 @@ void RateControl::slotControlRatePermDownSmall(double v) {
     // Adjusts temp rate down if button pressed
     if (v > 0.0) {
         m_pRateSlider->set(m_pRateSlider->get() -
-                m_pRateDir->get() * m_dPermanentRateChangeFine.getValue() / (100. * m_pRateRange->get()));
+                m_pRateDir->get() * permanentFineStepPercent(m_pRateRange->get()) / (100. * m_pRateRange->get()));
         slotRateSliderChanged(m_pRateSlider->get());
     }
 }
@@ -906,7 +922,7 @@ void RateControl::slotControlRatePermUpSmall(double v) {
     // Adjusts temp rate up if button pressed
     if (v > 0.0) {
         m_pRateSlider->set(m_pRateSlider->get() +
-                           m_pRateDir->get() * m_dPermanentRateChangeFine.getValue() / (100. * m_pRateRange->get()));
+                           m_pRateDir->get() * permanentFineStepPercent(m_pRateRange->get()) / (100. * m_pRateRange->get()));
         slotRateSliderChanged(m_pRateSlider->get());
     }
 }

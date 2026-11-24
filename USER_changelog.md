@@ -165,6 +165,11 @@ tempo handling**.
 To change the tempo range, click the range in the deck hub. You can also use
 the DDJ-800. The steps are ±6 %, ±10 %, ±16 % and WIDE (±100 %).
 
+The small tempo buttons on the screen now change the tempo in the steps of
+rekordbox. Keys and controllers that use these buttons do the same. The step
+is 0.02 % at the ±6 % range and 0.04 % at ±10 % and ±16 %. The step is 0.5 %
+at WIDE. The DDJ-800 TEMPO slider already uses these steps.
+
 During sync, Mix Two makes the tempo range larger if necessary.
 
 The DDJ-800 tempo slider has no effect until it gets to the tempo of the
