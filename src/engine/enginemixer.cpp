@@ -425,28 +425,26 @@ void EngineMixer::process(const std::size_t bufferSize) {
     m_headphoneGain.setGain(pflMixGainInHeadphones);
 
     if (headphoneEnabled) {
-        // Process effects and mix PFL channels together for the headphones.
-        // Effects will be reprocessed post-fader for the crossfader buses
-        // and main mix, so the channel input buffers cannot be modified here.
-        ChannelMixer::applyEffectsAndMixChannels(
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Mix Two: mix the PFL channels together for the headphones without
+        // the effect units of the channels. As on a Pioneer mixer, an effect
+        // that is on for a channel is not heard on the CUE of that channel.
+        // The channel input buffers are not modified here: the effects are
+        // processed post-fader for the crossfader buses and the main mix.
+        ChannelMixer::mixChannels(
                 m_headphoneGain,
                 m_activeHeadphoneChannels,
                 &m_channelHeadphoneGainCache,
                 m_head.data(),
-                m_headphoneHandle.handle(),
-                bufferSize,
-                m_sampleRate,
-                m_pEngineEffectsManager);
+                bufferSize);
+        // End of AI-generated text.
 
-        // Process headphone channel effects
+        // Process the effects that are on for the headphone output itself
         if (m_pEngineEffectsManager) {
             GroupFeatureState headphoneFeatures;
             // If there is only one channel in the headphone mix, use its features
-            // for effects processing. This allows for previewing how an effect will
-            // sound on a playing deck before turning up the dry/wet knob to make it
-            // audible on the main mix. Without this, the effect would sound different
-            // in headphones than how it would sound if it was enabled on the deck,
-            // for example with tempo synced effects.
+            // for effects processing, so that tempo synced effects on the
+            // headphone output follow that deck.
             if (m_activeHeadphoneChannels.size() == 1) {
                 headphoneFeatures = m_activeHeadphoneChannels.at(0)->m_features;
             }

@@ -51,6 +51,38 @@ void ChannelMixer::applyEffectsAndMixChannels(const EngineMixer::GainCalculator&
     }
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// static
+void ChannelMixer::mixChannels(const EngineMixer::GainCalculator& gainCalculator,
+        const QVarLengthArray<EngineMixer::ChannelInfo*, kPreallocatedChannels>& activeChannels,
+        QVarLengthArray<EngineMixer::GainCache, kPreallocatedChannels>* channelGainCache,
+        CSAMPLE* pOutput,
+        std::size_t bufferSize) {
+    SampleUtil::clear(pOutput, bufferSize);
+    ScopedTimer t(QStringLiteral("EngineMixer::mixChannels"));
+    for (auto* pChannelInfo : activeChannels) {
+        EngineMixer::GainCache& gainCache = (*channelGainCache)[pChannelInfo->m_index];
+        CSAMPLE_GAIN oldGain = gainCache.m_gain;
+        CSAMPLE_GAIN newGain;
+        bool fadeout = gainCache.m_fadeout ||
+                (pChannelInfo->m_pChannel &&
+                        !pChannelInfo->m_pChannel->isActive());
+        if (fadeout) {
+            newGain = 0;
+            gainCache.m_fadeout = false;
+        } else {
+            newGain = gainCalculator.getGain(pChannelInfo);
+        }
+        gainCache.m_gain = newGain;
+        SampleUtil::addWithRampingGain(pOutput,
+                pChannelInfo->m_pBuffer.data(),
+                oldGain,
+                newGain,
+                bufferSize);
+    }
+}
+// End of AI-generated text.
+
 void ChannelMixer::applyEffectsInPlaceAndMixChannels(
         const EngineMixer::GainCalculator& gainCalculator,
         const QVarLengthArray<EngineMixer::ChannelInfo*, kPreallocatedChannels>&

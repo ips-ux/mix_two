@@ -297,6 +297,9 @@ short time. A faster turn gives a larger change, to a maximum of 42 %.
 
 ### Mixer
 
+You do not hear the Beat FX of a channel on the CUE of that channel. This is
+the same as on a Pioneer mixer. You hear the effect on the main mix.
+
 The MASTER CUE button now sends the main mix to the headphones.
 
 MASTER LEVEL and BOOTH LEVEL on the DDJ-800 now change the main volume and
