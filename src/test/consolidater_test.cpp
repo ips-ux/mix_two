@@ -23,6 +23,7 @@ using mixxx::library::consolidateFile;
 using mixxx::library::consolidateTargetPath;
 using mixxx::library::ConsolidateOps;
 using mixxx::library::ConsolidateStatus;
+using mixxx::library::checkLibraryRoot;
 using mixxx::library::hashFileContent;
 
 bool writeFile(const QString& path, const QByteArray& content) {
@@ -53,16 +54,32 @@ struct FakeOps {
     TrashResult trashResult = TrashResult::Moved;
     // When set, the copy gets other content than the original.
     bool corruptCopy = false;
+    // When set, the copy call writes half of the file and then fails.
+    bool failCopyHalfWay = false;
+    // When set, the hash of the original cannot be read.
+    bool sourceUnreadable = false;
+    bool syncResult = true;
+    // What happened, in order: "copy", "sync", "hash:<name>", "relocate", "trash".
+    QStringList events;
+    // How many relocate calls had happened when the trash was called.
+    int relocateCallsAtTrash = -1;
 
     ConsolidateOps ops() {
         ConsolidateOps result = mixxx::library::systemConsolidateOps(
                 [this](const QString& newLocation) {
+                    events << QStringLiteral("relocate");
                     ++relocateCalls;
                     relocatedTo = newLocation;
                     return relocateResult;
                 });
         const auto realCopy = result.copyFile;
+        const auto realHash = result.hashFile;
         result.copyFile = [this, realCopy](const QString& from, const QString& to) {
+            events << QStringLiteral("copy");
+            if (failCopyHalfWay) {
+                writeFile(to, QByteArrayLiteral("music da"));
+                return false;
+            }
             if (!realCopy(from, to)) {
                 return false;
             }
@@ -71,11 +88,24 @@ struct FakeOps {
             }
             return true;
         };
+        result.syncCopy = [this](const QString&) {
+            events << QStringLiteral("sync");
+            return syncResult;
+        };
+        result.hashFile = [this, realHash](const QString& path) {
+            events << QStringLiteral("hash:") + QFileInfo(path).path().section('/', -2);
+            if (sourceUnreadable && path.contains(QStringLiteral("/old/"))) {
+                return QByteArray();
+            }
+            return realHash(path);
+        };
         result.removeCopy = [this](const QString& path) {
             removedCopies << path;
             return QFile::remove(path);
         };
         result.trashOriginal = [this](const QString& path) {
+            events << QStringLiteral("trash");
+            relocateCallsAtTrash = relocateCalls;
             if (trashResult == TrashResult::Moved) {
                 trashed << path;
                 QFile::remove(path);
@@ -229,6 +259,108 @@ TEST_F(ConsolidaterTest, TrashFailureIsNotAnErrorOfTheConsolidation) {
     EXPECT_TRUE(QFile::exists(target));
 }
 
+TEST_F(ConsolidaterTest, CopyFailingHalfWayLeavesNothingBehind) {
+    const QString source = path("old/Song.mp3");
+    const QString target = path("lib/Artist/Song.mp3");
+    ASSERT_TRUE(writeFile(source, content));
+
+    FakeOps fake;
+    fake.failCopyHalfWay = true;
+    const auto outcome = consolidateFile(source, target, fake.ops());
+
+    EXPECT_EQ(ConsolidateStatus::CopyFailed, outcome.status);
+    EXPECT_FALSE(outcome.originalTrash.has_value());
+    // No half file and no new folder stays.
+    EXPECT_FALSE(QFile::exists(target));
+    EXPECT_FALSE(QDir(path("lib/Artist")).exists());
+    EXPECT_FALSE(QDir(path("lib")).exists());
+    // The original and the library are unchanged.
+    EXPECT_EQ(content, readFile(source));
+    EXPECT_EQ(0, fake.relocateCalls);
+    EXPECT_TRUE(fake.trashed.isEmpty());
+}
+
+TEST_F(ConsolidaterTest, FailedCopyKeepsFoldersThatExistedBefore) {
+    const QString source = path("old/Song.mp3");
+    const QString target = path("lib/Artist/Song.mp3");
+    ASSERT_TRUE(writeFile(source, content));
+    ASSERT_TRUE(QDir().mkpath(path("lib")));
+    ASSERT_TRUE(writeFile(path("lib/Other.mp3"), content));
+
+    FakeOps fake;
+    fake.failCopyHalfWay = true;
+    EXPECT_EQ(ConsolidateStatus::CopyFailed,
+            consolidateFile(source, target, fake.ops()).status);
+    EXPECT_FALSE(QDir(path("lib/Artist")).exists());
+    EXPECT_TRUE(QFile::exists(path("lib/Other.mp3")));
+}
+
+TEST_F(ConsolidaterTest, UnreadableSourceHashKeepsTheOriginal) {
+    const QString source = path("old/Song.mp3");
+    const QString target = path("lib/Artist/Song.mp3");
+    ASSERT_TRUE(writeFile(source, content));
+
+    FakeOps fake;
+    fake.sourceUnreadable = true;
+    const auto outcome = consolidateFile(source, target, fake.ops());
+
+    EXPECT_EQ(ConsolidateStatus::HashMismatch, outcome.status);
+    EXPECT_EQ(content, readFile(source));
+    EXPECT_FALSE(QFile::exists(target));
+    EXPECT_EQ(0, fake.relocateCalls);
+    EXPECT_TRUE(fake.trashed.isEmpty());
+}
+
+TEST_F(ConsolidaterTest, FailedSyncRemovesTheCopyAndKeepsTheOriginal) {
+    const QString source = path("old/Song.mp3");
+    const QString target = path("lib/Artist/Song.mp3");
+    ASSERT_TRUE(writeFile(source, content));
+
+    FakeOps fake;
+    fake.syncResult = false;
+    const auto outcome = consolidateFile(source, target, fake.ops());
+
+    EXPECT_EQ(ConsolidateStatus::CopyFailed, outcome.status);
+    EXPECT_EQ(content, readFile(source));
+    EXPECT_FALSE(QFile::exists(target));
+    EXPECT_EQ(0, fake.relocateCalls);
+    EXPECT_TRUE(fake.trashed.isEmpty());
+    // No hash was read before the sync succeeded.
+    EXPECT_EQ((QStringList{QStringLiteral("copy"), QStringLiteral("sync")}), fake.events);
+}
+
+TEST_F(ConsolidaterTest, StepsRunInOrderAndTrashComesAfterRelocate) {
+    const QString source = path("old/Song.mp3");
+    const QString target = path("lib/Artist/Song.mp3");
+    ASSERT_TRUE(writeFile(source, content));
+
+    FakeOps fake;
+    ASSERT_EQ(ConsolidateStatus::Consolidated,
+            consolidateFile(source, target, fake.ops()).status);
+
+    // Copy, flush to disk, hash of the original, hash of the copy (read
+    // again), new location, and only then the trash.
+    ASSERT_EQ(6, fake.events.size());
+    EXPECT_EQ(QStringLiteral("copy"), fake.events[0]);
+    EXPECT_EQ(QStringLiteral("sync"), fake.events[1]);
+    EXPECT_TRUE(fake.events[2].startsWith(QStringLiteral("hash:")));
+    EXPECT_TRUE(fake.events[3].startsWith(QStringLiteral("hash:")));
+    EXPECT_EQ(QStringLiteral("relocate"), fake.events[4]);
+    EXPECT_EQ(QStringLiteral("trash"), fake.events[5]);
+    EXPECT_EQ(1, fake.relocateCallsAtTrash);
+}
+
+TEST_F(ConsolidaterTest, LibraryRootMustBeAbsoluteAndTrashSafe) {
+    const auto safe = [](const QString&) { return true; };
+    const auto unsafe = [](const QString&) { return false; };
+    EXPECT_EQ(ConsolidateStatus::InvalidLibraryRoot, *checkLibraryRoot(QString(), safe));
+    EXPECT_EQ(ConsolidateStatus::InvalidLibraryRoot, *checkLibraryRoot(QStringLiteral("  "), safe));
+    EXPECT_EQ(ConsolidateStatus::InvalidLibraryRoot,
+            *checkLibraryRoot(QStringLiteral("music/lib"), safe));
+    EXPECT_EQ(ConsolidateStatus::UnsafeLibraryRoot, *checkLibraryRoot(path("lib"), unsafe));
+    EXPECT_FALSE(checkLibraryRoot(path("lib"), safe).has_value());
+}
+
 TEST_F(ConsolidaterTest, MissingSourceChangesNothing) {
     FakeOps fake;
     const auto outcome = consolidateFile(
@@ -290,7 +422,7 @@ class ConsolidateTrackTest : public LibraryTest {
     }
 };
 
-TEST_F(ConsolidateTrackTest, RelocateTrackLocationChangesTheDatabaseAndTheTrack) {
+TEST_F(ConsolidateTrackTest, RelocateTrackLocationChangesTheDatabaseRow) {
     const QString source = path("old/Song.mp3");
     ASSERT_TRUE(writeFile(source, QByteArrayLiteral("x")));
     const QString target = path("lib/Artist/Song.mp3");
@@ -306,6 +438,92 @@ TEST_F(ConsolidateTrackTest, RelocateTrackLocationChangesTheDatabaseAndTheTrack)
     EXPECT_EQ(newInfo.location() + '|' + newInfo.fileName() + '|' + newInfo.locationPath(),
             locationInDb(id));
     EXPECT_EQ(newInfo.location(),
+            internalCollection()->getTrackDAO().getTrackLocation(id));
+}
+
+TEST_F(ConsolidateTrackTest, RelocateTrackLocationMovesTheCachedTrackToo) {
+    const QString source = path("old/Song.mp3");
+    const QString target = path("lib/Artist/Song.mp3");
+    ASSERT_TRUE(writeFile(source, QByteArrayLiteral("x")));
+    ASSERT_TRUE(writeFile(target, QByteArrayLiteral("x")));
+
+    TrackPointer pTemp = Track::newTemporary(mixxx::FileAccess(mixxx::FileInfo(source)));
+    const TrackId id = internalCollection()->addTrack(pTemp, false);
+    ASSERT_TRUE(id.isValid());
+    pTemp.reset();
+
+    // A track that is in the track cache, as a track in a deck is.
+    TrackPointer held = internalCollection()->getTrackById(id);
+    ASSERT_TRUE(held);
+    const mixxx::FileInfo newInfo(target);
+    const mixxx::FileInfo oldInfo(source);
+    ASSERT_EQ(oldInfo.location(), held->getLocation());
+
+    ASSERT_TRUE(internalCollection()->relocateTrackLocation(id, target));
+
+    // The held object has the new location.
+    EXPECT_EQ(newInfo.location(), held->getLocation());
+    // A new lookup by id gives the same object.
+    EXPECT_EQ(held.get(), GlobalTrackCacheLocker().lookupTrackById(id).get());
+    // A lookup by the new path gives the same object, not a second one.
+    EXPECT_EQ(held.get(),
+            GlobalTrackCacheLocker()
+                    .lookupTrackByRef(TrackRef::fromFilePath(target))
+                    .get());
+    // The old path is not in the cache any more.
+    EXPECT_FALSE(GlobalTrackCacheLocker().lookupTrackByRef(TrackRef::fromFilePath(source)));
+    // Loading the track from the library gives the same object.
+    EXPECT_EQ(held.get(), internalCollection()->getTrackById(id).get());
+}
+
+TEST_F(ConsolidateTrackTest, TrashRunsAfterTheLibraryHasTheNewLocation) {
+    const QString source = path("old/Song.mp3");
+    ASSERT_TRUE(writeFile(source, QByteArrayLiteral("song bytes")));
+    TrackPointer pTrack = Track::newTemporary(mixxx::FileAccess(mixxx::FileInfo(source)));
+    pTrack->setArtist(QStringLiteral("Daft Punk"));
+    const TrackId id = internalCollection()->addTrack(pTrack, false);
+    ASSERT_TRUE(id.isValid());
+
+    QString locationAtTrash;
+    QString trashedFile;
+    const auto outcome = mixxx::library::consolidateTrack(
+            pTrack,
+            path("lib"),
+            mixxx::library::defaultFolderPattern(),
+            internalCollection(),
+            [&](const QString& file) {
+                trashedFile = file;
+                locationAtTrash = internalCollection()->getTrackDAO().getTrackLocation(id);
+                return TrashResult::Moved;
+            });
+    ASSERT_EQ(ConsolidateStatus::Consolidated, outcome.status);
+    EXPECT_EQ(mixxx::FileInfo(source).location(), mixxx::FileInfo(trashedFile).location());
+    // When the trash was called, the library already had the new location.
+    EXPECT_EQ(mixxx::FileInfo(path("lib/Daft Punk/Song.mp3")).location(), locationAtTrash);
+}
+
+TEST_F(ConsolidateTrackTest, RelativeLibraryRootChangesNothing) {
+    const QString source = path("old/Song.mp3");
+    ASSERT_TRUE(writeFile(source, QByteArrayLiteral("song bytes")));
+    TrackPointer pTrack = Track::newTemporary(mixxx::FileAccess(mixxx::FileInfo(source)));
+    const TrackId id = internalCollection()->addTrack(pTrack, false);
+    ASSERT_TRUE(id.isValid());
+    bool trashCalled = false;
+    const auto trash = [&trashCalled](const QString&) {
+        trashCalled = true;
+        return TrashResult::Moved;
+    };
+    for (const QString& root : {QString(), QStringLiteral("lib")}) {
+        const auto outcome = mixxx::library::consolidateTrack(pTrack,
+                root,
+                mixxx::library::defaultFolderPattern(),
+                internalCollection(),
+                trash);
+        EXPECT_EQ(ConsolidateStatus::InvalidLibraryRoot, outcome.status);
+    }
+    EXPECT_FALSE(trashCalled);
+    EXPECT_TRUE(QFile::exists(source));
+    EXPECT_EQ(mixxx::FileInfo(source).location(),
             internalCollection()->getTrackDAO().getTrackLocation(id));
 }
 

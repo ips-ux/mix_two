@@ -67,6 +67,10 @@ QString sanitizePathPart(const QString& value) {
     cutTrailingDotsAndSpaces(&result);
     if (result.size() > kMaxPartLength) {
         result = result.left(kMaxPartLength);
+        // Do not cut a surrogate pair in the middle.
+        if (result.back().isHighSurrogate()) {
+            result.chop(1);
+        }
         cutTrailingDotsAndSpaces(&result);
     }
     if (!result.isEmpty() && isReservedName(result)) {

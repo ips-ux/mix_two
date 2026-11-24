@@ -193,7 +193,9 @@ TrashResult moveToTrashChecked(const QString& path) {
             [](const QString& file) { return isTrashSafeVolume(file); },
             [](const QString& file) {
 #if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
-                return QFile::remove(file);
+                // Never a permanent delete: with no trash call, refuse.
+                Q_UNUSED(file);
+                return false;
 #else
                 return QFile::moveToTrash(file);
 #endif

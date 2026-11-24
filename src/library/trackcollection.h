@@ -161,8 +161,11 @@ class TrackCollection : public QObject,
     FRIEND_TEST(DirectoryDAOTest, relocateDirectory);
     FRIEND_TEST(TrackDAOTest, detectMovedTracks);
     // AI-generated (Claude Code). Start of AI-generated text.
-    FRIEND_TEST(ConsolidateTrackTest, RelocateTrackLocationChangesTheDatabaseAndTheTrack);
+    FRIEND_TEST(ConsolidateTrackTest, RelocateTrackLocationChangesTheDatabaseRow);
     FRIEND_TEST(ConsolidateTrackTest, RelocateTrackLocationRefusesALocationInUse);
+    FRIEND_TEST(ConsolidateTrackTest, RelocateTrackLocationMovesTheCachedTrackToo);
+    FRIEND_TEST(ConsolidateTrackTest, TrashRunsAfterTheLibraryHasTheNewLocation);
+    FRIEND_TEST(ConsolidateTrackTest, RelativeLibraryRootChangesNothing);
     FRIEND_TEST(ConsolidateTrackTest, ConsolidateTrackMovesTheFileAndTheLocation);
     // End of AI-generated text.
     FRIEND_TEST(TrackDAOTest, bpmLockPreservedForTrackWithoutBeats);

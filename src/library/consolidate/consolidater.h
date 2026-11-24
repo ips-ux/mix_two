@@ -22,6 +22,12 @@ enum class ConsolidateStatus {
     Consolidated,
     /// The track has no id or no file location. Nothing happened.
     InvalidTrack,
+    /// The library folder is empty or not an absolute path. Nothing happened.
+    InvalidLibraryRoot,
+    /// The library folder is on a removable or network drive, or behind a
+    /// link to one. The original would go to the trash while the only copy
+    /// is on that drive. Nothing happened.
+    UnsafeLibraryRoot,
     /// The track file is already at the place that the pattern gives.
     AlreadyInLibrary,
     /// The track file does not exist.
@@ -29,8 +35,10 @@ enum class ConsolidateStatus {
     /// A file with that name is already at the target place. Mix Two never
     /// overwrites a file.
     TargetExists,
-    /// The copy failed (or the target folder could not be made). The original
-    /// and the track location are not touched.
+    /// The copy failed, or it could not be flushed to the disk, or the target
+    /// folder could not be made. Mix Two removes what it made (the partial
+    /// copy and the new empty folders). The original and the track location
+    /// are not touched.
     CopyFailed,
     /// The copy differs from the original. Mix Two removed the copy and kept
     /// the original and the track location.
@@ -54,6 +62,9 @@ struct ConsolidateOutcome {
 struct ConsolidateOps {
     /// Copies a file. Must fail when the target exists.
     std::function<bool(const QString& from, const QString& to)> copyFile;
+    /// Writes the copy to the disk (see syncFileToDisk()). False when that
+    /// fails.
+    std::function<bool(const QString& path)> syncCopy;
     /// The content hash of a file; an empty value when the file is not readable.
     std::function<QByteArray(const QString& path)> hashFile;
     /// Points the track at a new location. False when that fails.
@@ -64,6 +75,18 @@ struct ConsolidateOps {
     /// Sends the original to the trash (never from a removable drive).
     std::function<TrashResult(const QString& path)> trashOriginal;
 };
+
+/// Flushes a file to the disk: `QFileDevice::flush()`, then `FlushFileBuffers`
+/// on Windows or `fsync` elsewhere (and `fsync` of the folder where the system
+/// allows it). False when a step fails. After this the system has handed the
+/// data to the drive; a drive with its own write cache can still hold it.
+bool syncFileToDisk(const QString& path);
+
+/// Checks the library folder: it must be an absolute path and `isTrashSafe`
+/// (a function such as isTrashSafeVolume()) must accept it. Returns
+/// `InvalidLibraryRoot` or `UnsafeLibraryRoot`, or no value when it is fine.
+std::optional<ConsolidateStatus> checkLibraryRoot(const QString& libraryRoot,
+        const std::function<bool(const QString&)>& isTrashSafe);
 
 /// The SHA-256 hash of the content of a file, or an empty value on an error.
 QByteArray hashFileContent(const QString& path);
@@ -79,9 +102,11 @@ QString consolidateTargetPath(const QString& sourcePath,
         const QString& folder);
 
 /// Consolidates one file. The steps, in this order:
-/// 1. Copy the file to `targetPath` (never over a file that exists).
-/// 2. Check that the copy has the same content hash as the original.
-///    When it differs, remove the copy and stop: the original stays.
+/// 1. Copy the file to `targetPath` (never over a file that exists). When
+///    the copy fails, remove the partial copy and the folders made for it.
+/// 2. Write the copy to the disk, then read it again from the file and check
+///    that it has the same content hash as the original. When it differs
+///    (or a hash cannot be read), remove the copy and stop: the original stays.
 /// 3. Point the track at the copy. When that fails, remove the copy and stop.
 /// 4. Send the original to the trash. A failure here is not an error of the
 ///    consolidation: the track already points to the copy.

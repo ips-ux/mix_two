@@ -255,18 +255,26 @@ bool TrackCollection::relocateTrackLocation(TrackId trackId, const QString& newL
         if (!query.exec() || query.numRowsAffected() != 1) {
             return false;
         }
+        // The track object in the track cache (for example a track in a
+        // deck) gets the new file too, so that only one track object exists
+        // for this id and it never uses the old path again.
+        GlobalTrackCacheLocker cacheLocker;
+        if (!cacheLocker.relocateCachedTrack(trackId, mixxx::FileAccess(newFile))) {
+            return false;
+        }
         if (!transaction.commit()) {
+            cacheLocker.relocateCachedTrack(
+                    trackId, mixxx::FileAccess(mixxx::FileInfo(oldLocation)));
             return false;
         }
     }
 
-    // Tell the track lists and the cached track object about the new place.
+    // Tell the track lists about the new place.
     QList<RelocatedTrack> relocatedTracks;
     relocatedTracks.append(RelocatedTrack(
             TrackRef::fromFilePath(oldLocation, trackId),
             TrackRef::fromFilePath(newFile.location())));
     m_trackDao.slotDatabaseTracksRelocated(std::move(relocatedTracks));
-    GlobalTrackCacheLocker().relocateCachedTracks(&m_trackDao);
     return true;
 }
 // End of AI-generated text.

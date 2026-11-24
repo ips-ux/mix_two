@@ -119,6 +119,14 @@ void GlobalTrackCacheLocker::relocateCachedTracks(
     m_pInstance->relocateTracks(pRelocator);
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+bool GlobalTrackCacheLocker::relocateCachedTrack(
+        const TrackId& trackId, mixxx::FileAccess fileAccess) const {
+    DEBUG_ASSERT(m_pInstance);
+    return m_pInstance->relocateTrack(trackId, std::move(fileAccess));
+}
+// End of AI-generated text.
+
 void GlobalTrackCacheLocker::purgeTrackId(const TrackId& trackId) {
     DEBUG_ASSERT(m_pInstance);
     m_pInstance->purgeTrackId(trackId);
@@ -363,6 +371,35 @@ void GlobalTrackCache::relocateTracks(
     }
     m_tracksByCanonicalLocation = std::move(relocatedTracksByCanonicalLocation);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+bool GlobalTrackCache::relocateTrack(const TrackId& trackId, mixxx::FileAccess fileAccess) {
+    const auto byId = m_tracksById.find(trackId);
+    if (byId == m_tracksById.end()) {
+        return true;
+    }
+    const TrackRef newRef = TrackRef::fromFileInfo(fileAccess.info(), trackId);
+    if (!newRef.hasCanonicalLocation()) {
+        return false;
+    }
+    const QString newKey = newRef.getCanonicalLocation();
+    const GlobalTrackCacheEntryPointer entry = byId->second;
+    const auto sameKey = m_tracksByCanonicalLocation.find(newKey);
+    if (sameKey != m_tracksByCanonicalLocation.end() && sameKey->second != entry) {
+        return false;
+    }
+    for (auto i = m_tracksByCanonicalLocation.begin(); i != m_tracksByCanonicalLocation.end();) {
+        if (i->second == entry) {
+            i = m_tracksByCanonicalLocation.erase(i);
+        } else {
+            ++i;
+        }
+    }
+    entry->getPlainPtr()->relocate(std::move(fileAccess));
+    m_tracksByCanonicalLocation.insert(std::make_pair(newKey, entry));
+    return true;
+}
+// End of AI-generated text.
 
 void GlobalTrackCache::saveEvictedTrack(Track* pEvictedTrack) const {
     DEBUG_ASSERT(pEvictedTrack);

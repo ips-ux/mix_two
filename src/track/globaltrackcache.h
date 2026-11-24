@@ -99,6 +99,15 @@ public:
     void relocateCachedTracks(
             GlobalTrackCacheRelocator* /*nullable*/ pRelocator) const;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Gives the cached track with this id a new file, also when the old
+    /// file still exists, and re-keys the cache by the new location. Returns
+    /// true when the track is not cached (nothing to do) or is relocated.
+    /// Returns false, and changes nothing, when another cached track
+    /// already uses the new location or the new file has no location.
+    bool relocateCachedTrack(const TrackId& trackId, mixxx::FileAccess fileAccess) const;
+    // End of AI-generated text.
+
     void purgeTrackId(const TrackId& trackId);
 
     // Enforces the eviction of all cached tracks including invocation
@@ -229,6 +238,10 @@ class GlobalTrackCache : public QObject {
 
     void relocateTracks(
             GlobalTrackCacheRelocator* /*nullable*/ pRelocator);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    bool relocateTrack(const TrackId& trackId, mixxx::FileAccess fileAccess);
+    // End of AI-generated text.
 
     TrackPointer lookupById(
             const TrackId& trackId);

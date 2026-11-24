@@ -133,6 +133,18 @@ TEST(FolderPatternTest, EmptyFolderWhenNoPartIsLeft) {
                     QStringLiteral("<album>/<file>")));
 }
 
+TEST(FolderPatternTest, LongNameIsNotCutInsideASurrogatePair) {
+    // 119 letters, then a character outside the BMP (two UTF-16 units): a cut
+    // at 120 units would keep only the first half of the pair.
+    const QString name = QString(119, QLatin1Char('a')) + QString::fromUcs4(U"\U0001F600") +
+            QStringLiteral("tail");
+    const QString clean = sanitizePathPart(name);
+    EXPECT_EQ(119, clean.size());
+    for (const QChar c : clean) {
+        EXPECT_FALSE(c.isSurrogate());
+    }
+}
+
 TEST(FolderPatternTest, TokensAreNotCaseSensitive) {
     EXPECT_EQ(QStringLiteral("Daft Punk"),
             libraryFolderFor(makeRecord(QStringLiteral("Daft Punk")),
