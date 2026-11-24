@@ -233,6 +233,12 @@ PioneerDDJ800.pickupDistance = 0.02;
 // Time in which the position report at start can set the sides, in ms.
 PioneerDDJ800.startReportMs = 1000;
 PioneerDDJ800.stripPickup = {};
+// AI-generated (Claude Code). Start of AI-generated text.
+// Half period of the flashing BEAT FX ON/OFF button, in ms. The manual
+// (p.65) gives no rate.
+PioneerDDJ800.beatFxFlashMs = 250;
+PioneerDDJ800.beatFxFlashTimer = 0;
+// End of AI-generated text.
 // Last physical value of each strip control per side, from any deck of the side.
 PioneerDDJ800.stripLast = {};
 
@@ -313,6 +319,38 @@ PioneerDDJ800.connectLed = function(group, key, status, midino) {
         PioneerDDJ800.setLed(status, midino, value > 0);
     });
 };
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// The BEAT FX ON/OFF button flashes while the effect is on (manual p.65).
+// It starts on. At most one timer runs.
+PioneerDDJ800.stopBeatFxFlash = function() {
+    if (PioneerDDJ800.beatFxFlashTimer) {
+        engine.stopTimer(PioneerDDJ800.beatFxFlashTimer);
+        PioneerDDJ800.beatFxFlashTimer = 0;
+    }
+};
+
+PioneerDDJ800.setBeatFxFlash = function(status, midino, enabled) {
+    PioneerDDJ800.stopBeatFxFlash();
+    if (!enabled) {
+        PioneerDDJ800.setLed(status, midino, false);
+        return;
+    }
+    let on = true;
+    PioneerDDJ800.setLed(status, midino, true);
+    PioneerDDJ800.beatFxFlashTimer = engine.beginTimer(PioneerDDJ800.beatFxFlashMs, function() {
+        on = !on;
+        PioneerDDJ800.setLed(status, midino, on);
+    });
+};
+
+// Fader start "back" message (manual p.62-63): a paused deck gets its cue
+// point at the current position. A playing deck goes back to the cue point
+// and stops.
+PioneerDDJ800.faderStartBack = function(group) {
+    engine.setValue(group, engine.getValue(group, "play") ? "cue_gotoandstop" : "cue_set", 1);
+};
+// End of AI-generated text.
 
 PioneerDDJ800.toggle = function(group, key) {
     engine.setValue(group, key, !engine.getValue(group, key));
@@ -411,6 +449,7 @@ PioneerDDJ800.init = function() {
 PioneerDDJ800.SYSEX_SEND_ALL = [0xF0, 0x00, 0x40, 0x05, 0x00, 0x00, 0x02, 0x09, 0x00, 0x03, 0x01, 0xF7];
 
 PioneerDDJ800.shutdown = function() {
+    PioneerDDJ800.stopBeatFxFlash();
     if (PioneerDDJ800.startReportTimer) {
         engine.stopTimer(PioneerDDJ800.startReportTimer);
         PioneerDDJ800.startReportTimer = 0;
@@ -581,18 +620,19 @@ PioneerDDJ800.initMixer = function() {
     PioneerDDJ800.connectLed("[Master]", "main_cue", S.globalNote, 0x62);
 
     // Crossfader start (sent by the controller when fader start is enabled).
-    const crossfaderStart = function(orientation, key) {
+    const crossfaderStart = function(orientation, action) {
         for (let deck = 0; deck < PioneerDDJ800.numDecks; deck++) {
             const group = PioneerDDJ800.deckGroup(deck);
             if (engine.getValue(group, "orientation") === orientation) {
-                engine.setValue(group, key, 1);
+                action(group);
             }
         }
     };
-    PioneerDDJ800.bindButton(S.globalNote, 0x50, function() { crossfaderStart(0, "play"); });
-    PioneerDDJ800.bindButton(S.globalNote, 0x51, function() { crossfaderStart(2, "play"); });
-    PioneerDDJ800.bindButton(S.globalNote, 0x52, function() { crossfaderStart(0, "cue_gotoandstop"); });
-    PioneerDDJ800.bindButton(S.globalNote, 0x53, function() { crossfaderStart(2, "cue_gotoandstop"); });
+    const startDeck = function(group) { engine.setValue(group, "play", 1); };
+    PioneerDDJ800.bindButton(S.globalNote, 0x50, function() { crossfaderStart(0, startDeck); });
+    PioneerDDJ800.bindButton(S.globalNote, 0x51, function() { crossfaderStart(2, startDeck); });
+    PioneerDDJ800.bindButton(S.globalNote, 0x52, function() { crossfaderStart(0, PioneerDDJ800.faderStartBack); });
+    PioneerDDJ800.bindButton(S.globalNote, 0x53, function() { crossfaderStart(2, PioneerDDJ800.faderStartBack); });
 
     // The deck mixes the mic in hardware. The skin only shows these values.
     PioneerDDJ800.bindHiRes(S.globalCC, 0x05, function(value) {
@@ -702,7 +742,9 @@ PioneerDDJ800.initBeatFx = function() {
     PioneerDDJ800.bindButton(S.fxNote, 0x43, function() {
         engine.setValue(slot, "enabled", 0);
     });
-    PioneerDDJ800.connectLed(slot, "enabled", S.fxNote, 0x47);
+    PioneerDDJ800.connect(slot, "enabled", function(value) {
+        PioneerDDJ800.setBeatFxFlash(S.fxNote, 0x47, value > 0);
+    });
 
     // BEAT </>: step the effect's first parameter, which is the BEAT
     // fraction of the Mix Two BEAT FX (9 steps, 1/16 to 16 beats; 1 beat is
@@ -893,7 +935,7 @@ PioneerDDJ800.initDeck = function(deck) {
 
     // Channel fader start
     PioneerDDJ800.bindButton(note, 0x66, function() { engine.setValue(group, "play", 1); });
-    PioneerDDJ800.bindButton(note, 0x52, function() { engine.setValue(group, "cue_gotoandstop", 1); });
+    PioneerDDJ800.bindButton(note, 0x52, function() { PioneerDDJ800.faderStartBack(group); });
 
     // Input select: DECK sends 0x55/0x56, LINE/PHONO sends 0x57 (and 0x46 on CH3/4).
     const setPassthrough = function(enabled) {

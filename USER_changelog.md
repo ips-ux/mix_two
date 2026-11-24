@@ -59,6 +59,14 @@ To change the mapping settings, go to Preferences > Controllers, then select the
 
 The jog display on the DDJ-800 does not operate yet.
 
+The BEAT FX ON/OFF button flashes while the Beat FX is on.
+
+Fader start sets the cue point of a paused deck. Hold SHIFT and move the
+channel fader fully down, or the crossfader fully to its side. Mix Two sets
+the cue point at the current position. When the deck plays, it goes back to
+the cue point and stops, as before. This is the same as in the DDJ-800
+manual. You must enable fader start on the DDJ-800.
+
 The TEMPO slider of the DDJ-800 now changes the tempo in steps, as rekordbox
 does. The step is 0.02 % at the ±6 % range and 0.04 % at ±10 % and ±16 %.
 The step is 0.5 % at WIDE. In BEAT LOOP mode, SHIFT + pad does nothing.

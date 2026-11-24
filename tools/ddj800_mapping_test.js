@@ -823,6 +823,81 @@ ctxDate.now = realDateNow;
 check("instant double checks leave both sides at 0", values["[Skin],left_deck_alt"] === 0 && values["[Skin],right_deck_alt"] === 0);
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Fader start (manual p.62-63): "back" sets the cue on a paused deck and
+// goes back to the cue point and stops on a playing deck.
+{
+    const reset = () => { for (let d = 1; d <= 4; d++) { values["[Channel" + d + "],play"] = 0; values["[Channel" + d + "],orientation"] = 1; } };
+    reset();
+    let m = sets.length;
+    send(0x91, 0x52, 0x7F);
+    check("fader start: channel fader back on a paused deck -> cue_set", did(m, "[Channel2]", "cue_set", 1) && !did(m, "[Channel2]", "cue_gotoandstop"));
+    values["[Channel2],play"] = 1;
+    m = sets.length;
+    send(0x91, 0x52, 0x7F);
+    check("fader start: channel fader back on a playing deck -> cue_gotoandstop", did(m, "[Channel2]", "cue_gotoandstop", 1) && !did(m, "[Channel2]", "cue_set"));
+    values["[Channel2],play"] = 0;
+    m = sets.length;
+    send(0x91, 0x66, 0x7F);
+    check("fader start: channel fader start still sets play", did(m, "[Channel2]", "play", 1));
+
+    reset();
+    values["[Channel1],orientation"] = 0; values["[Channel3],orientation"] = 0;
+    values["[Channel3],play"] = 1;
+    values["[Channel2],orientation"] = 1; values["[Channel4],orientation"] = 2;
+    m = sets.length;
+    send(0x96, 0x52, 0x7F);
+    check("fader start: crossfader back left, paused deck -> cue_set", did(m, "[Channel1]", "cue_set", 1) && !did(m, "[Channel1]", "cue_gotoandstop"));
+    check("fader start: crossfader back left, playing deck -> cue_gotoandstop", did(m, "[Channel3]", "cue_gotoandstop", 1) && !did(m, "[Channel3]", "cue_set"));
+    check("fader start: crossfader back left leaves other orientations", ["[Channel2]", "[Channel4]"].every(g => !did(m, g, "cue_set") && !did(m, g, "cue_gotoandstop")));
+
+    reset();
+    values["[Channel2],orientation"] = 2; values["[Channel4],orientation"] = 2;
+    values["[Channel4],play"] = 1;
+    values["[Channel1],orientation"] = 0; values["[Channel3],orientation"] = 1;
+    m = sets.length;
+    send(0x96, 0x53, 0x7F);
+    check("fader start: crossfader back right, paused deck -> cue_set", did(m, "[Channel2]", "cue_set", 1) && !did(m, "[Channel2]", "cue_gotoandstop"));
+    check("fader start: crossfader back right, playing deck -> cue_gotoandstop", did(m, "[Channel4]", "cue_gotoandstop", 1) && !did(m, "[Channel4]", "cue_set"));
+    check("fader start: crossfader back right leaves other orientations", ["[Channel1]", "[Channel3]"].every(g => !did(m, g, "cue_set") && !did(m, g, "cue_gotoandstop")));
+
+    reset();
+    values["[Channel1],orientation"] = 0; values["[Channel2],orientation"] = 2;
+    m = sets.length;
+    send(0x96, 0x50, 0x7F);
+    send(0x96, 0x51, 0x7F);
+    check("fader start: crossfader start still sets play", did(m, "[Channel1]", "play", 1) && did(m, "[Channel2]", "play", 1));
+    reset();
+}
+
+// BEAT FX ON/OFF flashes while the effect is on (manual p.65).
+{
+    const fxLeds = from => leds.slice(from).filter(l => l[0] === 0x94 && l[1] === 0x47).map(l => l[2]);
+    const live = () => Object.values(timers).filter(tm => !tm.oneShot && tm.ms === P.beatFxFlashMs);
+    check("beat fx flash: half period is 250 ms", P.beatFxFlashMs === 250);
+    engine.setValue(fxSlot, "enabled", 0);
+    let l = leds.length;
+    engine.setValue(fxSlot, "enabled", 1);
+    check("beat fx flash: effect on -> first LED message is on", fxLeds(l)[0] === P.LED_ON);
+    check("beat fx flash: effect on -> one timer with beatFxFlashMs", live().length === 1);
+    l = leds.length;
+    live().forEach(tm => tm.cb());
+    live().forEach(tm => tm.cb());
+    live().forEach(tm => tm.cb());
+    const ticks = fxLeds(l);
+    check("beat fx flash: ticks alternate off, on, off", ticks.length === 3 && ticks[0] === P.LED_OFF && ticks[1] === P.LED_ON && ticks[2] === P.LED_OFF);
+    engine.setValue(fxSlot, "enabled", 1);
+    check("beat fx flash: enabled written 1 two times -> one timer", live().length === 1);
+    l = leds.length;
+    engine.setValue(fxSlot, "enabled", 0);
+    const offLeds = fxLeds(l);
+    check("beat fx flash: effect off -> timer stopped, last LED message off", live().length === 0 && offLeds[offLeds.length - 1] === P.LED_OFF);
+    engine.setValue(fxSlot, "enabled", 1);
+    check("beat fx flash: effect on again -> timer runs", live().length === 1);
+    // shutdown is checked here and the script is not used after it.
+}
+// End of AI-generated text.
+
 // Every bound handler runs without throwing (press and release).
 let thrown = 0;
 for (const k of Object.keys(handlers)) {
@@ -832,7 +907,12 @@ for (const k of Object.keys(handlers)) {
     }
 }
 check("no handler throws (" + Object.keys(handlers).length + " bindings)", thrown === 0);
+engine.setValue(fxSlot, "enabled", 0);
+engine.setValue(fxSlot, "enabled", 1);
+const flashLive = () => Object.values(timers).filter(tm => !tm.oneShot && tm.ms === P.beatFxFlashMs).length;
+const flashBefore = flashLive();
 try { P.shutdown(); check("shutdown runs", true); } catch (e) { check("shutdown runs: " + e.message, false); }
+check("beat fx flash: shutdown with the effect on stops the timer", flashBefore === 1 && flashLive() === 0);
 
 console.log(failures ? failures + " FAILED" : "ALL PASSED");
 process.exit(failures ? 1 : 0);
