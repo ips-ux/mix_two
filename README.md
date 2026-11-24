@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 347 | 229 | 194 | 61 | 0 | 0 | 72 |
+| Features | 344 | 229 | 197 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: stick functions: restore the newest backup; delete a playlist with its unused tracks (commit: see git log, "Device export: restore the newest backup of a stick" and "Device export: delete a playlist from a stick with its unused tracks")
 - 2026-11-24: 256-frame buffer for a new DDJ-800 sound setup; Preview volume in the sound preferences (commit: see git log, "Sound: 256-frame buffer for the DDJ-800; preview volume in the sound preferences")
 - 2026-11-24: small tempo buttons use rekordbox's steps; one script runs all export judges (commit: see git log, "Tempo: the small tempo buttons use rekordbox's steps for the tempo range" and "tools: export_verify.py runs all export judges on a stick")
 - 2026-11-23: channel effect units are not heard on the headphone CUE (commit: see git log, "Engine: channel effect units are not heard on the headphone CUE")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-18: Beat FX list unlocked again, Beat FX on/off locked to the DDJ-800 (commit: see git log, "Skin: Beat FX list free again, on/off locked to the DDJ-800")
 - 2026-11-18: Beat FX effect list locked while the DDJ-800 is connected (commit: see git log, "Skin: Beat FX list locked while the DDJ-800 is connected")
 - 2026-11-18: STE word check script for the text that the user reads (commit: see git log, "tools: STE word check for the text that the user reads")
-- 2026-11-18: DDJ-800 mapping comments match the code, option text in STE (commit: see git log, "DDJ-800 mapping: header comments match the code, option text in plain technical English")
 
 <!-- mixtwo-status:end -->
 
