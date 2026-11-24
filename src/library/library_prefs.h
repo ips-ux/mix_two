@@ -88,6 +88,10 @@ const bool kCenterSelectedTrackDefault = false;
 // Show the whole cover picture in the artwork column. Off shows the upper part.
 extern const ConfigKey kCoverArtShowWholeConfigKey;
 const bool kCoverArtShowWholeDefault = false;
+
+// The folder pattern of consolidate (see libraryFolderFor()). The default
+// pattern is in library/consolidate/folderpattern.h.
+extern const ConfigKey kConsolidateFolderPatternConfigKey;
 // End of AI-generated text.
 
 } // namespace prefs

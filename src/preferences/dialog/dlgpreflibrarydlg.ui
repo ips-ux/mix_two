@@ -539,6 +539,38 @@
    </item>
 
    <item>
+    <widget class="QGroupBox" name="groupBox_consolidate">
+     <property name="title">
+      <string>Consolidate</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_consolidate">
+
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_consolidate_folder_pattern">
+        <property name="text">
+         <string>Folder pattern:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+        <property name="buddy">
+         <cstring>lineEdit_consolidate_folder_pattern</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEdit_consolidate_folder_pattern">
+        <property name="toolTip">
+         <string>The folder below the library folder where Consolidate puts a track. Use &lt;artist&gt;, &lt;album&gt;, &lt;year&gt; and &lt;genre&gt; for the tags of the track. &lt;file&gt; is the file name. Mix Two never changes the file name. A track with no artist goes to the folder Various-Uncategorized.</string>
+        </property>
+       </widget>
+      </item>
+
+     </layout>
+    </widget>
+   </item>
+
+   <item>
     <widget class="QGroupBox" name="groupBox_History">
      <property name="title">
       <string>Session History</string>
@@ -872,6 +904,7 @@
   <tabstop>comboBox_search_bpm_fuzzy_range</tabstop>
   <tabstop>spinBox_sidebar_hover_expand_delay</tabstop>
   <tabstop>checkBox_show_track_count</tabstop>
+  <tabstop>lineEdit_consolidate_folder_pattern</tabstop>
   <tabstop>spinbox_history_track_duplicate_distance</tabstop>
   <tabstop>spinbox_history_min_tracks_to_keep</tabstop>
   <tabstop>checkBox_show_rhythmbox</tabstop>

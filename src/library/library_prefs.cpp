@@ -159,4 +159,9 @@ const ConfigKey mixxx::library::prefs::kCoverArtShowWholeConfigKey =
         ConfigKey{
                 mixxx::library::prefs::kConfigGroup,
                 QStringLiteral("CoverArtShowWhole")};
+
+const ConfigKey mixxx::library::prefs::kConsolidateFolderPatternConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("ConsolidateFolderPattern")};
 // End of AI-generated text.

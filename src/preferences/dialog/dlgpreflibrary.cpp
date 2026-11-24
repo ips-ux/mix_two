@@ -13,6 +13,7 @@
 #include "control/controlproxy.h"
 #include "defs_urls.h"
 #include "library/basetracktablemodel.h"
+#include "library/consolidate/folderpattern.h"
 #include "library/dlgtrackmetadataexport.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
@@ -318,6 +319,7 @@ void DlgPrefLibrary::slotResetToDefaults() {
     checkBox_center_selected_track->setChecked(kCenterSelectedTrackDefault);
     checkBox_artwork_whole->setChecked(kCoverArtShowWholeDefault);
     checkBox_reset_played_on_exit->setChecked(kResetPlayedOnExitDefault);
+    lineEdit_consolidate_folder_pattern->setText(mixxx::library::defaultFolderPattern());
     // End of AI-generated text.
 
     checkBox_show_rhythmbox->setChecked(true);
@@ -455,6 +457,9 @@ void DlgPrefLibrary::slotUpdate() {
     CoverArtDelegate::setShowWholeArtwork(artworkWhole);
     checkBox_reset_played_on_exit->setChecked(m_pConfig->getValue(
             kResetPlayedOnExitConfigKey, kResetPlayedOnExitDefault));
+    lineEdit_consolidate_folder_pattern->setText(m_pConfig->getValue(
+            kConsolidateFolderPatternConfigKey,
+            mixxx::library::defaultFolderPattern()));
     // End of AI-generated text.
 
     // Library reads font from config during construction
@@ -719,6 +724,15 @@ void DlgPrefLibrary::slotApply() {
     CoverArtDelegate::setShowWholeArtwork(checkBox_artwork_whole->isChecked());
     m_pConfig->setValue(kResetPlayedOnExitConfigKey,
             checkBox_reset_played_on_exit->isChecked());
+    {
+        // An empty pattern means the default pattern.
+        QString pattern = lineEdit_consolidate_folder_pattern->text().trimmed();
+        if (pattern.isEmpty()) {
+            pattern = mixxx::library::defaultFolderPattern();
+            lineEdit_consolidate_folder_pattern->setText(pattern);
+        }
+        m_pConfig->setValue(kConsolidateFolderPatternConfigKey, pattern);
+    }
     // End of AI-generated text.
 
     int rowHeight = spinBox_row_height->value();

@@ -224,6 +224,53 @@ DirectoryDAO::RelocateResult TrackCollection::relocateDirectory(
     return result;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+bool TrackCollection::relocateTrackLocation(TrackId trackId, const QString& newLocation) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+    if (!trackId.isValid()) {
+        return false;
+    }
+    const mixxx::FileInfo newFile(newLocation);
+    if (!newFile.checkFileExists() || !newFile.hasLocation()) {
+        return false;
+    }
+    const QString oldLocation = m_trackDao.getTrackLocation(trackId);
+    if (oldLocation.isEmpty()) {
+        return false;
+    }
+
+    {
+        SqlTransaction transaction(m_database);
+        QSqlQuery query(m_database);
+        // The `location` column is unique: when another track already uses
+        // the new location, the query fails and nothing changes.
+        query.prepare(QStringLiteral(
+                "UPDATE track_locations SET location=:newloc, directory=:newdir, "
+                "filename=:newname, fs_deleted=0, needs_verification=0 "
+                "WHERE id=(SELECT location FROM library WHERE id=:id)"));
+        query.bindValue(QStringLiteral(":newloc"), newFile.location());
+        query.bindValue(QStringLiteral(":newdir"), newFile.locationPath());
+        query.bindValue(QStringLiteral(":newname"), newFile.fileName());
+        query.bindValue(QStringLiteral(":id"), trackId.toVariant());
+        if (!query.exec() || query.numRowsAffected() != 1) {
+            return false;
+        }
+        if (!transaction.commit()) {
+            return false;
+        }
+    }
+
+    // Tell the track lists and the cached track object about the new place.
+    QList<RelocatedTrack> relocatedTracks;
+    relocatedTracks.append(RelocatedTrack(
+            TrackRef::fromFilePath(oldLocation, trackId),
+            TrackRef::fromFilePath(newFile.location())));
+    m_trackDao.slotDatabaseTracksRelocated(std::move(relocatedTracks));
+    GlobalTrackCacheLocker().relocateCachedTracks(&m_trackDao);
+    return true;
+}
+// End of AI-generated text.
+
 QList<TrackId> TrackCollection::resolveTrackIds(
         const QList<QUrl>& urls,
         TrackDAO::ResolveTrackIdFlags flags) {

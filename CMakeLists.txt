@@ -1447,6 +1447,8 @@ add_library(
   src/library/browse/browsethread.cpp
   src/library/browse/foldertreemodel.cpp
   src/library/columncache.cpp
+  src/library/consolidate/consolidater.cpp
+  src/library/consolidate/folderpattern.cpp
   src/library/coverart.cpp
   src/library/coverartcache.cpp
   src/library/coverartutils.cpp
@@ -3009,6 +3011,7 @@ if(BUILD_TESTING)
     src/test/colormapperjsproxy_test.cpp
     src/test/colorpalette_test.cpp
     src/test/configobject_test.cpp
+    src/test/consolidater_test.cpp
     src/test/controller_mapping_validation_test.cpp
     src/test/controller_mapping_settings_test.cpp
     src/test/controllers/controller_columnid_regression_test.cpp
@@ -3041,6 +3044,7 @@ if(BUILD_TESTING)
     src/test/fileinfo_test.cpp
     src/test/frametest.cpp
     src/test/globaltrackcache_test.cpp
+    src/test/folderpattern_test.cpp
     src/test/hotcuecontrol_test.cpp
     src/test/hotcueorderbyposition_test.cpp
     src/test/imageutils_test.cpp

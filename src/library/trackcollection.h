@@ -86,6 +86,15 @@ class TrackCollection : public QObject,
 
     bool updateAutoDjCrate(CrateId crateId, bool isAutoDjSource);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Points a track at another file: the location, the file name and the
+    /// folder in the library change, the track keeps its id, cues, playlists
+    /// and crates. Returns false (and changes nothing) when the track is
+    /// unknown or another track already uses `newLocation`. The file must
+    /// exist at `newLocation`. Used by consolidate.
+    bool relocateTrackLocation(TrackId trackId, const QString& newLocation);
+    // End of AI-generated text.
+
   signals:
     // Forwarded signals from LibraryScanner
     void scanTrackAdded(TrackPointer pTrack);
@@ -151,6 +160,11 @@ class TrackCollection : public QObject,
             bool* pAlreadyInLibrary = nullptr);
     FRIEND_TEST(DirectoryDAOTest, relocateDirectory);
     FRIEND_TEST(TrackDAOTest, detectMovedTracks);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    FRIEND_TEST(ConsolidateTrackTest, RelocateTrackLocationChangesTheDatabaseAndTheTrack);
+    FRIEND_TEST(ConsolidateTrackTest, RelocateTrackLocationRefusesALocationInUse);
+    FRIEND_TEST(ConsolidateTrackTest, ConsolidateTrackMovesTheFileAndTheLocation);
+    // End of AI-generated text.
     FRIEND_TEST(TrackDAOTest, bpmLockPreservedForTrackWithoutBeats);
     FRIEND_TEST(TrackDAOTest, markTrackLocationsAsVerifiedRecoversPresentFilesOnly);
     TrackId addTrack(
