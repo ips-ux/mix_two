@@ -1,10 +1,12 @@
 #pragma once
 
 #include <QDialog>
+#include <QList>
 #include <QSharedPointer>
 #include <QString>
 
 #include "preferences/usersettings.h"
+#include "track/trackid.h"
 #include "util/optional.h"
 #include "util/parented_ptr.h"
 
@@ -39,6 +41,15 @@ class DlgDeviceExport : public QDialog {
     /// library". An unknown crate or playlist is ignored.
     void setInitialSelection(std::optional<CrateId> crateId, std::optional<int> playlistId);
 
+    /// Selects the mode "Selected tracks" for these tracks (the "Export
+    /// Track" item of the track menu). An empty list selects the mode "Whole
+    /// library". A call of setInitialSelection() replaces the tracks.
+    void setInitialTracks(const QList<TrackId>& trackIds);
+
+    /// The request for the stick at `stickRoot`, with the choice of tracks
+    /// that the dialog shows now. The dialog sends it with `startExport`.
+    QSharedPointer<DeviceLibraryPlusExportRequest> makeRequest(const QString& stickRoot) const;
+
     /// Reads the sticks, the crates and the playlists again.
     void refresh();
 
@@ -58,6 +69,9 @@ class DlgDeviceExport : public QDialog {
     /// else the first stick.
     void fillStickCombo(const QString& wantedRoot);
     QString currentStickRoot() const;
+    /// Shows the radio button "Selected tracks" when the dialog has tracks.
+    void updateSelectedTracksRadio();
+    void clearCratesAndPlaylistsSelection();
     void browseForStick();
 
     UserSettingsPointer m_pConfig;
@@ -65,13 +79,17 @@ class DlgDeviceExport : public QDialog {
 
     /// The folder that the user chose with "Browse...", else empty.
     QString m_browsedFolder;
+    /// The tracks of the "Export Track" item of the track menu, else empty.
+    QList<TrackId> m_trackIds;
     /// The index in the stick combo before the user chose "Browse...".
     int m_previousStickIndex;
 
     parented_ptr<QComboBox> m_pStickCombo;
+    parented_ptr<QLabel> m_pStickWarningIcon;
     parented_ptr<QLabel> m_pStickInfoLabel;
     parented_ptr<QRadioButton> m_pWholeLibraryRadio;
     parented_ptr<QRadioButton> m_pCratesAndPlaylistsRadio;
+    parented_ptr<QRadioButton> m_pSelectedTracksRadio;
     parented_ptr<QListWidget> m_pCratesList;
     parented_ptr<QListWidget> m_pPlaylistsList;
     parented_ptr<QCheckBox> m_pPlusCheckBox;

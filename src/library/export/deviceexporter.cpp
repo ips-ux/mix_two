@@ -68,9 +68,14 @@ DeviceExporter::~DeviceExporter() {
     }
 }
 
+void DeviceExporter::slotRequestExportWithInitialTracks(const QList<TrackId>& trackIds) {
+    requestExportWithOptionalInitialSelection(std::nullopt, std::nullopt, trackIds);
+}
+
 void DeviceExporter::requestExportWithOptionalInitialSelection(
         std::optional<CrateId> initialSelectedCrateId,
-        std::optional<int> initialSelectedPlaylistId) {
+        std::optional<int> initialSelectedPlaylistId,
+        const QList<TrackId>& initialTrackIds) {
     if (m_pJob && m_pJob->isRunning()) {
         // The progress dialog blocks the main window, so this is rare.
         qDebug() << "Device Library Plus export: an export runs already";
@@ -88,6 +93,10 @@ void DeviceExporter::requestExportWithOptionalInitialSelection(
 
     m_pDialog->refresh();
     m_pDialog->setInitialSelection(initialSelectedCrateId, initialSelectedPlaylistId);
+    // Tracks replace the choice of the line above: the mode "Selected tracks".
+    if (!initialTrackIds.isEmpty()) {
+        m_pDialog->setInitialTracks(initialTrackIds);
+    }
     m_pDialog->show();
     m_pDialog->raise();
     m_pDialog->setWindowState(

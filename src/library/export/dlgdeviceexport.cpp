@@ -12,8 +12,10 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QSet>
 #include <QStandardPaths>
 #include <QStorageInfo>
+#include <QStyle>
 #include <QVBoxLayout>
 
 #include "library/export/devicelibraryplusexportrequest.h"
@@ -69,6 +71,9 @@ QString fileSystemWarning(const rekordbox::DlpStickInfo& info) {
     return rekordbox::dlpMessageFileSystemNotForPlayers(fileSystemName(info.root));
 }
 
+/// The size of the warning icon next to the text about the stick.
+constexpr int kWarningIconSize = 24;
+
 QString toNativePath(const QString& path) {
     return QDir::toNativeSeparators(path);
 }
@@ -90,6 +95,15 @@ DlgDeviceExport::DlgDeviceExport(
     m_pStickCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     m_pStickInfoLabel = make_parented<QLabel>(this);
     m_pStickInfoLabel->setWordWrap(true);
+    // The warning icon for a file system that players cannot read. It shows
+    // next to the text, and only when the text is about that file system.
+    m_pStickWarningIcon = make_parented<QLabel>(this);
+    m_pStickWarningIcon->setPixmap(style()->standardIcon(QStyle::SP_MessageBoxWarning)
+                                           .pixmap(kWarningIconSize, kWarningIconSize));
+    m_pStickWarningIcon->setAlignment(Qt::AlignTop);
+    m_pStickWarningIcon->setToolTip(
+            tr("Players cannot read the file system of this stick."));
+    m_pStickWarningIcon->setVisible(false);
     connect(m_pStickCombo,
             QOverload<int>::of(&QComboBox::activated),
             this,
@@ -97,13 +111,20 @@ DlgDeviceExport::DlgDeviceExport(
     auto pStickGroup = make_parented<QGroupBox>(tr("Stick"), this);
     auto pStickLayout = make_parented<QVBoxLayout>(pStickGroup.get());
     pStickLayout->addWidget(m_pStickCombo);
-    pStickLayout->addWidget(m_pStickInfoLabel);
+    auto pStickInfoLayout = std::make_unique<QHBoxLayout>();
+    pStickInfoLayout->addWidget(m_pStickWarningIcon);
+    pStickInfoLayout->addWidget(m_pStickInfoLabel, 1);
+    pStickLayout->addLayout(pStickInfoLayout.release());
 
     // The tracks
     m_pWholeLibraryRadio = make_parented<QRadioButton>(tr("Whole library"), this);
     m_pWholeLibraryRadio->setChecked(true);
     m_pCratesAndPlaylistsRadio =
             make_parented<QRadioButton>(tr("Selected crates and playlists"), this);
+    // The mode for the "Export Track" item of the track menu. It shows only
+    // when the dialog has tracks.
+    m_pSelectedTracksRadio = make_parented<QRadioButton>(this);
+    m_pSelectedTracksRadio->setVisible(false);
     auto pCratesLabel = make_parented<QLabel>(tr("Crates"), this);
     m_pCratesList = make_parented<QListWidget>(this);
     m_pCratesList->setSelectionMode(QListWidget::ExtendedSelection);
@@ -117,11 +138,12 @@ DlgDeviceExport::DlgDeviceExport(
     auto pTracksGroup = make_parented<QGroupBox>(tr("Tracks"), this);
     auto pTracksLayout = make_parented<QGridLayout>(pTracksGroup.get());
     pTracksLayout->addWidget(m_pWholeLibraryRadio, 0, 0, 1, 2);
-    pTracksLayout->addWidget(m_pCratesAndPlaylistsRadio, 1, 0, 1, 2);
-    pTracksLayout->addWidget(pCratesLabel, 2, 0);
-    pTracksLayout->addWidget(pPlaylistsLabel, 2, 1);
-    pTracksLayout->addWidget(m_pCratesList, 3, 0);
-    pTracksLayout->addWidget(m_pPlaylistsList, 3, 1);
+    pTracksLayout->addWidget(m_pSelectedTracksRadio, 1, 0, 1, 2);
+    pTracksLayout->addWidget(m_pCratesAndPlaylistsRadio, 2, 0, 1, 2);
+    pTracksLayout->addWidget(pCratesLabel, 3, 0);
+    pTracksLayout->addWidget(pPlaylistsLabel, 3, 1);
+    pTracksLayout->addWidget(m_pCratesList, 4, 0);
+    pTracksLayout->addWidget(m_pPlaylistsList, 4, 1);
 
     // The format
     m_pPlusCheckBox = make_parented<QCheckBox>(tr("Device Library Plus"), this);
@@ -166,8 +188,41 @@ void DlgDeviceExport::refresh() {
     updateModeAndFormat();
 }
 
+void DlgDeviceExport::setInitialTracks(const QList<TrackId>& trackIds) {
+    m_trackIds.clear();
+    QSet<TrackId> known;
+    for (const TrackId& trackId : trackIds) {
+        if (trackId.isValid() && !known.contains(trackId)) {
+            known.insert(trackId);
+            m_trackIds.append(trackId);
+        }
+    }
+    clearCratesAndPlaylistsSelection();
+    updateSelectedTracksRadio();
+    if (m_trackIds.isEmpty()) {
+        m_pWholeLibraryRadio->setChecked(true);
+    } else {
+        m_pSelectedTracksRadio->setChecked(true);
+    }
+    updateModeAndFormat();
+}
+
+void DlgDeviceExport::updateSelectedTracksRadio() {
+    m_pSelectedTracksRadio->setVisible(!m_trackIds.isEmpty());
+    m_pSelectedTracksRadio->setText(
+            tr("Selected tracks (%n)", nullptr, static_cast<int>(m_trackIds.size())));
+}
+
+void DlgDeviceExport::clearCratesAndPlaylistsSelection() {
+    m_pCratesList->clearSelection();
+    m_pPlaylistsList->clearSelection();
+}
+
 void DlgDeviceExport::setInitialSelection(
         std::optional<CrateId> crateId, std::optional<int> playlistId) {
+    // A choice of a crate or a playlist replaces the tracks.
+    m_trackIds.clear();
+    updateSelectedTracksRadio();
     selectInitialListItems(m_pCratesList, m_pPlaylistsList, crateId, playlistId);
     // Without a crate and a playlist the mode is "Whole library".
     if (crateId || playlistId) {
@@ -265,6 +320,7 @@ void DlgDeviceExport::updateStickInfo() {
     const QString root = currentStickRoot();
     if (root.isEmpty()) {
         m_pStickInfoLabel->clear();
+        m_pStickWarningIcon->setVisible(false);
         return;
     }
     const rekordbox::DlpStickInfo info = rekordbox::dlpStickInfo(root);
@@ -276,6 +332,7 @@ void DlgDeviceExport::updateStickInfo() {
     if (!fileSystemText.isEmpty()) {
         lines << fileSystemText;
     }
+    m_pStickWarningIcon->setVisible(!fileSystemText.isEmpty());
     if (info.hasLegacyLibrary) {
         lines << rekordbox::dlpMessageHasLegacyLibrary();
     }
@@ -303,11 +360,8 @@ void DlgDeviceExport::exportRequested() {
     }
 
     const bool selectionMode = m_pCratesAndPlaylistsRadio->isChecked();
-    const QList<QListWidgetItem*> selectedCrates =
-            selectionMode ? m_pCratesList->selectedItems() : QList<QListWidgetItem*>();
-    const QList<QListWidgetItem*> selectedPlaylists =
-            selectionMode ? m_pPlaylistsList->selectedItems() : QList<QListWidgetItem*>();
-    if (selectionMode && selectedCrates.isEmpty() && selectedPlaylists.isEmpty()) {
+    if (selectionMode && m_pCratesList->selectedItems().isEmpty() &&
+            m_pPlaylistsList->selectedItems().isEmpty()) {
         QMessageBox::warning(this,
                 tr("Export to a USB stick"),
                 tr("Select one or more crates or playlists."));
@@ -328,27 +382,39 @@ void DlgDeviceExport::exportRequested() {
         } else {
             question += tr("Do you want to continue?");
         }
-        const auto answer = QMessageBox::question(this,
+        // A file system that players cannot read gets the warning icon.
+        QMessageBox box(fileSystemText.isEmpty() ? QMessageBox::Question : QMessageBox::Warning,
                 tr("Export to a USB stick"),
                 question,
                 QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No);
-        if (answer != QMessageBox::Yes) {
+                this);
+        box.setDefaultButton(QMessageBox::No);
+        if (box.exec() != QMessageBox::Yes) {
             return;
         }
     }
 
-    auto pRequest = QSharedPointer<DeviceLibraryPlusExportRequest>::create();
-    pRequest->stickRoot = root;
-    for (auto* pItem : selectedCrates) {
-        pRequest->crateIds.insert(CrateId{pItem->data(Qt::UserRole)});
-    }
-    for (auto* pItem : selectedPlaylists) {
-        pRequest->playlistIds.insert(pItem->data(Qt::UserRole).toInt());
-    }
-
-    emit startExport(pRequest);
+    emit startExport(makeRequest(root));
     accept();
+}
+
+QSharedPointer<DeviceLibraryPlusExportRequest> DlgDeviceExport::makeRequest(
+        const QString& stickRoot) const {
+    auto pRequest = QSharedPointer<DeviceLibraryPlusExportRequest>::create();
+    pRequest->stickRoot = stickRoot;
+    if (m_pSelectedTracksRadio->isChecked()) {
+        for (const TrackId& trackId : m_trackIds) {
+            pRequest->trackIds.insert(trackId.toVariant().toInt());
+        }
+    } else if (m_pCratesAndPlaylistsRadio->isChecked()) {
+        for (auto* pItem : m_pCratesList->selectedItems()) {
+            pRequest->crateIds.insert(CrateId{pItem->data(Qt::UserRole)});
+        }
+        for (auto* pItem : m_pPlaylistsList->selectedItems()) {
+            pRequest->playlistIds.insert(pItem->data(Qt::UserRole).toInt());
+        }
+    }
+    return pRequest;
 }
 
 } // namespace mixxx

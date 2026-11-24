@@ -504,6 +504,17 @@ In the track menu, **Add to Playlist** shows the folders as submenus.
 You cannot drag playlists into folders yet. Mix Two sorts the tree
 alphabetically, with folders first.
 
+### Export to a USB stick
+
+The track menu has a new item, **Export Track**. Select one or more tracks,
+open the track menu, then select **Export Track**. The export dialog opens with
+the mode **Selected tracks**. Select a stick, then push **Export**. Mix Two
+puts only these tracks on the stick, with no playlist.
+
+The export dialog now shows a warning icon next to the text about a stick
+that players cannot read. The question before the export also has the warning
+icon. You can still continue.
+
 ### Library preferences
 
 The sidebar no longer shows the track count after the name of a playlist or

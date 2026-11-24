@@ -169,7 +169,17 @@ void DeviceLibraryPlusExportJob::loadIds() {
                                                            : TrackEntry{trackId, {}, {}, {}});
     };
 
-    if (m_request.crateIds.isEmpty() && m_request.playlistIds.isEmpty()) {
+    if (m_request.crateIds.isEmpty() && m_request.playlistIds.isEmpty() &&
+            !m_request.trackIds.isEmpty()) {
+        // The tracks of the request only, with no crate and no playlist. A
+        // hidden track is exported too: the user chose it. The order of the
+        // library keeps the export the same for the same tracks.
+        for (const TrackId& trackId : std::as_const(orderedIds)) {
+            if (m_request.trackIds.contains(trackId.toVariant().toInt())) {
+                addTrack(trackId);
+            }
+        }
+    } else if (m_request.crateIds.isEmpty() && m_request.playlistIds.isEmpty()) {
         // The whole library: the tracks that are not hidden, the crates that
         // contain them, and all playlists (as the Engine DJ export does).
         for (const TrackId& trackId : std::as_const(orderedIds)) {

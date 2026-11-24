@@ -59,11 +59,13 @@ class WTrackMenu : public QMenu {
         SelectInLibrary = 1 << 15,
         Analyze = 1 << 16,
         FindOnWeb = 1 << 17,
+        // Mix Two: "Export Track", the export of the tracks to a stick.
+        ExportTrack = 1 << 18,
         TrackModelFeatures = Remove | HideUnhidePurge,
         All = AutoDJ | LoadTo | Playlist | Crate | Remove | Metadata | Reset | Analyze |
                 BPM | Color | HideUnhidePurge | RemoveFromDisk | FileBrowser |
                 Properties | SearchRelated | UpdateReplayGainFromPregain | SelectInLibrary |
-                FindOnWeb
+                FindOnWeb | ExportTrack
     };
     Q_DECLARE_FLAGS(Features, Feature)
 
@@ -135,6 +137,7 @@ class WTrackMenu : public QMenu {
     // File
     void slotOpenInFileBrowser();
     void slotSelectInLibrary();
+    void slotExportTrack();
 
     // Track rating
     void slotSetRating(int rating);
@@ -333,6 +336,7 @@ class WTrackMenu : public QMenu {
 
     // Open file in default file browser
     parented_ptr<QAction> m_pFileBrowserAct;
+    parented_ptr<QAction> m_pExportTrackAct;
 
     // Select track in library
     parented_ptr<QAction> m_pSelectInLibraryAct;

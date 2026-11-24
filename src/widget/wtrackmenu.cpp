@@ -399,6 +399,13 @@ void WTrackMenu::createActions() {
         connect(m_pFileBrowserAct, &QAction::triggered, this, &WTrackMenu::slotOpenInFileBrowser);
     }
 
+    if (featureIsEnabled(Feature::ExportTrack)) {
+        // Mix Two: as rekordbox does, the item exports the selected tracks to
+        // a USB stick. It opens the dialog of the export to a stick.
+        m_pExportTrackAct = make_parented<QAction>(tr("Export Track"), this);
+        connect(m_pExportTrackAct, &QAction::triggered, this, &WTrackMenu::slotExportTrack);
+    }
+
     if (featureIsEnabled(Feature::SelectInLibrary)) {
         m_pSelectInLibraryAct = make_parented<QAction>(tr("Select in Library"), this);
         connect(m_pSelectInLibraryAct, &QAction::triggered, this, &WTrackMenu::slotSelectInLibrary);
@@ -803,6 +810,10 @@ void WTrackMenu::setupActions() {
 
     if (featureIsEnabled(Feature::FileBrowser)) {
         addAction(m_pFileBrowserAct);
+    }
+
+    if (featureIsEnabled(Feature::ExportTrack)) {
+        addAction(m_pExportTrackAct);
     }
 
     if (featureIsEnabled(Feature::Properties)) {
@@ -1448,6 +1459,14 @@ void WTrackMenu::slotOpenInFileBrowser() {
         locations << trackRef.getLocation();
     }
     mixxx::DesktopHelper::openInFileBrowser(locations);
+}
+
+void WTrackMenu::slotExportTrack() {
+    const TrackIdList trackIds = getTrackIds();
+    if (trackIds.isEmpty()) {
+        return;
+    }
+    emit m_pLibrary->exportTracksToDevice(trackIds);
 }
 
 void WTrackMenu::slotSelectInLibrary() {
@@ -3081,6 +3100,8 @@ bool WTrackMenu::featureIsEnabled(Feature flag) const {
         return true;
     case Feature::FindOnWeb:
         return true;
+    case Feature::ExportTrack:
+        return m_pLibrary != nullptr;
     case Feature::Properties:
         return m_pTrackModel->hasCapabilities(TrackModel::Capability::Properties);
     case Feature::SearchRelated:

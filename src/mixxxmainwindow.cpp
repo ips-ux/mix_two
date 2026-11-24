@@ -226,6 +226,10 @@ void MixxxMainWindow::initialize() {
             &Library::exportPlaylistToDevice,
             m_pDeviceExporter.get(),
             &mixxx::DeviceExporter::slotRequestExportWithInitialPlaylist);
+    connect(m_pCoreServices->getLibrary().get(),
+            &Library::exportTracksToDevice,
+            m_pDeviceExporter.get(),
+            &mixxx::DeviceExporter::slotRequestExportWithInitialTracks);
 
     // Turn on fullscreen mode
     // if we were told to start in fullscreen mode on the command-line

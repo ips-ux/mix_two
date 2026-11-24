@@ -14,6 +14,7 @@
 
 #include "library/dao/analysisdao.h"
 #include "library/dao/playlistdao.h"
+#include "library/export/dlgdeviceexport.h"
 #include "library/rekordbox/devicelibraryplusdb.h"
 #include "library/trackset/crate/crate.h"
 #include "sources/soundsourceproxy.h"
@@ -262,5 +263,57 @@ TEST_F(DeviceLibraryPlusExportJobTest, CancelBeforeStartWritesNothing) {
     EXPECT_FALSE(QFileInfo::exists(libraryFile()));
     EXPECT_TRUE(QDir(m_stick.path()).isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusExportJobTest, ExportsOnlyTheSelectedTracks) {
+    // The "Export Track" item of the track menu: the request has track IDs
+    // and no crates or playlists. The job exports these tracks only, with no
+    // playlist.
+    TrackPointer pFirst = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
+    TrackPointer pSecond = addTrack(QStringLiteral("all.mp3"), QStringLiteral("b"));
+    ASSERT_TRUE(pFirst && pSecond);
+    storeWaveform(pFirst);
+    storeWaveform(pSecond);
+
+    // A playlist with both tracks must not enter the export.
+    PlaylistDAO& playlists = internalCollection()->getPlaylistDAO();
+    const int playlistId = playlists.createPlaylist(QStringLiteral("Not Selected"));
+    ASSERT_TRUE(playlists.appendTracksToPlaylist({pFirst->getId(), pSecond->getId()}, playlistId));
+
+    DeviceLibraryPlusExportRequest jobRequest = request();
+    jobRequest.trackIds.insert(pSecond->getId().toVariant().toInt());
+    const Outcome outcome = runJob(jobRequest);
+    ASSERT_TRUE(outcome.finished);
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_EQ(1, outcome.summary.tracksExported);
+    EXPECT_EQ(0, outcome.summary.playlistsExported);
+
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    const QList<DlpContentRef> rows = pDb->listContents();
+    ASSERT_EQ(1, rows.size());
+    EXPECT_EQ(pSecond->getId().toVariant().toLongLong(), rows[0].masterContentId);
+    EXPECT_FALSE(pDb->findPlaylistOnly(QStringLiteral("Not Selected"), 0));
+}
+
+TEST_F(DeviceLibraryPlusExportJobTest, DialogGivesTheSelectedTrackIdsToTheRequest) {
+    DlgDeviceExport dialog(nullptr, config(), trackCollectionManager());
+
+    // Without a track selection the request has no track IDs.
+    EXPECT_TRUE(dialog.makeRequest(m_stick.path())->trackIds.isEmpty());
+
+    dialog.setInitialTracks({TrackId(QVariant(7)), TrackId(QVariant(9)), TrackId(QVariant(7))});
+    const auto pRequest = dialog.makeRequest(m_stick.path());
+    EXPECT_EQ(m_stick.path(), pRequest->stickRoot);
+    EXPECT_EQ((QSet<int>{7, 9}), pRequest->trackIds);
+    EXPECT_TRUE(pRequest->crateIds.isEmpty());
+    EXPECT_TRUE(pRequest->playlistIds.isEmpty());
+
+    // A choice of a crate or a playlist replaces the tracks.
+    dialog.setInitialSelection(std::nullopt, std::nullopt);
+    EXPECT_TRUE(dialog.makeRequest(m_stick.path())->trackIds.isEmpty());
+}
+// End of AI-generated text.
 
 } // namespace mixxx

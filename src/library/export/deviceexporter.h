@@ -1,11 +1,13 @@
 #pragma once
 
+#include <QList>
 #include <QPointer>
 #include <QSharedPointer>
 #include <QWidget>
 
 #include "library/trackset/crate/crateid.h"
 #include "preferences/usersettings.h"
+#include "track/trackid.h"
 #include "util/optional.h"
 #include "util/parented_ptr.h"
 
@@ -53,13 +55,18 @@ class DeviceExporter : public QWidget {
                 std::nullopt, std::make_optional(initialSelectedPlaylistId));
     }
 
+    /// Shows the dialog of the export with these tracks selected (the "Export
+    /// Track" item of the track menu).
+    void slotRequestExportWithInitialTracks(const QList<TrackId>& trackIds);
+
   private slots:
     void beginExport(QSharedPointer<mixxx::DeviceLibraryPlusExportRequest> pRequest);
 
   private:
     void requestExportWithOptionalInitialSelection(
             std::optional<CrateId> initialSelectedCrateId,
-            std::optional<int> initialSelectedPlaylistId);
+            std::optional<int> initialSelectedPlaylistId,
+            const QList<TrackId>& initialTrackIds = {});
 
     /// The library ID of Mix Two for the rows on the stick. The function makes
     /// it at the first export and keeps it in the settings.

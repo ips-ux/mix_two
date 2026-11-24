@@ -39,6 +39,12 @@ struct DeviceLibraryPlusExportRequest {
     /// An empty set of crates AND playlists to export means that the whole
     /// library is exported.
     QSet<int> playlistIds;
+
+    /// The tracks to export, as library track IDs (the "Export Track" item of
+    /// the track menu). Mix Two exports these tracks only, with no crate and
+    /// no playlist. The set counts only when `crateIds` and `playlistIds` are
+    /// empty. With all three sets empty, the whole library is exported.
+    QSet<int> trackIds;
 };
 
 /// Mix Two: what an export did. The job sends it with `completed`.

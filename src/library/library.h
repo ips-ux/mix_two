@@ -180,6 +180,7 @@ class Library: public QObject {
     void exportLibraryToDevice();
     void exportCrateToDevice(CrateId crateId);
     void exportPlaylistToDevice(int playlistId);
+    void exportTracksToDevice(const QList<TrackId>& trackIds);
     void saveModelState();
     void restoreModelState();
 
