@@ -8,6 +8,7 @@
 
 #include "control/pollingcontrolproxy.h"
 #include "track/track_decl.h"
+#include "util/types.h"
 
 class PlayerInfo : public QObject {
     Q_OBJECT
@@ -25,6 +26,9 @@ class PlayerInfo : public QObject {
     bool isFileLoaded(const QString& track_location) const;
 
     int numDecks() const;
+    // True when deck `deckIndex` (0 based) plays and you hear it. The rule is the
+    // one that decides the current playing deck.
+    bool isDeckAudible(int deckIndex);
     int numPreviewDecks() const;
     int numSamplers() const;
 
@@ -52,6 +56,7 @@ class PlayerInfo : public QObject {
     void clearControlCache();
     void timerEvent(QTimerEvent* pTimerEvent) override;
     void updateCurrentPlayingDeck();
+    static double audibleVolume(DeckControls* pDc, CSAMPLE_GAIN xfl, CSAMPLE_GAIN xfr);
     DeckControls* getDeckControls(int i);
 
     PlayerInfo();

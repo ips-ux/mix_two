@@ -436,8 +436,6 @@ void BasePlaylistFeature::slotCreatePlaylist() {
     }
 }
 
-/// Returns a playlist that is a sibling inside the same parent
-/// as the start index
 // AI-generated (Claude Code). Start of AI-generated text.
 // static
 std::optional<QList<TrackId>> BasePlaylistFeature::askAboutDuplicateTracks(
@@ -462,9 +460,9 @@ std::optional<QList<TrackId>> BasePlaylistFeature::askAboutDuplicateTracks(
 
     // Choice: the wording of this question and the button names.
     QMessageBox box(QMessageBox::Question,
-            tr("Tracks in the playlist already"),
-            //: %1 is the number of tracks that the playlist holds already
-            tr("%1 of the tracks are in this playlist already.").arg(duplicateCount),
+            tr("Tracks are in the playlist"),
+            //: %n is the number of tracks that the playlist holds already
+            tr("Tracks in this playlist already: %n.", nullptr, duplicateCount),
             QMessageBox::NoButton,
             pParent);
     box.setInformativeText(tr("Add them again or skip them?"));
@@ -483,6 +481,8 @@ std::optional<QList<TrackId>> BasePlaylistFeature::askAboutDuplicateTracks(
 }
 // End of AI-generated text.
 
+/// Returns a playlist that is a sibling inside the same parent
+/// as the start index
 int BasePlaylistFeature::getSiblingPlaylistIdOf(QModelIndex& start) {
     QModelIndex nextIndex = start.sibling(start.row() + 1, start.column());
     if (!nextIndex.isValid() && start.row() > 0) {

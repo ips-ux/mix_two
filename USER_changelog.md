@@ -463,7 +463,16 @@ Hardware.
 
 The History list now adds a track only after it played for 60 seconds. This
 is the same as in rekordbox. Each deck counts its own play time. A pause does
-not add time. A track that you load and eject quickly does not go into History.
+not add time. A deck that you do not hear adds no time. This is a deck with the
+fader down, the crossfader cut, or low gain. A track that you load and eject
+quickly does not go into History.
+
+A track that is shorter than 60 seconds goes into History when it played for
+90 percent of its length.
+
+The play count and the played mark of a track now change at the same point:
+after 60 seconds of play, or after 90 percent of a short track. Before, they
+changed when the track started.
 
 When you add tracks to a playlist and the playlist holds some of them, Mix Two
 asks what to do. Push **Add them** to add all tracks again. Push **Skip

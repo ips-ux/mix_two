@@ -2,10 +2,7 @@
 
 #include <QElapsedTimer>
 #include <QPointer>
-#include <map>
-#include <memory>
 
-#include "control/pollingcontrolproxy.h"
 #include "library/trackset/baseplaylistfeature.h"
 #include "library/trackset/playtimegate.h"
 #include "preferences/usersettings.h"
@@ -46,7 +43,9 @@ class SetlogFeature : public BasePlaylistFeature {
     void decorateChild(TreeItem* pChild, int playlistId) override;
 
   private slots:
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Adds the track to the history. It runs when the track played for 60 seconds.
+    // End of AI-generated text.
     void slotPlayingTrackChanged(TrackPointer currentPlayingTrack);
     void slotCountPlayTime();
     void slotPlaylistTableChanged(int playlistId) override;
@@ -64,7 +63,6 @@ class SetlogFeature : public BasePlaylistFeature {
     PlayTimeGate m_playTimeGate;
     QElapsedTimer m_playTimeClock;
     parented_ptr<QTimer> m_pPlayTimeTimer;
-    std::map<QString, std::unique_ptr<PollingControlProxy>> m_playControls;
     // End of AI-generated text.
     QAction* m_pJoinWithPreviousAction;
     QAction* m_pMarkTracksPlayedAction;

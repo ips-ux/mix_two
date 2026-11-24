@@ -13,18 +13,25 @@
 class PlayTimeGate {
   public:
     static constexpr double kDefaultThresholdSeconds = 60.0;
+    // Choice: a track shorter than the threshold counts when it played at
+    // least this part of its length.
+    static constexpr double kShortTrackPlayedFraction = 0.9;
 
     explicit PlayTimeGate(double thresholdSeconds = kDefaultThresholdSeconds)
             : m_thresholdSeconds(thresholdSeconds) {
     }
 
-    /// Adds `elapsedSeconds` to the deck when `playing` is true. Returns true
-    /// once for each load, when the count first reaches the threshold. A
-    /// different track id on the deck starts a new count.
+    /// Adds `elapsedSeconds` to the deck when `counting` is true. The caller
+    /// sets `counting` only while the deck plays and you hear it. Returns true
+    /// once for each load, when the count first reaches the threshold. For a
+    /// track shorter than the threshold (`trackSeconds` > 0), the count
+    /// reaches the limit at 90 percent of the track length. A different
+    /// track id on the deck starts a new count.
     bool advance(const QString& deck,
             TrackId trackId,
-            bool playing,
-            double elapsedSeconds);
+            bool counting,
+            double elapsedSeconds,
+            double trackSeconds = 0.0);
 
     /// Forget the deck. Call it when the deck loads or ejects a track.
     void reset(const QString& deck);

@@ -3,8 +3,9 @@
 
 bool PlayTimeGate::advance(const QString& deck,
         TrackId trackId,
-        bool playing,
-        double elapsedSeconds) {
+        bool counting,
+        double elapsedSeconds,
+        double trackSeconds) {
     if (!trackId.isValid()) {
         m_decks.remove(deck);
         return false;
@@ -14,11 +15,15 @@ bool PlayTimeGate::advance(const QString& deck,
         state = DeckState();
         state.trackId = trackId;
     }
-    if (!playing || state.fired) {
+    if (!counting || state.fired) {
         return false;
     }
     state.playedSeconds += elapsedSeconds;
-    if (state.playedSeconds >= m_thresholdSeconds) {
+    double limit = m_thresholdSeconds;
+    if (trackSeconds > 0.0 && trackSeconds < m_thresholdSeconds) {
+        limit = trackSeconds * kShortTrackPlayedFraction;
+    }
+    if (state.playedSeconds >= limit) {
         state.fired = true;
         return true;
     }

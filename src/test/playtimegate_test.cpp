@@ -62,6 +62,38 @@ TEST(PlayTimeGateTest, ResetStartsTheSameTrackAgain) {
     EXPECT_TRUE(gate.advance(kDeck1, kTrackA, true, 1.0));
 }
 
+TEST(PlayTimeGateTest, ADeckThatYouDoNotHearAddsNoTime) {
+    // The caller passes counting = false for a deck with the fader down
+    // (headphones only), so it never reaches 60 seconds.
+    PlayTimeGate gate;
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_FALSE(gate.advance(kDeck1, kTrackA, false, 30.0, 300.0));
+    }
+}
+
+TEST(PlayTimeGateTest, ShortTrackCountsAtNinetyPercent) {
+    PlayTimeGate gate;
+    // 30 second track: the limit is 27 seconds.
+    EXPECT_FALSE(gate.advance(kDeck1, kTrackA, true, 26.0, 30.0));
+    EXPECT_TRUE(gate.advance(kDeck1, kTrackA, true, 1.0, 30.0));
+    EXPECT_FALSE(gate.advance(kDeck1, kTrackA, true, 3.0, 30.0));
+}
+
+TEST(PlayTimeGateTest, ShortTrackPlayedLessDoesNotCount) {
+    PlayTimeGate gate;
+    EXPECT_FALSE(gate.advance(kDeck1, kTrackA, true, 20.0, 30.0));
+    EXPECT_FALSE(gate.advance(kDeck1, kTrackA, false, 100.0, 30.0));
+}
+
+TEST(PlayTimeGateTest, LongTrackStillNeedsSixtySeconds) {
+    PlayTimeGate gate;
+    EXPECT_FALSE(gate.advance(kDeck1, kTrackA, true, 59.0, 300.0));
+    EXPECT_TRUE(gate.advance(kDeck1, kTrackA, true, 1.0, 300.0));
+    // A track of exactly 60 seconds is not short: it needs the full 60.
+    EXPECT_FALSE(gate.advance(kDeck2, kTrackB, true, 55.0, 60.0));
+    EXPECT_TRUE(gate.advance(kDeck2, kTrackB, true, 5.0, 60.0));
+}
+
 TEST(PlayTimeGateTest, AnInvalidTrackNeverFires) {
     PlayTimeGate gate;
     EXPECT_FALSE(gate.advance(kDeck1, TrackId(), true, 120.0));

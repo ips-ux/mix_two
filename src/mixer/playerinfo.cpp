@@ -132,6 +132,44 @@ void PlayerInfo::timerEvent(QTimerEvent* pTimerEvent) {
     updateCurrentPlayingDeck();
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// The rule for "the deck is heard": it plays, the gain is above 0.25, the
+// channel fader is up and the crossfader does not cut it. The caller holds
+// m_mutex. Returns 0 when the deck is not heard, else the volume.
+double PlayerInfo::audibleVolume(DeckControls* pDc, CSAMPLE_GAIN xfl, CSAMPLE_GAIN xfr) {
+    if (pDc->m_play.get() == 0.0) {
+        return 0.0;
+    }
+    if (pDc->m_pregain.get() <= 0.25) {
+        return 0.0;
+    }
+    const double fvol = pDc->m_volume.get();
+    if (fvol == 0.0) {
+        return 0.0;
+    }
+    const auto orient = static_cast<int>(pDc->m_orientation.get());
+    double xfvol;
+    if (orient == EngineChannel::LEFT) {
+        xfvol = xfl;
+    } else if (orient == EngineChannel::RIGHT) {
+        xfvol = xfr;
+    } else {
+        xfvol = 1.0;
+    }
+    return fvol * xfvol;
+}
+
+bool PlayerInfo::isDeckAudible(int deckIndex) {
+    const auto locker = lockMutex(&m_mutex);
+    if (deckIndex < 0 || deckIndex >= numDecks()) {
+        return false;
+    }
+    CSAMPLE_GAIN xfl, xfr;
+    EngineXfader::getXfadeGains(m_xfader.get(), 1.0, 0.0, MIXXX_XFADER_ADDITIVE, false, &xfl, &xfr);
+    return audibleVolume(getDeckControls(deckIndex), xfl, xfr) > 0.0;
+}
+// End of AI-generated text.
+
 void PlayerInfo::updateCurrentPlayingDeck() {
     auto locker = lockMutex(&m_mutex);
 
@@ -150,32 +188,7 @@ void PlayerInfo::updateCurrentPlayingDeck() {
             &xfr);
 
     for (int i = 0; i < numDecks(); ++i) {
-        DeckControls* pDc = getDeckControls(i);
-
-        if (pDc->m_play.get() == 0.0) {
-            continue;
-        }
-
-        if (pDc->m_pregain.get() <= 0.25) {
-            continue;
-        }
-
-        double fvol = pDc->m_volume.get();
-        if (fvol == 0.0) {
-            continue;
-        }
-
-        const auto orient = static_cast<int>(pDc->m_orientation.get());
-        double xfvol;
-        if (orient == EngineChannel::LEFT) {
-            xfvol = xfl;
-        } else if (orient == EngineChannel::RIGHT) {
-            xfvol = xfr;
-        } else {
-            xfvol = 1.0;
-        }
-
-        double dvol = fvol * xfvol;
+        const double dvol = audibleVolume(getDeckControls(i), xfl, xfr);
         if (dvol > maxVolume) {
             maxDeck = i;
             maxVolume = dvol;

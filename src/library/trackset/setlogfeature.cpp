@@ -2,8 +2,8 @@
 
 #include <QDateTime>
 #include <QMenu>
-#include <QTimer>
 #include <QSqlTableModel>
+#include <QTimer>
 
 #include "library/library.h"
 #include "library/library_prefs.h"
@@ -164,16 +164,14 @@ void SetlogFeature::slotCountPlayTime() {
             m_playTimeGate.reset(group);
             continue;
         }
-        auto it = m_playControls.find(group);
-        if (it == m_playControls.end()) {
-            it = m_playControls
-                         .emplace(group,
-                                 std::make_unique<PollingControlProxy>(
-                                         group, QStringLiteral("play")))
-                         .first;
-        }
-        const bool playing = it->second->toBool();
-        if (m_playTimeGate.advance(group, pTrack->getId(), playing, elapsedSeconds)) {
+        // Count only while the deck plays and you hear it (the rule that
+        // decides the current playing deck).
+        const bool counting = playerInfo.isDeckAudible(deck - 1);
+        if (m_playTimeGate.advance(group,
+                    pTrack->getId(),
+                    counting,
+                    elapsedSeconds,
+                    pTrack->getDuration())) {
             slotPlayingTrackChanged(pTrack);
         }
     }
