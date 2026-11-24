@@ -42,6 +42,29 @@ class BeatFxSweepState : public EffectState {
     std::array<CSAMPLE, kPhaserStages> apL, apR;
 };
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Sweep phase (0..1) at the buffer start. With a beat grid and a cycle of
+// one beat or less, the phase follows the grid (as TRANS). The grid gives
+// only the position inside one beat, so for a cycle of more than one beat it
+// would restart the sweep at every beat: those cycles, and a missing grid,
+// use the free-running phase.
+inline double beatFxSweepPhase(double freePhase,
+        const GroupFeatureState& groupFeatures,
+        double fraction,
+        double sampleRate,
+        int frames) {
+    if (fraction <= 1.0 && groupFeatures.beat_fraction_buffer_end.has_value() &&
+            groupFeatures.beat_length.has_value()) {
+        const double beatFrames = groupFeatures.beat_length->seconds * sampleRate;
+        double beatPhase = *groupFeatures.beat_fraction_buffer_end - frames / beatFrames;
+        beatPhase -= std::floor(beatPhase);
+        const double p = beatPhase / fraction;
+        return p - std::floor(p);
+    }
+    return freePhase;
+}
+// End of AI-generated text.
+
 template<bool Phaser>
 class BeatFxSweepEffect : public EffectProcessorImpl<BeatFxSweepState> {
   public:

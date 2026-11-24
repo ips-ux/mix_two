@@ -11,30 +11,6 @@ constexpr CSAMPLE_GAIN kFlangerFeedback = 0.55f;
 constexpr double kPhaserMinHz = 180.0;
 constexpr double kPhaserMaxHz = 3200.0;
 constexpr CSAMPLE_GAIN kPhaserFeedback = 0.4f;
-
-// Sweep phase at the buffer start, in step with the beat grid when there
-// is one (as TRANS); otherwise the free-running phase.
-// AI-generated (Claude Code). Start of AI-generated text.
-// The grid gives only the position inside one beat. A cycle of one beat or
-// less fits in that position, so it is locked to the grid. A cycle of more
-// than one beat does not: the position inside the beat would restart the
-// sweep at every beat. For those cycles the free-running phase is used.
-// End of AI-generated text.
-double sweepPhase(const BeatFxSweepState* pState,
-        const GroupFeatureState& groupFeatures,
-        double fraction,
-        double sampleRate,
-        int frames) {
-    if (fraction <= 1.0 && groupFeatures.beat_fraction_buffer_end.has_value() &&
-            groupFeatures.beat_length.has_value()) {
-        const double beatFrames = groupFeatures.beat_length->seconds * sampleRate;
-        double beatPhase = *groupFeatures.beat_fraction_buffer_end - frames / beatFrames;
-        beatPhase -= std::floor(beatPhase);
-        const double p = beatPhase / fraction;
-        return p - std::floor(p);
-    }
-    return pState->phase;
-}
 } // namespace
 
 template<bool Phaser>
@@ -77,7 +53,7 @@ void BeatFxSweepEffect<Phaser>::processChannel(BeatFxSweepState* pState,
     const double sampleRate = engineParameters.sampleRate();
     const double cycleFrames = fraction * beatfx::beatSeconds(groupFeatures) * sampleRate;
     const int frames = engineParameters.framesPerBuffer();
-    double phase = sweepPhase(pState, groupFeatures, fraction, sampleRate, frames);
+    double phase = beatFxSweepPhase(pState->phase, groupFeatures, fraction, sampleRate, frames);
 
     const auto depth = static_cast<CSAMPLE_GAIN>(m_pDepth->value());
     const RampingValue<CSAMPLE_GAIN> mix(pState->prevDepth, depth, frames);

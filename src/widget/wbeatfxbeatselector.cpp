@@ -38,8 +38,12 @@ void WBeatFxBeatSelector::setup(const QDomNode& node, const SkinContext& context
 int WBeatFxBeatSelector::stepCount() const {
     if (m_pBeat) {
         const double step = m_pBeat->getParameterForValue(1.0);
+        // An empty slot has the range 0..1 (2 steps): show the default list.
         if (step > 0.0 && step <= 1.0) {
-            return static_cast<int>(std::lround(1.0 / step)) + 1;
+            const int steps = static_cast<int>(std::lround(1.0 / step)) + 1;
+            if (steps >= 3) {
+                return steps;
+            }
         }
     }
     return kDefaultStepCount;

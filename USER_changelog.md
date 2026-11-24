@@ -63,10 +63,6 @@ With FLANGER and PHASER, the BEAT buttons now go up to 64 beats. With ENIGMA
 JET and MOBIUS, they go from -64 to 64 beats. With a negative value, the pitch
 goes down. This is the same as in the DDJ-800 manual.
 
-With FLANGER and PHASER, the BEAT buttons now go up to 64 beats. With ENIGMA
-JET and MOBIUS, they go from -64 to 64 beats. With a negative value, the pitch
-goes down. This is the same as in the DDJ-800 manual.
-
 The BEAT FX ON/OFF button flashes while the Beat FX is on.
 
 Fader start sets the cue point of a paused deck. Hold SHIFT and move the

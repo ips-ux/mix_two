@@ -202,4 +202,32 @@ TEST(BeatFxBeatTest, FlangerAndPhaserRunAt64BeatsAt60Bpm) {
     expectFiniteOutput<BeatFxFlanger, BeatFxSweepState>(10);
     expectFiniteOutput<BeatFxPhaser, BeatFxSweepState>(10);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// The phase at the buffer start: a cycle of one beat or less follows the beat
+// grid; a longer cycle does not restart at each beat (it keeps the free phase).
+TEST(BeatFxBeatTest, SweepPhaseFollowsTheGridOnlyForCyclesUpToOneBeat) {
+    GroupFeatureState grid;
+    grid.beat_length = GroupFeatureBeatLength{1.0, 1.0};
+    const double sampleRate = 48000;
+    const int frames = 480; // 0.01 beat
+    const double free = 0.37;
+
+    // Buffer end at 0.5 beat: the buffer start is at 0.49 beat.
+    grid.beat_fraction_buffer_end = 0.5;
+    EXPECT_NEAR(0.49, beatFxSweepPhase(free, grid, 1.0, sampleRate, frames), 1e-9);
+    EXPECT_NEAR(0.98, beatFxSweepPhase(free, grid, 0.5, sampleRate, frames), 1e-9);
+    // No grid: the free phase.
+    EXPECT_EQ(free, beatFxSweepPhase(free, GroupFeatureState(), 1.0, sampleRate, frames));
+
+    // A cycle of 4 beats: the phase is the free phase at every beat position,
+    // so it does not restart when the grid position wraps to the next beat.
+    for (double position : {0.005, 0.25, 0.5, 0.999}) {
+        grid.beat_fraction_buffer_end = position;
+        EXPECT_EQ(free, beatFxSweepPhase(free, grid, 4.0, sampleRate, frames))
+                << "position " << position;
+        EXPECT_EQ(free, beatFxSweepPhase(free, grid, 64.0, sampleRate, frames));
+    }
+}
+// End of AI-generated text.
 // End of AI-generated text.
