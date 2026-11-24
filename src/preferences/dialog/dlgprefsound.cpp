@@ -526,6 +526,20 @@ DlgPrefSound::DlgPrefSound(QWidget* pParent,
             &DlgPrefSound::mainOutputModeComboBoxChanged);
     m_pMainMonoMixdown->connectValueChanged(this, &DlgPrefSound::mainMonoMixdownChanged);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Preview volume is the control of the skin's preview deck slider. A
+    // change in the skin shows here, and a change here shows in the skin.
+    m_pPreviewVolume = make_parented<ControlProxy>(
+            QStringLiteral("[PreviewDeck1]"), QStringLiteral("pregain"), this);
+    previewVolumeControlChanged();
+    connect(previewVolumeSlider,
+            &QSlider::valueChanged,
+            this,
+            &DlgPrefSound::previewVolumeSliderChanged);
+    m_pPreviewVolume->connectValueChanged(
+            this, &DlgPrefSound::previewVolumeControlChanged);
+    // End of AI-generated text.
+
 #ifdef __LINUX__
     qDebug() << "RLimit Cur " << RLimit::getCurRtPrio();
     qDebug() << "RLimit Max " << RLimit::getMaxRtPrio();
@@ -596,6 +610,9 @@ void DlgPrefSound::slotUpdate() {
         duckStrengthSpinBox->setValue(
                 static_cast<int>(std::lround(m_pDuckStrength.get() * 100)));
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    previewVolumeControlChanged();
+    // End of AI-generated text.
 }
 
 /// Slot called when the Apply or OK button is pressed.
@@ -1375,6 +1392,13 @@ void DlgPrefSound::slotResetToDefaults() {
 
     latencyCompensationSpinBox->setValue(latencyCompensationSpinBox->minimum());
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Preview volume: the control's own default. The slider follows through
+    // the control's change signal, and is set here as well.
+    m_pPreviewVolume->reset();
+    previewVolumeControlChanged();
+    // End of AI-generated text.
+
     settingChanged();
 #ifdef __RUBBERBAND__
     updateKeylockDualThreadingCheckbox();
@@ -1447,6 +1471,21 @@ void DlgPrefSound::micMonitorModeComboBoxChanged(int value) {
 void DlgPrefSound::talkoverDuckingComboBoxChanged(int value) {
     m_pTalkoverDucking.set(talkoverDuckingComboBox->itemData(value).toDouble());
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void DlgPrefSound::previewVolumeSliderChanged(int position) {
+    const double parameter = static_cast<double>(position) /
+            static_cast<double>(previewVolumeSlider->maximum());
+    m_pPreviewVolume->setParameter(std::clamp(parameter, 0.0, 1.0));
+}
+
+void DlgPrefSound::previewVolumeControlChanged() {
+    const QSignalBlocker blocker(previewVolumeSlider);
+    previewVolumeSlider->setValue(static_cast<int>(
+            std::lround(std::clamp(m_pPreviewVolume->getParameter(), 0.0, 1.0) *
+                    previewVolumeSlider->maximum())));
+}
+// End of AI-generated text.
 
 void DlgPrefSound::duckStrengthSpinBoxChanged(int value) {
     m_pDuckStrength.set(value / 100.0);

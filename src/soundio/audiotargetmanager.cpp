@@ -2,6 +2,8 @@
 
 #include <QMessageBox>
 #include <QTimer>
+#include <algorithm>
+#include <bit>
 
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
@@ -26,6 +28,12 @@ const ConfigKey kPcDeviceKey(kSoundcardGroup, QStringLiteral("audio_target_pc_de
 const QStringList kHardwareUnits = {QStringLiteral("DDJ-800")};
 
 const QString kApiWasapi = QStringLiteral("Windows WASAPI");
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// rekordbox uses 256-frame buffers with the DDJ-800 (about 6 ms at 44.1 kHz),
+// and the jog wheel timing of Mix Two is tuned to that value.
+constexpr unsigned int kDdj800BufferFrames = 256;
+// End of AI-generated text.
 
 bool isHardwareUnit(const QString& deviceName) {
     for (const auto& unit : kHardwareUnits) {
@@ -153,6 +161,30 @@ AudioTargetManager::AudioTargetManager(UserSettingsPointer pConfig,
 
 AudioTargetManager::~AudioTargetManager() = default;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+unsigned int AudioTargetManager::bufferSizeIndexFor(BufferTarget target,
+        mixxx::audio::SampleRate deviceRate,
+        unsigned int currentIndex) {
+    if (target != BufferTarget::Hardware) {
+        return currentIndex;
+    }
+    // SoundManagerConfig::getFramesPerBuffer() gives
+    // bit_ceil(rate in kHz) << (index - 1) frames. Take the first index that
+    // gives kDdj800BufferFrames: index 3 at 44.1 and 48 kHz, 2 at 88.2 and
+    // 96 kHz.
+    const unsigned int rateKhz = deviceRate.isValid()
+            ? static_cast<unsigned int>(deviceRate.value() / 1000)
+            : 44u;
+    const unsigned int base = std::bit_ceil(std::max(rateKhz, 1u));
+    unsigned int index = 1;
+    while ((base << (index - 1)) < kDdj800BufferFrames &&
+            index < SoundManagerConfig::kMaxAudioBufferSizeIndex) {
+        ++index;
+    }
+    return index;
+}
+// End of AI-generated text.
+
 QString AudioTargetManager::configFileName(Target target) const {
     return target == Target::Hardware
             ? QStringLiteral("soundconfig_hardware.xml")
@@ -250,6 +282,17 @@ SoundManagerConfig AudioTargetManager::buildConfig(
     if (pChosen->getDefaultSampleRate().isValid()) {
         config.setSampleRate(pChosen->getDefaultSampleRate());
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The DDJ-800 gets a 256-frame buffer at the rate just set. The PC
+    // target keeps the buffer of the current setup. The JACK and PipeWire
+    // buffer indexes mean other sizes, so they stay as they are.
+    if (api != SoundManagerConfig::kAPIJack && api != SoundManagerConfig::kAPIPipewire) {
+        config.setAudioBufferSizeIndex(bufferSizeIndexFor(
+                target == Target::Hardware ? BufferTarget::Hardware : BufferTarget::Pc,
+                config.getSampleRate(),
+                config.getAudioBufferSizeIndex()));
+    }
+    // End of AI-generated text.
     const auto channels = pChosen->getNumOutputChannels();
     config.addOutput(pChosen->getDeviceId(),
             AudioOutput(AudioPathType::Main, 0, mixxx::audio::ChannelCount::stereo(), 0));

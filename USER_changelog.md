@@ -263,6 +263,13 @@ Sound Hardware, the change applies to the current selection.
 
 If the DDJ-800 is not connected when Mix Two starts, Mix Two uses PC.
 
+When Mix Two selects the DDJ-800 as the sound device, it sets the audio
+buffer to 256 frames, as rekordbox does. A sound setup that you saved for
+HARDWARE keeps its own buffer.
+
+Preferences > Sound Hardware has a Preview volume slider. It is the same
+control as the volume slider of the preview deck.
+
 To select the audio driver, go to Preferences > Sound Hardware > Audio
 Routing:
 - **ASIO**: the lowest latency. Other apps cannot play sound through the

@@ -68,6 +68,10 @@ class DlgPrefSound : public DlgPreferencePage, public Ui::DlgPrefSoundDlg  {
     void micMonitorModeComboBoxChanged(int value);
     void talkoverDuckingComboBoxChanged(int value);
     void duckStrengthSpinBoxChanged(int value);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void previewVolumeSliderChanged(int position);
+    void previewVolumeControlChanged();
+    // End of AI-generated text.
 
   private slots:
     void addPath(const AudioOutput& output);
@@ -122,6 +126,10 @@ class DlgPrefSound : public DlgPreferencePage, public Ui::DlgPrefSoundDlg  {
     parented_ptr<ControlProxy> m_pOutputLatencyMs;
     parented_ptr<ControlProxy> m_pMainEnabled;
     parented_ptr<ControlProxy> m_pMainMonoMixdown;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // [PreviewDeck1],pregain: the control of the skin's preview volume slider.
+    parented_ptr<ControlProxy> m_pPreviewVolume;
+    // End of AI-generated text.
 
     QList<SoundDevicePointer> m_inputDevices;
     QList<SoundDevicePointer> m_outputDevices;

@@ -79,6 +79,22 @@ class AudioTargetManager : public QObject {
     static QString microphonesOffText();
     // End of AI-generated text.
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The two audio targets, for the choice of the buffer size.
+    enum class BufferTarget {
+        Pc,
+        Hardware,
+    };
+
+    /// The buffer size index (see SoundManagerConfig::setAudioBufferSizeIndex())
+    /// for a new setup of `target` at `deviceRate`. The DDJ-800 (Hardware)
+    /// gets 256 frames, as rekordbox uses with it. The PC target keeps
+    /// `currentIndex`. Pure, so it needs no sound hardware.
+    static unsigned int bufferSizeIndexFor(BufferTarget target,
+            mixxx::audio::SampleRate deviceRate,
+            unsigned int currentIndex);
+    // End of AI-generated text.
+
   private slots:
     void slotTargetChanged(double value);
     void slotRoutingChanged(double value);
