@@ -162,12 +162,12 @@ class ExportVerifyTest(unittest.TestCase):
 
     def test_split_command_keeps_windows_backslashes(self):
         self.assertEqual(
-            ev.split_command(r"java -jar C:	ools\cd.jar", windows=True),
-            ["java", "-jar", r"C:	ools\cd.jar"],
+            ev.split_command(r"java -jar C:\tools\cd.jar", windows=True),
+            ["java", "-jar", r"C:\tools\cd.jar"],
         )
         self.assertEqual(
-            ev.split_command(r'java -jar "C:	ools\cd.jar" -x', windows=True),
-            ["java", "-jar", r"C:	ools\cd.jar", "-x"],
+            ev.split_command(r'java -jar "C:\tools\cd.jar" -x', windows=True),
+            ["java", "-jar", r"C:\tools\cd.jar", "-x"],
         )
         self.assertEqual(
             ev.split_command("java -jar 'a b.jar'", windows=False),
