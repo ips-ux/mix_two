@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: small tempo buttons use rekordbox's steps; one script runs all export judges (commit: see git log, "Tempo: the small tempo buttons use rekordbox's steps for the tempo range" and "tools: export_verify.py runs all export judges on a stick")
 - 2026-11-23: channel effect units are not heard on the headphone CUE (commit: see git log, "Engine: channel effect units are not heard on the headphone CUE")
 - 2026-11-18: DDJ-800 TEMPO slider uses rekordbox's steps; SHIFT + BEAT LOOP pad does nothing (commit: see git log, "DDJ-800 mapping: TEMPO slider uses rekordbox's steps; SHIFT + BEAT LOOP pad does nothing" and "DDJ-800 mapping: TEMPO slider ends are exact for every range; sampler bank helper does not write")
 - 2026-11-18: DDJ-800 sampler pads use slots 1-8 and 9-16 of one shared bank; Beat FX selector order pinned by a test (commit: see git log, "DDJ-800 mapping: sampler pads use slots 1-8 and 9-16 of one shared bank" and "test: Beat FX selector order of the DDJ-800 is pinned")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-18: STE word check script for the text that the user reads (commit: see git log, "tools: STE word check for the text that the user reads")
 - 2026-11-18: DDJ-800 mapping comments match the code, option text in STE (commit: see git log, "DDJ-800 mapping: header comments match the code, option text in plain technical English")
 - 2026-11-13: 3Band waveform tuned and seen on screen; zoomed waveform / 3Band programme state (commit: see git log, "Waveform: 3Band band gains fitted to rekordbox's band balance")
-- 2026-11-13: USB export colours re-fitted to the new bands; colour preview band order low, mid, high (commit: see git log, "USB export: waveform colours fitted to the new band split")
 
 <!-- mixtwo-status:end -->
 
