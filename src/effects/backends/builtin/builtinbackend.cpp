@@ -29,6 +29,7 @@
 #ifdef __RUBBERBAND__
 #include "effects/backends/builtin/pitchshifteffect.h"
 #endif
+#include "effects/backends/builtin/beatfxdelayeffect.h"
 #include "effects/backends/builtin/beatfxechoeffect.h"
 #include "effects/backends/builtin/colorfxdubechoeffect.h"
 #include "effects/backends/builtin/colorfxfiltereffect.h"
@@ -109,6 +110,9 @@ BuiltInBackend::BuiltInBackend() {
     registerEffect<BeatFxRoll>();
     registerEffect<BeatFxMobiusSaw>();
     registerEffect<BeatFxMobiusTri>();
+    // Mix Two: BEAT FX that the DDJ-800 selector does not have
+    registerEffect<BeatFxDelayEffect>();
+    registerEffect<BeatFxPingPongEffect>();
     registerEffect<AutoGainControlEffect>();
     registerEffect<GainEffect>();
 }

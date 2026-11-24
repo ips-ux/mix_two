@@ -377,6 +377,10 @@ Below MASTER is the EFFECTS section for Beat FX:
   push ON/OFF. For REVERB, the BEAT buttons set the extent of the
   reverberation. For PITCH, they set the pitch from -50 % to +100 %, and
   LEVEL/DEPTH all the way counterclockwise is the original pitch.
+- Mix Two has two more Beat FX, DELAY and PING PONG. DELAY gives one
+  repeat. PING PONG gives repeats that go from left to right. You select
+  them on the screen. The BEAT FX SELECT control of the DDJ-800 does not
+  have them. Their sound is not yet compared with rekordbox.
 - LEVEL/DEPTH is the effect level.
 - The ENABLED / DISABLED button starts and stops the effect. It is the same
   as the ON/OFF button on the DDJ-800.

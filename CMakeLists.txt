@@ -1298,6 +1298,7 @@ add_library(
   src/effects/backends/builtin/bitcrushereffect.cpp
   src/effects/backends/builtin/builtinbackend.cpp
   src/effects/backends/builtin/distortioneffect.cpp
+  src/effects/backends/builtin/beatfxdelayeffect.cpp
   src/effects/backends/builtin/beatfxechoeffect.cpp
   src/effects/backends/builtin/colorfxdubechoeffect.cpp
   src/effects/backends/builtin/colorfxfiltereffect.cpp
@@ -3123,6 +3124,7 @@ if(BUILD_TESTING)
     src/test/wbatterytest.cpp
     src/test/wcombobox_test.cpp
     src/test/beatfxbeat_test.cpp
+    src/test/beatfxdelay_test.cpp
     src/test/visibleeffectslist_test.cpp
     src/test/wmemorycuelist_test.cpp
     src/test/wpushbutton_test.cpp
