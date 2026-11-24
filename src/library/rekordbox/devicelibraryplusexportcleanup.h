@@ -38,10 +38,16 @@ struct DlpReplacedFiles {
 /// Every path must pass dlpIsSafeStickPath(). The function removes no
 /// folder that has files and no symbolic link. It never fails: a file that it
 /// cannot remove stays, with a log line. Returns the number of removed files.
+// AI-generated (Claude Code). Start of AI-generated text.
+/// When `pNotRemoved` is not null, the function adds to it the stick path of
+/// each file that exists and that it did not remove (a file that is not
+/// there is not an error).
+// End of AI-generated text.
 int dlpRemoveReplacedFiles(const QString& stickRoot,
         const DlpReplacedFiles& replaced,
         const QList<DlpContentRef>& rows,
-        const QHash<qint64, QString>& imagePaths);
+        const QHash<qint64, QString>& imagePaths,
+        QStringList* pNotRemoved = nullptr);
 
 } // namespace rekordbox
 } // namespace mixxx

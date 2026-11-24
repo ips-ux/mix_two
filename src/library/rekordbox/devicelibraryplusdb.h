@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QList>
 #include <QPair>
+#include <QSet>
 #include <QString>
 #include <QTemporaryDir>
 #include <QtGlobal>
@@ -67,6 +68,18 @@ struct DlpContentRef {
     QString analysisDataFilePath;
     std::optional<qint64> imageId;
 };
+
+// AI-generated (Claude Code). Start of AI-generated text.
+/// Mix Two: one row of the playlist table: a playlist or a folder of playlists.
+struct DlpPlaylistRef {
+    qint64 id = 0;
+    QString name;
+    /// The ID of the folder that holds it, or 0 at the top level.
+    qint64 parentId = 0;
+    bool isFolder = false;
+    int sequenceNo = 0;
+};
+// End of AI-generated text.
 
 /// Mix Two: rekordbox's Device Library Plus database of a stick
 /// (PIONEER/rekordbox/exportLibrary.db): a SQLite database in the SQLCipher 4
@@ -220,6 +233,35 @@ class DeviceLibraryPlusDb {
 
     /// Sets property.numberOfContents to the number of tracks.
     void updateContentCount();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// All playlists and folders, in the order of their IDs.
+    QList<DlpPlaylistRef> listPlaylists();
+
+    /// The IDs of the tracks of a playlist, in the order of the playlist. A
+    /// track that the playlist holds more than once is in the list once.
+    QList<qint64> listPlaylistContentIds(qint64 playlistId);
+
+    /// The IDs of the tracks that at least one playlist other than
+    /// `playlistId` holds.
+    QSet<qint64> contentIdsInOtherPlaylists(qint64 playlistId);
+
+    /// The IDs of the images that an album or a playlist uses.
+    QSet<qint64> imageIdsOfAlbumsAndPlaylists();
+
+    /// Removes a playlist and the tracks in `contentIds`, in one transaction
+    /// (a savepoint; it also works in a batch): the playlist row, its entries,
+    /// the later playlists and folders with the same parent get a sequence
+    /// number that is one less, and for each track its row and the rows of
+    /// other tables that belong only to the track (cues, hot cue bank
+    /// entries, history entries, tags, recommendations). It removes no row of
+    /// a shared table (artist, album, genre, key, label, color, image) and no
+    /// entry of another playlist; the caller makes sure that no other
+    /// playlist holds a track of `contentIds`. It does not change the track
+    /// count: call updateContentCount(). On an error it undoes its changes
+    /// and sets lastErrorMessage().
+    void removePlaylist(qint64 playlistId, const QList<qint64>& contentIds);
+    // End of AI-generated text.
 
   protected:
     /// The SQLite handle of the temporary copy; for the typed row methods.

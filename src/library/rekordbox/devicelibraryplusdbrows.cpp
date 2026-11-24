@@ -493,5 +493,168 @@ void DeviceLibraryPlusDb::updateContentCount() {
     }
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+QList<DlpPlaylistRef> DeviceLibraryPlusDb::listPlaylists() {
+    NamedStatement select(m_pDb,
+            "SELECT playlist_id, name, playlist_id_parent, attribute, sequenceNo "
+            "FROM playlist ORDER BY playlist_id");
+    QList<DlpPlaylistRef> playlists;
+    while (true) {
+        switch (select.step()) {
+        case NamedStatement::Result::Row: {
+            DlpPlaylistRef ref;
+            ref.id = select.columnInt(0);
+            ref.name = select.columnText(1);
+            ref.parentId = select.columnInt(2);
+            ref.isFolder = select.columnInt(3) == kFolderAttribute;
+            ref.sequenceNo = static_cast<int>(select.columnInt(4));
+            playlists.append(ref);
+            break;
+        }
+        case NamedStatement::Result::Done:
+            return playlists;
+        case NamedStatement::Result::Error:
+            failChange(select.error());
+            return QList<DlpPlaylistRef>();
+        }
+    }
+}
+
+QList<qint64> DeviceLibraryPlusDb::listPlaylistContentIds(qint64 playlistId) {
+    NamedStatement select(m_pDb,
+            "SELECT content_id FROM playlist_content WHERE playlist_id = :playlist "
+            "ORDER BY sequenceNo, rowid");
+    select.bindInt(":playlist", playlistId);
+    QList<qint64> ids;
+    while (true) {
+        switch (select.step()) {
+        case NamedStatement::Result::Row: {
+            const qint64 id = select.columnInt(0);
+            if (!ids.contains(id)) {
+                ids.append(id);
+            }
+            break;
+        }
+        case NamedStatement::Result::Done:
+            return ids;
+        case NamedStatement::Result::Error:
+            failChange(select.error());
+            return QList<qint64>();
+        }
+    }
+}
+
+QSet<qint64> DeviceLibraryPlusDb::contentIdsInOtherPlaylists(qint64 playlistId) {
+    NamedStatement select(m_pDb,
+            "SELECT DISTINCT content_id FROM playlist_content WHERE playlist_id <> :playlist");
+    select.bindInt(":playlist", playlistId);
+    QSet<qint64> ids;
+    while (true) {
+        switch (select.step()) {
+        case NamedStatement::Result::Row:
+            ids.insert(select.columnInt(0));
+            break;
+        case NamedStatement::Result::Done:
+            return ids;
+        case NamedStatement::Result::Error:
+            failChange(select.error());
+            return QSet<qint64>();
+        }
+    }
+}
+
+QSet<qint64> DeviceLibraryPlusDb::imageIdsOfAlbumsAndPlaylists() {
+    NamedStatement select(m_pDb,
+            "SELECT image_id FROM album WHERE image_id IS NOT NULL "
+            "UNION SELECT image_id FROM playlist WHERE image_id IS NOT NULL");
+    QSet<qint64> ids;
+    while (true) {
+        switch (select.step()) {
+        case NamedStatement::Result::Row:
+            ids.insert(select.columnInt(0));
+            break;
+        case NamedStatement::Result::Done:
+            return ids;
+        case NamedStatement::Result::Error:
+            failChange(select.error());
+            return QSet<qint64>();
+        }
+    }
+}
+
+void DeviceLibraryPlusDb::removePlaylist(qint64 playlistId, const QList<qint64>& contentIds) {
+    Savepoint savepoint(m_pDb);
+    if (!savepoint.isOpen()) {
+        failChange(savepoint.error());
+        return;
+    }
+    // The rows of a track in the tables that only the track uses. The cue
+    // entries of the hot cue banks come first: they find the cues by the track.
+    static const char* const kTrackSql[] = {
+            "DELETE FROM hotCueBankList_cue WHERE cue_id IN "
+            "(SELECT cue_id FROM cue WHERE content_id = :id)",
+            "DELETE FROM cue WHERE content_id = :id",
+            "DELETE FROM history_content WHERE content_id = :id",
+            "DELETE FROM myTag_content WHERE content_id = :id",
+            "DELETE FROM recommendedLike WHERE content_id_1 = :id OR content_id_2 = :id",
+            "DELETE FROM content WHERE content_id = :id",
+    };
+    for (const qint64 contentId : contentIds) {
+        for (const char* sql : kTrackSql) {
+            NamedStatement remove(m_pDb, sql);
+            remove.bindInt(":id", contentId);
+            if (remove.step() != NamedStatement::Result::Done) {
+                failChange(remove.error());
+                return;
+            }
+        }
+    }
+
+    {
+        NamedStatement find(m_pDb,
+                "SELECT playlist_id_parent, sequenceNo FROM playlist "
+                "WHERE playlist_id = :id");
+        find.bindInt(":id", playlistId);
+        if (find.step() != NamedStatement::Result::Row) {
+            if (find.error().isEmpty()) {
+                failChange(QCoreApplication::translate("DeviceLibraryPlusDb",
+                        "The library has no playlist with the ID %1.")
+                                   .arg(playlistId));
+            } else {
+                failChange(find.error());
+            }
+            return;
+        }
+        const qint64 parentId = find.columnInt(0);
+        const qint64 sequenceNo = find.columnInt(1);
+
+        NamedStatement clear(m_pDb, "DELETE FROM playlist_content WHERE playlist_id = :id");
+        clear.bindInt(":id", playlistId);
+        if (clear.step() != NamedStatement::Result::Done) {
+            failChange(clear.error());
+            return;
+        }
+        NamedStatement remove(m_pDb, "DELETE FROM playlist WHERE playlist_id = :id");
+        remove.bindInt(":id", playlistId);
+        if (remove.step() != NamedStatement::Result::Done) {
+            failChange(remove.error());
+            return;
+        }
+        NamedStatement renumber(m_pDb,
+                "UPDATE playlist SET sequenceNo = sequenceNo - 1 "
+                "WHERE playlist_id_parent = :parent AND sequenceNo > :sequence");
+        renumber.bindInt(":parent", parentId);
+        renumber.bindInt(":sequence", sequenceNo);
+        if (renumber.step() != NamedStatement::Result::Done) {
+            failChange(renumber.error());
+            return;
+        }
+    }
+    if (!savepoint.release()) {
+        failChange(savepoint.error());
+    }
+}
+// End of AI-generated text.
+
 } // namespace rekordbox
 } // namespace mixxx

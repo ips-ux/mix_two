@@ -1509,6 +1509,7 @@ add_library(
   src/library/recording/recordingfeature.cpp
   src/library/rekordbox/devicelibraryplusdb.cpp
   src/library/rekordbox/devicelibraryplusdbrows.cpp
+  src/library/rekordbox/devicelibraryplusdelete.cpp
   src/library/rekordbox/devicelibraryplusexportcleanup.cpp
   src/library/rekordbox/devicelibraryplusexporter.cpp
   src/library/rekordbox/devicelibraryplusmapping.cpp

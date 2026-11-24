@@ -24,6 +24,7 @@
 
 #include "audio/frame.h"
 #include "audio/types.h"
+#include "library/rekordbox/devicelibraryplusdelete.h"
 #include "library/rekordbox/devicelibrarypluskey.h"
 #include "library/rekordbox/devicelibraryplusmapping.h"
 #include "library/rekordbox/sqlciphercodec.h"
@@ -1670,6 +1671,395 @@ TEST_F(DeviceLibraryPlusExporterTest, WritesSampleStick) {
                       QStringLiteral("00001/b2_m.jpg")}),
             filesBelow(sampleDir + QStringLiteral("/PIONEER/Artwork")));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+/// A stick that the exporter wrote: the tracks A, B and C (Mix Two track IDs 1,
+/// 2 and 3), the playlist P1 with A and B, the playlist P2 with B and C, and
+/// the crate K with C. A has the cover 1 and C has the cover 2.
+class DeviceLibraryPlusDeleteTest : public DeviceLibraryPlusExporterTest {
+  protected:
+    void SetUp() override {
+        DeviceLibraryPlusExporterTest::SetUp();
+        TrackPointer pA = makeTrack(toComputer(QStringLiteral("artist.mp3"), "a"), 1);
+        pA->setArtist(QStringLiteral("Artist A"));
+        pA->setAlbum(QStringLiteral("Album A"));
+        TrackPointer pB = makeTrack(toComputer(QStringLiteral("all.mp3"), "b"), 2);
+        pB->setArtist(QStringLiteral("Artist B"));
+        pB->setAlbum(QStringLiteral("Album B"));
+        TrackPointer pC = makeTrack(toComputer(kCoverMp3File, "c"), 3);
+        pC->setArtist(QStringLiteral("Artist C"));
+        pC->setAlbum(QStringLiteral("Album C"));
+        auto pDb = newDb();
+        ASSERT_TRUE(pDb);
+        const auto results = exportAndFinish(pDb.get(),
+                {itemFor(pA, makeCover(), mixxx::cache_key_t(1)),
+                        itemFor(pB),
+                        itemFor(pC, makeCover(), mixxx::cache_key_t(2))},
+                {DlpExportPlaylist{QStringLiteral("P1"), {pA->getId(), pB->getId()}},
+                        DlpExportPlaylist{QStringLiteral("P2"), {pB->getId(), pC->getId()}}},
+                {DlpExportPlaylist{QStringLiteral("K"), {pC->getId()}}});
+        for (const DlpTrackResult& result : results) {
+            ASSERT_TRUE(result.contentId) << qPrintable(result.skipReason);
+        }
+    }
+
+    /// The row of the track with the Mix Two track ID.
+    DlpContentRef rowOf(qint64 masterContentId) const {
+        auto pDb = openDb();
+        EXPECT_TRUE(pDb);
+        if (pDb) {
+            for (const DlpContentRef& row : pDb->listContents()) {
+                if (row.masterContentId == masterContentId) {
+                    return row;
+                }
+            }
+        }
+        return DlpContentRef();
+    }
+
+    qint64 playlistId(const QString& name) const {
+        auto pDb = openDb();
+        EXPECT_TRUE(pDb);
+        if (pDb) {
+            for (const DlpPlaylistRef& playlist : pDb->listPlaylists()) {
+                if (playlist.name == name) {
+                    return playlist.id;
+                }
+            }
+        }
+        return -1;
+    }
+
+    bool fileExists(const QString& stickPath) const {
+        return QFileInfo(onStick(stickPath)).isFile();
+    }
+
+    bool anlzFilesExist(const DlpContentRef& row) const {
+        const QString folder = QFileInfo(onStick(row.analysisDataFilePath)).path();
+        return QFileInfo(folder + QStringLiteral("/ANLZ0000.DAT")).isFile() ||
+                QFileInfo(folder + QStringLiteral("/ANLZ0000.EXT")).isFile() ||
+                QFileInfo(folder + QStringLiteral("/ANLZ0000.2EX")).isFile() ||
+                QFileInfo(folder).isDir();
+    }
+
+    QByteArray libraryBytes() const {
+        return readFile(onStick(QStringLiteral("/") + DeviceLibraryPlusDb::kRelativePath));
+    }
+
+    static QString playlistsSql() {
+        return QStringLiteral(
+                "SELECT p.playlist_id, p.name, p.attribute, p.playlist_id_parent, "
+                "p.sequenceNo, (SELECT group_concat(content_id) FROM playlist_content pc "
+                "WHERE pc.playlist_id = p.playlist_id) FROM playlist p ORDER BY p.playlist_id");
+    }
+};
+
+} // namespace
+
+TEST_F(DeviceLibraryPlusDeleteTest, KeepsTrackOfAnotherPlaylist) {
+    const DlpContentRef rowA = rowOf(1);
+    const DlpContentRef rowB = rowOf(2);
+    const DlpContentRef rowC = rowOf(3);
+    ASSERT_NE(0, rowA.id);
+    ASSERT_NE(0, rowB.id);
+    ASSERT_NE(0, rowC.id);
+    ASSERT_TRUE(fileExists(rowA.path));
+    ASSERT_TRUE(anlzFilesExist(rowA));
+    const QString sharedSql = QStringLiteral(
+            "SELECT 'artist', artist_id, name FROM artist UNION ALL "
+            "SELECT 'album', album_id, name FROM album UNION ALL "
+            "SELECT 'genre', genre_id, name FROM genre UNION ALL "
+            "SELECT 'key', key_id, name FROM key");
+    QString contentBefore, sharedBefore;
+    {
+        StickLibrary library(stickRoot());
+        ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
+        sharedBefore = library.rows(sharedSql).join(QLatin1Char('\n'));
+        contentBefore = library.rows(QStringLiteral(
+                                                "SELECT * FROM content WHERE masterContentId IN "
+                                                "(2, 3) ORDER BY content_id"))
+                                .join('\n');
+        ASSERT_FALSE(contentBefore.isEmpty());
+        EXPECT_EQ(QStringLiteral("1|/PIONEER/Artwork/00001/b1.jpg"),
+                library.value(QStringLiteral("SELECT image_id, path FROM image ORDER BY 1")));
+    }
+    ASSERT_TRUE(fileExists(QStringLiteral("/PIONEER/Artwork/00001/b1.jpg")));
+    ASSERT_TRUE(fileExists(QStringLiteral("/PIONEER/Artwork/00001/b2.jpg")));
+
+    const DlpDeletePlaylistResult result =
+            dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("P1")));
+    ASSERT_TRUE(result.ok) << qPrintable(result.errorMessage);
+    EXPECT_EQ(1, result.playlistsRemoved);
+    EXPECT_EQ(1, result.tracksRemoved);
+    EXPECT_EQ(1, result.tracksKept);
+    EXPECT_TRUE(result.refused.isEmpty());
+    EXPECT_TRUE(result.filesNotDeleted.isEmpty()) << qPrintable(result.filesNotDeleted.join('\n'));
+
+    // A is gone, with its files. B stays: P2 holds it.
+    EXPECT_FALSE(fileExists(rowA.path));
+    EXPECT_FALSE(QFileInfo(onStick(rowA.analysisDataFilePath)).dir().exists());
+    EXPECT_TRUE(fileExists(rowB.path));
+    EXPECT_TRUE(anlzFilesExist(rowB));
+    EXPECT_TRUE(fileExists(rowC.path));
+    // The cover of A has no user now. The cover of C stays.
+    EXPECT_FALSE(fileExists(QStringLiteral("/PIONEER/Artwork/00001/b1.jpg")));
+    EXPECT_FALSE(fileExists(QStringLiteral("/PIONEER/Artwork/00001/b1_m.jpg")));
+    EXPECT_TRUE(fileExists(QStringLiteral("/PIONEER/Artwork/00001/b2.jpg")));
+    EXPECT_TRUE(fileExists(QStringLiteral("/PIONEER/Artwork/00001/b2_m.jpg")));
+
+    StickLibrary library(stickRoot());
+    ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
+    EXPECT_EQ(QStringLiteral("ok"), library.value(QStringLiteral("PRAGMA integrity_check")));
+    EXPECT_EQ(QStringLiteral("0"),
+            library.value(QStringLiteral("SELECT count(*) FROM content WHERE masterContentId = 1")));
+    // The tracks and playlists that the delete did not touch have their rows.
+    EXPECT_EQ(contentBefore,
+            library.rows(QStringLiteral("SELECT * FROM content WHERE masterContentId IN "
+                                        "(2, 3) ORDER BY content_id"))
+                    .join('\n'));
+    EXPECT_EQ(QStringLiteral("2"), library.value(QStringLiteral("SELECT count(*) FROM content")));
+    EXPECT_EQ(QStringLiteral("2"),
+            library.value(QStringLiteral("SELECT numberOfContents FROM property")));
+    const QString idB = QString::number(rowB.id);
+    const QString idC = QString::number(rowC.id);
+    // P1 and its entries are gone. P2 and the crate keep their tracks. The
+    // later playlists have a sequence number that is one less.
+    EXPECT_EQ((QStringList{QStringLiteral("2|P2|0|0|0|%1,%2").arg(idB, idC),
+                      QStringLiteral("3|Crates|1|0|1|NULL"),
+                      QStringLiteral("4|K|0|3|0|%1").arg(idC)}),
+            library.rows(playlistsSql()));
+    EXPECT_EQ(QStringLiteral("0"),
+            library.value(QStringLiteral(
+                    "SELECT count(*) FROM playlist_content WHERE playlist_id = 1")));
+    // The shared rows stay: the tracks use the same artists and albums as before.
+    EXPECT_EQ(sharedBefore, library.rows(sharedSql).join(QLatin1Char('\n')));
+    EXPECT_FALSE(sharedBefore.isEmpty());
+    // The library opens again.
+    auto pDb = openDb();
+    ASSERT_TRUE(pDb);
+    EXPECT_EQ(2, pDb->listContents().size());
+}
+
+TEST_F(DeviceLibraryPlusDeleteTest, RemovesTrackWhenNoPlaylistHoldsItAnyMore) {
+    const DlpContentRef rowB = rowOf(2);
+    const DlpContentRef rowC = rowOf(3);
+    ASSERT_TRUE(dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("P1"))).ok);
+
+    // P2 holds B and C. The crate K holds C.
+    const DlpDeletePlaylistResult result =
+            dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("P2")));
+    ASSERT_TRUE(result.ok) << qPrintable(result.errorMessage);
+    EXPECT_EQ(1, result.playlistsRemoved);
+    EXPECT_EQ(1, result.tracksRemoved);
+    EXPECT_EQ(1, result.tracksKept);
+    EXPECT_FALSE(fileExists(rowB.path));
+    EXPECT_FALSE(QFileInfo(onStick(rowB.analysisDataFilePath)).dir().exists());
+    EXPECT_TRUE(fileExists(rowC.path));
+    EXPECT_TRUE(anlzFilesExist(rowC));
+
+    // The crate goes by its path of names. Then C has no playlist.
+    const DlpDeletePlaylistResult crate = dlpDeletePlaylistByPath(
+            stickRoot(), kMasterDbId, {QStringLiteral("Crates"), QStringLiteral("K")});
+    ASSERT_TRUE(crate.ok) << qPrintable(crate.errorMessage);
+    EXPECT_EQ(1, crate.tracksRemoved);
+    EXPECT_EQ(0, crate.tracksKept);
+    EXPECT_FALSE(fileExists(rowC.path));
+    EXPECT_FALSE(anlzFilesExist(rowC));
+    EXPECT_FALSE(fileExists(QStringLiteral("/PIONEER/Artwork/00001/b2.jpg")));
+
+    StickLibrary library(stickRoot());
+    ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
+    EXPECT_EQ(QStringLiteral("ok"), library.value(QStringLiteral("PRAGMA integrity_check")));
+    EXPECT_EQ(QStringLiteral("0"), library.value(QStringLiteral("SELECT count(*) FROM content")));
+    EXPECT_EQ(QStringLiteral("0"),
+            library.value(QStringLiteral("SELECT numberOfContents FROM property")));
+    // Only the folder Crates is left, and it is empty.
+    EXPECT_EQ((QStringList{QStringLiteral("3|Crates|1|0|0|NULL")}), library.rows(playlistsSql()));
+}
+
+TEST_F(DeviceLibraryPlusDeleteTest, ByPathFindsPlaylistAtTopLevel) {
+    const DlpDeletePlaylistResult result =
+            dlpDeletePlaylistByPath(stickRoot(), kMasterDbId, {QStringLiteral("P1")});
+    ASSERT_TRUE(result.ok) << qPrintable(result.errorMessage);
+    EXPECT_EQ(1, result.tracksRemoved);
+    EXPECT_EQ(-1, playlistId(QStringLiteral("P1")));
+}
+
+TEST_F(DeviceLibraryPlusDeleteTest, UnknownPlaylistChangesNothing) {
+    const QByteArray before = libraryBytes();
+    ASSERT_FALSE(before.isEmpty());
+    const DlpContentRef rowA = rowOf(1);
+
+    DlpDeletePlaylistResult result = dlpDeletePlaylist(stickRoot(), kMasterDbId, 9999);
+    EXPECT_FALSE(result.ok);
+    EXPECT_FALSE(result.errorMessage.isEmpty());
+    EXPECT_EQ(0, result.playlistsRemoved);
+    EXPECT_EQ(0, result.tracksRemoved);
+
+    result = dlpDeletePlaylistByPath(stickRoot(), kMasterDbId, {QStringLiteral("Nope")});
+    EXPECT_FALSE(result.ok);
+    EXPECT_FALSE(result.errorMessage.isEmpty());
+    result = dlpDeletePlaylistByPath(
+            stickRoot(), kMasterDbId, {QStringLiteral("Nope"), QStringLiteral("K")});
+    EXPECT_FALSE(result.ok);
+    // K is in the folder Crates, not at the top level.
+    result = dlpDeletePlaylistByPath(stickRoot(), kMasterDbId, {QStringLiteral("K")});
+    EXPECT_FALSE(result.ok);
+    result = dlpDeletePlaylistByPath(stickRoot(), kMasterDbId, QStringList());
+    EXPECT_FALSE(result.ok);
+
+    // A stick without a library, and a library ID that is not valid.
+    QTemporaryDir empty;
+    ASSERT_TRUE(empty.isValid());
+    EXPECT_FALSE(dlpDeletePlaylist(empty.path(), kMasterDbId, 1).ok);
+    EXPECT_FALSE(dlpDeletePlaylist(QString(), kMasterDbId, 1).ok);
+    EXPECT_FALSE(dlpDeletePlaylist(stickRoot(), 0, playlistId(QStringLiteral("P1"))).ok);
+
+    EXPECT_EQ(before, libraryBytes());
+    EXPECT_TRUE(fileExists(rowA.path));
+}
+
+TEST_F(DeviceLibraryPlusDeleteTest, FolderIsRefused) {
+    const QByteArray before = libraryBytes();
+    const DlpContentRef rowC = rowOf(3);
+    const DlpDeletePlaylistResult result =
+            dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("Crates")));
+    EXPECT_FALSE(result.ok);
+    EXPECT_FALSE(result.errorMessage.isEmpty());
+    EXPECT_EQ(0, result.playlistsRemoved);
+    ASSERT_EQ(1, result.refused.size());
+    EXPECT_EQ(QStringLiteral("Crates"), result.refused[0].name);
+    EXPECT_FALSE(result.refused[0].reason.isEmpty());
+    EXPECT_EQ(before, libraryBytes());
+    EXPECT_TRUE(fileExists(rowC.path));
+
+    // The path of a folder gives the same answer. An empty folder is a folder too.
+    EXPECT_FALSE(dlpDeletePlaylistByPath(stickRoot(), kMasterDbId, {QStringLiteral("Crates")}).ok);
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        pDb->addPlaylist(QStringLiteral("Empty"), 0, true);
+        QString error;
+        ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
+    }
+    const QByteArray withEmptyFolder = libraryBytes();
+    EXPECT_FALSE(dlpDeletePlaylistByPath(stickRoot(), kMasterDbId, {QStringLiteral("Empty")}).ok);
+    EXPECT_EQ(withEmptyFolder, libraryBytes());
+}
+
+TEST_F(DeviceLibraryPlusDeleteTest, KeepsRowsOfOtherPrograms) {
+    // Another program adds two tracks with files and ANLZ files, the playlist
+    // "Theirs" with the first track, and Mix Two's playlist P1 gets both.
+    const QString otherAudio = QStringLiteral("/Contents/Their Artist/Their Album/theirs.mp3");
+    const QString otherAudio2 = QStringLiteral("/Contents/Their Artist/Their Album/theirs2.mp3");
+    const QString otherAnlz = QStringLiteral("/PIONEER/USBANLZ/P0AA/0000AAAA/ANLZ0000.DAT");
+    const QString otherAnlz2 = QStringLiteral("/PIONEER/USBANLZ/P0AA/0000BBBB/ANLZ0000.DAT");
+    for (const QString& path : {otherAudio, otherAudio2, otherAnlz, otherAnlz2}) {
+        ASSERT_TRUE(QDir().mkpath(QFileInfo(onStick(path)).path()));
+        QFile file(onStick(path));
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+        ASSERT_EQ(5, file.write("other"));
+    }
+    qint64 firstId = 0;
+    qint64 secondId = 0;
+    const qint64 p1Id = playlistId(QStringLiteral("P1"));
+    const DlpContentRef rowOfA = rowOf(1);
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        const auto makeOther = [&pDb](const QString& path, const QString& anlz, int id) {
+            DlpContent other;
+            other.title = QStringLiteral("Other %1").arg(id);
+            other.path = path;
+            other.fileName = QFileInfo(path).fileName();
+            other.fileSize = 5;
+            other.fileType = 1;
+            other.masterDbId = kOtherMasterDbId;
+            other.masterContentId = id;
+            other.analysisDataFilePath = anlz;
+            return pDb->addContent(other);
+        };
+        firstId = makeOther(otherAudio, otherAnlz, 7);
+        secondId = makeOther(otherAudio2, otherAnlz2, 8);
+        const qint64 theirs = pDb->addPlaylist(QStringLiteral("Theirs"), 0, false);
+        pDb->setPlaylistContents(theirs, {firstId});
+        pDb->setPlaylistContents(p1Id, {rowOfA.id, firstId, secondId});
+        pDb->updateContentCount();
+        QString error;
+        ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
+    }
+    const QString otherRowsSql = QStringLiteral(
+            "SELECT * FROM content WHERE masterDbId = 99 ORDER BY content_id");
+    const QString theirsSql = QStringLiteral(
+            "SELECT p.*, (SELECT group_concat(content_id) FROM playlist_content pc "
+            "WHERE pc.playlist_id = p.playlist_id) FROM playlist p WHERE name = 'Theirs'");
+    QString otherRowsBefore, theirsBefore;
+    {
+        StickLibrary library(stickRoot());
+        ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
+        otherRowsBefore = library.rows(otherRowsSql).join('\n');
+        theirsBefore = library.value(theirsSql);
+    }
+    ASSERT_FALSE(otherRowsBefore.isEmpty());
+    const DlpContentRef rowA = rowOf(1);
+
+    const DlpDeletePlaylistResult result =
+            dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("P1")));
+    ASSERT_TRUE(result.ok) << qPrintable(result.errorMessage);
+    EXPECT_EQ(1, result.playlistsRemoved);
+    // A goes. The two tracks of the other program are refused, also the one
+    // that "Theirs" holds.
+    EXPECT_EQ(1, result.tracksRemoved);
+    EXPECT_EQ(0, result.tracksKept);
+    ASSERT_EQ(2, result.refused.size());
+    EXPECT_EQ(otherAudio, result.refused[0].name);
+    EXPECT_EQ(otherAudio2, result.refused[1].name);
+    EXPECT_FALSE(result.refused[0].reason.isEmpty());
+    EXPECT_TRUE(result.filesNotDeleted.isEmpty());
+    EXPECT_FALSE(fileExists(rowA.path));
+
+    EXPECT_TRUE(fileExists(otherAudio));
+    EXPECT_TRUE(fileExists(otherAudio2));
+    EXPECT_TRUE(fileExists(otherAnlz));
+    EXPECT_TRUE(fileExists(otherAnlz2));
+    StickLibrary library(stickRoot());
+    ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
+    EXPECT_EQ(QStringLiteral("ok"), library.value(QStringLiteral("PRAGMA integrity_check")));
+    EXPECT_EQ(otherRowsBefore, library.rows(otherRowsSql).join('\n'));
+    // Only the sequence number of the playlist "Theirs" changes: it is one
+    // less, as P1 was before it.
+    const QString theirsAfter = library.value(theirsSql);
+    EXPECT_EQ(theirsBefore.split('|').mid(2), theirsAfter.split('|').mid(2)) << qPrintable(theirsAfter);
+    EXPECT_EQ(QString::number(firstId),
+            library.value(QStringLiteral("SELECT group_concat(content_id) FROM playlist_content "
+                                         "WHERE playlist_id = (SELECT playlist_id FROM playlist "
+                                         "WHERE name = 'Theirs')")));
+    // B, C and the two tracks of the other program.
+    EXPECT_EQ(QStringLiteral("4"), library.value(QStringLiteral("SELECT count(*) FROM content")));
+    EXPECT_EQ(QStringLiteral("4"),
+            library.value(QStringLiteral("SELECT numberOfContents FROM property")));
+    EXPECT_GT(secondId, firstId);
+}
+
+TEST_F(DeviceLibraryPlusDeleteTest, ReportsFileThatCannotBeDeleted) {
+    const DlpContentRef rowA = rowOf(1);
+    // A folder at the place of the audio file: Mix Two removes no folder.
+    ASSERT_TRUE(QFile::remove(onStick(rowA.path)));
+    ASSERT_TRUE(QDir().mkpath(onStick(rowA.path)));
+
+    const DlpDeletePlaylistResult result =
+            dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("P1")));
+    // The library is saved. The file is reported and is not fatal.
+    ASSERT_TRUE(result.ok) << qPrintable(result.errorMessage);
+    EXPECT_EQ(1, result.tracksRemoved);
+    EXPECT_EQ(QStringList{rowA.path}, result.filesNotDeleted);
+    EXPECT_TRUE(QFileInfo(onStick(rowA.path)).isDir());
+    EXPECT_FALSE(QFileInfo(onStick(rowA.analysisDataFilePath)).dir().exists());
+    EXPECT_EQ(-1, playlistId(QStringLiteral("P1")));
+}
+// End of AI-generated text.
 
 } // namespace rekordbox
 } // namespace mixxx

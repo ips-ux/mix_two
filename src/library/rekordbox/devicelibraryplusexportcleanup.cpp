@@ -32,7 +32,7 @@ QString folderOf(const QString& stickPath) {
 
 /// Removes one real file. A missing file is not an error; a folder or a
 /// symbolic link is never removed.
-bool removeFile(const QString& path) {
+bool removeFile(const QString& path, const QString& stickPath, QStringList* pNotRemoved) {
     const QFileInfo info(path);
     if (!info.exists() && !info.isSymLink()) {
         return false;
@@ -40,12 +40,18 @@ bool removeFile(const QString& path) {
     if (info.isSymLink() || !info.isFile()) {
         qWarning() << "DeviceLibraryPlus: did not remove a replaced path that is not a file";
         qDebug() << "DeviceLibraryPlus: the path is" << path;
+        if (pNotRemoved) {
+            pNotRemoved->append(stickPath);
+        }
         return false;
     }
     QFile file(path);
     if (!file.remove()) {
         qWarning() << "DeviceLibraryPlus: cannot remove a replaced file:" << file.errorString();
         qDebug() << "DeviceLibraryPlus: the file is" << path;
+        if (pNotRemoved) {
+            pNotRemoved->append(stickPath);
+        }
         return false;
     }
     return true;
@@ -66,7 +72,8 @@ void removeEmptyFolder(const QString& path) {
 int dlpRemoveReplacedFiles(const QString& stickRoot,
         const DlpReplacedFiles& replaced,
         const QList<DlpContentRef>& rows,
-        const QHash<qint64, QString>& imagePaths) {
+        const QHash<qint64, QString>& imagePaths,
+        QStringList* pNotRemoved) {
     if (stickRoot.trimmed().isEmpty()) {
         return 0;
     }
@@ -100,7 +107,8 @@ int dlpRemoveReplacedFiles(const QString& stickRoot,
             continue;
         }
         for (const QString& name : kAnlzFileNames) {
-            if (removeFile(stickRoot + folder + QLatin1Char('/') + name)) {
+            const QString filePath = folder + QLatin1Char('/') + name;
+            if (removeFile(stickRoot + filePath, filePath, pNotRemoved)) {
                 ++removed;
             }
         }
@@ -119,7 +127,7 @@ int dlpRemoveReplacedFiles(const QString& stickRoot,
         done.insert(key);
         const QString mediumPath = smallPath.chopped(4) + QStringLiteral("_m.jpg");
         for (const QString& path : {smallPath, mediumPath}) {
-            if (!usedImagePaths.contains(dlpPathKey(path)) && removeFile(stickRoot + path)) {
+            if (!usedImagePaths.contains(dlpPathKey(path)) && removeFile(stickRoot + path, path, pNotRemoved)) {
                 ++removed;
             }
         }
@@ -131,7 +139,7 @@ int dlpRemoveReplacedFiles(const QString& stickRoot,
             continue;
         }
         done.insert(key);
-        if (removeFile(stickRoot + audioPath)) {
+        if (removeFile(stickRoot + audioPath, audioPath, pNotRemoved)) {
             ++removed;
         }
     }
