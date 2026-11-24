@@ -21,6 +21,7 @@
 #include "library/trackcollectionmanager.h"
 #include "moc_dlgpreflibrary.cpp"
 #include "util/desktophelper.h"
+#include "widget/holdtomenu.h"
 #include "widget/wsearchlineedit.h"
 
 namespace {
@@ -306,6 +307,10 @@ void DlgPrefLibrary::slotResetToDefaults() {
     checkBox_show_itunes->setChecked(true);
     checkBox_show_traktor->setChecked(true);
     checkBox_show_rekordbox->setChecked(true);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    checkBox_hold_to_open_menu->setChecked(holdtomenu::kEnabledDefault);
+    // End of AI-generated text.
 }
 
 void DlgPrefLibrary::slotUpdate() {
@@ -459,6 +464,11 @@ void DlgPrefLibrary::slotUpdate() {
                     kSidebarHoverExpandDelayConfigKey,
                     kSidebarHoverExpandDelayDefault);
     spinBox_sidebar_hover_expand_delay->setValue(sidebarHoverExpandDelay);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    checkBox_hold_to_open_menu->setChecked(m_pConfig->getValue(
+            kHoldToOpenMenuConfigKey, holdtomenu::kEnabledDefault));
+    // End of AI-generated text.
 }
 
 void DlgPrefLibrary::slotCancel() {
@@ -684,6 +694,10 @@ void DlgPrefLibrary::slotApply() {
     int sidebarHoverExpandDelay = spinBox_sidebar_hover_expand_delay->value();
     m_pConfig->setValue(kSidebarHoverExpandDelayConfigKey, sidebarHoverExpandDelay);
     emit m_pLibrary->setSidebarHoverExpandDelay(sidebarHoverExpandDelay);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pConfig->setValue(kHoldToOpenMenuConfigKey, checkBox_hold_to_open_menu->isChecked());
+    // End of AI-generated text.
 
     // TODO(rryan): Don't save here.
     m_pConfig->save();

@@ -129,3 +129,10 @@ const ConfigKey mixxx::library::prefs::kSidebarHoverExpandDelayConfigKey =
         ConfigKey{
                 mixxx::library::prefs::kConfigGroup,
                 QStringLiteral("sidebar_hover_expand_delay")};
+
+// AI-generated (Claude Code). Start of AI-generated text.
+const ConfigKey mixxx::library::prefs::kHoldToOpenMenuConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("HoldToOpenTrackMenu")};
+// End of AI-generated text.

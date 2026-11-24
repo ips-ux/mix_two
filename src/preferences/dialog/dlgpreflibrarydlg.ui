@@ -342,6 +342,17 @@
        </layout>
       </item>
 
+      <item row="12" column="0" colspan="4">
+       <widget class="QCheckBox" name="checkBox_hold_to_open_menu">
+        <property name="toolTip">
+         <string>Hold the left mouse button on a track for 1 second to open the track menu. The right-click menu also works.</string>
+        </property>
+        <property name="text">
+         <string>Drop-down menu (hold a track for 1 second)</string>
+        </property>
+       </widget>
+      </item>
+
      </layout>
     </widget>
    </item><!-- Track Table View -->
@@ -784,6 +795,7 @@
   <tabstop>spinbox_bpm_precision</tabstop>
   <tabstop>checkbox_played_track_color</tabstop>
   <tabstop>comboBox_dateFormat</tabstop>
+  <tabstop>checkBox_hold_to_open_menu</tabstop>
   <tabstop>spinBox_search_debouncing_timeout</tabstop>
   <tabstop>checkBox_enable_search_completions</tabstop>
   <tabstop>checkBox_enable_search_history_shortcuts</tabstop>

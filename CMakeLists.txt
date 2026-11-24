@@ -1897,6 +1897,7 @@ add_library(
   src/widget/wsplitter.cpp
   src/widget/wstarrating.cpp
   src/widget/wstatuslight.cpp
+  src/widget/prefixsearch.cpp
   src/widget/wtime.cpp
   src/widget/wtrackmenu.cpp
   src/widget/wtrackproperty.cpp
@@ -3085,6 +3086,7 @@ if(BUILD_TESTING)
     src/test/prefsnapshot_test.cpp
     src/test/playlisttest.cpp
     src/test/playtimegate_test.cpp
+    src/test/trackviewkeys_test.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp
     src/test/quantizebeats_test.cpp

@@ -461,6 +461,14 @@ Hardware.
 
 ### Playlist folders
 
+Alphabet Search now works in the track list. Type a letter to select the first
+track that starts with it in the sorted column. Type more letters within 1
+second to narrow the search. This is the same as in rekordbox.
+
+You can now open the track menu with a hold. Go to Preferences > Library and
+turn on **Drop-down menu**. Then hold the left mouse button on a track for 1
+second. The option is off by default. The right-click menu stays available.
+
 The History list now adds a track only after it played for 60 seconds. This
 is the same as in rekordbox. Each deck counts its own play time. A pause does
 not add time. A deck that you do not hear adds no time. This is a deck with the

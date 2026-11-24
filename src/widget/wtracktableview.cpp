@@ -1,10 +1,15 @@
 #include "widget/wtracktableview.h"
 
+#include <QApplication>
 #include <QDrag>
+#include <QHeaderView>
+#include <QKeyEvent>
 #include <QModelIndex>
+#include <QMouseEvent>
 #include <QScrollBar>
 #include <QShortcut>
 #include <QStylePainter>
+#include <QTimer>
 #include <QUrl>
 
 #include "control/controlobject.h"
@@ -27,6 +32,7 @@
 #include "util/defs.h"
 #include "util/dnd.h"
 #include "util/time.h"
+#include "widget/holdtomenu.h"
 #include "widget/wtrackmenu.h"
 #include "widget/wtracktableviewheader.h"
 
@@ -57,7 +63,15 @@ WTrackTableView::WTrackTableView(QWidget* pParent,
           m_sorting(false),
           m_selectionChangedSinceLastGuiTick(true),
           m_loadCachedOnly(false),
-          m_dropRow(-1) {
+          m_dropRow(-1),
+          m_pHoldTimer(nullptr) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_prefixClock.start();
+    m_pHoldTimer = new QTimer(this);
+    m_pHoldTimer->setSingleShot(true);
+    m_pHoldTimer->setInterval(holdtomenu::kHoldMillis);
+    connect(m_pHoldTimer, &QTimer::timeout, this, &WTrackTableView::slotHoldTimeout);
+    // End of AI-generated text.
     // Connect slots and signals to make the world go 'round.
     connect(this, &WTrackTableView::doubleClicked, this, &WTrackTableView::slotMouseDoubleClicked);
 
@@ -713,12 +727,97 @@ void WTrackTableView::onShow() {
 void WTrackTableView::mousePressEvent(QMouseEvent* pEvent) {
     DragAndDropHelper::mousePressed(pEvent);
     WLibraryTableView::mousePressEvent(pEvent);
+    startHoldTimer(pEvent);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void WTrackTableView::mouseReleaseEvent(QMouseEvent* pEvent) {
+    cancelHoldTimer();
+    WLibraryTableView::mouseReleaseEvent(pEvent);
+}
+
+void WTrackTableView::startHoldTimer(const QMouseEvent* pEvent) {
+    cancelHoldTimer();
+    if (pEvent->button() != Qt::LeftButton ||
+            pEvent->modifiers() != Qt::NoModifier ||
+            !m_pConfig->getValue(
+                    mixxx::library::prefs::kHoldToOpenMenuConfigKey,
+                    holdtomenu::kEnabledDefault) ||
+            state() == QAbstractItemView::EditingState ||
+            !indexAt(pEvent->pos()).isValid()) {
+        return;
+    }
+    m_holdPressPos = pEvent->pos();
+    m_pHoldTimer->start();
+}
+
+void WTrackTableView::cancelHoldTimer() {
+    m_pHoldTimer->stop();
+}
+
+void WTrackTableView::slotHoldTimeout() {
+    // The pointer must still be near the press point and the button must
+    // still be down. A drag or a scroll has moved it, a release stops the timer.
+    const QPoint pos = viewport()->mapFromGlobal(QCursor::pos());
+    if (!(QGuiApplication::mouseButtons() & Qt::LeftButton) ||
+            holdtomenu::movedTooFar(m_holdPressPos,
+                    pos,
+                    QApplication::startDragDistance())) {
+        return;
+    }
+    VERIFY_OR_DEBUG_ASSERT(m_pTrackMenu.get()) {
+        initTrackMenu();
+    }
+    showTrackMenu(QCursor::pos(), indexAt(pos));
+}
+
+bool WTrackTableView::alphabetSearch(const QKeyEvent* pEvent) {
+    if (state() == QAbstractItemView::EditingState ||
+            (pEvent->modifiers() &
+                    (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
+        return false;
+    }
+    const qint64 now = m_prefixClock.elapsed();
+    if (!isPrefixSearchText(pEvent->text(), m_prefixSearch.isActive(now))) {
+        return false;
+    }
+    const QAbstractItemModel* pModel = model();
+    if (!pModel) {
+        return false;
+    }
+    // Choice: the sorted column decides. Without a sort indicator, the column
+    // of the current cell decides.
+    QHeaderView* pHeader = horizontalHeader();
+    int column = pHeader->isSortIndicatorShown() ? pHeader->sortIndicatorSection() : -1;
+    if (column < 0) {
+        column = currentIndex().isValid() ? currentIndex().column() : 0;
+    }
+    const QString text = m_prefixSearch.add(pEvent->text(), now);
+    const int row = findRowByPrefix(pModel, column, text);
+    if (row >= 0) {
+        const QModelIndex index = pModel->index(row, column);
+        setCurrentIndex(index);
+        selectRow(row);
+        scrollTo(index, QAbstractItemView::PositionAtCenter);
+    }
+    // The key is used also when no row matches, so Qt does not start
+    // its own search.
+    return true;
+}
+// End of AI-generated text.
 
 void WTrackTableView::mouseMoveEvent(QMouseEvent* pEvent) {
     // Only use this for drag and drop if the LeftButton is pressed we need to
     // check for this because mousetracking is activated and this function is
     // called every time the mouse is moved -- kain88 May 2012
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (m_pHoldTimer->isActive() &&
+            holdtomenu::movedTooFar(m_holdPressPos,
+                    pEvent->pos(),
+                    QApplication::startDragDistance())) {
+        cancelHoldTimer();
+    }
+    // End of AI-generated text.
     if (pEvent->buttons() != Qt::LeftButton) {
         // Needed for mouse-tracking to fire entered() events. If we call this
         // outside of this if statement then we get 'ghost' drags. See issue
@@ -1342,6 +1441,11 @@ void WTrackTableView::keyPressEvent(QKeyEvent* event) {
             return;
         }
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (alphabetSearch(event)) {
+        return;
+    }
+    // End of AI-generated text.
     QTableView::keyPressEvent(event);
 }
 

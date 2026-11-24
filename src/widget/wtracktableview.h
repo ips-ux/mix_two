@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QAbstractItemModel>
+#include <QElapsedTimer>
+#include <QPoint>
 #include <QSortFilterProxyModel>
 
 #include "control/controlproxy.h"
@@ -10,6 +12,7 @@
 #include "preferences/usersettings.h"
 #include "util/duration.h"
 #include "util/parented_ptr.h"
+#include "widget/prefixsearch.h"
 #include "widget/wlibrarytableview.h"
 #ifdef __STEM__
 #include "engine/engine.h"
@@ -177,6 +180,7 @@ class WTrackTableView : public WLibraryTableView {
                           const QItemSelection &deselected) override;
 
     void mousePressEvent(QMouseEvent* pEvent) override;
+    void mouseReleaseEvent(QMouseEvent* pEvent) override;
     // Mouse move event, implemented to hide the text and show an icon instead
     // when dragging.
     void mouseMoveEvent(QMouseEvent *pEvent) override;
@@ -193,6 +197,16 @@ class WTrackTableView : public WLibraryTableView {
     void showTrackMenu(const QPoint pos, const QModelIndex& index);
 
     void hideOrRemoveSelectedTracks();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Alphabet search: selects the first row whose sorted column starts with
+    // the typed text. Returns true when the key event was used.
+    bool alphabetSearch(const QKeyEvent* pEvent);
+    // Hold to open the track menu (preference "Drop-down menu").
+    void startHoldTimer(const QMouseEvent* pEvent);
+    void cancelHoldTimer();
+    void slotHoldTimeout();
+    // End of AI-generated text.
 
     const UserSettingsPointer m_pConfig;
     Library* const m_pLibrary;
@@ -218,4 +232,11 @@ class WTrackTableView : public WLibraryTableView {
     ControlProxy* m_pSortOrder;
 
     int m_dropRow;
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    PrefixSearchBuffer m_prefixSearch;
+    QElapsedTimer m_prefixClock;
+    QTimer* m_pHoldTimer;
+    QPoint m_holdPressPos;
+    // End of AI-generated text.
 };

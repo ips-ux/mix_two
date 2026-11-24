@@ -66,6 +66,11 @@ const int kSidebarHoverExpandDelayDefault = 500; // ms
 
 extern const ConfigKey kSidebarHoverExpandDelayConfigKey;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Hold the mouse button on a track row for one second to open the track menu.
+extern const ConfigKey kHoldToOpenMenuConfigKey;
+// End of AI-generated text.
+
 } // namespace prefs
 
 } // namespace library
