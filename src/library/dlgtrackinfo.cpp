@@ -161,6 +161,17 @@ void DlgTrackInfo::init() {
             this,
             &DlgTrackInfo::slotBpmLockClicked);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Only a click of the user changes the staged flag. It goes to the track
+    // on Apply or OK, as the other fields do.
+    connect(chkHotCueAutoLoad,
+            &QCheckBox::clicked,
+            this,
+            [this](bool checked) {
+                m_trackRecord.setHotCueAutoLoad(checked);
+            });
+    // End of AI-generated text.
+
     connect(bpmConst,
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
             &QCheckBox::checkStateChanged,
@@ -424,6 +435,15 @@ void DlgTrackInfo::replaceTrackRecord(
     }
 
     updateTrackMetadataFields();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The box shows the staged flag. Block the signals: a set of the check
+    // state is not a change of the user.
+    {
+        const QSignalBlocker checkBoxBlocker(chkHotCueAutoLoad);
+        chkHotCueAutoLoad->setChecked(m_trackRecord.getHotCueAutoLoad());
+    }
+    // End of AI-generated text.
 }
 
 void DlgTrackInfo::updateTrackMetadataFields() {

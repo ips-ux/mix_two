@@ -24,7 +24,7 @@ Writing rules for this file (ASD-STE100):
 ### Before you start
 
 CAUTION: Make a copy of your Mixxx library before you start Mix Two for the
-first time. Mix Two changes the library database to schema version 41.
+first time. Mix Two changes the library database to schema version 42.
 
 To start Mix Two, double-click `tools\mixtwo_windows.bat`. Mix Two builds,
 then starts. If an error occurs, the window stays open. Push a key to close
@@ -514,6 +514,17 @@ puts only these tracks on the stick, with no playlist.
 The export dialog now shows a warning icon next to the text about a stick
 that players cannot read. The question before the export also has the warning
 icon. You can still continue.
+
+### Hot cue auto load on CDJ and XDJ
+
+The track info window has a new check box, **Allow to auto load HotCue on
+CDJ / XDJ**. It is on for every track, also for the tracks that are already in
+your library. This is the same as in rekordbox. Clear the box to stop a CDJ or
+XDJ player from loading the hot cues of that track. Push **Apply** or **OK**
+to save the setting.
+
+The export to a USB stick writes this setting for each track. Before, the
+export always set it to on.
 
 ### Library preferences
 

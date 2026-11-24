@@ -380,6 +380,50 @@ TEST_F(DeviceLibraryPlusExporterTest, ExportsOneTrack) {
             library.value(QStringLiteral("SELECT numberOfContents FROM property")));
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusExporterTest, WritesTheHotCueAutoLoadFlagOfEachTrack) {
+    TrackPointer pOn = makeTrack(toComputer(QStringLiteral("artist.mp3"), "a"), 1);
+    TrackPointer pOff = makeTrack(toComputer(QStringLiteral("all.mp3"), "b"), 2);
+    pOn->setTitle(QStringLiteral("Flag On"));
+    pOff->setTitle(QStringLiteral("Flag Off"));
+    // A track has the flag on when it comes into the library.
+    ASSERT_TRUE(pOn->isHotCueAutoLoad());
+    pOff->setHotCueAutoLoad(false);
+    {
+        auto pDb = newDb();
+        ASSERT_TRUE(pDb);
+        const auto results = exportAndFinish(pDb.get(), {itemFor(pOn), itemFor(pOff)});
+        ASSERT_TRUE(results[0].contentId) << qPrintable(results[0].skipReason);
+        ASSERT_TRUE(results[1].contentId) << qPrintable(results[1].skipReason);
+    }
+    StickLibrary library(stickRoot());
+    ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
+    EXPECT_EQ(QStringLiteral("1"),
+            library.value(QStringLiteral(
+                    "SELECT isHotCueAutoLoadOn FROM content WHERE title = 'Flag On'")));
+    EXPECT_EQ(QStringLiteral("0"),
+            library.value(QStringLiteral(
+                    "SELECT isHotCueAutoLoadOn FROM content WHERE title = 'Flag Off'")));
+
+    // A new export of the changed flag updates the row.
+    pOff->setHotCueAutoLoad(true);
+    pOn->setHotCueAutoLoad(false);
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        exportAndFinish(pDb.get(), {itemFor(pOn), itemFor(pOff)});
+    }
+    StickLibrary again(stickRoot());
+    ASSERT_TRUE(again.isValid()) << qPrintable(again.error());
+    EXPECT_EQ(QStringLiteral("0"),
+            again.value(QStringLiteral(
+                    "SELECT isHotCueAutoLoadOn FROM content WHERE title = 'Flag On'")));
+    EXPECT_EQ(QStringLiteral("1"),
+            again.value(QStringLiteral(
+                    "SELECT isHotCueAutoLoadOn FROM content WHERE title = 'Flag Off'")));
+}
+// End of AI-generated text.
+
 TEST_F(DeviceLibraryPlusExporterTest, WritesArtwork) {
     TrackPointer pFirst = makeTrack(toComputer(QStringLiteral("artist.mp3"), "a"), 1);
     TrackPointer pSecond = makeTrack(toComputer(QStringLiteral("all.mp3"), "b"), 2);

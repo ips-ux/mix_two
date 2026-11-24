@@ -86,7 +86,7 @@ constexpr ContentColumn kContentColumns[] = {
         {"samplingRate", ":samplingRate"},
         {"isrc", "''"},
         {"djPlayCount", ":playCount"},
-        {"isHotCueAutoLoadOn", "1"},
+        {"isHotCueAutoLoadOn", ":hotCueAutoLoad"},
         {"isKuvoDeliverStatusOn", "0"},
         {"kuvoDeliveryComment", "''"},
         {"masterDbId", ":masterDbId"},
@@ -157,6 +157,7 @@ void bindContent(NamedStatement& statement, const DlpContent& content) {
     statement.bindInt(":bitDepth", content.bitDepth);
     statement.bindInt(":samplingRate", content.samplingRate);
     statement.bindInt(":playCount", content.playCount);
+    statement.bindInt(":hotCueAutoLoad", content.hotCueAutoLoad ? 1 : 0);
     statement.bindInt(":masterDbId", content.masterDbId);
     statement.bindInt(":masterContentId", content.masterContentId);
     statement.bindText(":analysisDataFilePath", content.analysisDataFilePath);

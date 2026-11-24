@@ -230,3 +230,51 @@ TEST_F(TrackDAOTest, clearPlayedClearsCachedTrackAndKeepsPlayCount) {
     EXPECT_EQ(3, pTrack->getPlayCounter().getTimesPlayed());
 }
 // End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(TrackDAOTest, hotCueAutoLoadIsOnForNewTrackAndSaved) {
+    const QString dir = getTestDir().filePath(QStringLiteral("id3-test-data/"));
+    TrackPointer pTrack = getOrAddTrackByLocation(dir + QStringLiteral("artist.mp3"));
+    TrackPointer pOffTrack = getOrAddTrackByLocation(dir + QStringLiteral("all.mp3"));
+    ASSERT_TRUE(pTrack);
+    ASSERT_TRUE(pOffTrack);
+    const TrackId onId = pTrack->getId();
+    const TrackId offId = pOffTrack->getId();
+    ASSERT_TRUE(onId.isValid());
+    ASSERT_TRUE(offId.isValid());
+
+    // A track that comes into the library has the flag on.
+    EXPECT_TRUE(pTrack->isHotCueAutoLoad());
+    EXPECT_TRUE(pOffTrack->isHotCueAutoLoad());
+
+    // A change of the flag of a track in the library is saved.
+    pTrack->setHotCueAutoLoad(false);
+    pOffTrack->setHotCueAutoLoad(false);
+    EXPECT_EQ(TrackCollectionManager::SaveTrackResult::Saved,
+            trackCollectionManager()->saveTrack(pTrack));
+    EXPECT_EQ(TrackCollectionManager::SaveTrackResult::Saved,
+            trackCollectionManager()->saveTrack(pOffTrack));
+
+    // Dropping the last reference evicts the tracks, so that the lookups
+    // below read the database.
+    pTrack.reset();
+    pOffTrack.reset();
+    ASSERT_TRUE(GlobalTrackCacheLocker().isEmpty());
+
+    TrackPointer pReloaded = trackCollectionManager()->getTrackById(onId);
+    ASSERT_TRUE(pReloaded);
+    EXPECT_FALSE(pReloaded->isHotCueAutoLoad());
+    // The flag can go back on and stays on.
+    pReloaded->setHotCueAutoLoad(true);
+    EXPECT_EQ(TrackCollectionManager::SaveTrackResult::Saved,
+            trackCollectionManager()->saveTrack(pReloaded));
+    pReloaded.reset();
+    ASSERT_TRUE(GlobalTrackCacheLocker().isEmpty());
+    const TrackPointer pAgain = trackCollectionManager()->getTrackById(onId);
+    ASSERT_TRUE(pAgain);
+    EXPECT_TRUE(pAgain->isHotCueAutoLoad());
+    const TrackPointer pOffReloaded = trackCollectionManager()->getTrackById(offId);
+    ASSERT_TRUE(pOffReloaded);
+    EXPECT_FALSE(pOffReloaded->isHotCueAutoLoad());
+}
+// End of AI-generated text.

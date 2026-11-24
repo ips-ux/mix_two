@@ -429,6 +429,7 @@ DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item
     content.rating = std::clamp(track.getRating(), 0, 5);
     content.releaseYear = TrackMetadata::parseCalendarYear(track.getYear());
     content.playCount = track.getTimesPlayed();
+    content.hotCueAutoLoad = track.isHotCueAutoLoad();
     content.djComment = track.getComment();
     content.dateAdded = dlpDate(track.getDateAdded());
     content.dateCreated = content.dateAdded;

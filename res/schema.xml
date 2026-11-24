@@ -610,4 +610,14 @@ reapplying those migrations.
       ALTER TABLE Playlists ADD COLUMN folder_id INTEGER DEFAULT NULL REFERENCES PlaylistFolders(id);
     </sql>
   </revision>
+  <revision version="42" min_compatible="3">
+    <description>
+      Mix Two: the flag "Allow to auto load HotCue on CDJ / XDJ" of a track.
+      It is on (1) for every track, as in rekordbox, and for every track that
+      is added later. Older versions ignore the column.
+    </description>
+    <sql>
+      ALTER TABLE library ADD COLUMN hotcue_autoload INTEGER NOT NULL DEFAULT 1;
+    </sql>
+  </revision>
 </schema>

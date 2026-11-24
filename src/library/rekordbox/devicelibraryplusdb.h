@@ -35,6 +35,8 @@ struct DlpContent {
     int rating = 0;
     int releaseYear = 0;
     int playCount = 0;
+    /// The flag "Allow to auto load HotCue on CDJ / XDJ" of the track.
+    bool hotCueAutoLoad = true;
     QString djComment;
     /// Dates are "yyyy-MM-dd".
     QString dateAdded;

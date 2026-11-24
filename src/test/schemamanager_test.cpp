@@ -91,3 +91,39 @@ TEST_F(SchemaManagerTest, UpgradeFailed) {
             MixxxDb::kRequiredSchemaVersion, MixxxDb::kDefaultSchemaFile);
     EXPECT_EQ(SchemaManager::Result::UpgradeFailed, result);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(SchemaManagerTest, HotCueAutoLoadIsOnForExistingTracks) {
+    // A library of the version before the flag exists, with two tracks.
+    {
+        SchemaManager schemaManager(dbConnection());
+        ASSERT_EQ(SchemaManager::Result::UpgradeSucceeded,
+                schemaManager.upgradeToSchemaVersion(
+                        41, MixxxDb::kDefaultSchemaFile));
+        QSqlQuery query(dbConnection());
+        ASSERT_TRUE(query.exec("INSERT INTO library (artist, title) VALUES ('a', 'one')"));
+        ASSERT_TRUE(query.exec("INSERT INTO library (artist, title) VALUES ('b', 'two')"));
+        EXPECT_FALSE(query.exec("SELECT hotcue_autoload FROM library"));
+    }
+
+    SchemaManager schemaManager(dbConnection());
+    ASSERT_EQ(SchemaManager::Result::UpgradeSucceeded,
+            schemaManager.upgradeToSchemaVersion(
+                    42, MixxxDb::kDefaultSchemaFile));
+
+    // The tracks of the old library have the flag on.
+    QSqlQuery query(dbConnection());
+    ASSERT_TRUE(query.exec("SELECT hotcue_autoload FROM library ORDER BY id"));
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(1, query.value(0).toInt());
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(1, query.value(0).toInt());
+    EXPECT_FALSE(query.next());
+
+    // A row that does not set the flag gets it on as well.
+    ASSERT_TRUE(query.exec("INSERT INTO library (artist, title) VALUES ('c', 'three')"));
+    ASSERT_TRUE(query.exec("SELECT hotcue_autoload FROM library WHERE title='three'"));
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(1, query.value(0).toInt());
+}
+// End of AI-generated text.

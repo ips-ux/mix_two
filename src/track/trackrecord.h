@@ -57,6 +57,11 @@ class TrackRecord final {
     MIXXX_DECL_PROPERTY(mixxx::audio::FramePos, mainCuePosition, MainCuePosition)
     MIXXX_DECL_PROPERTY(int, rating, Rating)
     MIXXX_DECL_PROPERTY(bool, bpmLocked, BpmLocked)
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: the flag "Allow to auto load HotCue on CDJ / XDJ". It is on
+    // for a new track, as in rekordbox. The export to a USB stick writes it.
+    MIXXX_DECL_PROPERTY(bool, hotCueAutoLoad, HotCueAutoLoad)
+    // End of AI-generated text.
 
   public:
     // Data migration: Reload track total from file tags if not initialized

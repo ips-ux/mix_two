@@ -163,6 +163,13 @@ class Track : public QObject {
     void setBpmLocked(bool bpmLocked);
     bool isBpmLocked() const;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: the flag "Allow to auto load HotCue on CDJ / XDJ". It is on
+    // for a new track.
+    void setHotCueAutoLoad(bool hotCueAutoLoad);
+    bool isHotCueAutoLoad() const;
+    // End of AI-generated text.
+
     void setReplayGain(const mixxx::ReplayGain&);
     // Adjust ReplayGain by multiplying the given gain amount.
     void adjustReplayGainFromPregain(double gain, const QString& requestingPlayerGroup);

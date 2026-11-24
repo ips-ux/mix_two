@@ -1135,7 +1135,8 @@ TEST_F(DeviceLibraryPlusDbTest, ContentFixedColumns) {
     ASSERT_TRUE(pDb);
     sqlite3* pHandle = handleOf(*pDb);
 
-    // The fixed values of spec section 6.
+    // The fixed values of spec section 6. The flag isHotCueAutoLoadOn is not
+    // fixed: it follows DlpContent::hotCueAutoLoad (on in sampleContent()).
     const auto expectFixedColumns = [&](const char* where) {
         SCOPED_TRACE(where);
         expectRow(pHandle,
@@ -1178,6 +1179,30 @@ TEST_F(DeviceLibraryPlusDbTest, ContentFixedColumns) {
     expectFixedColumns("content_id = 1");
     EXPECT_TRUE(pDb->lastErrorMessage().isEmpty());
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusDbTest, ContentWritesTheHotCueAutoLoadFlag) {
+    auto pDb = createDb();
+    ASSERT_TRUE(pDb);
+    sqlite3* pHandle = handleOf(*pDb);
+
+    DlpContent off = sampleContent();
+    off.hotCueAutoLoad = false;
+    const qint64 offId = pDb->addContent(off);
+    const qint64 onId = pDb->addContent(sampleContent());
+    ASSERT_EQ(1, offId);
+    ASSERT_EQ(2, onId);
+    expectRow(pHandle, "content", "content_id = 1", {{"isHotCueAutoLoadOn", "0"}});
+    expectRow(pHandle, "content", "content_id = 2", {{"isHotCueAutoLoadOn", "1"}});
+
+    // updateContent() writes the flag of the struct.
+    pDb->updateContent(offId, sampleContent());
+    pDb->updateContent(onId, off);
+    expectRow(pHandle, "content", "content_id = 1", {{"isHotCueAutoLoadOn", "1"}});
+    expectRow(pHandle, "content", "content_id = 2", {{"isHotCueAutoLoadOn", "0"}});
+    EXPECT_TRUE(pDb->lastErrorMessage().isEmpty());
+}
+// End of AI-generated text.
 
 TEST_F(DeviceLibraryPlusDbTest, UpdateOfMissingContentIsAnError) {
     auto pDb = createDb();
