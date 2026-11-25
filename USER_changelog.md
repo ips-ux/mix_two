@@ -749,6 +749,15 @@ have audio problems with an old kernel. Update the Linux kernel to version
 The notice shows one time for each profile. It does not stop the start of Mix
 Two. Windows is not changed.
 
+### Start Mix Two on Linux
+
+On Linux, use `tools/mixtwo_linux.sh`. It has the same commands as
+`tools\mixtwo_windows.bat`: `configure`, `build`, `test` and `run`. Mix Two
+uses a separate profile. To change the profile folder, set `MIXTWO_PROFILE`.
+
+To see the commands without a run, add `--dry-run`. The script installs
+nothing and does not use sudo. Install the build dependencies yourself.
+
 ### Real-time priority on Linux
 
 The .deb package of Mix Two has a limits file for the group `audio`. The
