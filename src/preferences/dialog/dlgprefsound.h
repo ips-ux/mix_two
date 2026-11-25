@@ -72,6 +72,9 @@ class DlgPrefSound : public DlgPreferencePage, public Ui::DlgPrefSoundDlg  {
     void previewVolumeSliderChanged(int position);
     void previewVolumeControlChanged();
     // End of AI-generated text.
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void mixerModeComboBoxChanged(int index);
+    // End of AI-generated text.
 
   private slots:
     void addPath(const AudioOutput& output);

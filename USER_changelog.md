@@ -275,6 +275,13 @@ HARDWARE keeps its own buffer.
 Preferences > Sound Hardware has a Preview volume slider. It is the same
 control as the volume slider of the preview deck.
 
+Preferences > Sound Hardware has a Mixer Mode switch. Internal sends the main
+mix to the Main output. External sends each deck to its own stereo output
+and turns the main mix off. External needs 2 output channels for each deck. If
+the sound device has fewer channels, Mix Two shows a message and keeps the
+present setup. Internal brings back the outputs that you had before you chose
+External. The change starts when you push Apply.
+
 To select the audio driver, go to Preferences > Sound Hardware > Audio
 Routing:
 - **ASIO**: the lowest latency. Other apps cannot play sound through the

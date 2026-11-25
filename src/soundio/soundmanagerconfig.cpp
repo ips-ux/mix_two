@@ -56,6 +56,7 @@ SoundManagerConfig::SoundManagerConfig(SoundManager* pSoundManager)
           m_syncBuffers(2),
           m_forceNetworkClock(false),
           m_iNumMicInputs(0),
+          m_mixerMode(MixerMode::Internal),
           m_bExternalRecordBroadcastConnected(false),
           m_pSoundManager(pSoundManager) {
     m_configFile = QFileInfo(QDir(CmdlineArgs::Instance().getSettingsPath()).filePath(SOUNDMANAGERCONFIG_FILENAME));
@@ -101,6 +102,9 @@ bool SoundManagerConfig::readFromDisk() {
     setDeckCount(rootElement.attribute(xmlAttributeDeckCount,
                                     QString::number(kDefaultDeckCount))
                          .toUInt());
+    // AI-generated (Claude Code). Start of AI-generated text.
+    readMixerModeXml(rootElement);
+    // End of AI-generated text.
 
     return true;
 }
@@ -265,6 +269,9 @@ bool SoundManagerConfig::writeToDisk() const {
     docElement.setAttribute(xmlAttributeSyncBuffers, m_syncBuffers);
     docElement.setAttribute(xmlAttributeForceNetworkClock, m_forceNetworkClock);
     docElement.setAttribute(xmlAttributeDeckCount, m_deckCount);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    writeMixerModeXml(&doc, &docElement);
+    // End of AI-generated text.
     doc.appendChild(docElement);
 
     const QSet<SoundDeviceId> deviceIds = getDevices();
@@ -564,6 +571,9 @@ void SoundManagerConfig::loadDefaults(SoundManager* soundManager, unsigned int f
     if (flags & SoundManagerConfig::DEVICES) {
         clearOutputs();
         clearInputs();
+        // AI-generated (Claude Code). Start of AI-generated text.
+        resetMixerMode();
+        // End of AI-generated text.
         const QList<SoundDevicePointer> outputDevices =
                 soundManager->getDeviceList(m_api, true, false);
         if (!outputDevices.isEmpty()) {
@@ -611,3 +621,167 @@ QSet<SoundDeviceId> SoundManagerConfig::getDevices() const {
     }
     return devices;
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// Choice: External puts deck N on the stereo pair N of the device that carries
+// the main output. Outputs on the same device that use one of those channels
+// leave the setup, and Internal brings them back.
+namespace {
+const QString xmlAttributeMixerMode = "mixer_mode";
+const QString xmlValueExternal = "external";
+const QString xmlValueInternal = "internal";
+const QString xmlElementInternalDevice = "InternalDevice";
+} // namespace
+
+// static
+bool SoundManagerConfig::mainMixEnabledFor(MixerMode mode) {
+    return mode == MixerMode::Internal;
+}
+
+SoundManagerConfig::MixerMode SoundManagerConfig::getMixerMode() const {
+    return m_mixerMode;
+}
+
+SoundDeviceId SoundManagerConfig::mixerModeDevice() const {
+    for (const AudioPathType type : {AudioPathType::Main, AudioPathType::Deck}) {
+        for (auto it = m_outputs.constBegin(); it != m_outputs.constEnd(); ++it) {
+            if (it.value().getType() == type) {
+                return it.key();
+            }
+        }
+    }
+    if (!m_outputs.isEmpty()) {
+        return m_outputs.constBegin().key();
+    }
+    return SoundDeviceId();
+}
+
+SoundManagerConfig::MixerModeChange SoundManagerConfig::setMixerMode(
+        MixerMode mode, int deviceOutputChannels) {
+    MixerModeChange result;
+    if (mode == m_mixerMode) {
+        return result;
+    }
+    const SoundDeviceId device = mixerModeDevice();
+    if (mode == MixerMode::External) {
+        if (device.name.isEmpty()) {
+            result.status = MixerModeStatus::NoDevice;
+            return result;
+        }
+        const int needed = 2 * static_cast<int>(m_deckCount);
+        if (deviceOutputChannels < needed) {
+            result.status = MixerModeStatus::TooFewChannels;
+            return result;
+        }
+        QList<AudioOutput> decks;
+        for (unsigned int i = 0; i < m_deckCount; ++i) {
+            decks.append(AudioOutput(AudioPathType::Deck,
+                    static_cast<unsigned char>(2 * i),
+                    mixxx::audio::ChannelCount::stereo(),
+                    static_cast<unsigned char>(i)));
+        }
+        QMultiHash<SoundDeviceId, AudioOutput> kept;
+        for (auto it = m_outputs.constBegin(); it != m_outputs.constEnd(); ++it) {
+            const AudioPathType type = it.value().getType();
+            if (type == AudioPathType::Main || type == AudioPathType::Deck) {
+                continue;
+            }
+            if (it.key() == device) {
+                bool clash = false;
+                for (const AudioOutput& deck : std::as_const(decks)) {
+                    clash = clash || deck.channelsClash(it.value());
+                }
+                if (clash) {
+                    ++result.droppedOutputs;
+                    continue;
+                }
+            }
+            kept.insert(it.key(), it.value());
+        }
+        for (const AudioOutput& deck : std::as_const(decks)) {
+            kept.insert(device, deck);
+        }
+        m_internalOutputs = m_outputs;
+        m_outputs = kept;
+        m_mixerMode = MixerMode::External;
+        return result;
+    }
+
+    // Internal
+    if (!m_internalOutputs.isEmpty()) {
+        m_outputs = m_internalOutputs;
+    } else {
+        // Nothing saved: keep the sound on. Main goes on the first channels.
+        if (device.name.isEmpty()) {
+            result.status = MixerModeStatus::NoDevice;
+            return result;
+        }
+        QMultiHash<SoundDeviceId, AudioOutput> kept;
+        for (auto it = m_outputs.constBegin(); it != m_outputs.constEnd(); ++it) {
+            if (it.value().getType() != AudioPathType::Deck) {
+                kept.insert(it.key(), it.value());
+            }
+        }
+        kept.insert(device,
+                AudioOutput(AudioPathType::Main, 0, mixxx::audio::ChannelCount::stereo(), 0));
+        m_outputs = kept;
+    }
+    m_internalOutputs.clear();
+    m_mixerMode = MixerMode::Internal;
+    return result;
+}
+
+void SoundManagerConfig::resetMixerMode() {
+    m_mixerMode = MixerMode::Internal;
+    m_internalOutputs.clear();
+}
+
+void SoundManagerConfig::writeMixerModeXml(QDomDocument* pDoc, QDomElement* pRoot) const {
+    pRoot->setAttribute(xmlAttributeMixerMode,
+            m_mixerMode == MixerMode::External ? xmlValueExternal : xmlValueInternal);
+    QSet<SoundDeviceId> devices;
+    for (auto it = m_internalOutputs.constBegin(); it != m_internalOutputs.constEnd(); ++it) {
+        devices.insert(it.key());
+    }
+    for (const SoundDeviceId& deviceId : std::as_const(devices)) {
+        QDomElement devElement(pDoc->createElement(xmlElementInternalDevice));
+        devElement.setAttribute(xmlAttributeDeviceName, deviceId.name);
+        devElement.setAttribute(xmlAttributeDeviceIndex, deviceId.deviceIndex);
+        devElement.setAttribute(xmlAttributeAlsaHwDevice, deviceId.alsaHwDevice);
+        for (auto it = m_internalOutputs.constFind(deviceId);
+                it != m_internalOutputs.constEnd() && it.key() == deviceId;
+                ++it) {
+            QDomElement outElement(pDoc->createElement(xmlElementOutput));
+            it.value().toXML(&outElement);
+            devElement.appendChild(outElement);
+        }
+        pRoot->appendChild(devElement);
+    }
+}
+
+void SoundManagerConfig::readMixerModeXml(const QDomElement& root) {
+    m_internalOutputs.clear();
+    m_mixerMode = root.attribute(xmlAttributeMixerMode) == xmlValueExternal
+            ? MixerMode::External
+            : MixerMode::Internal;
+    for (QDomElement devElement = root.firstChildElement(xmlElementInternalDevice);
+            !devElement.isNull();
+            devElement = devElement.nextSiblingElement(xmlElementInternalDevice)) {
+        SoundDeviceId deviceId;
+        deviceId.name = devElement.attribute(xmlAttributeDeviceName);
+        deviceId.deviceIndex = devElement.attribute(xmlAttributeDeviceIndex).toInt();
+        deviceId.alsaHwDevice = devElement.attribute(xmlAttributeAlsaHwDevice);
+        if (deviceId.name.isEmpty()) {
+            continue;
+        }
+        for (QDomElement outElement = devElement.firstChildElement(xmlElementOutput);
+                !outElement.isNull();
+                outElement = outElement.nextSiblingElement(xmlElementOutput)) {
+            const AudioOutput output(AudioOutput::fromXML(outElement));
+            if (output.getType() != AudioPathType::Invalid) {
+                m_internalOutputs.insert(deviceId, output);
+            }
+        }
+    }
+}
+// End of AI-generated text.

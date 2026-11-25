@@ -4,6 +4,7 @@
 #define SOUNDMANAGERCONFIG_FILENAME "soundconfig.xml"
 #endif
 
+#include <QDomDocument>
 #include <QFileInfo>
 #include <QMultiHash>
 #include <QString>
@@ -114,6 +115,51 @@ class SoundManagerConfig {
     bool hasExternalRecordBroadcast();
     void loadDefaults(SoundManager* soundManager, unsigned int flags);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Mixer Mode: Internal sends the main mix to the Main output. External
+    /// gives every deck its own stereo output and turns the main mix off.
+    enum class MixerMode {
+        Internal,
+        External,
+    };
+
+    enum class MixerModeStatus {
+        Ok,
+        /// The sound device has fewer than two channels for each deck.
+        TooFewChannels,
+        /// No output device is set, so there is nowhere to put the decks.
+        NoDevice,
+    };
+
+    struct MixerModeChange {
+        MixerModeStatus status = MixerModeStatus::Ok;
+        /// Outputs on the deck channels that External removed. Internal
+        /// brings them back.
+        int droppedOutputs = 0;
+    };
+
+    /// True if the main mix is on in `mode`.
+    static bool mainMixEnabledFor(MixerMode mode);
+
+    MixerMode getMixerMode() const;
+
+    /// Changes the outputs to `mode`. `deviceOutputChannels` is the number of
+    /// output channels of the device that carries the main output (External)
+    /// or the deck outputs (Internal). If the device is too small, nothing
+    /// changes and the status says why.
+    MixerModeChange setMixerMode(MixerMode mode, int deviceOutputChannels);
+
+    /// The device that carries the main output, or the deck outputs, or else
+    /// the first output device. An empty id if there is none.
+    SoundDeviceId mixerModeDevice() const;
+
+    /// Back to Internal, and forget the saved outputs.
+    void resetMixerMode();
+
+    void writeMixerModeXml(QDomDocument* pDoc, QDomElement* pRoot) const;
+    void readMixerModeXml(const QDomElement& root);
+    // End of AI-generated text.
+
   private:
     QFileInfo m_configFile;
     QString m_api;
@@ -131,6 +177,11 @@ class SoundManagerConfig {
     QMultiHash<SoundDeviceId, AudioOutput> m_outputs;
     QMultiHash<SoundDeviceId, AudioInput> m_inputs;
     int m_iNumMicInputs;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    MixerMode m_mixerMode;
+    // The outputs from before External was chosen. Internal restores them.
+    QMultiHash<SoundDeviceId, AudioOutput> m_internalOutputs;
+    // End of AI-generated text.
     bool m_bExternalRecordBroadcastConnected;
     SoundManager* m_pSoundManager;
     QDomDocument m_doc;
