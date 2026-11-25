@@ -1,6 +1,9 @@
 #include "library/library.h"
 
 #include <QApplication>
+#include <QFutureWatcher>
+#include <QTimer>
+#include <QtConcurrent>
 #include <QDir>
 #include <QMessageBox>
 
@@ -661,6 +664,55 @@ void Library::onSkinLoadFinished() {
     // Enable the default selection when a new skin is loaded.
     m_pSidebarModel->activateDefaultSelection();
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void Library::importFiles(const QStringList& locations) {
+    if (!m_pTrackCollectionManager) {
+        return;
+    }
+    m_importQueue.append(locations);
+    if (m_importRunning) {
+        // The running import picks up the new files.
+        return;
+    }
+    m_importRunning = true;
+    QTimer::singleShot(0, this, &Library::slotImportNextChunk);
+}
+
+void Library::importFolder(const QString& folder) {
+    // The scan of the folder reads the file system only. It runs in a worker
+    // thread, so a folder on a slow drive does not freeze the window.
+    auto* pWatcher = new QFutureWatcher<QStringList>(this);
+    connect(pWatcher, &QFutureWatcher<QStringList>::finished, this, [this, pWatcher]() {
+        importFiles(pWatcher->result());
+        pWatcher->deleteLater();
+    });
+    pWatcher->setFuture(QtConcurrent::run(&mixxx::library::soundFilesInFolder, folder));
+}
+
+void Library::slotImportNextChunk() {
+    if (!m_pTrackCollectionManager || m_importPos >= m_importQueue.size()) {
+        const int added = m_importAdded;
+        const int already = m_importAlreadyInLibrary;
+        const int skipped = m_importSkipped;
+        m_importQueue.clear();
+        m_importPos = 0;
+        m_importAdded = 0;
+        m_importAlreadyInLibrary = 0;
+        m_importSkipped = 0;
+        m_importRunning = false;
+        emit importFinished(added, already, skipped);
+        return;
+    }
+    const QStringList chunk = m_importQueue.mid(m_importPos, kImportChunkSize);
+    m_importPos += chunk.size();
+    const auto result = m_pTrackCollectionManager->importFiles(chunk);
+    m_importAdded += result.added;
+    m_importAlreadyInLibrary += result.alreadyInLibrary;
+    m_importSkipped += result.skipped;
+    QTimer::singleShot(0, this, &Library::slotImportNextChunk);
+}
+// End of AI-generated text.
 
 bool Library::requestAddDir(const QString& dir) {
     // We only call this method if the user has picked a new directory via a

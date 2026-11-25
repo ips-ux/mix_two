@@ -21,6 +21,41 @@ class TrackCollection;
 class ExternalTrackCollection;
 class RelocatedTrack;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Mix Two: the import of files into the library (File menu "Import Track" and
+// "Import Folder", track menu "Import To Collection"). An import adds tracks
+// to the library. It never moves, copies or changes a file, and it adds no
+// watched folder.
+namespace mixxx::library {
+
+struct ImportFilesResult {
+    // Tracks that the call added to the library.
+    int added = 0;
+    // Files that the library already had.
+    int alreadyInLibrary = 0;
+    // Files that are missing, that are no sound files, or that the library
+    // could not add.
+    int skipped = 0;
+
+    ImportFilesResult& operator+=(const ImportFilesResult& other) {
+        added += other.added;
+        alreadyInLibrary += other.alreadyInLibrary;
+        skipped += other.skipped;
+        return *this;
+    }
+};
+
+/// All sound files in the folder and below it, sorted by path. It reads the
+/// file system only, so it is safe to call from a worker thread.
+QStringList soundFilesInFolder(const QString& folder);
+
+/// Cuts a list of files into chunks of at most chunkSize files, so that a
+/// caller can import a long list in steps and keep the window responsive.
+QList<QStringList> splitImportList(const QStringList& files, int chunkSize);
+
+} // namespace mixxx::library
+// End of AI-generated text.
+
 // Manages Mixxx's internal database of tracks as well as external track collections.
 //
 // All modifying operations that might affect external collections
@@ -88,6 +123,12 @@ class TrackCollectionManager : public QObject,
     TrackPointer getOrAddTrack(
             const TrackRef& trackRef,
             bool* pAlreadyInLibrary = nullptr) const;
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Adds the sound files to the library. A file that is in the library
+    // already stays as it is. Call it in the main thread.
+    mixxx::library::ImportFilesResult importFiles(const QStringList& locations) const;
+    // End of AI-generated text.
 
     // Save the track in both the internal database and external collections.
     // Export of metadata is deferred until the track is evicted from the

@@ -1,5 +1,8 @@
 #include "library/trackcollectionmanager.h"
 
+#include <QDirIterator>
+#include <QFileInfo>
+#include <algorithm>
 #include <utility>
 
 #include "library/externaltrackcollection.h"
@@ -542,6 +545,64 @@ void TrackCollectionManager::purgeAllTracks(const QDir& rootDir) const {
         externalTrackCollection->purgeAllTracks(rootDir);
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace mixxx::library {
+
+QStringList soundFilesInFolder(const QString& folder) {
+    QStringList files;
+    if (!QFileInfo(folder).isDir()) {
+        return files;
+    }
+    QDirIterator it(folder,
+            QDir::Files | QDir::Readable | QDir::NoDotAndDotDot,
+            QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString path = it.next();
+        if (SoundSourceProxy::isFileNameSupported(path)) {
+            files.append(path);
+        }
+    }
+    files.sort();
+    return files;
+}
+
+QList<QStringList> splitImportList(const QStringList& files, int chunkSize) {
+    QList<QStringList> chunks;
+    const int size = std::max(1, chunkSize);
+    for (int pos = 0; pos < files.size(); pos += size) {
+        chunks.append(files.mid(pos, size));
+    }
+    return chunks;
+}
+
+} // namespace mixxx::library
+
+mixxx::library::ImportFilesResult TrackCollectionManager::importFiles(
+        const QStringList& locations) const {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+    mixxx::library::ImportFilesResult result;
+    for (const QString& location : locations) {
+        const QFileInfo fileInfo(location);
+        if (!fileInfo.isFile() ||
+                !SoundSourceProxy::isFileSupported(mixxx::FileInfo(fileInfo))) {
+            ++result.skipped;
+            continue;
+        }
+        bool alreadyInLibrary = false;
+        const TrackPointer pTrack =
+                getOrAddTrack(TrackRef::fromFilePath(location), &alreadyInLibrary);
+        if (!pTrack) {
+            ++result.skipped;
+        } else if (alreadyInLibrary) {
+            ++result.alreadyInLibrary;
+        } else {
+            ++result.added;
+        }
+    }
+    return result;
+}
+// End of AI-generated text.
 
 TrackPointer TrackCollectionManager::getOrAddTrack(
         const TrackRef& trackRef,

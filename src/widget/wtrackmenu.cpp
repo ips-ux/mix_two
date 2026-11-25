@@ -22,6 +22,9 @@
 #include "library/dlgtagfetcher.h"
 #include "library/dlgtrackinfo.h"
 #include "library/dlgtrackinfomulti.h"
+#include "library/baseexternalplaylistmodel.h"
+#include "library/baseexternaltrackmodel.h"
+#include "library/browse/browsetablemodel.h"
 #include "library/dlgtrackmetadataexport.h"
 #include "library/externaltrackcollection.h"
 #include "library/library.h"
@@ -419,6 +422,19 @@ void WTrackMenu::createActions() {
         // a USB stick. It opens the dialog of the export to a stick.
         m_pExportTrackAct = make_parented<QAction>(tr("Export Track"), this);
         connect(m_pExportTrackAct, &QAction::triggered, this, &WTrackMenu::slotExportTrack);
+        // End of AI-generated text.
+    }
+
+    if (featureIsEnabled(Feature::ImportToCollection)) {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Mix Two: as rekordbox does, the item adds the selected tracks to
+        // the Collection. It adds no playlist, and the files stay where they
+        // are.
+        m_pImportToCollectionAct = make_parented<QAction>(tr("Import To Collection"), this);
+        connect(m_pImportToCollectionAct,
+                &QAction::triggered,
+                this,
+                &WTrackMenu::slotImportToCollection);
         // End of AI-generated text.
     }
 
@@ -834,6 +850,12 @@ void WTrackMenu::setupActions() {
     if (featureIsEnabled(Feature::ExportTrack)) {
         addAction(m_pExportTrackAct);
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (featureIsEnabled(Feature::ImportToCollection)) {
+        addAction(m_pImportToCollectionAct);
+    }
+    // End of AI-generated text.
 
     if (featureIsEnabled(Feature::Properties)) {
         addSeparator();
@@ -1580,6 +1602,20 @@ void WTrackMenu::slotOpenInFileBrowser() {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
+void WTrackMenu::slotImportToCollection() {
+    if (!m_pLibrary) {
+        return;
+    }
+    QStringList locations;
+    for (const TrackRef& trackRef : getTrackRefs()) {
+        locations.append(trackRef.getLocation());
+    }
+    if (locations.isEmpty()) {
+        return;
+    }
+    m_pLibrary->importFiles(locations);
+}
+
 void WTrackMenu::slotExportTrack() {
     const TrackIdList trackIds = getTrackIds();
     if (trackIds.isEmpty()) {
@@ -3411,6 +3447,13 @@ bool WTrackMenu::featureIsEnabled(Feature flag) const {
     // AI-generated (Claude Code). Start of AI-generated text.
     case Feature::ExportTrack:
         return m_pLibrary != nullptr;
+    // Mix Two: only the views of other programs and of the file system
+    // have tracks that the Collection can still get.
+    case Feature::ImportToCollection:
+        return m_pLibrary != nullptr &&
+                (dynamic_cast<const BaseExternalTrackModel*>(m_pTrackModel) != nullptr ||
+                        dynamic_cast<const BaseExternalPlaylistModel*>(m_pTrackModel) != nullptr ||
+                        dynamic_cast<const BrowseTableModel*>(m_pTrackModel) != nullptr);
     // End of AI-generated text.
     case Feature::Properties:
         return m_pTrackModel->hasCapabilities(TrackModel::Capability::Properties);

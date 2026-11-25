@@ -63,12 +63,15 @@ class WTrackMenu : public QMenu {
         // AI-generated (Claude Code). Start of AI-generated text.
         // Mix Two: "Export Track", the export of the tracks to a stick.
         ExportTrack = 1 << 18,
+        // Mix Two: "Import To Collection", for the tracks of the iTunes,
+        // rekordbox and Explorer (folder) views.
+        ImportToCollection = 1 << 19,
         // End of AI-generated text.
         TrackModelFeatures = Remove | HideUnhidePurge,
         All = AutoDJ | LoadTo | Playlist | Crate | Remove | Metadata | Reset | Analyze |
                 BPM | Color | HideUnhidePurge | RemoveFromDisk | FileBrowser |
                 Properties | SearchRelated | UpdateReplayGainFromPregain | SelectInLibrary |
-                FindOnWeb | ExportTrack
+                FindOnWeb | ExportTrack | ImportToCollection
     };
     Q_DECLARE_FLAGS(Features, Feature)
 
@@ -151,6 +154,9 @@ class WTrackMenu : public QMenu {
     void slotOpenInFileBrowser();
     void slotSelectInLibrary();
     void slotExportTrack();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void slotImportToCollection();
+    // End of AI-generated text.
 
     // Track rating
     void slotSetRating(int rating);
@@ -356,6 +362,9 @@ class WTrackMenu : public QMenu {
     // Open file in default file browser
     parented_ptr<QAction> m_pFileBrowserAct;
     parented_ptr<QAction> m_pExportTrackAct;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    parented_ptr<QAction> m_pImportToCollectionAct;
+    // End of AI-generated text.
 
     // Select track in library
     parented_ptr<QAction> m_pSelectInLibraryAct;

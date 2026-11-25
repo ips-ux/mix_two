@@ -4,6 +4,9 @@
 #include <QApplication>
 #include <QWindow>
 #endif
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QStandardPaths>
 #include <QUrl>
 
 #include "config.h"
@@ -14,6 +17,7 @@
 #include "util/cmdlineargs.h"
 #include "util/desktophelper.h"
 #include "util/experiment.h"
+#include "sources/soundsourceproxy.h"
 #include "vinylcontrol/defs_vinylcontrol.h"
 
 namespace {
@@ -130,6 +134,50 @@ void WMainMenuBar::initialize() {
     }
 
     pFileMenu->addSeparator();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: as rekordbox does, "Import Track" and "Import Folder" add
+    // files to the library once. The files stay where they are, and no
+    // watched folder is added.
+    const QString importTrackTitle = tr("Import Track...");
+    const QString importTrackText = tr("Adds sound files to the library. The files stay where they are.");
+    auto* pFileImportTrack = new QAction(importTrackTitle, this);
+    pFileImportTrack->setStatusTip(importTrackText);
+    pFileImportTrack->setWhatsThis(buildWhatsThis(importTrackTitle, importTrackText));
+    connect(pFileImportTrack, &QAction::triggered, this, [this]() {
+        const QString filter = tr("Sound files (%1)")
+                                       .arg(SoundSourceProxy::getSupportedFileNamePatterns()
+                                                       .join(QLatin1Char(' ')));
+        const QStringList files = QFileDialog::getOpenFileNames(
+                this, tr("Import Track"), m_lastImportDir, filter);
+        if (files.isEmpty()) {
+            return;
+        }
+        m_lastImportDir = QFileInfo(files.constFirst()).absolutePath();
+        emit importFilesRequested(files);
+    });
+    pFileMenu->addAction(pFileImportTrack);
+
+    const QString importFolderTitle = tr("Import Folder...");
+    const QString importFolderText =
+            tr("Adds all sound files of a folder and its subfolders to the library. "
+               "The files stay where they are.");
+    auto* pFileImportFolder = new QAction(importFolderTitle, this);
+    pFileImportFolder->setStatusTip(importFolderText);
+    pFileImportFolder->setWhatsThis(buildWhatsThis(importFolderTitle, importFolderText));
+    connect(pFileImportFolder, &QAction::triggered, this, [this]() {
+        const QString folder = QFileDialog::getExistingDirectory(
+                this, tr("Import Folder"), m_lastImportDir);
+        if (folder.isEmpty()) {
+            return;
+        }
+        m_lastImportDir = folder;
+        emit importFolderRequested(folder);
+    });
+    pFileMenu->addAction(pFileImportFolder);
+
+    pFileMenu->addSeparator();
+    // End of AI-generated text.
 
     QString quitTitle = tr("&Exit");
     QString quitText = tr("Quits Mixxx");

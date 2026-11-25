@@ -557,6 +557,24 @@ the library.
 A folder with more than 2000 audio files makes no playlist. Mix Two tells you.
 A locked playlist cannot be renamed in the tree.
 
+### Import Track and Import Folder
+
+The **File** menu has two new items, **Import Track...** and **Import
+Folder...**. Select **Import Track...**, then choose one or more sound files.
+Select **Import Folder...** to add all sound files of a folder and its
+subfolders. This is the same as in rekordbox.
+
+An import adds the tracks to the library. The files stay where they are. Mix
+Two does not copy, move or change them. An import adds no watched folder. A
+track that the library already has is not added again. The window stays
+usable while a long import runs. When the import ends, a message shows the
+number of added tracks.
+
+The track menu has a new item, **Import To Collection**. It shows in the iTunes,
+rekordbox and Explorer views. Select one or more tracks, open the track menu,
+then select **Import To Collection**. Mix Two adds the tracks to the library
+with no playlist.
+
 ### Export to a USB stick
 
 The message at the end of an export has a new button, **Eject the stick**. Push

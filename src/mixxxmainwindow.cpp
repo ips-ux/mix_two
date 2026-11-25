@@ -231,6 +231,32 @@ void MixxxMainWindow::initialize() {
             m_pDeviceExporter.get(),
             &mixxx::DeviceExporter::slotRequestExportWithInitialTracks);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: tell the user what an import did. The box does not block the
+    // window.
+    connect(m_pCoreServices->getLibrary().get(),
+            &Library::importFinished,
+            this,
+            [this](int added, int alreadyInLibrary, int skipped) {
+                QString text = tr("Tracks added to the library: %1.").arg(added);
+                if (alreadyInLibrary > 0) {
+                    text += QLatin1Char('\n') +
+                            tr("Tracks that the library already had: %1.").arg(alreadyInLibrary);
+                }
+                if (skipped > 0) {
+                    text += QLatin1Char('\n') +
+                            tr("Files that Mix Two cannot add: %1.").arg(skipped);
+                }
+                auto* pBox = new QMessageBox(QMessageBox::Information,
+                        tr("Import"),
+                        text,
+                        QMessageBox::Ok,
+                        this);
+                pBox->setAttribute(Qt::WA_DeleteOnClose);
+                pBox->open();
+            });
+    // End of AI-generated text.
+
     // Turn on fullscreen mode
     // if we were told to start in fullscreen mode on the command-line
     // or if the user chose to always start in fullscreen mode.
@@ -996,6 +1022,19 @@ void MixxxMainWindow::connectMenuBar() {
     }
 
     if (m_pCoreServices->getLibrary()) {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Mix Two: File menu "Import Track" and "Import Folder".
+        connect(m_pMenuBar,
+                &WMainMenuBar::importFilesRequested,
+                m_pCoreServices->getLibrary().get(),
+                &Library::importFiles,
+                Qt::UniqueConnection);
+        connect(m_pMenuBar,
+                &WMainMenuBar::importFolderRequested,
+                m_pCoreServices->getLibrary().get(),
+                &Library::importFolder,
+                Qt::UniqueConnection);
+        // End of AI-generated text.
         connect(m_pMenuBar,
                 &WMainMenuBar::searchInCurrentView,
                 m_pCoreServices->getLibrary().get(),

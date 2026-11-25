@@ -4,6 +4,8 @@
 #include <QMenuBar>
 #include <QObject>
 #include <QScopedPointer>
+#include <QStandardPaths>
+#include <QString>
 
 #include "control/controlproxy.h"
 #include "preferences/configobject.h"
@@ -66,6 +68,12 @@ class WMainMenuBar : public QMenuBar {
     void loadTrackToDeck(int deck);
     void reloadSkin();
     void rescanLibrary();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: the user chose files or a folder in the File menu. The
+    // receiver adds them to the library once; it adds no watched folder.
+    void importFilesRequested(const QStringList& files);
+    void importFolderRequested(const QString& folder);
+    // End of AI-generated text.
 #ifdef __ENGINEPRIME__
     void exportLibrary();
 #endif
@@ -115,6 +123,11 @@ class WMainMenuBar : public QMenuBar {
     void createVisibilityControl(QAction* pAction, const ConfigKey& key);
 
     UserSettingsPointer m_pConfig;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The folder that the last import dialog used.
+    QString m_lastImportDir =
+            QStandardPaths::writableLocation(QStandardPaths::MusicLocation);
+    // End of AI-generated text.
     QAction* m_pViewKeywheel;
     // TODO KeyboardEventFilterPointer ??
     std::shared_ptr<KeyboardEventFilter> m_pKeyboard;

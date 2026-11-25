@@ -114,6 +114,12 @@ class Library: public QObject {
 
     static const QString kAutoDJViewName;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Mix Two: how many files one step of an import handles. Between two
+    /// steps the event loop runs, so the window stays responsive.
+    static constexpr int kImportChunkSize = 20;
+    // End of AI-generated text.
+
     bool requestAddDir(const QString& directory);
     bool requestRemoveDir(const QString& directory, LibraryRemovalType removalType);
     bool requestRelocateDir(const QString& previousDirectory, const QString& newDirectory);
@@ -127,6 +133,15 @@ class Library: public QObject {
     std::unique_ptr<mixxx::DeviceExporter> makeDeviceExporter(QWidget* parent);
 
   public slots:
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Adds the files to the library, in steps, in the main thread (the
+    /// database connection of the library belongs to that thread). It adds no
+    /// watched folder and does not touch the files. importFinished() follows.
+    void importFiles(const QStringList& locations);
+    /// Looks for the sound files of the folder and below it in a worker
+    /// thread, then imports them as importFiles() does.
+    void importFolder(const QString& folder);
+    // End of AI-generated text.
     void slotShowTrackModel(QAbstractItemModel* model);
     void slotSwitchToView(const QString& view);
     void slotLoadTrack(TrackPointer pTrack);
@@ -181,6 +196,10 @@ class Library: public QObject {
     void exportCrateToDevice(CrateId crateId);
     void exportPlaylistToDevice(int playlistId);
     void exportTracksToDevice(const QList<TrackId>& trackIds);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// An import is done. All files of the import are counted.
+    void importFinished(int added, int alreadyInLibrary, int skipped);
+    // End of AI-generated text.
     void saveModelState();
     void restoreModelState();
 
@@ -193,6 +212,9 @@ class Library: public QObject {
     void onTrackAnalyzerProgress(TrackId trackId, AnalyzerProgress analyzerProgress);
 
   private slots:
+      // AI-generated (Claude Code). Start of AI-generated text.
+      void slotImportNextChunk();
+      // End of AI-generated text.
       void onPlayerManagerTrackAnalyzerProgress(TrackId trackId, AnalyzerProgress analyzerProgress);
       void onPlayerManagerTrackAnalyzerIdle();
 
@@ -203,6 +225,15 @@ class Library: public QObject {
     const mixxx::DbConnectionPoolPtr m_pDbConnectionPool;
 
     const QPointer<TrackCollectionManager> m_pTrackCollectionManager;
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    QStringList m_importQueue;
+    int m_importPos = 0;
+    int m_importAdded = 0;
+    int m_importAlreadyInLibrary = 0;
+    int m_importSkipped = 0;
+    bool m_importRunning = false;
+    // End of AI-generated text.
 
     parented_ptr<SidebarModel> m_pSidebarModel;
     parented_ptr<LibraryControl> m_pLibraryControl;
