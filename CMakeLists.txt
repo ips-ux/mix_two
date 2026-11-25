@@ -1524,6 +1524,7 @@ add_library(
   src/library/rekordbox/devicelibrarypluskey.cpp
   src/library/rekordbox/devicelibraryplusschema.cpp
   src/library/rekordbox/devicelibraryplusstick.cpp
+  src/library/rekordbox/legacypdbwriter.cpp
   src/library/rekordbox/rekordboxbeats.cpp
   src/library/rekordbox/rekordboxfeature.cpp
   src/library/rekordbox/sqlciphercodec.cpp
