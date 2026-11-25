@@ -24,16 +24,16 @@
 
 #pragma once
 
-#include <QFuture>
+#include <QHash>
+#include <QSet>
 #include <QFutureWatcher>
-#include <QStringListModel>
-#include <QtConcurrentRun>
-#include <fstream>
+#include <atomic>
 
 #include "library/baseexternallibraryfeature.h"
 #include "library/baseexternalplaylistmodel.h"
 #include "library/baseexternaltrackmodel.h"
 #include "library/treeitemmodel.h"
+#include "library/rekordbox/stickwatcher.h"
 #include "util/parented_ptr.h"
 
 class TrackCollectionManager;
@@ -70,8 +70,6 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     void activate() override;
     void activateChild(const QModelIndex& index) override;
     void refreshLibraryModels();
-    void onRekordboxDevicesFound();
-    void onTracksFound();
 
   private slots:
     void htmlLinkClicked(const QUrl& link);
@@ -84,11 +82,25 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     parented_ptr<TreeItemModel> m_pSidebarModel;
     parented_ptr<RekordboxPlaylistModel> m_pRekordboxPlaylistModel;
 
-    QFutureWatcher<QList<TreeItem*>> m_devicesFutureWatcher;
-    QFuture<QList<TreeItem*>> m_devicesFuture;
-    QFutureWatcher<QString> m_tracksFutureWatcher;
-    QFuture<QString> m_tracksFuture;
-    QString m_title;
+    void probeVolume(const QString& root, bool retry);
+    void removeVolume(const QString& root);
+    QModelIndex deviceIndex(const QString& root) const;
+    void removeDevice(const QString& root);
+    void showDevicePlaylist(const QString& root, const QString& playlist);
+    void startNextDatabaseJob();
+    void onDatabaseJobFinished();
+
+    mixxx::rekordbox::StickWatcher m_stickWatcher;
+    QHash<QString, QFutureWatcher<mixxx::rekordbox::StickFormats>*> m_probes;
+    QHash<QString, mixxx::rekordbox::StickFormats> m_formats;
+    QSet<QString> m_pendingCleanup;
+    QString m_pendingOpen;
+    QString m_importRoot;
+    QString m_modelRoot;
+    bool m_modelVisible = false;
+    bool m_databaseBusy = false;
+    std::shared_ptr<std::atomic_bool> m_importCanceled;
+    QFutureWatcher<std::shared_ptr<TreeItem>> m_databaseJob;
 
     QSharedPointer<BaseTrackCache> m_trackSource;
 };

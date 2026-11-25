@@ -770,6 +770,9 @@ gives the reason. Mix Two also checks the target of a link or a substitute drive
 
 ### rekordbox USB devices
 
+When you connect a USB stick with a legacy rekordbox library, Mix Two shows
+it in the Rekordbox list. When you remove the stick, it leaves the list.
+
 Mix Two now finds the rekordbox library of a USB stick when the folder names
 `PIONEER`, `rekordbox` and `USBANLZ` have lower-case or mixed-case letters.
 The analysis files of the tracks are also found.
