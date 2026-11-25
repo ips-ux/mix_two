@@ -76,10 +76,13 @@ class DeviceExporter : public QWidget {
 
     // AI-generated (Claude Code). Start of AI-generated text.
     /// The safe removal of the stick at the end of an export. It ejects only
-    /// the volume of `stickRoot` (the stick of the export that just ended),
-    /// and only when no track of this volume is loaded in a deck. It shows
-    /// the result.
-    void offerEject(const QString& stickRoot);
+    /// the volume that is at `stickRoot` now, and only when this is the
+    /// volume (`exportedVolumeRoot`) and the stick (`exportedIdentity`) that
+    /// the export began with, and no track of this volume is loaded in a deck.
+    /// It shows the result.
+    void offerEject(const QString& stickRoot,
+            const QString& exportedVolumeRoot,
+            const QString& exportedIdentity);
     // End of AI-generated text.
 
     UserSettingsPointer m_pConfig;

@@ -2,6 +2,7 @@
 
 #include <QEventLoop>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QMessageBox>
 #include <QPointer>
 #include <QProgressDialog>
@@ -127,12 +128,31 @@ qint64 DeviceExporter::masterDbId() {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
-void DeviceExporter::offerEject(const QString& stickRoot) {
-    // The volume of the stick: the user can have chosen a folder of the stick.
-    // An empty path would give the current drive: it gives no volume here.
-    const QString volumeRoot = stickRoot.trimmed().isEmpty()
-            ? QString()
-            : QStorageInfo(stickRoot).rootPath();
+namespace {
+
+/// The root of the volume that holds `stickRoot` (the user can have chosen a
+/// folder of the stick). An empty path would give the current drive: it gives
+/// no volume here.
+QString volumeRootOf(const QString& stickRoot) {
+    return stickRoot.trimmed().isEmpty() ? QString() : QStorageInfo(stickRoot).rootPath();
+}
+
+/// Shows a busy cursor while it lives. The eject blocks the window.
+class BusyCursor {
+  public:
+    BusyCursor() {
+        QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+    }
+    ~BusyCursor() {
+        QGuiApplication::restoreOverrideCursor();
+    }
+};
+
+} // namespace
+
+void DeviceExporter::offerEject(const QString& stickRoot,
+        const QString& exportedVolumeRoot,
+        const QString& exportedIdentity) {
     const std::unique_ptr<StickEjector> pEjector = makeSystemStickEjector();
     while (true) {
         // The files that Mix Two has open: the tracks in the decks, the
@@ -148,8 +168,17 @@ void DeviceExporter::offerEject(const QString& stickRoot) {
             openFiles.append(location);
             openFiles.append(QFileInfo(location).canonicalFilePath());
         }
-        const StickEjectResult result =
-                ejectExportedStick(*pEjector, volumeRoot, volumeRoot, openFiles);
+        StickEjectResult result;
+        {
+            BusyCursor busy;
+            // The volume that is there now: the guard compares it with the
+            // volume and the identity of the export.
+            result = ejectExportedStick(*pEjector,
+                    exportedVolumeRoot,
+                    exportedIdentity,
+                    volumeRootOf(stickRoot),
+                    openFiles);
+        }
         if (result.ok) {
             QMessageBox::information(window(),
                     tr("Stick ejected"),
@@ -226,11 +255,15 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
 
     // The result. The progress dialog closes first, because it is modal.
     // The eject button gets the stick of this request: no other stick.
+    // The volume and its identity are read now, before the export writes.
     const QString exportedStickRoot = pRequest->stickRoot;
+    const QString exportedVolumeRoot = volumeRootOf(exportedStickRoot);
+    const QString exportedIdentity =
+            makeSystemStickEjector()->volumeIdentity(exportedVolumeRoot);
     connect(pJob,
             &DeviceLibraryPlusExportJob::completed,
             this,
-            [this, pProgressGuard, exportedStickRoot](const mixxx::DeviceLibraryPlusExportSummary& summary) {
+            [this, pProgressGuard, exportedStickRoot, exportedVolumeRoot, exportedIdentity](const mixxx::DeviceLibraryPlusExportSummary& summary) {
                 if (m_isClosing) {
                     return;
                 }
@@ -261,7 +294,7 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
                 // End of AI-generated text.
                 box.exec();
                 if (box.clickedButton() == pEjectButton) {
-                    offerEject(exportedStickRoot);
+                    offerEject(exportedStickRoot, exportedVolumeRoot, exportedIdentity);
                 }
             });
     connect(pJob,
