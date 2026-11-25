@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 328 | 220 | 222 | 61 | 0 | 0 | 72 |
+| Features | 326 | 220 | 224 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: playlist artwork (schema revision 44); Export Loop As WAV (commit: see git log, "You can add a picture to a playlist (Add Artwork)" and "Track menu of a deck: Export Loop As WAV ...")
 - 2026-11-24: bit depth column (schema revision 43); hot cue list widget (commit: see git log, "Library: bit depth ..." and "Hot cue list widget ...")
 - 2026-11-24: search column menu; INFO tab details, beat count position, slip lines; online lookup notice; waveform click for PLAY and CUE (commit: see git log)
 - 2026-11-24: Library Protection; Import Track, Import Folder, Import To Collection (commit: see git log, "Library: Library Protection ..." and "Library: Import ...")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-24: library preferences; alphabet search; hold a row for the track menu (commit: see git log, "Library preferences: sidebar track count, bold font, played reset, centre selection, artwork crop" and "Library: alphabet search ...")
 - 2026-11-24: history after 60 seconds of audible play; question before duplicates go into a playlist (commit: see git log, "History: add a track after 60 seconds of play" and the commits after it)
 - 2026-11-24: Beat FX VINYL BRAKE; Beat FX BPM modes AUTO and TAP (commit: see git log, "Beat FX: VINYL BRAKE" and "Beat FX: BPM modes AUTO and TAP")
-- 2026-11-24: stick functions: restore the newest backup; delete a playlist with its unused tracks (commit: see git log, "Device export: restore the newest backup of a stick" and "Device export: delete a playlist from a stick with its unused tracks")
 
 <!-- mixtwo-status:end -->
 
