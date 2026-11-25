@@ -551,11 +551,20 @@ void PlaylistFeature::expandFolders(const QSet<int>& folderIds) {
     }
 }
 
-void PlaylistFeature::rebuildChildModel(int selectedPlaylistId) {
+void PlaylistFeature::rebuildChildModel(int selectedPlaylistId, int selectedFolderId) {
     const QSet<int> expanded = expandedFolderIds();
     clearChildModel();
     const QModelIndex newIndex = constructChildModel(selectedPlaylistId);
     expandFolders(expanded);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (selectedFolderId != kInvalidPlaylistFolderId) {
+        // The folder stays selected after the tree is built again.
+        const QModelIndex folderIndex = indexFromFolderId(selectedFolderId);
+        if (folderIndex.isValid()) {
+            selectAndActivate(folderIndex);
+        }
+    }
+    // End of AI-generated text.
     if (selectedPlaylistId != kInvalidPlaylistId && newIndex.isValid()) {
         // If a child index was selected and we got a new valid index select that.
         // Else (root item was selected or for some reason no index could be created)
@@ -567,10 +576,12 @@ void PlaylistFeature::rebuildChildModel(int selectedPlaylistId) {
 
 void PlaylistFeature::slotFoldersChanged() {
     int selectedPlaylistId = kInvalidPlaylistId;
+    int selectedFolderId = kInvalidPlaylistFolderId;
     if (isChildIndexSelectedInSidebar(m_lastClickedIndex)) {
         selectedPlaylistId = playlistIdFromIndex(m_lastClickedIndex);
+        selectedFolderId = folderIdFromIndex(m_lastClickedIndex);
     }
-    rebuildChildModel(selectedPlaylistId);
+    rebuildChildModel(selectedPlaylistId, selectedFolderId);
 }
 
 QMenu* PlaylistFeature::createMoveToFolderMenu(QWidget* pParent, int playlistId, int folderId) {
@@ -797,7 +808,9 @@ void PlaylistFeature::slotPlaylistTableChanged(int playlistId) {
 
     // Store current selection
     int selectedPlaylistId = kInvalidPlaylistId;
+    int selectedFolderId = kInvalidPlaylistFolderId;
     if (isChildIndexSelectedInSidebar(m_lastClickedIndex)) {
+        selectedFolderId = folderIdFromIndex(m_lastClickedIndex);
         if (playlistId == playlistIdFromIndex(m_lastClickedIndex) &&
                 type == PlaylistDAO::PLHT_UNKNOWN) {
             // if the selected playlist was deleted, find a sibling to select
@@ -808,7 +821,7 @@ void PlaylistFeature::slotPlaylistTableChanged(int playlistId) {
         }
     }
 
-    rebuildChildModel(selectedPlaylistId);
+    rebuildChildModel(selectedPlaylistId, selectedFolderId);
 }
 
 void PlaylistFeature::slotPlaylistContentOrLockChanged(const QSet<int>& playlistIds) {

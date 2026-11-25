@@ -78,7 +78,8 @@ class PlaylistFeature : public BasePlaylistFeature {
     int targetFolderIdFromIndex(const QModelIndex& index) const;
     QModelIndex indexFromFolderId(int folderId) const;
     /// Rebuilds the tree, keeping the selection and expanded folders.
-    void rebuildChildModel(int selectedPlaylistId);
+    void rebuildChildModel(int selectedPlaylistId,
+            int selectedFolderId = kInvalidPlaylistFolderId);
     QSet<int> expandedFolderIds() const;
     void expandFolders(const QSet<int>& folderIds);
     /// "Move to Folder" submenu for a playlist (playlistId) or a folder.

@@ -57,8 +57,14 @@ class PlaylistTableModel final : public TrackSetTableModel {
 
     QString modelKey(bool noSearch) const override;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Lets a test make the model hold a real playlist id in folder view.
+    friend class PlaylistTableModelTestAccess;
+    // End of AI-generated text.
+
   private slots:
     void playlistsChanged(const QSet<int>& playlistIds);
+    void refreshFolderView();
 
   signals:
     void firstTrackChanged();

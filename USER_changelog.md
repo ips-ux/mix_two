@@ -478,8 +478,9 @@ Hardware.
 
 Click a folder in the playlist tree. The track list shows the tracks of all
 playlists in the folder and in the folders below it. A track that is in
-more than one playlist shows one time. This list is read-only. You cannot drop
-tracks on it, change the order, or remove tracks from it.
+more than one playlist shows one time. The list of a folder has its own order.
+You cannot drop tracks on it, change the order, or remove tracks from it. You
+can still edit the rating, colour, comment and BPM of a track.
 
 Alphabet Search now works in the track list. Type a letter to select the first
 track that starts with it in the sorted column. Type more letters within 1

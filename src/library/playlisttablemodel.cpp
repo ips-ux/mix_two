@@ -34,6 +34,13 @@ PlaylistTableModel::PlaylistTableModel(QObject* parent,
             &PlaylistDAO::tracksRemoved,
             this,
             &PlaylistTableModel::playlistsChanged);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A folder view follows the membership of its folder.
+    const auto* pDao = &m_pTrackCollectionManager->internalCollection()->getPlaylistDAO();
+    connect(pDao, &PlaylistDAO::foldersChanged, this, &PlaylistTableModel::refreshFolderView);
+    connect(pDao, &PlaylistDAO::added, this, &PlaylistTableModel::refreshFolderView);
+    connect(pDao, &PlaylistDAO::deleted, this, &PlaylistTableModel::refreshFolderView);
+    // End of AI-generated text.
 }
 
 void PlaylistTableModel::initSortColumnMapping() {
@@ -133,12 +140,16 @@ void PlaylistTableModel::initSortColumnMapping() {
 
 void PlaylistTableModel::selectPlaylist(int playlistId) {
     // qDebug() << "PlaylistTableModel::selectPlaylist" << playlistId;
-    m_iFolderId = kInvalidPlaylistFolderId;
-    m_folderPlaylistIds.clear();
-    if (m_iPlaylistId == playlistId) {
+    if (m_iPlaylistId == playlistId && !isFolderView()) {
         qDebug() << "Already focused on playlist " << playlistId;
         return;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Leaves the folder view. A call with no playlist after a folder makes the
+    // list empty: no folder table stays.
+    m_iFolderId = kInvalidPlaylistFolderId;
+    m_folderPlaylistIds.clear();
+    // End of AI-generated text.
     // Store search text
     QString currSearch = currentSearch();
     if (m_iPlaylistId != kInvalidPlaylistId) {
@@ -163,7 +174,12 @@ void PlaylistTableModel::selectPlaylist(int playlistId) {
     // because we'll trigger that ourselves later on.
     m_iPlaylistId = playlistId;
 
-    QString playlistTableName = "playlist_" + QString::number(m_iPlaylistId);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // No playlist: an empty view with a name that is a valid table name.
+    QString playlistTableName = m_iPlaylistId == kInvalidPlaylistId
+            ? QStringLiteral("playlist_none")
+            : "playlist_" + QString::number(m_iPlaylistId);
+    // End of AI-generated text.
     QSqlQuery query(m_database);
     FieldEscaper escaper(m_database);
 
@@ -206,12 +222,22 @@ void PlaylistTableModel::selectPlaylist(int playlistId) {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
+void PlaylistTableModel::refreshFolderView() {
+    if (!isFolderView()) {
+        return;
+    }
+    selectPlaylistFolder(m_iFolderId);
+    select();
+}
+
 void PlaylistTableModel::selectPlaylistFolder(int folderId) {
     if (folderId == kInvalidPlaylistFolderId) {
         return;
     }
-    // Keep the search text of the playlist that we leave.
+    // Keep the search text of the playlist that we leave. A refresh of the
+    // same folder keeps the search text of the folder view.
     const QString currSearch = currentSearch();
+    const QString folderSearch = (m_iFolderId == folderId) ? currSearch : QString();
     if (m_iPlaylistId != kInvalidPlaylistId) {
         if (!currSearch.trimmed().isEmpty()) {
             m_searchTexts.insert(m_iPlaylistId, currSearch);
@@ -282,7 +308,7 @@ void PlaylistTableModel::selectPlaylistFolder(int folderId) {
             columns,
             m_pTrackCollectionManager->internalCollection()->getTrackSource());
 
-    setSearch(QString());
+    setSearch(folderSearch);
     setDefaultSort(fieldIndex(ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION),
             Qt::AscendingOrder);
     setSort(defaultSortColumn(), defaultSortOrder());
@@ -341,8 +367,10 @@ bool PlaylistTableModel::appendTrack(TrackId trackId) {
 }
 
 void PlaylistTableModel::removeTrack(const QModelIndex& index) {
-    if (isFolderView() ||
-m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
+    if (isFolderView()) {
+        return;
+    }
+    if (m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
         return;
     }
 
@@ -352,8 +380,10 @@ m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLock
 }
 
 void PlaylistTableModel::removeTracks(const QModelIndexList& indices) {
-    if (isFolderView() ||
-m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
+    if (isFolderView()) {
+        return;
+    }
+    if (m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
         return;
     }
 
@@ -519,8 +549,12 @@ bool PlaylistTableModel::isColumnHiddenByDefault(int column) {
 TrackModel::Capabilities PlaylistTableModel::getCapabilities() const {
     if (isFolderView()) {
         // AI-generated (Claude Code). Start of AI-generated text.
-        // Read-only: no drops, no reorder, no removal, no hide.
-        return Capability::AddToTrackSet |
+        // Read-only for the playlists: no drops, no reorder, no removal, no
+        // hide. The actions that change the track itself (rating, colour,
+        // comment, BPM, played mark) stay on, as in a normal playlist.
+        return Capability::EditMetadata |
+                Capability::ResetPlayed |
+                Capability::AddToTrackSet |
                 Capability::LoadToDeck |
                 Capability::LoadToSampler |
                 Capability::LoadToPreviewDeck |
@@ -580,8 +614,21 @@ QString PlaylistTableModel::modelKey(bool noSearch) const {
 }
 
 void PlaylistTableModel::playlistsChanged(const QSet<int>& playlistIds) {
-    if (playlistIds.contains(m_iPlaylistId) ||
-            (isFolderView() && m_folderPlaylistIds.intersects(playlistIds))) {
+    if (isFolderView()) {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // The playlists of the folder can have changed: build the list again
+        // from the folder.
+        const QList<int> nowIds = m_pTrackCollectionManager->internalCollection()
+                                          ->getPlaylistDAO()
+                                          .getPlaylistIdsInFolder(m_iFolderId);
+        const QSet<int> now(nowIds.cbegin(), nowIds.cend());
+        if (m_folderPlaylistIds.intersects(playlistIds) || now.intersects(playlistIds)) {
+            refreshFolderView();
+        }
+        // End of AI-generated text.
+        return;
+    }
+    if (playlistIds.contains(m_iPlaylistId)) {
         select(); // Repopulate the data model.
     }
 }
