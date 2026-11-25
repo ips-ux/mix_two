@@ -47,6 +47,25 @@ struct RelocateCandidate {
     qint64 sizeInBytes = 0;
 };
 
+/// One planned change of Auto Relocate: the track and its old and new place.
+struct RelocateMatch {
+    TrackId trackId;
+    QString oldLocation;
+    QString newLocation;
+};
+
+/// The matches that Auto Relocate found, and the tracks it did not change.
+/// Nothing is changed until the matches are applied.
+struct RelocatePlan {
+    QList<RelocateMatch> matches;
+    int notFound = 0;
+    int skipped = 0;
+};
+
+/// One line for each match, "old path -> new path", for the list that the
+/// user checks before Auto Relocate changes anything.
+QStringList relocateMatchLines(const QList<RelocateMatch>& matches);
+
 /// All audio files in the folders and their subfolders. A folder that is not
 /// in the list is not searched. `pCancel` is read between files.
 QList<RelocateCandidate> findRelocateCandidates(
@@ -136,11 +155,21 @@ class TrackCollection : public QObject,
     // End of AI-generated text.
 
     // AI-generated (Claude Code). Start of AI-generated text.
-    /// Relocate: the first track in the list gets `firstNewLocation`. Every
-    /// other track gets the file with its own file name in the folder of
-    /// `firstNewLocation`. A track whose file is present is skipped.
-    mixxx::library::RelocateOutcome relocateTracksToFile(
-            const QList<TrackId>& trackIds, const QString& firstNewLocation);
+    /// Relocate: the track `anchorId` gets `anchorNewLocation`. Every other
+    /// track in the list gets the file with its own file name in the folder
+    /// of `anchorNewLocation`. A track whose file is present is skipped. The
+    /// order of the list does not matter.
+    mixxx::library::RelocateOutcome relocateTracksToFile(const QList<TrackId>& trackIds,
+            TrackId anchorId,
+            const QString& anchorNewLocation);
+
+    /// Auto Relocate, step 1: finds the matches. Changes nothing.
+    mixxx::library::RelocatePlan planAutoRelocate(const QList<TrackId>& trackIds,
+            const QList<mixxx::library::RelocateCandidate>& candidates) const;
+
+    /// Auto Relocate, step 2: applies the matches that the user accepted.
+    mixxx::library::RelocateOutcome applyRelocateMatches(
+            const QList<mixxx::library::RelocateMatch>& matches);
 
     /// Auto Relocate: a missing track gets the candidate that has the same
     /// file name and the same file size as the library stores for it. The

@@ -1,7 +1,12 @@
 #include "library/missing_hidden/dlgmissing.h"
 
 #include <QItemSelection>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QLabel>
+#include <QListWidget>
 #include <QMessageBox>
+#include <QVBoxLayout>
 #include <QtConcurrent>
 
 #include "controllers/keyboard/keyboardeventfilter.h"
@@ -143,9 +148,52 @@ void DlgMissing::slotAutoRelocateSearchFinished() {
             trackIds.append(trackId);
         }
     }
-    const mixxx::library::RelocateOutcome outcome =
-            m_pLibrary->trackCollectionManager()->internalCollection()->autoRelocateTracks(
-                    trackIds, m_searchWatcher.result());
+    TrackCollection* pCollection = m_pLibrary->trackCollectionManager()->internalCollection();
+    const mixxx::library::RelocatePlan plan =
+            pCollection->planAutoRelocate(trackIds, m_searchWatcher.result());
+    if (plan.matches.isEmpty()) {
+        QMessageBox::information(this,
+                tr("Auto Relocate"),
+                tr("%n track(s) not found in the search folders.", nullptr, plan.notFound));
+        return;
+    }
+
+    // Nothing changes before the user accepts. The user can clear the mark
+    // of a match to leave that track as it is.
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Auto Relocate"));
+    auto* pLayout = new QVBoxLayout(&dialog);
+    pLayout->addWidget(new QLabel(
+            tr("%n match(es) found. Clear the mark of a track to keep it as it is.",
+                    nullptr,
+                    plan.matches.size()),
+            &dialog));
+    auto* pList = new QListWidget(&dialog);
+    const QStringList lines = mixxx::library::relocateMatchLines(plan.matches);
+    for (const QString& line : lines) {
+        auto* pItem = new QListWidgetItem(line, pList);
+        pItem->setFlags(pItem->flags() | Qt::ItemIsUserCheckable);
+        pItem->setCheckState(Qt::Checked);
+    }
+    pLayout->addWidget(pList);
+    auto* pButtons = new QDialogButtonBox(&dialog);
+    pButtons->addButton(tr("Apply"), QDialogButtonBox::AcceptRole);
+    pButtons->addButton(QDialogButtonBox::Cancel);
+    connect(pButtons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(pButtons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    pLayout->addWidget(pButtons);
+    dialog.resize(900, 400);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    QList<mixxx::library::RelocateMatch> accepted;
+    for (int i = 0; i < pList->count(); ++i) {
+        if (pList->item(i)->checkState() == Qt::Checked) {
+            accepted.append(plan.matches[i]);
+        }
+    }
+    const mixxx::library::RelocateOutcome outcome = pCollection->applyRelocateMatches(accepted);
     m_pMissingTableModel->select();
     QMessageBox::information(this,
             tr("Auto Relocate"),
@@ -153,7 +201,7 @@ void DlgMissing::slotAutoRelocateSearchFinished() {
                     QLatin1Char('\n') +
                     tr("%n track(s) not found in the search folders.",
                             nullptr,
-                            outcome.notFound));
+                            plan.notFound));
 }
 // End of AI-generated text.
 

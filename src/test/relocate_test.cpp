@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 
 #include <QDir>
+#include <QSqlQuery>
+#include <algorithm>
 #include <QFile>
 #include <QFileInfo>
 
@@ -19,6 +21,7 @@ namespace {
 using mixxx::library::decodeRelocateFolders;
 using mixxx::library::encodeRelocateFolders;
 using mixxx::library::findRelocateCandidates;
+using mixxx::library::relocateMatchLines;
 using mixxx::library::RelocateCandidate;
 
 bool writeFile(const QString& path, const QByteArray& content) {
@@ -77,7 +80,7 @@ TEST_F(RelocateTest, OneTrackGetsTheChosenFile) {
     ASSERT_TRUE(writeFile(path("new/Song.mp3"), QByteArrayLiteral("song-data")));
 
     const auto outcome = internalCollection()->relocateTracksToFile(
-            {id}, path("new/Song.mp3"));
+            {id}, id, path("new/Song.mp3"));
 
     EXPECT_EQ(1, outcome.relocated);
     EXPECT_EQ(0, outcome.notFound);
@@ -92,7 +95,7 @@ TEST_F(RelocateTest, TheChosenFileMayHaveAnotherName) {
     ASSERT_TRUE(writeFile(path("new/Song (renamed).mp3"), QByteArrayLiteral("x")));
 
     const auto outcome = internalCollection()->relocateTracksToFile(
-            {id}, path("new/Song (renamed).mp3"));
+            {id}, id, path("new/Song (renamed).mp3"));
 
     EXPECT_EQ(1, outcome.relocated);
     EXPECT_EQ(expectedLocation("new/Song (renamed).mp3"), locationOf(id));
@@ -107,7 +110,7 @@ TEST_F(RelocateTest, ThreeTracksFindTheirFilesInTheFolderOfTheFirst) {
     ASSERT_TRUE(writeFile(path("new/c.mp3"), QByteArrayLiteral("ccc")));
 
     const auto outcome = internalCollection()->relocateTracksToFile(
-            {a, b, c}, path("new/a.mp3"));
+            {a, b, c}, a, path("new/a.mp3"));
 
     EXPECT_EQ(3, outcome.relocated);
     EXPECT_EQ(expectedLocation("new/a.mp3"), locationOf(a));
@@ -122,7 +125,7 @@ TEST_F(RelocateTest, ATrackWithoutAFileInTheFolderStaysMissing) {
     const QString oldB = locationOf(b);
 
     const auto outcome = internalCollection()->relocateTracksToFile(
-            {a, b}, path("new/a.mp3"));
+            {a, b}, a, path("new/a.mp3"));
 
     EXPECT_EQ(1, outcome.relocated);
     EXPECT_EQ(1, outcome.notFound);
@@ -140,7 +143,7 @@ TEST_F(RelocateTest, ATrackWhoseFileIsPresentIsNotChanged) {
     const QString oldPresent = locationOf(present);
 
     const auto outcome = internalCollection()->relocateTracksToFile(
-            {missing, present}, path("new/a.mp3"));
+            {missing, present}, missing, path("new/a.mp3"));
 
     EXPECT_EQ(1, outcome.relocated);
     EXPECT_EQ(1, outcome.skipped);
@@ -154,7 +157,7 @@ TEST_F(RelocateTest, AFileThatAnotherTrackUsesIsRefused) {
     const QString oldLocation = locationOf(missing);
 
     const auto outcome = internalCollection()->relocateTracksToFile(
-            {missing}, path("new/a.mp3"));
+            {missing}, missing, path("new/a.mp3"));
 
     EXPECT_EQ(0, outcome.relocated);
     EXPECT_EQ(1, outcome.failed);
@@ -166,7 +169,7 @@ TEST_F(RelocateTest, ChoosingAFileThatDoesNotExistChangesNothing) {
     const QString oldLocation = locationOf(id);
 
     const auto outcome = internalCollection()->relocateTracksToFile(
-            {id}, path("new/nothing.mp3"));
+            {id}, id, path("new/nothing.mp3"));
 
     EXPECT_EQ(0, outcome.relocated);
     EXPECT_EQ(oldLocation, locationOf(id));
@@ -212,15 +215,24 @@ TEST_F(RelocateTest, AutoRelocateNeedsTheSameSize) {
 }
 
 TEST_F(RelocateTest, AutoRelocatePrefersTheFolderThatLooksLikeTheOldOne) {
-    const TrackId id = addMissingTrack("music/Abba/Hits/Waterloo.mp3", QByteArrayLiteral("waterloo"));
+    const TrackId id = addMissingTrack(
+            "music/Abba/Hits/Waterloo.mp3", QByteArrayLiteral("waterloo"));
+    // The decoys sort before the right folder, and the right folder is last
+    // in the candidate list too.
+    ASSERT_TRUE(writeFile(path("search/Aaa/Waterloo.mp3"), QByteArrayLiteral("waterloo")));
     ASSERT_TRUE(writeFile(path("search/Falko/Waterloo.mp3"), QByteArrayLiteral("waterloo")));
-    ASSERT_TRUE(writeFile(path("search/Abba/Hits/Waterloo.mp3"), QByteArrayLiteral("waterloo")));
+    ASSERT_TRUE(writeFile(
+            path("search/Zzz/Abba/Hits/Waterloo.mp3"), QByteArrayLiteral("waterloo")));
+    auto candidates = findRelocateCandidates({path("search")});
+    // The order of the candidates must not decide: put the right one last.
+    std::stable_partition(candidates.begin(), candidates.end(), [](const RelocateCandidate& c) {
+        return !c.location.contains(QLatin1String("Zzz"));
+    });
 
-    const auto outcome = internalCollection()->autoRelocateTracks(
-            {id}, findRelocateCandidates({path("search")}));
+    const auto outcome = internalCollection()->autoRelocateTracks({id}, candidates);
 
     EXPECT_EQ(1, outcome.relocated);
-    EXPECT_EQ(expectedLocation("search/Abba/Hits/Waterloo.mp3"), locationOf(id));
+    EXPECT_EQ(expectedLocation("search/Zzz/Abba/Hits/Waterloo.mp3"), locationOf(id));
 }
 
 TEST_F(RelocateTest, AutoRelocateGivesOneFileToOneTrackOnly) {
@@ -274,5 +286,110 @@ TEST_F(RelocateTest, TheFolderListRoundTrips) {
     EXPECT_TRUE(decodeRelocateFolders(QString()).isEmpty());
     EXPECT_TRUE(decodeRelocateFolders(QStringLiteral("not json")).isEmpty());
     EXPECT_TRUE(decodeRelocateFolders(encodeRelocateFolders({})).isEmpty());
+}
+
+TEST_F(RelocateTest, TheChosenFileGoesToTheAnchorTrackWhateverTheOrder) {
+    const TrackId a = addMissingTrack("old/a.mp3", QByteArrayLiteral("aaa"));
+    const TrackId b = addMissingTrack("old/b.mp3", QByteArrayLiteral("bbb"));
+    ASSERT_TRUE(writeFile(path("new/chosen-for-b.mp3"), QByteArrayLiteral("bbb")));
+    ASSERT_TRUE(writeFile(path("new/a.mp3"), QByteArrayLiteral("aaa")));
+
+    // The anchor is b, but a is first in the list.
+    const auto outcome = internalCollection()->relocateTracksToFile(
+            {a, b}, b, path("new/chosen-for-b.mp3"));
+
+    EXPECT_EQ(2, outcome.relocated);
+    EXPECT_EQ(expectedLocation("new/chosen-for-b.mp3"), locationOf(b));
+    EXPECT_EQ(expectedLocation("new/a.mp3"), locationOf(a));
+}
+
+TEST_F(RelocateTest, ThePresentTrackInFrontDoesNotTakeTheChosenFile) {
+    ASSERT_TRUE(writeFile(path("here/p.mp3"), QByteArrayLiteral("ppp")));
+    const TrackId present = addTrackFor(path("here/p.mp3"));
+    const TrackId missing = addMissingTrack("old/m.mp3", QByteArrayLiteral("mmm"));
+    ASSERT_TRUE(writeFile(path("new/other-name.mp3"), QByteArrayLiteral("mmm")));
+
+    const auto outcome = internalCollection()->relocateTracksToFile(
+            {present, missing}, missing, path("new/other-name.mp3"));
+
+    EXPECT_EQ(1, outcome.relocated);
+    EXPECT_EQ(1, outcome.skipped);
+    EXPECT_EQ(expectedLocation("new/other-name.mp3"), locationOf(missing));
+}
+
+TEST_F(RelocateTest, ARelocationStoresTheSizeOfTheNewFile) {
+    const TrackId id = addMissingTrack("old/Song.mp3", QByteArrayLiteral("short"));
+    ASSERT_TRUE(writeFile(path("new/Song.mp3"), QByteArrayLiteral("a longer content")));
+
+    ASSERT_EQ(1,
+            internalCollection()
+                    ->relocateTracksToFile({id}, id, path("new/Song.mp3"))
+                    .relocated);
+
+    QSqlQuery query(dbConnection());
+    query.prepare(QStringLiteral(
+            "SELECT track_locations.filesize FROM library INNER JOIN track_locations "
+            "ON library.location=track_locations.id WHERE library.id=:id"));
+    query.bindValue(":id", id.toVariant());
+    ASSERT_TRUE(query.exec());
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(16, query.value(0).toLongLong());
+}
+
+TEST_F(RelocateTest, ThePlanChangesNothingUntilItIsApplied) {
+    const TrackId id = addMissingTrack("old/Song.mp3", QByteArrayLiteral("song-data"));
+    ASSERT_TRUE(writeFile(path("search/Song.mp3"), QByteArrayLiteral("song-data")));
+    const QString oldLocation = locationOf(id);
+
+    const auto plan = internalCollection()->planAutoRelocate(
+            {id}, findRelocateCandidates({path("search")}));
+
+    ASSERT_EQ(1, plan.matches.size());
+    EXPECT_EQ(id, plan.matches[0].trackId);
+    EXPECT_EQ(oldLocation, plan.matches[0].oldLocation);
+    EXPECT_EQ(expectedLocation("search/Song.mp3"), plan.matches[0].newLocation);
+    EXPECT_EQ(oldLocation, locationOf(id));
+
+    // The user clears no mark: all matches are applied.
+    EXPECT_EQ(1, internalCollection()->applyRelocateMatches(plan.matches).relocated);
+    EXPECT_EQ(expectedLocation("search/Song.mp3"), locationOf(id));
+}
+
+TEST_F(RelocateTest, AnUncheckedMatchIsLeftAsItIs) {
+    const TrackId id = addMissingTrack("old/Song.mp3", QByteArrayLiteral("song-data"));
+    ASSERT_TRUE(writeFile(path("search/Song.mp3"), QByteArrayLiteral("song-data")));
+    const QString oldLocation = locationOf(id);
+    const auto plan = internalCollection()->planAutoRelocate(
+            {id}, findRelocateCandidates({path("search")}));
+
+    // Cancel, or a match with the mark cleared: nothing is applied.
+    EXPECT_EQ(0, internalCollection()->applyRelocateMatches({}).relocated);
+    EXPECT_EQ(oldLocation, locationOf(id));
+}
+
+TEST_F(RelocateTest, AutoRelocateUsesTheSizeOfAFileThatWasRelocatedByHand) {
+    // A manual relocation to a file of another size, then the file moves again.
+    const TrackId id = addMissingTrack("old/Song.mp3", QByteArrayLiteral("short"));
+    ASSERT_TRUE(writeFile(path("hand/Song.mp3"), QByteArrayLiteral("a longer content")));
+    ASSERT_EQ(1,
+            internalCollection()
+                    ->relocateTracksToFile({id}, id, path("hand/Song.mp3"))
+                    .relocated);
+    ASSERT_TRUE(writeFile(path("search/Song.mp3"), QByteArrayLiteral("a longer content")));
+    ASSERT_TRUE(QFile::remove(path("hand/Song.mp3")));
+
+    const auto outcome = internalCollection()->autoRelocateTracks(
+            {id}, findRelocateCandidates({path("search")}));
+
+    EXPECT_EQ(1, outcome.relocated);
+    EXPECT_EQ(expectedLocation("search/Song.mp3"), locationOf(id));
+}
+
+TEST_F(RelocateTest, TheMatchListShowsTheOldAndTheNewPlace) {
+    mixxx::library::RelocateMatch match;
+    match.oldLocation = "C:/old/a.mp3";
+    match.newLocation = "D:/new/a.mp3";
+    EXPECT_EQ((QStringList{"C:/old/a.mp3 -> D:/new/a.mp3"}), relocateMatchLines({match}));
+    EXPECT_TRUE(relocateMatchLines({}).isEmpty());
 }
 // End of AI-generated text.

@@ -254,11 +254,14 @@ bool TrackCollection::relocateTrackLocation(TrackId trackId, const QString& newL
         // the new location, the query fails and nothing changes.
         query.prepare(QStringLiteral(
                 "UPDATE track_locations SET location=:newloc, directory=:newdir, "
-                "filename=:newname, fs_deleted=0, needs_verification=0 "
+                "filename=:newname, filesize=:newsize, fs_deleted=0, "
+                "needs_verification=0 "
                 "WHERE id=(SELECT location FROM library WHERE id=:id)"));
         query.bindValue(QStringLiteral(":newloc"), newFile.location());
         query.bindValue(QStringLiteral(":newdir"), newFile.locationPath());
         query.bindValue(QStringLiteral(":newname"), newFile.fileName());
+        // The stored size follows the new file: Auto Relocate compares it.
+        query.bindValue(QStringLiteral(":newsize"), newFile.sizeInBytes());
         query.bindValue(QStringLiteral(":id"), trackId.toVariant());
         if (!query.exec() || query.numRowsAffected() != 1) {
             return false;
@@ -323,6 +326,15 @@ QList<RelocateCandidate> findRelocateCandidates(
     return candidates;
 }
 
+QStringList relocateMatchLines(const QList<RelocateMatch>& matches) {
+    QStringList lines;
+    lines.reserve(matches.size());
+    for (const RelocateMatch& match : matches) {
+        lines.append(match.oldLocation + QStringLiteral(" -> ") + match.newLocation);
+    }
+    return lines;
+}
+
 QString encodeRelocateFolders(const QStringList& folders) {
     QStringList clean;
     for (const QString& folder : folders) {
@@ -380,6 +392,13 @@ StoredFile loadStoredFile(const QSqlDatabase& database, TrackId trackId) {
     return stored;
 }
 
+bool locationIsInLibrary(const QSqlDatabase& database, const QString& location) {
+    QSqlQuery query(database);
+    query.prepare(QStringLiteral("SELECT 1 FROM track_locations WHERE location=:loc"));
+    query.bindValue(QStringLiteral(":loc"), location);
+    return query.exec() && query.next();
+}
+
 bool fileIsPresent(const QString& location) {
     return QFileInfo(location).isFile();
 }
@@ -401,12 +420,12 @@ int sharedEndLength(const QString& a, const QString& b) {
 } // namespace
 
 mixxx::library::RelocateOutcome TrackCollection::relocateTracksToFile(
-        const QList<TrackId>& trackIds, const QString& firstNewLocation) {
+        const QList<TrackId>& trackIds, TrackId anchorId, const QString& anchorNewLocation) {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
     mixxx::library::RelocateOutcome outcome;
-    const QString newFolder = QFileInfo(firstNewLocation).absolutePath();
-    for (int i = 0; i < trackIds.size(); ++i) {
-        const StoredFile stored = loadStoredFile(m_database, trackIds[i]);
+    const QString newFolder = QFileInfo(anchorNewLocation).absolutePath();
+    for (const TrackId& trackId : trackIds) {
+        const StoredFile stored = loadStoredFile(m_database, trackId);
         if (!stored.known) {
             ++outcome.notFound;
             continue;
@@ -416,16 +435,79 @@ mixxx::library::RelocateOutcome TrackCollection::relocateTracksToFile(
             ++outcome.skipped;
             continue;
         }
-        // The first track gets the file that the user chose. The others are
+        // The anchor track gets the file that the user chose. The others are
         // looked up by their own file name in the folder of that file.
-        const QString newLocation = i == 0
-                ? firstNewLocation
+        const QString newLocation = trackId == anchorId
+                ? anchorNewLocation
                 : QDir(newFolder).filePath(stored.fileName);
         if (!fileIsPresent(newLocation)) {
             ++outcome.notFound;
             continue;
         }
-        if (relocateTrackLocation(trackIds[i], newLocation)) {
+        if (relocateTrackLocation(trackId, newLocation)) {
+            ++outcome.relocated;
+        } else {
+            ++outcome.failed;
+        }
+    }
+    return outcome;
+}
+
+mixxx::library::RelocatePlan TrackCollection::planAutoRelocate(
+        const QList<TrackId>& trackIds,
+        const QList<mixxx::library::RelocateCandidate>& candidates) const {
+    mixxx::library::RelocatePlan plan;
+    QHash<QString, QList<int>> candidatesByName;
+    for (int i = 0; i < candidates.size(); ++i) {
+        candidatesByName[candidates[i].fileName.toLower()].append(i);
+    }
+    QSet<int> usedCandidates;
+    for (const TrackId& trackId : trackIds) {
+        const StoredFile stored = loadStoredFile(m_database, trackId);
+        if (!stored.known) {
+            ++plan.notFound;
+            continue;
+        }
+        if (fileIsPresent(stored.location)) {
+            ++plan.skipped;
+            continue;
+        }
+        // Without a stored size nothing can be compared: no match.
+        QList<int> matches;
+        if (stored.sizeInBytes > 0) {
+            const QList<int> sameName = candidatesByName.value(stored.fileName.toLower());
+            for (int index : sameName) {
+                if (!usedCandidates.contains(index) &&
+                        candidates[index].sizeInBytes == stored.sizeInBytes &&
+                        !locationIsInLibrary(m_database, candidates[index].location)) {
+                    matches.append(index);
+                }
+            }
+        }
+        if (matches.isEmpty()) {
+            ++plan.notFound;
+            continue;
+        }
+        // Choice: when several files match, the one whose folder names are
+        // most like the old folder names wins.
+        const int best = *std::max_element(matches.begin(),
+                matches.end(),
+                [&](int a, int b) {
+                    return sharedEndLength(candidates[a].location, stored.location) <
+                            sharedEndLength(candidates[b].location, stored.location);
+                });
+        usedCandidates.insert(best);
+        plan.matches.append({trackId, stored.location, candidates[best].location});
+    }
+    return plan;
+}
+
+mixxx::library::RelocateOutcome TrackCollection::applyRelocateMatches(
+        const QList<mixxx::library::RelocateMatch>& matches) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+    mixxx::library::RelocateOutcome outcome;
+    for (const auto& match : matches) {
+        if (relocateTrackLocation(match.trackId, match.newLocation)) {
             ++outcome.relocated;
         } else {
             ++outcome.failed;
@@ -437,55 +519,10 @@ mixxx::library::RelocateOutcome TrackCollection::relocateTracksToFile(
 mixxx::library::RelocateOutcome TrackCollection::autoRelocateTracks(
         const QList<TrackId>& trackIds,
         const QList<mixxx::library::RelocateCandidate>& candidates) {
-    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
-    mixxx::library::RelocateOutcome outcome;
-    QHash<QString, QList<int>> candidatesByName;
-    for (int i = 0; i < candidates.size(); ++i) {
-        candidatesByName[candidates[i].fileName.toLower()].append(i);
-    }
-    QSet<int> usedCandidates;
-    for (const TrackId& trackId : trackIds) {
-        const StoredFile stored = loadStoredFile(m_database, trackId);
-        if (!stored.known) {
-            ++outcome.notFound;
-            continue;
-        }
-        if (fileIsPresent(stored.location)) {
-            ++outcome.skipped;
-            continue;
-        }
-        // Without a stored size nothing can be compared: no match.
-        QList<int> matches;
-        if (stored.sizeInBytes > 0) {
-            const QList<int> sameName = candidatesByName.value(stored.fileName.toLower());
-            for (int index : sameName) {
-                if (!usedCandidates.contains(index) &&
-                        candidates[index].sizeInBytes == stored.sizeInBytes) {
-                    matches.append(index);
-                }
-            }
-        }
-        // Choice: when several files match, the one whose folder names are
-        // most like the old folder names wins.
-        std::stable_sort(matches.begin(),
-                matches.end(),
-                [&](int a, int b) {
-                    return sharedEndLength(candidates[a].location, stored.location) >
-                            sharedEndLength(candidates[b].location, stored.location);
-                });
-        bool done = false;
-        for (int index : std::as_const(matches)) {
-            if (relocateTrackLocation(trackId, candidates[index].location)) {
-                usedCandidates.insert(index);
-                ++outcome.relocated;
-                done = true;
-                break;
-            }
-        }
-        if (!done) {
-            ++outcome.notFound;
-        }
-    }
+    const mixxx::library::RelocatePlan plan = planAutoRelocate(trackIds, candidates);
+    mixxx::library::RelocateOutcome outcome = applyRelocateMatches(plan.matches);
+    outcome.notFound = plan.notFound;
+    outcome.skipped = plan.skipped;
     return outcome;
 }
 // End of AI-generated text.

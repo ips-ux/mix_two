@@ -3128,13 +3128,16 @@ bool WTrackMenu::relocateMissingTracks(
     }
     const QString newFile = QFileDialog::getOpenFileName(pParent,
             tr("Choose the new file of the track"),
-            startDir.exists() ? startDir.absolutePath() : QString());
+            startDir.exists() ? startDir.absolutePath() : QString(),
+            // Only the audio types that the library supports.
+            tr("Audio files (%1)").arg(SoundSourceProxy::getSupportedFileNamePatterns().join(' ')) +
+                    QStringLiteral(";;") + tr("All files (*)"));
     if (newFile.isEmpty()) {
         return false;
     }
 
     const mixxx::library::RelocateOutcome outcome =
-            pCollection->relocateTracksToFile(missingIds, newFile);
+            pCollection->relocateTracksToFile(missingIds, missingIds.first(), newFile);
 
     QStringList lines;
     lines.append(tr("%n track(s) relocated.", nullptr, outcome.relocated));
