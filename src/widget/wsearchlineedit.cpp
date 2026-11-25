@@ -177,6 +177,8 @@ WSearchLineEdit::WSearchLineEdit(QWidget* pParent, UserSettingsPointer pConfig)
                 slotApplyColumnPrefix(prefix);
             });
         }
+        connect(pMenu, &QMenu::aboutToShow, this, [this] { m_columnMenuOpen = true; });
+        connect(pMenu, &QMenu::aboutToHide, this, [this] { m_columnMenuOpen = false; });
         m_columnButton->setMenu(pMenu);
     }
     // End of AI-generated text.
@@ -545,7 +547,11 @@ void WSearchLineEdit::focusOutEvent(QFocusEvent* event) {
         kLogger.trace()
                 << "focusOutEvent";
     }
-    slotSaveSearch();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (!m_columnMenuOpen) {
+        slotSaveSearch();
+    }
+    // End of AI-generated text.
     QComboBox::focusOutEvent(event);
     if (m_debouncingTimer.isActive()) {
         // Trigger a pending search before leaving the edit box.
@@ -858,7 +864,7 @@ void WSearchLineEdit::slotApplyColumnPrefix(const QString& prefix) {
     if (!isEnabled()) {
         return;
     }
-    const QString newText = SearchQueryParser::applySearchPrefix(currentText(), prefix);
+    const QString newText = SearchQueryParser::applySearchPrefix(getSearchText(), prefix);
     // Set the line edit text as typing does: the text change starts the
     // debounced search.
     lineEdit()->setText(newText);

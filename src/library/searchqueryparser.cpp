@@ -68,6 +68,67 @@ const QRegularExpression kSplitOnOrOperatorRegexp = QRegularExpression(
         QStringLiteral("(?:\\||\\bOR\\b)" QUOTED_STRING_LOOKAHEAD));
 
 // AI-generated (Claude Code). Start of AI-generated text.
+// The filter names (long and short form) that the constructor registers; the
+// list of the known prefix names uses the same functions.
+namespace {
+QStringList textFilterNames() {
+    return {QStringLiteral("a"),
+            QStringLiteral("artist"),
+            QStringLiteral("aa"),
+            QStringLiteral("album_artist"),
+            QStringLiteral("al"),
+            QStringLiteral("album"),
+            QStringLiteral("t"),
+            QStringLiteral("title"),
+            QStringLiteral("g"),
+            QStringLiteral("genre"),
+            QStringLiteral("cp"),
+            QStringLiteral("composer"),
+            QStringLiteral("gr"),
+            QStringLiteral("grouping"),
+            QStringLiteral("cm"),
+            QStringLiteral("comment"),
+            QStringLiteral("lo"),
+            QStringLiteral("location"),
+            QStringLiteral("dir"),
+            QStringLiteral("directory"),
+            QStringLiteral("c"),
+            QStringLiteral("crate"),
+            QStringLiteral("type")};
+}
+
+QStringList numericFilterNames() {
+    return {QStringLiteral("tr"),
+            QStringLiteral("track"),
+            QStringLiteral("pl"),
+            QStringLiteral("played"),
+            QStringLiteral("r"),
+            QStringLiteral("rating"),
+            QStringLiteral("br"),
+            QStringLiteral("bitrate"),
+            QStringLiteral("id")};
+}
+
+QStringList specialFilterNames() {
+    return {QStringLiteral("y"),
+            QStringLiteral("year"),
+            QStringLiteral("k"),
+            QStringLiteral("key"),
+            QStringLiteral("b"),
+            QStringLiteral("bpm"),
+            QStringLiteral("du"),
+            QStringLiteral("duration"),
+            QStringLiteral("ad"),
+            QStringLiteral("added"),
+            QStringLiteral("dateadded"),
+            QStringLiteral("datetime_added"),
+            QStringLiteral("date_added")};
+}
+
+} // namespace
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
 // static
 QStringList SearchQueryParser::searchableColumns() {
     // Choice: the order is the order of the columns in the track list.
@@ -97,52 +158,7 @@ QStringList SearchQueryParser::searchableColumns() {
 
 // static
 QStringList SearchQueryParser::knownSearchPrefixNames() {
-    // Same names as the filters that the constructor registers.
-    return {QStringLiteral("a"),
-            QStringLiteral("artist"),
-            QStringLiteral("aa"),
-            QStringLiteral("album_artist"),
-            QStringLiteral("al"),
-            QStringLiteral("album"),
-            QStringLiteral("t"),
-            QStringLiteral("title"),
-            QStringLiteral("g"),
-            QStringLiteral("genre"),
-            QStringLiteral("cp"),
-            QStringLiteral("composer"),
-            QStringLiteral("gr"),
-            QStringLiteral("grouping"),
-            QStringLiteral("cm"),
-            QStringLiteral("comment"),
-            QStringLiteral("lo"),
-            QStringLiteral("location"),
-            QStringLiteral("dir"),
-            QStringLiteral("directory"),
-            QStringLiteral("c"),
-            QStringLiteral("crate"),
-            QStringLiteral("type"),
-            QStringLiteral("tr"),
-            QStringLiteral("track"),
-            QStringLiteral("pl"),
-            QStringLiteral("played"),
-            QStringLiteral("r"),
-            QStringLiteral("rating"),
-            QStringLiteral("br"),
-            QStringLiteral("bitrate"),
-            QStringLiteral("id"),
-            QStringLiteral("y"),
-            QStringLiteral("year"),
-            QStringLiteral("k"),
-            QStringLiteral("key"),
-            QStringLiteral("b"),
-            QStringLiteral("bpm"),
-            QStringLiteral("du"),
-            QStringLiteral("duration"),
-            QStringLiteral("ad"),
-            QStringLiteral("added"),
-            QStringLiteral("dateadded"),
-            QStringLiteral("datetime_added"),
-            QStringLiteral("date_added")};
+    return textFilterNames() + numericFilterNames() + specialFilterNames();
 }
 
 // static
@@ -163,12 +179,14 @@ QString SearchQueryParser::applySearchPrefix(const QString& text, const QString&
     while (rest.startsWith(QLatin1Char(' '))) {
         rest.remove(0, 1);
     }
+    // Choice: a query that starts with the fuzzy sign stays as it is. The sign
+    // has a meaning for some filters only, so no prefix fits all of them.
+    if (rest.startsWith(QLatin1Char('~'))) {
+        return text;
+    }
     QString sign;
-    if (rest.startsWith(QLatin1Char('-')) || rest.startsWith(QLatin1Char('~'))) {
-        // The fuzzy sign has a meaning for some filters only: drop it.
-        if (rest.startsWith(QLatin1Char('-'))) {
-            sign = QStringLiteral("-");
-        }
+    if (rest.startsWith(QLatin1Char('-'))) {
+        sign = QStringLiteral("-");
         rest.remove(0, 1);
     }
     // Replace a prefix that the text has already.
@@ -180,12 +198,21 @@ QString SearchQueryParser::applySearchPrefix(const QString& text, const QString&
         return sign + prefix;
     }
     // More than one word, and no other operator: the prefix is for the whole
-    // text, so quote it.
+    // text, so quote it. With an operator (OR, |, a quote, another filter, or
+    // a sign on a later word) the quotes would change the meaning of the
+    // query: the prefix then goes before the first term only.
     const QString trimmed = rest.trimmed();
-    if (trimmed.contains(QLatin1Char(' ')) &&
-            !trimmed.contains(QLatin1Char('"')) &&
-            !trimmed.contains(QLatin1Char(':')) &&
-            !trimmed.contains(QLatin1Char('|'))) {
+    const QStringList words = trimmed.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    bool hasOperator = trimmed.contains(QLatin1Char('"')) ||
+            trimmed.contains(QLatin1Char(':')) ||
+            trimmed.contains(QLatin1Char('|'));
+    for (const QString& word : words) {
+        if (word == QLatin1String("OR") || word.startsWith(QLatin1Char('-')) ||
+                word.startsWith(QLatin1Char('~'))) {
+            hasOperator = true;
+        }
+    }
+    if (words.size() > 1 && !hasOperator) {
         return sign + prefix + QLatin1Char('"') + trimmed + QLatin1Char('"');
     }
     return sign + prefix + rest;
@@ -197,31 +224,9 @@ SearchQueryParser::SearchQueryParser(TrackCollection* pTrackCollection, QStringL
           m_searchCrates(false) {
     setSearchColumns(std::move(searchColumns));
 
-    m_textFilters << "a" << "artist"
-                  << "aa" << "album_artist"
-                  << "al" << "album"
-                  << "t" << "title"
-                  << "g" << "genre"
-                  << "cp" << "composer"
-                  << "gr" << "grouping"
-                  << "cm" << "comment"
-                  << "lo" << "location"
-                  << "dir" << "directory"
-                  << "c" << "crate"
-                  << "type";
-    m_numericFilters << "tr" << "track"
-                     << "pl" << "played"
-                     << "r" << "rating"
-                     << "br" << "bitrate"
-                     << "id";
-    m_specialFilters << "y" << "year"
-                     << "k" << "key"
-                     << "b" << "bpm"
-                     << "du" << "duration"
-                     << "ad" << "added"
-                     << "dateadded"
-                     << "datetime_added"
-                     << "date_added";
+    m_textFilters = textFilterNames();
+    m_numericFilters = numericFilterNames();
+    m_specialFilters = specialFilterNames();
 
     m_fieldToSqlColumns["a"] << "artist" << "album_artist";
     m_fieldToSqlColumns["artist"] << "artist" << "album_artist";

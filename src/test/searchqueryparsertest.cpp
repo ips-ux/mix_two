@@ -1432,6 +1432,22 @@ TEST_F(SearchQueryParserTest, SearchPrefixForColumn) {
     EXPECT_EQ(QString(), SearchQueryParser::searchPrefixForColumn(QString()));
 }
 
+TEST_F(SearchQueryParserTest, KnownPrefixNamesAreParserFilters) {
+    // Every known name must make the parser build a filter, so the list cannot
+    // drift from the parser. The parser registers "type" and "date_added" but
+    // has no SQL column for them, so they build no filter: skipped.
+    m_parser.setSearchColumns({"artist", "album"});
+    for (const QString& name : SearchQueryParser::knownSearchPrefixNames()) {
+        if (name == "type" || name == "date_added") {
+            continue;
+        }
+        const QString argument = name.contains("ad") ? QStringLiteral("2024-01-01")
+                                                      : QStringLiteral("1");
+        const QString sql = m_parser.parseQuery(name + ":" + argument, QString())->toSql();
+        EXPECT_FALSE(sql.isEmpty()) << qPrintable(name);
+    }
+}
+
 TEST_F(SearchQueryParserTest, SearchColumnsAreKnownPrefixNames) {
     const QStringList known = SearchQueryParser::knownSearchPrefixNames();
     for (const QString& column : SearchQueryParser::searchableColumns()) {
@@ -1473,6 +1489,20 @@ TEST_F(SearchQueryParserTest, ApplySearchPrefix) {
     // An unknown word before a colon is not a prefix.
     EXPECT_EQ(QStringLiteral("artist:foo:bar"),
             SearchQueryParser::applySearchPrefix("foo:bar", "artist:"));
+    // Operators keep their meaning: no quotes, the prefix goes before the
+    // first term only.
+    EXPECT_EQ(QStringLiteral("artist:foo OR bar"),
+            SearchQueryParser::applySearchPrefix("foo OR bar", "artist:"));
+    EXPECT_EQ(QStringLiteral("artist:foo | bar"),
+            SearchQueryParser::applySearchPrefix("foo | bar", "artist:"));
+    EXPECT_EQ(QStringLiteral("artist:foo -bar"),
+            SearchQueryParser::applySearchPrefix("foo -bar", "artist:"));
+    // A word that only contains the letters "or" is not the operator.
+    EXPECT_EQ(QStringLiteral("artist:\"foo order\""),
+            SearchQueryParser::applySearchPrefix("foo order", "artist:"));
+    // A query with the fuzzy sign stays as it is.
+    EXPECT_EQ(QStringLiteral("~bpm:120"),
+            SearchQueryParser::applySearchPrefix("~bpm:120", "genre:"));
     // An empty prefix changes nothing.
     EXPECT_EQ(QStringLiteral("foo"), SearchQueryParser::applySearchPrefix("foo", QString()));
 }

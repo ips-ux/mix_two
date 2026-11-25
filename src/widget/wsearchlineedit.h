@@ -122,6 +122,9 @@ class WSearchLineEdit : public QComboBox, public WBaseWidget {
     parented_ptr<QToolButton> const m_clearButton;
     // AI-generated (Claude Code). Start of AI-generated text.
     parented_ptr<QToolButton> const m_columnButton;
+    // True while the column menu is open: the line edit loses the focus to the
+    // menu, and the search history must not take the text for that.
+    bool m_columnMenuOpen = false;
     // End of AI-generated text.
 
     QTimer m_debouncingTimer;
