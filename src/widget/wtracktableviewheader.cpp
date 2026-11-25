@@ -119,6 +119,14 @@ void HeaderViewState::restoreState(WTrackTableViewHeader* pHeaders) {
                                                  li, Qt::Horizontal, TrackModel::kHeaderNameRole)
                                 .toString(); // internal name
             hidden = false;
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // Mix Two: a column that the model hides by default stays hidden
+            // for a user who has a saved state from before the column existed.
+            // A column that is in the saved state is not changed here.
+            if (auto* pTrackModel = dynamic_cast<TrackModel*>(pHeaders->model())) {
+                hidden = pTrackModel->isColumnHiddenByDefault(li);
+            }
+            // End of AI-generated text.
         } else {
             it.value()->set_logical_index(li);
         }

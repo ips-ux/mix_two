@@ -457,8 +457,10 @@ int rekordboxTimingOffsetMs(const QString& location) {
 
 int dlpBitDepth(const QString& filePath, int fileType) {
     constexpr int kDefaultBitDepth = 16;
+    // AI-generated (Claude Code). Start of AI-generated text.
     // The header reader is the one that the bit depth column of the library
     // uses. Here an unknown value gives 16, the value that rekordbox writes.
+    // End of AI-generated text.
     int bitDepth = 0;
     switch (fileType) {
     case 5:

@@ -214,7 +214,9 @@ class BaseTrackTableModel : public QAbstractTableModel, public TrackModel {
     /// COLUMN_LIBRARYTABLE_COMMENT: QString (pass-through)
     /// COLUMN_LIBRARYTABLE_DURATION: double (seconds)/mixxx::Duration
     /// COLUMN_LIBRARYTABLE_BITRATE: int (kbps)/mixxx::audio::Bitrate
+    // AI-generated (Claude Code). Start of AI-generated text.
     /// COLUMN_LIBRARYTABLE_BIT_DEPTH: int (bits per sample, 0 is unknown)
+    // End of AI-generated text.
     /// COLUMN_LIBRARYTABLE_BPM: double (beats per minute)/mixxx::Bpm
     /// COLUMN_LIBRARYTABLE_REPLAYGAIN: double (ratio)/mixxx::ReplayGain
     /// COLUMN_LIBRARYTABLE_URL: QString (unsupported)

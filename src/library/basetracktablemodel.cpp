@@ -840,7 +840,9 @@ QVariant BaseTrackTableModel::roleValue(
             }
         }
         case ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH:
+            // AI-generated (Claude Code). Start of AI-generated text.
             // Nothing shows for unknown (0) and for lossy formats.
+            // End of AI-generated text.
             return mixxx::bitDepthDisplayValue(rawValue);
         case ColumnCache::COLUMN_LIBRARYTABLE_TUNING_FREQUENCY: {
             if (rawValue.isNull()) {

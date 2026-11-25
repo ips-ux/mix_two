@@ -853,8 +853,11 @@ SoundSourceProxy::UpdateTrackFromSourceResult SoundSourceProxy::updateTrackFromS
             std::move(trackMetadata),
             sourceSynchronizedAt);
     // AI-generated (Claude Code). Start of AI-generated text.
-    // The file is read now, so the bit depth for the library column is read
-    // now. A lossy format gives 0 (unknown).
+    // The file is read for the library now, and the track is already marked
+    // as changed by the import above. So the bit depth for the library column
+    // is read now. A lossy format gives 0 (unknown). Loading a track into a
+    // deck does not read it: that would mark the track as changed and could
+    // lead to a write of file tags that did not happen before.
     m_pTrack->setBitDepth(mixxx::bitDepthFromFile(m_pTrack->getFileInfo().location()));
     // End of AI-generated text.
 
@@ -971,13 +974,5 @@ mixxx::AudioSourcePointer SoundSourceProxy::openAudioSource(
     // Overwrite metadata with actual audio properties
     m_pTrack->updateStreamInfoFromSource(
             m_pSoundSource->getStreamInfo());
-    // AI-generated (Claude Code). Start of AI-generated text.
-    // A track that was in the library before the bit depth existed has 0.
-    // The value is read when the track loads. A track with a value or a track
-    // of a lossy format does not read the file again.
-    if (m_pTrack->getBitDepth() == 0) {
-        m_pTrack->setBitDepth(mixxx::bitDepthFromFile(m_pTrack->getFileInfo().location()));
-    }
-    // End of AI-generated text.
     return mixxx::AudioSourceTrackProxy::create(m_pTrack, m_pSoundSource);
 }
