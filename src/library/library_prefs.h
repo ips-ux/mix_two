@@ -92,6 +92,11 @@ const bool kCoverArtShowWholeDefault = false;
 // The folder pattern of consolidate (see libraryFolderFor()). The default
 // pattern is in library/consolidate/folderpattern.h.
 extern const ConfigKey kConsolidateFolderPatternConfigKey;
+
+// The search folders of Auto Relocate, as one text (see
+// encodeRelocateFolders() in library/trackcollection.h). The default is no
+// folder.
+extern const ConfigKey kAutoRelocateFoldersConfigKey;
 // End of AI-generated text.
 
 } // namespace prefs

@@ -1,8 +1,16 @@
 #include "library/trackcollection.h"
 
+#include <QDirIterator>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QSet>
+#include <algorithm>
+
 #include "library/basetrackcache.h"
 #include "library/trackset/crate/crate.h"
 #include "moc_trackcollection.cpp"
+#include "sources/soundsourceproxy.h"
 #include "track/globaltrackcache.h"
 #include "util/assert.h"
 #include "util/db/sqltransaction.h"
@@ -276,6 +284,209 @@ bool TrackCollection::relocateTrackLocation(TrackId trackId, const QString& newL
             TrackRef::fromFilePath(newFile.location())));
     m_trackDao.slotDatabaseTracksRelocated(std::move(relocatedTracks));
     return true;
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace mixxx {
+namespace library {
+
+QList<RelocateCandidate> findRelocateCandidates(
+        const QStringList& folders, const std::atomic_bool* pCancel) {
+    QList<RelocateCandidate> candidates;
+    QSet<QString> seen;
+    for (const QString& folder : folders) {
+        if (folder.isEmpty() || !QFileInfo(folder).isDir()) {
+            continue;
+        }
+        QDirIterator it(folder, QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            if (pCancel && pCancel->load()) {
+                return candidates;
+            }
+            it.next();
+            const QFileInfo info = it.fileInfo();
+            if (!SoundSourceProxy::isFileNameSupported(info.fileName())) {
+                continue;
+            }
+            RelocateCandidate candidate;
+            candidate.location = FileInfo(info.absoluteFilePath()).location();
+            if (candidate.location.isEmpty() || seen.contains(candidate.location)) {
+                continue;
+            }
+            seen.insert(candidate.location);
+            candidate.fileName = info.fileName();
+            candidate.sizeInBytes = info.size();
+            candidates.append(std::move(candidate));
+        }
+    }
+    return candidates;
+}
+
+QString encodeRelocateFolders(const QStringList& folders) {
+    QStringList clean;
+    for (const QString& folder : folders) {
+        if (!folder.isEmpty() && !clean.contains(folder)) {
+            clean.append(folder);
+        }
+    }
+    return QString::fromUtf8(
+            QJsonDocument(QJsonArray::fromStringList(clean)).toJson(QJsonDocument::Compact));
+}
+
+QStringList decodeRelocateFolders(const QString& text) {
+    QStringList folders;
+    const QJsonDocument doc = QJsonDocument::fromJson(text.toUtf8());
+    if (!doc.isArray()) {
+        return folders;
+    }
+    const QJsonArray array = doc.array();
+    for (const QJsonValue& value : array) {
+        const QString folder = value.toString();
+        if (!folder.isEmpty() && !folders.contains(folder)) {
+            folders.append(folder);
+        }
+    }
+    return folders;
+}
+
+} // namespace library
+} // namespace mixxx
+
+namespace {
+
+/// What the library stores for the file of a track.
+struct StoredFile {
+    bool known = false;
+    QString location;
+    QString fileName;
+    qint64 sizeInBytes = 0;
+};
+
+StoredFile loadStoredFile(const QSqlDatabase& database, TrackId trackId) {
+    StoredFile stored;
+    QSqlQuery query(database);
+    query.prepare(QStringLiteral(
+            "SELECT track_locations.location, track_locations.filename, "
+            "track_locations.filesize FROM library INNER JOIN track_locations "
+            "ON library.location=track_locations.id WHERE library.id=:id"));
+    query.bindValue(QStringLiteral(":id"), trackId.toVariant());
+    if (query.exec() && query.next()) {
+        stored.known = true;
+        stored.location = query.value(0).toString();
+        stored.fileName = query.value(1).toString();
+        stored.sizeInBytes = query.value(2).toLongLong();
+    }
+    return stored;
+}
+
+bool fileIsPresent(const QString& location) {
+    return QFileInfo(location).isFile();
+}
+
+/// The number of folder names that two paths share at their ends. A candidate
+/// with a long shared end looks more like the old place of the file.
+int sharedEndLength(const QString& a, const QString& b) {
+    const QStringList partsA = QFileInfo(a).absolutePath().split('/', Qt::SkipEmptyParts);
+    const QStringList partsB = QFileInfo(b).absolutePath().split('/', Qt::SkipEmptyParts);
+    int shared = 0;
+    while (shared < partsA.size() && shared < partsB.size() &&
+            partsA[partsA.size() - 1 - shared].compare(
+                    partsB[partsB.size() - 1 - shared], Qt::CaseInsensitive) == 0) {
+        ++shared;
+    }
+    return shared;
+}
+
+} // namespace
+
+mixxx::library::RelocateOutcome TrackCollection::relocateTracksToFile(
+        const QList<TrackId>& trackIds, const QString& firstNewLocation) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+    mixxx::library::RelocateOutcome outcome;
+    const QString newFolder = QFileInfo(firstNewLocation).absolutePath();
+    for (int i = 0; i < trackIds.size(); ++i) {
+        const StoredFile stored = loadStoredFile(m_database, trackIds[i]);
+        if (!stored.known) {
+            ++outcome.notFound;
+            continue;
+        }
+        if (fileIsPresent(stored.location)) {
+            // A track with a file is not missing: never move it.
+            ++outcome.skipped;
+            continue;
+        }
+        // The first track gets the file that the user chose. The others are
+        // looked up by their own file name in the folder of that file.
+        const QString newLocation = i == 0
+                ? firstNewLocation
+                : QDir(newFolder).filePath(stored.fileName);
+        if (!fileIsPresent(newLocation)) {
+            ++outcome.notFound;
+            continue;
+        }
+        if (relocateTrackLocation(trackIds[i], newLocation)) {
+            ++outcome.relocated;
+        } else {
+            ++outcome.failed;
+        }
+    }
+    return outcome;
+}
+
+mixxx::library::RelocateOutcome TrackCollection::autoRelocateTracks(
+        const QList<TrackId>& trackIds,
+        const QList<mixxx::library::RelocateCandidate>& candidates) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+    mixxx::library::RelocateOutcome outcome;
+    QHash<QString, QList<int>> candidatesByName;
+    for (int i = 0; i < candidates.size(); ++i) {
+        candidatesByName[candidates[i].fileName.toLower()].append(i);
+    }
+    QSet<int> usedCandidates;
+    for (const TrackId& trackId : trackIds) {
+        const StoredFile stored = loadStoredFile(m_database, trackId);
+        if (!stored.known) {
+            ++outcome.notFound;
+            continue;
+        }
+        if (fileIsPresent(stored.location)) {
+            ++outcome.skipped;
+            continue;
+        }
+        // Without a stored size nothing can be compared: no match.
+        QList<int> matches;
+        if (stored.sizeInBytes > 0) {
+            const QList<int> sameName = candidatesByName.value(stored.fileName.toLower());
+            for (int index : sameName) {
+                if (!usedCandidates.contains(index) &&
+                        candidates[index].sizeInBytes == stored.sizeInBytes) {
+                    matches.append(index);
+                }
+            }
+        }
+        // Choice: when several files match, the one whose folder names are
+        // most like the old folder names wins.
+        std::stable_sort(matches.begin(),
+                matches.end(),
+                [&](int a, int b) {
+                    return sharedEndLength(candidates[a].location, stored.location) >
+                            sharedEndLength(candidates[b].location, stored.location);
+                });
+        bool done = false;
+        for (int index : std::as_const(matches)) {
+            if (relocateTrackLocation(trackId, candidates[index].location)) {
+                usedCandidates.insert(index);
+                ++outcome.relocated;
+                done = true;
+                break;
+            }
+        }
+        if (!done) {
+            ++outcome.notFound;
+        }
+    }
+    return outcome;
 }
 // End of AI-generated text.
 

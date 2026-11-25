@@ -24,6 +24,7 @@ class DlgTrackInfoMulti;
 class ExternalTrackCollection;
 class FindOnWebLast;
 class Library;
+class TrackCollection;
 class TrackModel;
 class WColorPickerAction;
 class WCoverArtMenu;
@@ -115,9 +116,19 @@ class WTrackMenu : public QMenu {
     // WARNING: This function hides non-virtual QMenu::popup().
     // This has been done on purpose to ensure menu doesn't popup without loaded track(s).
     void popup(const QPoint& pos, QAction* at = nullptr);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Relocate for missing tracks: asks for the new file of the first missing
+    /// track in the list, then looks up the other tracks by file name in the
+    /// folder of that file. Only the location that the library stores
+    /// changes; no file on disk changes. Returns true when a track changed.
+    static bool relocateMissingTracks(
+            QWidget* pParent, TrackCollection* pCollection, const TrackIdList& trackIds);
+    // End of AI-generated text.
     void slotShowDlgTrackInfo();
     // Library management
     void slotRemoveFromDisk();
+    void slotRelocate();
     const QString getDeckGroup() const;
 
   signals:
@@ -331,6 +342,7 @@ class WTrackMenu : public QMenu {
     parented_ptr<QAction> m_pHideAct;
     parented_ptr<QAction> m_pUnhideAct;
     parented_ptr<QAction> m_pPurgeAct;
+    parented_ptr<QAction> m_pRelocateAct;
     parented_ptr<QAction> m_pRemoveFromDiskAct;
 
     // Show track-editor action

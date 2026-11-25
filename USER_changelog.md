@@ -474,6 +474,26 @@ orange.
 For headphone sound, set a Headphones output in Preferences > Sound
 Hardware.
 
+### Missing tracks: Relocate and Auto Relocate
+
+A track is missing when Mix Two cannot find its file. You can now tell Mix Two
+where the file is. The track keeps its cues, its playlists and its other data.
+Mix Two changes only the place that the library stores. It does not change or
+delete a file.
+
+To relocate a track, right-click it, then select **Relocate...**. You can also
+select the track in the Missing Tracks list, then push **Relocate**. Choose the
+new file. If you select more than one track, Mix Two looks for the other
+tracks by file name in the folder of the first file.
+
+To search for the files automatically, go to Preferences > Library. In **Auto
+Relocate**, add the folders to search, then push **Apply**. In the Missing
+Tracks list, push **Auto Relocate**. Mix Two searches these folders and the
+folders below them. A file matches a missing track when it has the same name
+and the same size. The library does not store a content hash of the file, so
+Mix Two cannot compare one. If more than one file matches, Mix Two takes the
+file with the most similar folder names.
+
 ### Playlist folders
 
 Click a folder in the playlist tree. The track list shows the tracks of all

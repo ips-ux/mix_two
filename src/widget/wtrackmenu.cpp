@@ -2,9 +2,13 @@
 
 #include <QCheckBox>
 #include <QDialogButtonBox>
+#include <QDir>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QInputDialog>
 #include <QList>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QModelIndex>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -356,6 +360,14 @@ void WTrackMenu::createActions() {
 
         m_pPurgeAct = make_parented<QAction>(tr("Purge from Library"), this);
         connect(m_pPurgeAct, &QAction::triggered, this, &WTrackMenu::slotPurge);
+
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_pRelocateAct = make_parented<QAction>(tr("Relocate..."), this);
+        m_pRelocateAct->setToolTip(
+                tr("Choose the new file of a missing track. The library keeps the cues, "
+                   "the playlists and the other data of the track. No file changes."));
+        connect(m_pRelocateAct, &QAction::triggered, this, &WTrackMenu::slotRelocate);
+        // End of AI-generated text.
     }
 
     if (featureIsEnabled(Feature::RemoveFromDisk)) {
@@ -799,6 +811,9 @@ void WTrackMenu::setupActions() {
         }
         if (m_pTrackModel->hasCapabilities(TrackModel::Capability::Purge)) {
             addAction(m_pPurgeAct);
+            // AI-generated (Claude Code). Start of AI-generated text.
+            addAction(m_pRelocateAct);
+            // End of AI-generated text.
         }
     }
 
@@ -1240,6 +1255,24 @@ void WTrackMenu::updateMenus() {
         }
         if (m_pTrackModel->hasCapabilities(TrackModel::Capability::Purge)) {
             m_pPurgeAct->setEnabled(!locked);
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // Relocate is for missing tracks: it is off when every selected
+            // track has its file.
+            bool anyMissing = false;
+            for (const TrackId& trackId : getTrackIds()) {
+                const QString location = m_pLibrary
+                        ? m_pLibrary->trackCollectionManager()
+                                  ->internalCollection()
+                                  ->getTrackDAO()
+                                  .getTrackLocation(trackId)
+                        : QString();
+                if (!location.isEmpty() && !QFileInfo(location).isFile()) {
+                    anyMissing = true;
+                    break;
+                }
+            }
+            m_pRelocateAct->setEnabled(!locked && anyMissing);
+            // End of AI-generated text.
         }
     }
 
@@ -3065,6 +3098,76 @@ void WTrackMenu::slotUnhide() {
     m_pTrackModel->unhideTracks(getTrackIndices());
     emit restoreCurrentViewStateOrIndex();
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+bool WTrackMenu::relocateMissingTracks(
+        QWidget* pParent, TrackCollection* pCollection, const TrackIdList& trackIds) {
+    if (!pCollection) {
+        return false;
+    }
+    // Only a track with a missing file is relocated. The first of them gets
+    // the file that the user chooses.
+    TrackIdList missingIds;
+    QString firstOldLocation;
+    for (const TrackId& trackId : trackIds) {
+        const QString location = pCollection->getTrackDAO().getTrackLocation(trackId);
+        if (!location.isEmpty() && !QFileInfo(location).isFile()) {
+            if (missingIds.isEmpty()) {
+                firstOldLocation = location;
+            }
+            missingIds.append(trackId);
+        }
+    }
+    if (missingIds.isEmpty()) {
+        return false;
+    }
+
+    // Start the file dialog at the nearest folder that still exists.
+    QDir startDir = QFileInfo(firstOldLocation).dir();
+    while (!startDir.exists() && startDir.cdUp()) {
+    }
+    const QString newFile = QFileDialog::getOpenFileName(pParent,
+            tr("Choose the new file of the track"),
+            startDir.exists() ? startDir.absolutePath() : QString());
+    if (newFile.isEmpty()) {
+        return false;
+    }
+
+    const mixxx::library::RelocateOutcome outcome =
+            pCollection->relocateTracksToFile(missingIds, newFile);
+
+    QStringList lines;
+    lines.append(tr("%n track(s) relocated.", nullptr, outcome.relocated));
+    if (outcome.notFound > 0) {
+        lines.append(tr("%n track(s) not relocated: the folder of the chosen file "
+                        "has no file with the name of the track.",
+                nullptr,
+                outcome.notFound));
+    }
+    if (outcome.failed > 0) {
+        lines.append(tr("%n track(s) not relocated: the library already uses the file.",
+                nullptr,
+                outcome.failed));
+    }
+    // A single track that is relocated needs no message.
+    if (!(missingIds.size() == 1 && outcome.relocated == 1)) {
+        QMessageBox::information(pParent, tr("Relocate"), lines.join(QLatin1Char('\n')));
+    }
+    return outcome.relocated > 0;
+}
+
+void WTrackMenu::slotRelocate() {
+    if (!m_pLibrary || !m_pTrackModel) {
+        return;
+    }
+    if (relocateMissingTracks(this->parentWidget(),
+                m_pLibrary->trackCollectionManager()->internalCollection(),
+                getTrackIds())) {
+        m_pTrackModel->select();
+        emit restoreCurrentViewStateOrIndex();
+    }
+}
+// End of AI-generated text.
 
 void WTrackMenu::slotPurge() {
     if (!m_pTrackModel) {

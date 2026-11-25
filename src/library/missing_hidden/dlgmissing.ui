@@ -77,6 +77,32 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="btnRelocate">
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
+         <property name="toolTip">
+          <string>Choose the new file of the selected track. Mix Two looks for the other selected tracks by file name in the same folder. No file changes.</string>
+         </property>
+         <property name="text">
+          <string>Relocate</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btnAutoRelocate">
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
+         <property name="toolTip">
+          <string>Look for the missing tracks in the search folders of the Library preferences. A file matches when it has the same name and the same size. No file changes.</string>
+         </property>
+         <property name="text">
+          <string>Auto Relocate</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>

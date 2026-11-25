@@ -51,6 +51,8 @@ class DlgPrefLibrary : public DlgPreferencePage, public Ui::DlgPrefLibraryDlg {
     void slotAddDir();
     void slotRemoveDir();
     void slotRelocateDir();
+    void slotAddAutoRelocateFolder();
+    void slotRemoveAutoRelocateFolder();
 
   signals:
     void apply();
@@ -74,6 +76,8 @@ class DlgPrefLibrary : public DlgPreferencePage, public Ui::DlgPrefLibraryDlg {
 
   private:
     void populateDirList();
+    QStringList autoRelocateFolders() const;
+    void setAutoRelocateFolders(const QStringList& folders);
     void setLibraryFont(const QFont& font);
     void resetLibraryFont();
     void updateSearchLineEditHistoryOptions();

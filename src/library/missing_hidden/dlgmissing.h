@@ -1,6 +1,10 @@
 #pragma once
 
+#include <QFutureWatcher>
+#include <atomic>
+
 #include "library/libraryview.h"
+#include "library/trackcollection.h"
 #include "library/ui_dlgmissing.h"
 #include "preferences/usersettings.h"
 
@@ -32,6 +36,12 @@ class DlgMissing : public QWidget, public Ui::DlgMissing, public LibraryView {
     void selectAll();
     void selectionChanged(const QItemSelection&, const QItemSelection&);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void slotRelocate();
+    void slotAutoRelocate();
+    void slotAutoRelocateSearchFinished();
+    // End of AI-generated text.
+
   signals:
     void trackSelected(TrackPointer pTrack);
 
@@ -39,4 +49,10 @@ class DlgMissing : public QWidget, public Ui::DlgMissing, public LibraryView {
     void activateButtons(bool enable);
     WTrackTableView* m_pTrackTableView;
     MissingTableModel* m_pMissingTableModel;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    UserSettingsPointer m_pConfig;
+    Library* m_pLibrary;
+    QFutureWatcher<QList<mixxx::library::RelocateCandidate>> m_searchWatcher;
+    std::atomic_bool m_cancelSearch{false};
+    // End of AI-generated text.
 };

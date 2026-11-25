@@ -3,6 +3,8 @@
 #include <gtest/gtest_prod.h>
 
 #include <QList>
+#include <QStringList>
+#include <atomic>
 #include <QSharedPointer>
 #include <QSqlDatabase>
 
@@ -19,6 +21,44 @@
 // forward declaration(s)
 class BaseTrackCache;
 class QDir;
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace mixxx {
+namespace library {
+
+/// What a Relocate or Auto Relocate run did. A relocation only changes the
+/// location that the library stores. It never changes a file on disk.
+struct RelocateOutcome {
+    /// Tracks that now point at the found file.
+    int relocated = 0;
+    /// Missing tracks for which no file was found.
+    int notFound = 0;
+    /// Tracks whose file is present: they stay as they are.
+    int skipped = 0;
+    /// A file was found, but the library could not use it (for example,
+    /// another track already uses it).
+    int failed = 0;
+};
+
+/// A file in a search folder that can be the new place of a missing track.
+struct RelocateCandidate {
+    QString location;
+    QString fileName;
+    qint64 sizeInBytes = 0;
+};
+
+/// All audio files in the folders and their subfolders. A folder that is not
+/// in the list is not searched. `pCancel` is read between files.
+QList<RelocateCandidate> findRelocateCandidates(
+        const QStringList& folders, const std::atomic_bool* pCancel = nullptr);
+
+/// The search folders of Auto Relocate as one text for the configuration.
+QString encodeRelocateFolders(const QStringList& folders);
+QStringList decodeRelocateFolders(const QString& text);
+
+} // namespace library
+} // namespace mixxx
+// End of AI-generated text.
 
 // Manages the internal database.
 class TrackCollection : public QObject,
@@ -93,6 +133,21 @@ class TrackCollection : public QObject,
     /// unknown or another track already uses `newLocation`. The file must
     /// exist at `newLocation`. Used by consolidate.
     bool relocateTrackLocation(TrackId trackId, const QString& newLocation);
+    // End of AI-generated text.
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Relocate: the first track in the list gets `firstNewLocation`. Every
+    /// other track gets the file with its own file name in the folder of
+    /// `firstNewLocation`. A track whose file is present is skipped.
+    mixxx::library::RelocateOutcome relocateTracksToFile(
+            const QList<TrackId>& trackIds, const QString& firstNewLocation);
+
+    /// Auto Relocate: a missing track gets the candidate that has the same
+    /// file name and the same file size as the library stores for it. The
+    /// library stores no content hash of a file, so these two values are all
+    /// that it can compare.
+    mixxx::library::RelocateOutcome autoRelocateTracks(const QList<TrackId>& trackIds,
+            const QList<mixxx::library::RelocateCandidate>& candidates);
     // End of AI-generated text.
 
   signals:

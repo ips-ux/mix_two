@@ -164,4 +164,9 @@ const ConfigKey mixxx::library::prefs::kConsolidateFolderPatternConfigKey =
         ConfigKey{
                 mixxx::library::prefs::kConfigGroup,
                 QStringLiteral("ConsolidateFolderPattern")};
+
+const ConfigKey mixxx::library::prefs::kAutoRelocateFoldersConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("AutoRelocateFolders")};
 // End of AI-generated text.

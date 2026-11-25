@@ -571,6 +571,50 @@
    </item>
 
    <item>
+    <widget class="QGroupBox" name="groupBox_auto_relocate">
+     <property name="title">
+      <string>Auto Relocate</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_auto_relocate">
+
+      <item row="0" column="0" rowspan="2">
+       <widget class="QListWidget" name="listWidget_auto_relocate_folders">
+        <property name="toolTip">
+         <string>Auto Relocate looks for the files of missing tracks in these folders and in the folders below them. It does not change any file.</string>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::SingleSelection</enum>
+        </property>
+       </widget>
+      </item>
+
+      <item row="0" column="1">
+       <widget class="QPushButton" name="pushButton_auto_relocate_add">
+        <property name="toolTip">
+         <string>Add a folder that Auto Relocate searches.</string>
+        </property>
+        <property name="text">
+         <string>Add</string>
+        </property>
+       </widget>
+      </item>
+
+      <item row="1" column="1">
+       <widget class="QPushButton" name="pushButton_auto_relocate_remove">
+        <property name="toolTip">
+         <string>Remove the selected folder from the search folders of Auto Relocate.</string>
+        </property>
+        <property name="text">
+         <string>Remove</string>
+        </property>
+       </widget>
+      </item>
+
+     </layout>
+    </widget>
+   </item>
+
+   <item>
     <widget class="QGroupBox" name="groupBox_History">
      <property name="title">
       <string>Session History</string>

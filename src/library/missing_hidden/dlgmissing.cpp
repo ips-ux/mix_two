@@ -1,13 +1,18 @@
 #include "library/missing_hidden/dlgmissing.h"
 
 #include <QItemSelection>
+#include <QMessageBox>
+#include <QtConcurrent>
 
 #include "controllers/keyboard/keyboardeventfilter.h"
 #include "library/library.h"
+#include "library/library_prefs.h"
+#include "library/trackcollectionmanager.h"
 #include "library/missing_hidden/missingtablemodel.h"
 #include "moc_dlgmissing.cpp"
 #include "util/assert.h"
 #include "widget/wlibrary.h"
+#include "widget/wtrackmenu.h"
 #include "widget/wtracktableview.h"
 
 DlgMissing::DlgMissing(
@@ -22,7 +27,9 @@ DlgMissing::DlgMissing(
                           this,
                           pConfig,
                           pLibrary,
-                          parent->getTrackTableBackgroundColorOpacity())) {
+                          parent->getTrackTableBackgroundColorOpacity())),
+          m_pConfig(pConfig),
+          m_pLibrary(pLibrary) {
     setupUi(this);
     m_pTrackTableView->installEventFilter(pKeyboard);
 
@@ -40,6 +47,12 @@ DlgMissing::DlgMissing(
 
     connect(btnPurge, &QPushButton::clicked, m_pTrackTableView, &WTrackTableView::slotPurge);
     connect(btnSelect, &QPushButton::clicked, this, &DlgMissing::selectAll);
+    connect(btnRelocate, &QPushButton::clicked, this, &DlgMissing::slotRelocate);
+    connect(btnAutoRelocate, &QPushButton::clicked, this, &DlgMissing::slotAutoRelocate);
+    connect(&m_searchWatcher,
+            &QFutureWatcher<QList<mixxx::library::RelocateCandidate>>::finished,
+            this,
+            &DlgMissing::slotAutoRelocateSearchFinished);
     connect(m_pTrackTableView->selectionModel(),
             &QItemSelectionModel::selectionChanged,
             this,
@@ -52,6 +65,9 @@ DlgMissing::DlgMissing(
 }
 
 DlgMissing::~DlgMissing() {
+    // Stop a running search before the dialog goes away.
+    m_cancelSearch = true;
+    m_searchWatcher.waitForFinished();
     // Delete m_pTrackTableView before the table model. This is because the
     // table view saves the header state using the model.
     delete m_pTrackTableView;
@@ -77,7 +93,69 @@ void DlgMissing::selectAll() {
 
 void DlgMissing::activateButtons(bool enable) {
     btnPurge->setEnabled(enable);
+    btnRelocate->setEnabled(enable);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void DlgMissing::slotRelocate() {
+    TrackCollection* pCollection = m_pLibrary->trackCollectionManager()->internalCollection();
+    if (WTrackMenu::relocateMissingTracks(
+                this, pCollection, m_pTrackTableView->getSelectedTrackIds())) {
+        m_pMissingTableModel->select();
+    }
+}
+
+void DlgMissing::slotAutoRelocate() {
+    if (m_searchWatcher.isRunning()) {
+        return;
+    }
+    const QStringList folders = mixxx::library::decodeRelocateFolders(
+            m_pConfig->getValue(
+                    mixxx::library::prefs::kAutoRelocateFoldersConfigKey, QString()));
+    if (folders.isEmpty()) {
+        QMessageBox::information(this,
+                tr("Auto Relocate"),
+                tr("There is no search folder. Add a folder in the Library "
+                   "preferences."));
+        return;
+    }
+    // The search of the folders can take long: it runs in another thread.
+    // The change of the library runs here, in the main thread.
+    btnAutoRelocate->setEnabled(false);
+    m_cancelSearch = false;
+    m_searchWatcher.setFuture(QtConcurrent::run([folders, this]() {
+        return mixxx::library::findRelocateCandidates(folders, &m_cancelSearch);
+    }));
+}
+
+void DlgMissing::slotAutoRelocateSearchFinished() {
+    btnAutoRelocate->setEnabled(true);
+    if (m_cancelSearch) {
+        return;
+    }
+    QList<TrackId> trackIds;
+    const int rows = m_pMissingTableModel->rowCount();
+    trackIds.reserve(rows);
+    for (int row = 0; row < rows; ++row) {
+        const TrackId trackId = m_pMissingTableModel->getTrackId(
+                m_pMissingTableModel->index(row, 0));
+        if (trackId.isValid()) {
+            trackIds.append(trackId);
+        }
+    }
+    const mixxx::library::RelocateOutcome outcome =
+            m_pLibrary->trackCollectionManager()->internalCollection()->autoRelocateTracks(
+                    trackIds, m_searchWatcher.result());
+    m_pMissingTableModel->select();
+    QMessageBox::information(this,
+            tr("Auto Relocate"),
+            tr("%n track(s) relocated.", nullptr, outcome.relocated) +
+                    QLatin1Char('\n') +
+                    tr("%n track(s) not found in the search folders.",
+                            nullptr,
+                            outcome.notFound));
+}
+// End of AI-generated text.
 
 void DlgMissing::selectionChanged(const QItemSelection &selected,
                                   const QItemSelection &deselected) {

@@ -33,6 +33,8 @@ constexpr int kDefaultFuzzyRateRangePercent = 75;
 } // namespace
 
 using namespace mixxx::library::prefs;
+using mixxx::library::decodeRelocateFolders;
+using mixxx::library::encodeRelocateFolders;
 
 DlgPrefLibrary::DlgPrefLibrary(
         QWidget* pParent,
@@ -52,6 +54,14 @@ DlgPrefLibrary::DlgPrefLibrary(
             &QPushButton::clicked,
             this,
             &DlgPrefLibrary::slotAddDir);
+    connect(pushButton_auto_relocate_add,
+            &QPushButton::clicked,
+            this,
+            &DlgPrefLibrary::slotAddAutoRelocateFolder);
+    connect(pushButton_auto_relocate_remove,
+            &QPushButton::clicked,
+            this,
+            &DlgPrefLibrary::slotRemoveAutoRelocateFolder);
     connect(pushButton_remove_dir,
             &QPushButton::clicked,
             this,
@@ -320,6 +330,7 @@ void DlgPrefLibrary::slotResetToDefaults() {
     checkBox_artwork_whole->setChecked(kCoverArtShowWholeDefault);
     checkBox_reset_played_on_exit->setChecked(kResetPlayedOnExitDefault);
     lineEdit_consolidate_folder_pattern->setText(mixxx::library::defaultFolderPattern());
+    setAutoRelocateFolders({});
     // End of AI-generated text.
 
     checkBox_show_rhythmbox->setChecked(true);
@@ -460,6 +471,8 @@ void DlgPrefLibrary::slotUpdate() {
     lineEdit_consolidate_folder_pattern->setText(m_pConfig->getValue(
             kConsolidateFolderPatternConfigKey,
             mixxx::library::defaultFolderPattern()));
+    setAutoRelocateFolders(decodeRelocateFolders(
+            m_pConfig->getValue(kAutoRelocateFoldersConfigKey, QString())));
     // End of AI-generated text.
 
     // Library reads font from config during construction
@@ -518,6 +531,42 @@ void DlgPrefLibrary::resetLibraryFont() {
     m_pLibrary->setFont(m_originalTrackTableFont);
     m_pLibrary->setRowHeight(m_iOriginalTrackTableRowHeight);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+QStringList DlgPrefLibrary::autoRelocateFolders() const {
+    QStringList folders;
+    for (int i = 0; i < listWidget_auto_relocate_folders->count(); ++i) {
+        folders.append(listWidget_auto_relocate_folders->item(i)->text());
+    }
+    return folders;
+}
+
+void DlgPrefLibrary::setAutoRelocateFolders(const QStringList& folders) {
+    listWidget_auto_relocate_folders->clear();
+    listWidget_auto_relocate_folders->addItems(folders);
+}
+
+void DlgPrefLibrary::slotAddAutoRelocateFolder() {
+    const QString folder = QFileDialog::getExistingDirectory(
+            this,
+            tr("Choose a folder for Auto Relocate"),
+            QStandardPaths::writableLocation(QStandardPaths::MusicLocation),
+            QFileDialog::ShowDirsOnly);
+    if (folder.isEmpty()) {
+        return;
+    }
+    QStringList folders = autoRelocateFolders();
+    if (!folders.contains(folder)) {
+        folders.append(folder);
+        setAutoRelocateFolders(folders);
+    }
+}
+
+void DlgPrefLibrary::slotRemoveAutoRelocateFolder() {
+    delete listWidget_auto_relocate_folders->takeItem(
+            listWidget_auto_relocate_folders->currentRow());
+}
+// End of AI-generated text.
 
 void DlgPrefLibrary::slotAddDir() {
     QString fd = QFileDialog::getExistingDirectory(
@@ -733,6 +782,8 @@ void DlgPrefLibrary::slotApply() {
         }
         m_pConfig->setValue(kConsolidateFolderPatternConfigKey, pattern);
     }
+    m_pConfig->setValue(kAutoRelocateFoldersConfigKey,
+            encodeRelocateFolders(autoRelocateFolders()));
     // End of AI-generated text.
 
     int rowHeight = spinBox_row_height->value();
