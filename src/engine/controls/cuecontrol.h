@@ -354,6 +354,12 @@ class CueControl : public EngineControl {
     // End of AI-generated text.
     void updateBeatsToNextCue();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Sets beats_from_start: the whole number of beats from the first beat of
+    /// the grid to `position`, or -1. Engine thread only; no allocation, no lock.
+    // End of AI-generated text.
+    void updateBeatsFromStart(mixxx::audio::FramePos position);
+
     UserSettingsPointer m_pConfig;
     ColorPaletteSettings m_colorPaletteSettings;
     QAtomicInt m_currentlyPreviewingIndex;
@@ -440,6 +446,9 @@ class CueControl : public EngineControl {
     /// Set when the beat grid or the cues change, so that the next process()
     /// call updates beats_to_next_cue at once.
     std::atomic<bool> m_beatsToNextCueUpdateNeeded{true};
+    // AI-generated (Claude Code). Start of AI-generated text.
+    std::unique_ptr<ControlObject> m_pBeatsFromStart;
+    // End of AI-generated text.
     /// Engine-thread scratch buffer: hot cue slots, then memory cue marks.
     std::array<double, kMaxNumberOfHotcues + kMaxNumberOfMemoryCueMarks>
             m_nextCueSamplePositions{};

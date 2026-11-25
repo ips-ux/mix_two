@@ -68,6 +68,58 @@ TEST_F(NextCueTest, PicksNearestOfHotAndMemory) {
     EXPECT_DOUBLE_EQ(2.0, mixxx::beatsToNextCue(*m_pBeats, position, cues));
 }
 
+TEST_F(NextCueTest, CountdownRoundingShowsWholeBeat) {
+    // One frame after the grid start the cue is 7.99995 beats away. The
+    // text is 2.0 (8 beats), not 1.3.
+    const std::array<double, 1> cues = {beatToSamplePos(8)};
+    const double beats = mixxx::beatsToNextCue(*m_pBeats, mixxx::audio::FramePos(1.0), cues);
+    EXPECT_LT(beats, 8.0);
+    EXPECT_EQ(QStringLiteral("2.0"), mixxx::formatBarsBeats(beats));
+}
+
+TEST(WBeatCountTest, WholeBeatCountTolerance) {
+    EXPECT_EQ(8, mixxx::wholeBeatCount(8.0));
+    EXPECT_EQ(8, mixxx::wholeBeatCount(7.9999));
+    EXPECT_EQ(8, mixxx::wholeBeatCount(7.995));
+    EXPECT_EQ(7, mixxx::wholeBeatCount(7.98));
+    EXPECT_EQ(7, mixxx::wholeBeatCount(7.5));
+    EXPECT_EQ(0, mixxx::wholeBeatCount(0.0));
+    EXPECT_EQ(-1, mixxx::wholeBeatCount(-1.0));
+}
+
+TEST(WBeatCountTest, FormatsRounding) {
+    EXPECT_EQ(QStringLiteral("2.0"), mixxx::formatBarsBeats(7.9999));
+    EXPECT_EQ(QStringLiteral("1.0"), mixxx::formatBarsBeats(3.999));
+    EXPECT_EQ(QStringLiteral("1.3"), mixxx::formatBarsBeats(7.98));
+    EXPECT_EQ(QStringLiteral("0.0"), mixxx::formatBarsBeats(0.0));
+}
+
+TEST_F(NextCueTest, CurrentCountFromGridStart) {
+    EXPECT_DOUBLE_EQ(0.0,
+            mixxx::beatsFromGridStart(*m_pBeats, mixxx::audio::kStartFramePos));
+    EXPECT_DOUBLE_EQ(8.0,
+            mixxx::beatsFromGridStart(*m_pBeats, mixxx::audio::FramePos(8 * kBeatFrames)));
+    EXPECT_DOUBLE_EQ(5.5,
+            mixxx::beatsFromGridStart(*m_pBeats, mixxx::audio::FramePos(5.5 * kBeatFrames)));
+    // 51 beats are 12 bars and 3 beats.
+    EXPECT_EQ(QStringLiteral("12.3"),
+            mixxx::formatBarsBeats(mixxx::beatsFromGridStart(
+                    *m_pBeats, mixxx::audio::FramePos(51 * kBeatFrames))));
+}
+
+TEST_F(NextCueTest, CurrentCountInvalidAndBeforeFirstBeat) {
+    EXPECT_EQ(-1.0, mixxx::beatsFromGridStart(*m_pBeats, mixxx::audio::kInvalidFramePos));
+    // The first beat is half a beat into the track.
+    const auto pLate = mixxx::Beats::fromConstTempo(
+            kSampleRate, mixxx::audio::FramePos(0.5 * kBeatFrames), kBpm);
+    EXPECT_EQ(-1.0,
+            mixxx::beatsFromGridStart(*pLate, mixxx::audio::FramePos(0.25 * kBeatFrames)));
+    EXPECT_DOUBLE_EQ(0.0,
+            mixxx::beatsFromGridStart(*pLate, mixxx::audio::FramePos(0.5 * kBeatFrames)));
+    EXPECT_DOUBLE_EQ(1.5,
+            mixxx::beatsFromGridStart(*pLate, mixxx::audio::FramePos(2.0 * kBeatFrames)));
+}
+
 TEST(WBeatCountTest, Formats) {
     EXPECT_EQ(QStringLiteral("12.3"), mixxx::formatBarsBeats(51.0));
     EXPECT_EQ(QStringLiteral("1.0"), mixxx::formatBarsBeats(4.0));

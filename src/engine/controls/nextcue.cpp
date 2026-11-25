@@ -1,5 +1,7 @@
 #include "engine/controls/nextcue.h"
 
+#include <cmath>
+
 namespace mixxx {
 
 namespace {
@@ -50,5 +52,27 @@ double beatsToNextCue(const Beats& beats,
     return wholeBeats + fractionBeforeBeat(cueIt, nextCuePosition) -
             fractionBeforeBeat(positionIt, position);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+int wholeBeatCount(double beats) {
+    if (!(beats >= 0.0)) {
+        return -1;
+    }
+    return static_cast<int>(std::floor(beats + kBeatCountTolerance));
+}
+
+double beatsFromGridStart(const Beats& beats, audio::FramePos position) {
+    if (!position.isValid()) {
+        return -1.0;
+    }
+    const audio::FramePos firstBeat = beats.firstBeat();
+    if (!firstBeat.isValid() || position < firstBeat) {
+        return -1.0;
+    }
+    const auto positionIt = beats.iteratorFrom(position);
+    const auto firstIt = beats.iteratorFrom(firstBeat);
+    return static_cast<double>(positionIt - firstIt) + fractionBeforeBeat(positionIt, position);
+}
+// End of AI-generated text.
 
 } // namespace mixxx

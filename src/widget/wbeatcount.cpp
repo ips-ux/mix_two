@@ -2,16 +2,20 @@
 
 #include <cmath>
 
+#include "engine/controls/nextcue.h"
 #include "moc_wbeatcount.cpp"
 
 namespace mixxx {
 
 QString formatBarsBeats(double beats) {
-    if (!(beats >= 0.0)) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A count just below a whole beat (7.9999) shows as that beat (2.0), not as 1.3.
+    const int wholeBeats = wholeBeatCount(beats);
+    // End of AI-generated text.
+    if (wholeBeats < 0) {
         return QStringLiteral("-");
     }
     constexpr int kBeatsPerBar = 4;
-    const auto wholeBeats = static_cast<qint64>(std::floor(beats));
     return QString::number(wholeBeats / kBeatsPerBar) + QChar('.') +
             QString::number(wholeBeats % kBeatsPerBar);
 }

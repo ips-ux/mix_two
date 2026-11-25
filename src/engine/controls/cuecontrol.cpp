@@ -359,6 +359,13 @@ void CueControl::createControls() {
     m_pBeatsToNextCue->set(-1.0);
     m_pBeatsToNextCue->setReadOnly();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pBeatsFromStart = std::make_unique<ControlObject>(
+            ConfigKey(m_group, QStringLiteral("beats_from_start")));
+    m_pBeatsFromStart->set(-1.0);
+    m_pBeatsFromStart->setReadOnly();
+    // End of AI-generated text.
+
     if (PlayerManager::isDeckGroup(m_group)) {
         m_pVinylControlEnabled = std::make_unique<ControlProxy>(
                 m_group, "vinylcontrol_enabled");
@@ -2726,6 +2733,22 @@ void CueControl::process(const double rate,
     EngineControl::process(rate, currentPosition, bufferSize);
     if (m_beatsToNextCueUpdateNeeded.exchange(false)) {
         updateBeatsToNextCue();
+    }
+    updateBeatsFromStart(currentPosition);
+}
+
+// called from the engine thread
+void CueControl::updateBeatsFromStart(mixxx::audio::FramePos position) {
+    double wholeBeats = -1.0;
+    const mixxx::BeatsPointer pBeats = m_pBeats;
+    if (pBeats) {
+        const int count = mixxx::wholeBeatCount(mixxx::beatsFromGridStart(*pBeats, position));
+        wholeBeats = static_cast<double>(count);
+    }
+    // The control holds whole beats, so it changes about twice a second and
+    // not in each audio buffer.
+    if (m_pBeatsFromStart->get() != wholeBeats) {
+        m_pBeatsFromStart->forceSet(wholeBeats);
     }
 }
 

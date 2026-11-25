@@ -735,6 +735,14 @@ audio output stays active, and a message shows.
 The INFO tab of the HUD window now shows FILE TYPE, BIT RATE and DATE ADDED
 of the loaded track.
 
+The beat count in the strip of the HUD window now has two modes. Click the
+cell to change the mode. NEXT CUE shows the bars and beats to the next cue.
+POSITION shows the bars and beats from the first beat of the beat grid to
+the play position. Mix Two saves the mode.
+
+The beat count now rounds to the nearest beat when it is very near a whole
+beat. Before, a count of 8 beats could show as 1.3 and not as 2.0.
+
 ### Waveform type: Color Saturated
 
 There is a new waveform type, **Color Saturated**. It shows each part of the

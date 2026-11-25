@@ -12,7 +12,8 @@ Mix Two: HUD bottom strip (hud_waves.xml), 44 px.
     of a PushButton is always a push, so a push control does the cycle.
   * NEXT CUE: bars.beats (4 beats per bar) from the play position to the
     next hot cue or memory cue (beats_to_next_cue); - when there is no
-    cue ahead or no beat grid.
+    cue ahead or no beat grid. Click it to show POSITION instead: bars.beats
+    from the first beat of the grid to the play position (beats_from_start).
   * REMAIN / TIME: the play position. Click it to change between elapsed,
     remaining and both ([Controls],ShowDurationRemaining).
 The LOOP badge is in the phase meter row (hud_waves.xml).
@@ -221,27 +222,90 @@ End of AI-generated text.
 
       <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
 
+      <!-- NEXT CUE / POSITION: the button lies under the cell text. A click changes
+           between the count to the next cue and the beats from the first beat of the
+           grid. [LateNight],beat_count_position is 0 (next cue, default) or 1 and is
+           saved; the button border is lit in the POSITION mode. -->
       <WidgetGroup>
-        <ObjectName>HudStripCell</ObjectName>
-        <Layout>vertical</Layout>
+        <Layout>stacked</Layout>
         <Size>66f,44f</Size>
         <Children>
-          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
-          <Label>
-            <ObjectName>HudStripLabel</ObjectName>
-            <Size>0me,12f</Size>
-            <Alignment>center</Alignment>
-            <Text>NEXT CUE</Text>
-          </Label>
-          <BeatCount>
-            <ObjectName>HudStripValue</ObjectName>
-            <Size>0me,20f</Size>
-            <Alignment>center</Alignment>
+          <PushButton>
+            <ObjectName>HudLoadSettingButton</ObjectName>
+            <Tooltip>Click to change the beat count: the beats to the next cue, or the beats from the first beat.</Tooltip>
+            <Size>66f,44f</Size>
+            <NumberStates>2</NumberStates>
             <Connection>
-              <ConfigKey><Variable name="Group"/>,beats_to_next_cue</ConfigKey>
+              <ConfigKey persist="true">[LateNight],beat_count_position</ConfigKey>
             </Connection>
-          </BeatCount>
-          <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+          </PushButton>
+          <WidgetGroup>
+            <ObjectName>HudStripCell</ObjectName>
+            <Layout>vertical</Layout>
+            <Size>66f,44f</Size>
+            <Children>
+              <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+              <WidgetGroup>
+                <Layout>horizontal</Layout>
+                <Size>0me,12f</Size>
+                <Children>
+                  <Label>
+                    <ObjectName>HudStripLabel</ObjectName>
+                    <Size>0me,12f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>NEXT CUE</Text>
+                    <Connection>
+                      <ConfigKey persist="true">[LateNight],beat_count_position</ConfigKey>
+                      <Transform><Not/></Transform>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </Label>
+                  <Label>
+                    <ObjectName>HudStripLabel</ObjectName>
+                    <Size>0me,12f</Size>
+                    <Alignment>center</Alignment>
+                    <Text>POSITION</Text>
+                    <Connection>
+                      <ConfigKey persist="true">[LateNight],beat_count_position</ConfigKey>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </Label>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup>
+                <Layout>horizontal</Layout>
+                <Size>0me,20f</Size>
+                <Children>
+                  <BeatCount>
+                    <ObjectName>HudStripValue</ObjectName>
+                    <Size>0me,20f</Size>
+                    <Alignment>center</Alignment>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,beats_to_next_cue</ConfigKey>
+                    </Connection>
+                    <Connection>
+                      <ConfigKey persist="true">[LateNight],beat_count_position</ConfigKey>
+                      <Transform><Not/></Transform>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </BeatCount>
+                  <BeatCount>
+                    <ObjectName>HudStripValue</ObjectName>
+                    <Size>0me,20f</Size>
+                    <Alignment>center</Alignment>
+                    <Connection>
+                      <ConfigKey><Variable name="Group"/>,beats_from_start</ConfigKey>
+                    </Connection>
+                    <Connection>
+                      <ConfigKey persist="true">[LateNight],beat_count_position</ConfigKey>
+                      <BindProperty>visible</BindProperty>
+                    </Connection>
+                  </BeatCount>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
+            </Children>
+          </WidgetGroup>
         </Children>
       </WidgetGroup>
 
