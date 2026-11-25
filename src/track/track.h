@@ -83,6 +83,10 @@ class Track : public QObject {
     Q_PROPERTY(QString info READ getInfo STORED false NOTIFY infoChanged)
     Q_PROPERTY(QString titleInfo READ getTitleInfo STORED false NOTIFY infoChanged)
     Q_PROPERTY(QDateTime sourceSynchronizedAt READ getSourceSynchronizedAt STORED false)
+    // Read by the INFO tab of the deck: file type, bit rate and date added.
+    Q_PROPERTY(QString fileType READ getType STORED false NOTIFY infoChanged)
+    Q_PROPERTY(QString bitrateText READ getBitrateText STORED false NOTIFY infoChanged)
+    Q_PROPERTY(QString dateAddedText READ getDateAddedText STORED false NOTIFY infoChanged)
 
     mixxx::FileInfo getFileInfo() const {
         // Copying mixxx::FileInfo based on QFileInfo is thread-safe due to implicit sharing,
@@ -189,6 +193,8 @@ class Track : public QObject {
 
     void setDateAdded(const QDateTime& dateAdded);
     QDateTime getDateAdded() const;
+    // The date added as short local date text; empty when the date is not set.
+    QString getDateAddedText() const;
 
     QString getTitle() const;
     void setTitle(const QString&);

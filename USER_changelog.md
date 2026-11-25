@@ -732,6 +732,9 @@ bar below the Level knob. The knob and CUE are at the center of the module.
 If Mix Two cannot open a microphone input, it sets the microphone off. The
 audio output stays active, and a message shows.
 
+The INFO tab of the HUD window now shows FILE TYPE, BIT RATE and DATE ADDED
+of the loaded track.
+
 ### Waveform type: Color Saturated
 
 There is a new waveform type, **Color Saturated**. It shows each part of the

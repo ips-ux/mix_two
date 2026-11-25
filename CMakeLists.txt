@@ -3138,6 +3138,7 @@ if(BUILD_TESTING)
     src/test/tableview_test.cpp
     src/test/taglibtest.cpp
     src/test/trackdao_test.cpp
+    src/test/trackdisplayprops_test.cpp
     src/test/trackexport_test.cpp
     src/test/trackmetadata_test.cpp
     src/test/trackmetadataexport_test.cpp

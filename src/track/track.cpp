@@ -1,6 +1,7 @@
 #include "track/track.h"
 
 #include <QDebug>
+#include <QLocale>
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -609,6 +610,15 @@ QString Track::getTitleInfo() const {
 QDateTime Track::getDateAdded() const {
     const auto locked = lockMutex(&m_qMutex);
     return m_record.getDateAdded();
+}
+
+QString Track::getDateAddedText() const {
+    const auto locked = lockMutex(&m_qMutex);
+    const QDateTime dateAdded = m_record.getDateAdded();
+    if (!dateAdded.isValid()) {
+        return QString();
+    }
+    return QLocale().toString(dateAdded.toLocalTime().date(), QLocale::ShortFormat);
 }
 
 void Track::setDateAdded(const QDateTime& dateAdded) {
