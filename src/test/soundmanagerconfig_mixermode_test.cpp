@@ -2,9 +2,15 @@
 #include <gtest/gtest.h>
 
 #include <QDomDocument>
+#include <QSignalSpy>
+#include <gsl/pointers>
 
 #include "soundio/soundmanagerconfig.h"
+#include "effects/effectsmanager.h"
+#include "engine/enginemixer.h"
 #include "soundio/audiotargetmanager.h"
+#include "soundio/soundmanager.h"
+#include "util/cmdlineargs.h"
 #include "soundio/soundmanagerutil.h"
 #include "test/mixxxtest.h"
 
@@ -426,6 +432,68 @@ TEST_F(MixerModeTest, TheMessageNamesTheDecksWithoutOutput) {
     EXPECT_TRUE(text.contains("Preferences"));
     EXPECT_NE(AudioTargetManager::decksWithoutOutputText({2}),
             AudioTargetManager::decksWithoutOutputText({2, 3}));
+}
+
+TEST(DecksWithoutOutputNoticeTest, TellsOnceForEachSetOfDecks) {
+    AudioTargetManager::DecksWithoutOutputNotice notice;
+    EXPECT_FALSE(notice.shouldTell({}));
+    EXPECT_TRUE(notice.shouldTell({2, 3}));
+    EXPECT_FALSE(notice.shouldTell({2, 3}));
+    EXPECT_TRUE(notice.shouldTell({3}));
+    EXPECT_FALSE(notice.shouldTell({}));
+    // After the decks have outputs again, a new gap is told again.
+    EXPECT_TRUE(notice.shouldTell({3}));
+}
+
+// The deck count changes in the sound manager, without a device setup.
+class DeckCountSignalTest : public MixxxTest {
+  protected:
+    void SetUp() override {
+        m_oldSettingsPath = CmdlineArgs::Instance().getSettingsPath();
+        CmdlineArgs::Instance().setSettingsPath(getTestDataDir().path());
+        // A saved setup that is External and has no output yet.
+        QDomDocument doc;
+        QDomElement root = doc.createElement("SoundManagerConfig");
+        root.setAttribute("mixer_mode", "external");
+        doc.appendChild(root);
+        SoundManagerConfig saved(nullptr);
+        saved.setAPI(SoundManagerConfig::kAPINone);
+        saved.readMixerModeXml(root);
+        ASSERT_TRUE(saved.writeToDisk());
+
+        auto pChannelHandleFactory = std::make_shared<ChannelHandleFactory>();
+        m_pEffectsManager = std::make_shared<EffectsManager>(config(), pChannelHandleFactory);
+        m_pEngine = std::make_shared<EngineMixer>(
+                config(), "[Master]", m_pEffectsManager.get(), pChannelHandleFactory, true);
+        m_pSoundManager = std::make_shared<SoundManager>(config(), m_pEngine.get());
+    }
+
+    void TearDown() override {
+        m_pSoundManager.reset();
+        m_pEngine.reset();
+        m_pEffectsManager.reset();
+        CmdlineArgs::Instance().setSettingsPath(m_oldSettingsPath);
+    }
+
+    QString m_oldSettingsPath;
+    std::shared_ptr<EffectsManager> m_pEffectsManager;
+    std::shared_ptr<EngineMixer> m_pEngine;
+    std::shared_ptr<SoundManager> m_pSoundManager;
+};
+
+TEST_F(DeckCountSignalTest, RisingDeckCountNamesTheDecksWithoutOutput) {
+    ASSERT_EQ(SoundManagerConfig::MixerMode::External, m_pSoundManager->getConfig().getMixerMode());
+    QSignalSpy spy(m_pSoundManager.get(), &SoundManager::decksWithoutOutput);
+    m_pSoundManager->setConfiguredDeckCount(4);
+    ASSERT_EQ(1, spy.count());
+    EXPECT_EQ((QList<int>{0, 1, 2, 3}), spy.at(0).at(0).value<QList<int>>());
+}
+
+TEST_F(DeckCountSignalTest, SameDeckCountGivesNoSignal) {
+    m_pSoundManager->setConfiguredDeckCount(4);
+    QSignalSpy spy(m_pSoundManager.get(), &SoundManager::decksWithoutOutput);
+    m_pSoundManager->setConfiguredDeckCount(4);
+    EXPECT_EQ(0, spy.count());
 }
 
 } // namespace

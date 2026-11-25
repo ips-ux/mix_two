@@ -102,6 +102,26 @@ class AudioTargetManager : public QObject {
     /// deck outputs decides. Pure, so it needs no sound hardware.
     static bool acceptsSavedSetup(const SoundManagerConfig& saved, bool hardwareTarget);
 
+    /// Decides when to tell the user about decks without an output: once for
+    /// each set of decks, and again after the set was empty. Pure.
+    class DecksWithoutOutputNotice {
+      public:
+        bool shouldTell(const QList<int>& missing) {
+            if (missing.isEmpty()) {
+                m_last.clear();
+                return false;
+            }
+            if (missing == m_last) {
+                return false;
+            }
+            m_last = missing;
+            return true;
+        }
+
+      private:
+        QList<int> m_last;
+    };
+
     /// The text for decks (0-based) that have no output in External mode.
     static QString decksWithoutOutputText(const QList<int>& decks);
     // End of AI-generated text.
@@ -112,6 +132,9 @@ class AudioTargetManager : public QObject {
     void slotSelectHardware(double value);
     void slotSelectPc(double value);
     void slotDevicesSetup();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void slotDecksWithoutOutput(const QList<int>& decks);
+    // End of AI-generated text.
 
   private:
     enum class Target {
@@ -168,7 +191,8 @@ class AudioTargetManager : public QObject {
     // restored (or dropped on purpose) already.
     bool m_applying;
     // AI-generated (Claude Code). Start of AI-generated text.
-    // The decks that the last message said have no output.
-    QList<int> m_decksWithoutOutputShown;
+    DecksWithoutOutputNotice m_decksNotice;
+    // True while the last applied setup was a complete External one.
+    bool m_wasExternal = false;
     // End of AI-generated text.
 };

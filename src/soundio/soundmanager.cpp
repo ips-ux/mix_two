@@ -644,6 +644,9 @@ void SoundManager::setConfiguredDeckCount(int count) {
     m_config.setDeckCount(count);
     checkConfig();
     m_config.writeToDisk();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    emit decksWithoutOutput(m_config.mixerSetupState().decksWithoutOutput);
+    // End of AI-generated text.
 }
 
 int SoundManager::getConfiguredDeckCount() const {

@@ -165,6 +165,11 @@ class SoundManager : public QObject {
 
     void devicesUpdated(); // emitted when pointers to SoundDevices go stale
     void devicesSetup(); // emitted when the sound devices have been set up
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Emitted when the configured deck count changes. The decks (0-based) that
+    // have no output while Mixer Mode is External; empty if none.
+    void decksWithoutOutput(const QList<int>& decks);
+    // End of AI-generated text.
     void devicesClosed(); // emitted when the sound devices have been closed and resources freed
     void outputRegistered(const AudioOutput& output, AudioSource* src);
     void inputRegistered(const AudioInput& input, AudioDestination* dest);

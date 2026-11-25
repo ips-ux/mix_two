@@ -164,6 +164,15 @@ AudioTargetManager::AudioTargetManager(UserSettingsPointer pConfig,
             &SoundManager::devicesSetup,
             this,
             &AudioTargetManager::slotDevicesSetup);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The deck count changes without a device setup, so the signal of the
+    // sound manager tells when decks have no output. A signal from another
+    // thread is queued to this thread.
+    connect(m_pSoundManager,
+            &SoundManager::decksWithoutOutput,
+            this,
+            &AudioTargetManager::slotDecksWithoutOutput);
+    // End of AI-generated text.
 }
 
 AudioTargetManager::~AudioTargetManager() = default;
@@ -493,17 +502,17 @@ void AudioTargetManager::slotDevicesSetup() {
     // External with a deck that has no output (for example after the deck
     // count rose): tell the user once for each set of decks.
     {
-        const QList<int> missing = config.mixerSetupState().decksWithoutOutput;
-        if (missing.isEmpty()) {
-            m_decksWithoutOutputShown.clear();
-        } else if (missing != m_decksWithoutOutputShown) {
-            m_decksWithoutOutputShown = missing;
-            QTimer::singleShot(0, this, [missing]() {
-                QMessageBox::warning(nullptr,
-                        tr("Mixer Mode"),
-                        decksWithoutOutputText(missing));
-            });
+        slotDecksWithoutOutput(config.mixerSetupState().decksWithoutOutput);
+        // A complete External setup has the main mix off, also after a target
+        // switch or a restart, as Apply in Preferences does. The engine turns
+        // it on for a Main, Headphones or Booth output, so only a setup without
+        // those reaches this point as External.
+        const bool external =
+                config.mixerSetupState().setup == SoundManagerConfig::MixerSetup::External;
+        if (external && !m_wasExternal) {
+            ControlObject::set(ConfigKey(kMainGroup, QStringLiteral("enabled")), 0.0);
         }
+        m_wasExternal = external;
     }
     // End of AI-generated text.
     const bool wasapi = config.getAPI() == kApiWasapi;
@@ -752,6 +761,17 @@ void AudioTargetManager::restoreMicInputsNow() {
         return;
     }
     applyOrGoBack(next, current);
+}
+
+void AudioTargetManager::slotDecksWithoutOutput(const QList<int>& decks) {
+    if (!m_decksNotice.shouldTell(decks)) {
+        return;
+    }
+    // Shown after the change is complete, not inside it, and not in the
+    // thread of the sound change.
+    QTimer::singleShot(0, this, [decks]() {
+        QMessageBox::warning(nullptr, tr("Mixer Mode"), decksWithoutOutputText(decks));
+    });
 }
 
 // static
