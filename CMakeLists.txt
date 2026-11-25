@@ -1474,6 +1474,7 @@ add_library(
   src/library/dlgtrackmetadataexport.cpp
   src/library/export/coverartcopyworker.cpp
   src/library/export/deviceexporter.cpp
+  src/library/export/stickeject.cpp
   src/library/export/devicelibraryplusexportjob.cpp
   src/library/export/dlgdeviceexport.cpp
   src/library/export/dlgtrackexport.ui
@@ -3057,6 +3058,7 @@ if(BUILD_TESTING)
     src/test/rekordboxanlz_test.cpp
     src/test/rekordboxbeats_test.cpp
     src/test/removablevolume_test.cpp
+    src/test/stickeject_test.cpp
     src/test/sqlciphercodec_test.cpp
     src/test/devicelibraryplusdb_test.cpp
     src/test/devicelibraryplusexporter_test.cpp

@@ -74,6 +74,14 @@ class DeviceExporter : public QWidget {
     /// it at the first export and keeps it in the settings.
     qint64 masterDbId();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The safe removal of the stick at the end of an export. It ejects only
+    /// the volume of `stickRoot` (the stick of the export that just ended),
+    /// and only when no track of this volume is loaded in a deck. It shows
+    /// the result.
+    void offerEject(const QString& stickRoot);
+    // End of AI-generated text.
+
     UserSettingsPointer m_pConfig;
     TrackCollectionManager* m_pTrackCollectionManager;
     parented_ptr<DlgDeviceExport> m_pDialog;

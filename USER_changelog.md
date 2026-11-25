@@ -533,6 +533,12 @@ A locked playlist cannot be renamed in the tree.
 
 ### Export to a USB stick
 
+The message at the end of an export has a new button, **Eject the stick**. Push
+it to make the stick safe to remove. Mix Two ejects only the stick of the
+export that ended. If a track of the stick is loaded in a deck, Mix Two tells
+you and does not eject. Unload the track, then push **Retry**. If the eject
+fails, Mix Two tells you. Do not remove the stick until the eject works.
+
 The track menu has a new item, **Export Track**. Select one or more tracks,
 open the track menu, then select **Export Track**. The export dialog opens with
 the mode **Selected tracks**. Select a stick, then push **Export**. Mix Two

@@ -1,18 +1,24 @@
 #include "library/export/deviceexporter.h"
 
 #include <QEventLoop>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QPointer>
 #include <QProgressDialog>
+#include <QPushButton>
 #include <QRandomGenerator>
+#include <QStorageInfo>
 #include <QTimer>
 #include <QtDebug>
 
 #include "library/export/devicelibraryplusexportjob.h"
 #include "library/export/devicelibraryplusexportrequest.h"
 #include "library/export/dlgdeviceexport.h"
+#include "library/export/stickeject.h"
 #include "library/rekordbox/devicelibraryplusstick.h"
+#include "mixer/playerinfo.h"
 #include "moc_deviceexporter.cpp"
+#include "track/track.h"
 
 namespace mixxx {
 
@@ -120,6 +126,50 @@ qint64 DeviceExporter::masterDbId() {
     return id;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+void DeviceExporter::offerEject(const QString& stickRoot) {
+    // The volume of the stick: the user can have chosen a folder of the stick.
+    // An empty path would give the current drive: it gives no volume here.
+    const QString volumeRoot = stickRoot.trimmed().isEmpty()
+            ? QString()
+            : QStorageInfo(stickRoot).rootPath();
+    const std::unique_ptr<StickEjector> pEjector = makeSystemStickEjector();
+    while (true) {
+        // The files that Mix Two has open: the tracks in the decks, the
+        // samplers and the preview deck. Read them again at each try, because
+        // the user can unload a track while the message shows.
+        QStringList openFiles;
+        const auto loadedTracks = PlayerInfo::instance().getLoadedTracks();
+        for (const TrackPointer& pTrack : loadedTracks) {
+            if (!pTrack) {
+                continue;
+            }
+            const QString location = pTrack->getLocation();
+            openFiles.append(location);
+            openFiles.append(QFileInfo(location).canonicalFilePath());
+        }
+        const StickEjectResult result =
+                ejectExportedStick(*pEjector, volumeRoot, volumeRoot, openFiles);
+        if (result.ok) {
+            QMessageBox::information(window(),
+                    tr("Stick ejected"),
+                    tr("You can remove the stick now."));
+            return;
+        }
+        qWarning() << "Device Library Plus export: the eject did not work:" << result.message;
+        QMessageBox box(QMessageBox::Warning,
+                tr("Eject failed"),
+                result.message,
+                QMessageBox::Retry | QMessageBox::Close,
+                window());
+        box.setDefaultButton(QMessageBox::Close);
+        if (box.exec() != QMessageBox::Retry) {
+            return;
+        }
+    }
+}
+// End of AI-generated text.
+
 void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> pRequest) {
     if (m_pJob && m_pJob->isRunning()) {
         return;
@@ -175,10 +225,12 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
             });
 
     // The result. The progress dialog closes first, because it is modal.
+    // The eject button gets the stick of this request: no other stick.
+    const QString exportedStickRoot = pRequest->stickRoot;
     connect(pJob,
             &DeviceLibraryPlusExportJob::completed,
             this,
-            [this, pProgressGuard](const mixxx::DeviceLibraryPlusExportSummary& summary) {
+            [this, pProgressGuard, exportedStickRoot](const mixxx::DeviceLibraryPlusExportSummary& summary) {
                 if (m_isClosing) {
                     return;
                 }
@@ -203,7 +255,14 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
                 if (!details.isEmpty()) {
                     box.setDetailedText(details.join(QLatin1Char('\n')));
                 }
+                // AI-generated (Claude Code). Start of AI-generated text.
+                QPushButton* pEjectButton = box.addButton(
+                        tr("Eject the stick"), QMessageBox::ActionRole);
+                // End of AI-generated text.
                 box.exec();
+                if (box.clickedButton() == pEjectButton) {
+                    offerEject(exportedStickRoot);
+                }
             });
     connect(pJob,
             &DeviceLibraryPlusExportJob::failed,
