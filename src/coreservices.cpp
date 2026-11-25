@@ -164,6 +164,7 @@ void showOldKernelNoticeOnce(const UserSettingsPointer& pConfig) {
                     .arg(mixxx::kDdj800KernelMinor),
             QMessageBox::Ok);
     pBox->setAttribute(Qt::WA_DeleteOnClose);
+    pBox->setAttribute(Qt::WA_QuitOnClose, false);
     pBox->setWindowModality(Qt::NonModal);
     pBox->show();
 }
@@ -189,6 +190,7 @@ void showRtPrioNoticeOnce(const UserSettingsPointer& pConfig) {
                         "shows one time."),
             QMessageBox::Ok);
     pBox->setAttribute(Qt::WA_DeleteOnClose);
+    pBox->setAttribute(Qt::WA_QuitOnClose, false);
     pBox->setWindowModality(Qt::NonModal);
     pBox->show();
 #else

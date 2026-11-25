@@ -21,6 +21,27 @@ Writing rules for this file (ASD-STE100):
 
 ## Unreleased (2026-10-27)
 
+<!-- AI-generated (Claude Code). Start of AI-generated text. -->
+### Start Mix Two on Linux
+
+Use `tools/mixtwo_linux.sh` to configure, build, test, or run Mix Two. Set
+`MIXTWO_PROFILE` to change the profile folder. Add `--dry-run` to see the
+commands without running them. Install the build dependencies first.
+
+### Real-time priority on Linux
+
+The Mix Two .deb package gives the `audio` group real-time priority 82 and
+unlimited locked memory. Add your user to the `audio` group. Then log out
+and log in again. If Mix Two cannot use real-time priority, it shows a notice
+once per profile without stopping startup.
+
+### Linux kernel notice for the DDJ-800
+
+If Mix Two finds a DDJ-800 at startup on a Linux kernel older than 6.4,
+it shows a notice once per profile. The notice does not stop startup.
+Update the kernel to version 6.4 or newer to prevent audio problems.
+<!-- End of AI-generated text. -->
+
 ### Before you start
 
 CAUTION: Make a copy of your Mixxx library before you start Mix Two for the
@@ -738,37 +759,6 @@ for a WAV file, and Mix Two shows a message.
 The deck keeps playing while Mix Two writes the file. When the file is ready,
 Mix Two adds it to the library. If an error occurs, a message shows and Mix
 Two leaves no half file.
-
-### Linux kernel notice for the DDJ-800
-
-On Linux, Mix Two checks the kernel version at the start. If a DDJ-800 is
-connected and the kernel is older than 6.4, a notice shows. The DDJ-800 can
-have audio problems with an old kernel. Update the Linux kernel to version
-6.4 or newer.
-
-The notice shows one time for each profile. It does not stop the start of Mix
-Two. Windows is not changed.
-
-### Start Mix Two on Linux
-
-On Linux, use `tools/mixtwo_linux.sh`. It has the same commands as
-`tools\mixtwo_windows.bat`: `configure`, `build`, `test` and `run`. Mix Two
-uses a separate profile. To change the profile folder, set `MIXTWO_PROFILE`.
-
-To see the commands without a run, add `--dry-run`. The script installs
-nothing and does not use sudo. Install the build dependencies yourself.
-
-### Real-time priority on Linux
-
-The .deb package of Mix Two has a limits file for the group `audio`. The
-file is `/etc/security/limits.d/mixtwo-audio.conf`. It allows a real-time
-priority of 82 and unlimited locked memory. Mix Two needs this for stable
-sound.
-
-Make sure that your user is in the group `audio`. Then log out and log in
-again. If Mix Two cannot use real-time priority, a notice shows at the start.
-The notice shows one time for each profile. It does not stop the start of Mix
-Two. Windows is not changed.
 
 ### Track files on removable drives
 

@@ -53,6 +53,30 @@ TEST(LinuxSystemCheckTest, SoundCardListWithoutDdj800) {
             QStringLiteral(" 1 [DDJ8000]: USB-Audio - DDJ-8000\n")));
 }
 
+TEST(LinuxSystemCheckTest, MidiPortAloneAllowsNotice) {
+    const QStringList ports{QStringLiteral("Port   0 : \"DDJ-800 MIDI 1\" (RWeX)")};
+    EXPECT_TRUE(shouldShowNotice(mixxx::isDdj800Connected(ports, QString()), false));
+}
+
+TEST(LinuxSystemCheckTest, SoundCardAloneAllowsNotice) {
+    const QString cards = QStringLiteral(" 1 [DDJ800]: USB-Audio - DDJ-800\n");
+    EXPECT_TRUE(shouldShowNotice(mixxx::isDdj800Connected({}, cards), false));
+}
+
+TEST(LinuxSystemCheckTest, Ddj800XDoesNotAllowNotice) {
+    const QStringList ports{QStringLiteral("Port   0 : \"DDJ-800X MIDI 1\" (RWeX)")};
+    const QString cards = QStringLiteral(" 1 [DDJ800X]: USB-Audio - DDJ-800X\n");
+    EXPECT_FALSE(shouldShowNotice(mixxx::isDdj800Connected(ports, QString()), false));
+    EXPECT_FALSE(shouldShowNotice(mixxx::isDdj800Connected({}, cards), false));
+}
+
+TEST(LinuxSystemCheckTest, Ddj8000DoesNotAllowNotice) {
+    const QStringList ports{QStringLiteral("Port   0 : \"DDJ-8000 MIDI 1\" (RWeX)")};
+    const QString cards = QStringLiteral(" 1 [DDJ8000]: USB-Audio - DDJ-8000\n");
+    EXPECT_FALSE(shouldShowNotice(mixxx::isDdj800Connected(ports, QString()), false));
+    EXPECT_FALSE(shouldShowNotice(mixxx::isDdj800Connected({}, cards), false));
+}
+
 TEST(LinuxSystemCheckTest, NoticeShowsOnceOnly) {
     EXPECT_TRUE(shouldShowNotice(true, false));
     EXPECT_FALSE(shouldShowNotice(true, true));

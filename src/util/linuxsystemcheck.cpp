@@ -5,6 +5,13 @@
 #include <QRegularExpression>
 #include <QSysInfo>
 
+#include "controllers/controllermappinginfo.h"
+#include "controllers/midi/midicontroller.h"
+
+#if defined(Q_OS_LINUX) && defined(__PORTMIDI__)
+#include "controllers/midi/midiportwatcher.h"
+#endif
+
 namespace mixxx {
 
 bool kernelOlderThan(const QString& release, int major, int minor) {
@@ -27,8 +34,7 @@ bool kernelOlderThan(const QString& release, int major, int minor) {
 }
 
 bool soundCardsListDdj800(const QString& cardsText) {
-    // "DDJ-8000" is another controller: no digit may follow.
-    static const QRegularExpression kDdj800(QStringLiteral("DDJ-800(?!\\d)"),
+    static const QRegularExpression kDdj800(QStringLiteral("\\bDDJ-800\\b"),
             QRegularExpression::CaseInsensitiveOption);
     return kDdj800.match(cardsText).hasMatch();
 }
@@ -51,13 +57,34 @@ QString currentKernelRelease() {
 #endif
 }
 
+bool isDdj800Connected(const QStringList& midiPortNames, const QString& cardsText) {
+    // The ALSA snapshot contains both client and port rows. Match the quoted
+    // port name, not the row metadata or a client with no matching port.
+    static const QRegularExpression kAlsaPort(QStringLiteral("^Port\\s+\\d+\\s*:\\s*\"([^\"]+)\""));
+    ProductInfo ddj800;
+    ddj800.protocol = QStringLiteral("midi");
+    ddj800.device_name = QStringLiteral("DDJ-800");
+    for (const QString& row : midiPortNames) {
+        const auto match = kAlsaPort.match(row);
+        if (match.hasMatch() && MidiController::matchProductInfo(match.captured(1), ddj800)) {
+            return true;
+        }
+    }
+    return soundCardsListDdj800(cardsText);
+}
+
 bool isDdj800Connected() {
 #ifdef Q_OS_LINUX
+#ifdef __PORTMIDI__
+    const QStringList midiPortNames = midi::currentPortNames().value_or(QStringList{});
+#else
+    const QStringList midiPortNames;
+#endif
     QFile cards(QStringLiteral("/proc/asound/cards"));
-    if (!cards.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return false;
-    }
-    return soundCardsListDdj800(QString::fromUtf8(cards.readAll()));
+    const QString cardsText = cards.open(QIODevice::ReadOnly | QIODevice::Text)
+            ? QString::fromUtf8(cards.readAll())
+            : QString();
+    return isDdj800Connected(midiPortNames, cardsText);
 #else
     return false;
 #endif

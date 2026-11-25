@@ -2,6 +2,7 @@
 // AI-generated (Claude Code). Start of AI-generated text.
 
 #include <QString>
+#include <QStringList>
 
 namespace mixxx {
 
@@ -39,8 +40,11 @@ bool shouldShowNotice(bool conditionHolds, bool alreadyShown);
 /// string when the system does not give it.
 QString currentKernelRelease();
 
-/// True when a DDJ-800 is connected. Linux reads `/proc/asound/cards`; every
-/// other system returns false.
+/// True when the ALSA sequencer snapshot lists a DDJ-800 MIDI port or
+/// `/proc/asound/cards` lists a DDJ-800 sound card.
+bool isDdj800Connected(const QStringList& midiPortNames, const QString& cardsText);
+
+/// Read the available ALSA sources on Linux. Other systems return false.
 bool isDdj800Connected();
 
 } // namespace mixxx
