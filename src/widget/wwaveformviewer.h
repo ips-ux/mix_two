@@ -76,9 +76,14 @@ class WWaveformViewer : public WWidget, public TrackDropTarget {
     ControlProxy* m_pScratchPosition;
     ControlProxy* m_pWheel;
     ControlProxy* m_pPlayEnabled;
+    ControlProxy* m_pCueDefault;
     parented_ptr<ControlProxy> m_pPassthroughEnabled;
     bool m_bScratching;
     bool m_bBending;
+    // Click on the waveform for PLAY and CUE: a left press waits for the
+    // release or a drag, a right press holds the CUE button.
+    bool m_bClickPending = false;
+    bool m_bCueHeld = false;
     QPoint m_mouseAnchor;
     parented_ptr<WCueMenuPopup> m_pCueMenuPopup;
     WaveformMarkPointer m_pHoveredMark;

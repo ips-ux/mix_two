@@ -15,6 +15,7 @@
 #include "library/library.h"
 #include "moc_dlgprefwaveform.cpp"
 #include "preferences/waveformsettings.h"
+#include "widget/waveformclick.h"
 #include "util/cmdlineargs.h"
 #include "util/assert.h"
 #include "util/db/dbconnectionpooled.h"
@@ -239,6 +240,16 @@ DlgPrefWaveform::DlgPrefWaveform(
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             &DlgPrefWaveform::slotSetDefaultZoom);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The preference applies at once. toggled also fires when
+    // "Reset to Defaults" clears the check box.
+    connect(clickPlayCueCheckBox,
+            &QCheckBox::toggled,
+            this,
+            [this](bool checked) {
+                m_pConfig->setValue(waveformclick::clickPlayCueConfigKey(), checked);
+            });
+    // End of AI-generated text.
     connect(synchronizeZoomCheckBox,
             &QCheckBox::clicked,
             this,
@@ -417,6 +428,8 @@ void DlgPrefWaveform::slotUpdate() {
     beatGridAlphaSpinBox->setValue(pFactory->getBeatGridAlpha());
     beatGridAlphaSlider->setValue(pFactory->getBeatGridAlpha());
 
+    clickPlayCueCheckBox->setChecked(waveformclick::isClickPlayCueEnabled(m_pConfig));
+
     untilMarkShowBeatsCheckBox->setChecked(pFactory->getUntilMarkShowBeats());
     untilMarkShowTimeCheckBox->setChecked(pFactory->getUntilMarkShowTime());
     untilMarkAlignComboBox->setCurrentIndex(
@@ -520,6 +533,9 @@ void DlgPrefWaveform::slotResetToDefaults() {
     defaultZoomComboBox->setCurrentIndex(3 + 1);
 
     synchronizeZoomCheckBox->setChecked(true);
+
+    // Click on the waveform for PLAY and CUE is off.
+    clickPlayCueCheckBox->setChecked(false);
 
     // RGB overview.
     waveformOverviewComboBox->setCurrentIndex(

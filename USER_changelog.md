@@ -672,6 +672,20 @@ Mix Two sends no data until you push **Accept**. Push **Cancel** to send
 nothing. Mix Two shows the notice again at the next lookup. After you push
 **Accept**, the notice does not show again.
 
+### Click on the waveform for PLAY and CUE
+
+To play and cue with the mouse, go to Preferences > Waveforms, then select
+**Click on the waveform for PLAY and CUE**. The setting is off by default.
+When it is on, a left click on the waveform plays or pauses the deck. A right
+click works as the CUE button. A click is one push and release of the mouse
+button with a movement of 4 pixels or less.
+
+These mouse actions change when the setting is on. A left mouse push no longer
+starts a scratch at once. The scratch starts when you drag the mouse more
+than 4 pixels. A right drag no longer bends the pitch. A right click on a hot
+cue marker of a stopped deck still opens the cue menu. The mouse wheel zoom
+does not change.
+
 ### Track files on removable drives
 
 Mix Two does not move a track file to the trash when the file is on a removable

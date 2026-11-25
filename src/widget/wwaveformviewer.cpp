@@ -9,6 +9,7 @@
 #include "util/math.h"
 #include "waveform/waveformwidgetfactory.h"
 #include "waveform/widgets/waveformwidgetabstract.h"
+#include "widget/waveformclick.h"
 #include "widget/wcuemenupopup.h"
 #include "widget/wglwidget.h"
 
@@ -36,6 +37,7 @@ WWaveformViewer::WWaveformViewer(
     m_pWheel = new ControlProxy(
             group, "wheel", this, ControlFlag::NoAssertIfMissing);
     m_pPlayEnabled = new ControlProxy(group, "play", this, ControlFlag::NoAssertIfMissing);
+    m_pCueDefault = new ControlProxy(group, "cue_default", this, ControlFlag::NoAssertIfMissing);
     m_pPassthroughEnabled = make_parented<ControlProxy>(group, "passthrough", this);
     m_pPassthroughEnabled->connectValueChanged(this, &WWaveformViewer::passthroughChanged);
 
@@ -82,6 +84,48 @@ void WWaveformViewer::mousePressEvent(QMouseEvent* event) {
     }
 
     m_mouseAnchor = event->pos();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // With the preference "Click on the waveform for PLAY and CUE" on, these
+    // mouse actions of the waveform change:
+    // - A left click (press and release without a drag) plays or pauses the
+    //   deck. A left press no longer starts scratching at once. Scratching
+    //   starts when the mouse moves beyond the click distance.
+    // - A right press acts as the CUE button until the release. The right
+    //   drag no longer bends the pitch. Choice: a right click on a hot cue
+    //   marker of a stopped deck still opens the cue menu.
+    // The wheel zoom is not changed. With the preference off, nothing here runs.
+    if (waveformclick::isClickPlayCueEnabled(m_pConfig)) {
+        const auto action = waveformclick::actionForButton(event->button());
+        if (action == waveformclick::Action::TogglePlayOnClick) {
+            if (m_bBending) {
+                m_pWheel->setParameter(0.5);
+                m_bBending = false;
+            }
+            m_bClickPending = true;
+        } else if (action == waveformclick::Action::CueDefaultWhileHeld) {
+            const auto cueAtClickPos = (!isPlaying() && m_pHoveredMark)
+                    ? getCuePointerFromCueMark(m_pHoveredMark)
+                    : CuePointer();
+            if (cueAtClickPos) {
+                m_pCueMenuPopup->setTrackCueGroup(
+                        m_waveformWidget->getTrackInfo(), cueAtClickPos, m_group);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                m_pCueMenuPopup->popup(event->globalPosition().toPoint());
+#else
+                m_pCueMenuPopup->popup(event->globalPos());
+#endif
+            } else {
+                m_pCueDefault->set(1.0);
+                m_bCueHeld = true;
+            }
+        }
+        if (!m_pCueMenuPopup->isVisible()) {
+            setCursor(Qt::ClosedHandCursor);
+        }
+        return;
+    }
+    // End of AI-generated text.
 
     if (event->button() == Qt::LeftButton) {
         // If we are pitch-bending then disable and reset because the two
@@ -132,6 +176,21 @@ void WWaveformViewer::mouseMoveEvent(QMouseEvent* event) {
         return;
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Click mode: a left press becomes a scratch when the mouse moves beyond
+    // the click distance. The scratch starts at the press position.
+    if (m_bClickPending && waveformclick::isDrag(m_mouseAnchor, event->pos())) {
+        m_bClickPending = false;
+        m_bScratching = true;
+        const int anchorValue = m_waveformWidget->getOrientation() == Qt::Horizontal
+                ? m_mouseAnchor.x()
+                : m_mouseAnchor.y();
+        m_pScratchPosition->set(-1.0 * anchorValue *
+                m_waveformWidget->getAudioSamplePerPixel() * 2);
+        m_pScratchPositionEnable->set(1.0);
+    }
+    // End of AI-generated text.
+
     // Only send signals for mouse moving if the left button is pressed
     if (m_bScratching) {
         int eventPosValue = m_waveformWidget->getOrientation() == Qt::Horizontal ?
@@ -177,7 +236,21 @@ void WWaveformViewer::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
-void WWaveformViewer::mouseReleaseEvent(QMouseEvent* /*event*/) {
+void WWaveformViewer::mouseReleaseEvent(QMouseEvent* event) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Click mode: a left press and release without a drag plays or pauses.
+    // A right release ends the CUE button.
+    if (m_bClickPending && event->button() == Qt::LeftButton) {
+        m_bClickPending = false;
+        if (waveformclick::isClick(m_mouseAnchor, event->pos())) {
+            m_pPlayEnabled->set(isPlaying() ? 0.0 : 1.0);
+        }
+    }
+    if (m_bCueHeld && event->button() == Qt::RightButton) {
+        m_bCueHeld = false;
+        m_pCueDefault->set(0.0);
+    }
+    // End of AI-generated text.
     if (m_bScratching) {
         m_pScratchPositionEnable->set(0.0);
         m_bScratching = false;

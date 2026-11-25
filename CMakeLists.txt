@@ -1916,6 +1916,7 @@ add_library(
   src/widget/wvumeter.cpp
   src/widget/wvumeterbase.cpp
   src/widget/wvumeterlegacy.cpp
+  src/widget/waveformclick.cpp
   src/widget/wwaveformviewer.cpp
   src/widget/wwidget.cpp
   src/widget/wwidgetgroup.cpp
@@ -3150,6 +3151,7 @@ if(BUILD_TESTING)
     src/test/trackupdate_test.cpp
     src/test/uuid_test.cpp
     src/test/threebandsampler_test.cpp
+    src/test/waveformclick_test.cpp
     src/test/waveformoverviewrenderer_test.cpp
     src/test/waveformwidgettype_test.cpp
     src/test/waveformzoom_test.cpp
