@@ -91,6 +91,7 @@ class LegacySkinParser : public QObject, public SkinParser {
     QWidget* parseNumberPos(const QDomElement& node);
     QWidget* parseEngineKey(const QDomElement& node);
     QWidget* parsePhaseMeter(const QDomElement& node);
+    QWidget* parseHotCueList(const QDomElement& node);
     QWidget* parseMemoryCueList(const QDomElement& node);
     QWidget* parseBeatSpinBox(const QDomElement& node);
     QWidget* parseEffectChainName(const QDomElement& node);

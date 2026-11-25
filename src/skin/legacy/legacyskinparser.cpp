@@ -60,6 +60,7 @@
 #include "widget/wlabel.h"
 #include "widget/wlibrary.h"
 #include "widget/wlibrarysidebar.h"
+#include "widget/whotcuelist.h"
 #include "widget/wmemorycuelist.h"
 #include "widget/wnumber.h"
 #include "widget/wnumberdb.h"
@@ -667,6 +668,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parsePhaseMeter(node));
     } else if (nodeName == "BeatCount") {
         result = wrapWidget(parseLabelWidget<WBeatCount>(node));
+    } else if (nodeName == "HotCueList") {
+        result = wrapWidget(parseHotCueList(node));
     } else if (nodeName == "MemoryCueList") {
         result = wrapWidget(parseMemoryCueList(node));
     } else if (nodeName == "Battery") {
@@ -1401,6 +1404,33 @@ QWidget* LegacySkinParser::parsePhaseMeter(const QDomElement& node) {
     pPhaseMeter->setup(node, *m_pContext);
     return pPhaseMeter;
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+QWidget* LegacySkinParser::parseHotCueList(const QDomElement& node) {
+    QString group = lookupNodeGroup(node);
+    BaseTrackPlayer* pPlayer = m_pPlayerManager->getPlayer(group);
+    if (!pPlayer) {
+        SKIN_WARNING(node, *m_pContext, QStringLiteral("No player found for group: %1").arg(group));
+        return nullptr;
+    }
+    WHotCueList* pList = new WHotCueList(group, m_pParent);
+    commonWidgetSetup(node, pList);
+    pList->setup(node, *m_pContext);
+    connect(pPlayer,
+            &BaseTrackPlayer::newTrackLoaded,
+            pList,
+            &WHotCueList::slotTrackLoaded);
+    connect(pPlayer,
+            &BaseTrackPlayer::loadingTrack,
+            pList,
+            &WHotCueList::slotLoadingTrack);
+    TrackPointer pTrack = pPlayer->getLoadedTrack();
+    if (pTrack) {
+        pList->slotTrackLoaded(pTrack);
+    }
+    return pList;
+}
+// End of AI-generated text.
 
 // AI-generated (Claude Code). Start of AI-generated text.
 QWidget* LegacySkinParser::parseMemoryCueList(const QDomElement& node) {

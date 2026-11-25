@@ -1877,6 +1877,7 @@ add_library(
   src/widget/wlibrarytextbrowser.cpp
   src/widget/wloadprompt.cpp
   src/widget/wmainmenubar.cpp
+  src/widget/whotcuelist.cpp
   src/widget/wmemorycuelist.cpp
   src/widget/wmenucheckbox.cpp
   src/widget/wnumber.cpp
@@ -3164,6 +3165,7 @@ if(BUILD_TESTING)
     src/test/fxbpmtap_test.cpp
     src/test/beatfxvinylbrake_test.cpp
     src/test/visibleeffectslist_test.cpp
+    src/test/whotcuelist_test.cpp
     src/test/wmemorycuelist_test.cpp
     src/test/wpushbutton_test.cpp
     src/test/wwidgetstack_test.cpp
