@@ -5,17 +5,21 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QInputDialog>
 #include <QList>
 #include <QListWidget>
 #include <QMessageBox>
 #include <QModelIndex>
+#include <QtConcurrent>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <cmath>
 
 #include "analyzer/analyzerscheduledtrack.h"
 #include "analyzer/analyzersilence.h"
 #include "analyzer/analyzertrack.h"
+#include "audio/frame.h"
 #include "control/controlobject.h"
 #include "library/coverartutils.h"
 #include "library/dao/trackschema.h"
@@ -26,6 +30,7 @@
 #include "library/baseexternaltrackmodel.h"
 #include "library/browse/browsetablemodel.h"
 #include "library/dlgtrackmetadataexport.h"
+#include "library/exportloop.h"
 #include "library/externaltrackcollection.h"
 #include "library/library.h"
 #include "library/libraryprotection.h"
@@ -435,6 +440,17 @@ void WTrackMenu::createActions() {
                 &QAction::triggered,
                 this,
                 &WTrackMenu::slotImportToCollection);
+        // End of AI-generated text.
+    }
+
+    if (featureIsEnabled(Feature::ExportLoop)) {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Mix Two: as rekordbox does, the item writes the loop of the deck
+        // to a WAV file and adds the file to the Collection.
+        m_pExportLoopAct = make_parented<QAction>(tr("Export Loop As WAV"), this);
+        m_pExportLoopAct->setToolTip(
+                tr("Write the loop of this deck to a WAV file and add the file to the Collection."));
+        connect(m_pExportLoopAct, &QAction::triggered, this, &WTrackMenu::slotExportLoop);
         // End of AI-generated text.
     }
 
@@ -854,6 +870,10 @@ void WTrackMenu::setupActions() {
     // AI-generated (Claude Code). Start of AI-generated text.
     if (featureIsEnabled(Feature::ImportToCollection)) {
         addAction(m_pImportToCollectionAct);
+    }
+
+    if (featureIsEnabled(Feature::ExportLoop)) {
+        addAction(m_pExportLoopAct);
     }
     // End of AI-generated text.
 
@@ -1330,6 +1350,14 @@ void WTrackMenu::updateMenus() {
         // view) cannot export: the item is off.
         m_pExportTrackAct->setEnabled(!getTrackIds().isEmpty());
     }
+
+    if (featureIsEnabled(Feature::ExportLoop)) {
+        // The item works for the track of a deck that has a loop with a
+        // length. Another menu (the library) has no deck and no loop.
+        SINT startFrame;
+        SINT endFrame;
+        m_pExportLoopAct->setEnabled(singleTrackSelected && deckLoopFrames(&startFrame, &endFrame));
+    }
     // End of AI-generated text.
 
     if (featureIsEnabled(Feature::SelectInLibrary)) {
@@ -1614,6 +1642,72 @@ void WTrackMenu::slotImportToCollection() {
         return;
     }
     m_pLibrary->importFiles(locations);
+}
+
+bool WTrackMenu::deckLoopFrames(SINT* pStartFrame, SINT* pEndFrame) const {
+    if (m_deckGroup.isEmpty()) {
+        return false;
+    }
+    // The loop positions of the deck are engine sample positions in the
+    // sample rate of the track: the frame is the sample position / 2. Mix Two
+    // takes the nearest frame to a position that is not on a frame.
+    const auto start = mixxx::audio::FramePos::fromEngineSamplePosMaybeInvalid(
+            ControlObject::get(ConfigKey(m_deckGroup, "loop_start_position")));
+    const auto end = mixxx::audio::FramePos::fromEngineSamplePosMaybeInvalid(
+            ControlObject::get(ConfigKey(m_deckGroup, "loop_end_position")));
+    if (!start.isValid() || !end.isValid()) {
+        return false;
+    }
+    const SINT startFrame = static_cast<SINT>(std::llround(start.value()));
+    const SINT endFrame = static_cast<SINT>(std::llround(end.value()));
+    if (startFrame < 0 || endFrame <= startFrame) {
+        return false;
+    }
+    *pStartFrame = startFrame;
+    *pEndFrame = endFrame;
+    return true;
+}
+
+void WTrackMenu::slotExportLoop() {
+    SINT startFrame;
+    SINT endFrame;
+    if (!m_pLibrary || !m_pTrack || !deckLoopFrames(&startFrame, &endFrame)) {
+        return;
+    }
+    const QString sourcePath = m_pTrack->getLocation();
+    const QFileInfo sourceInfo(sourcePath);
+    // The dialog asks the user before it replaces a file that exists.
+    const QString targetPath = QFileDialog::getSaveFileName(
+            this,
+            tr("Export Loop As WAV"),
+            sourceInfo.absoluteDir().filePath(sourceInfo.completeBaseName() +
+                    QStringLiteral(" loop.wav")),
+            tr("WAV files (*.wav)"));
+    if (targetPath.isEmpty()) {
+        return;
+    }
+    // The decoding and the writing run in a worker thread: a long loop does
+    // not stop the window, and the deck keeps playing. The watcher belongs
+    // to the library, so it lives on when this menu is gone.
+    Library* pLibrary = m_pLibrary;
+    auto* pWatcher = new QFutureWatcher<mixxx::library::ExportLoopResult>(pLibrary);
+    connect(pWatcher,
+            &QFutureWatcher<mixxx::library::ExportLoopResult>::finished,
+            pLibrary,
+            [pLibrary, pWatcher, targetPath]() {
+                const auto result = pWatcher->result();
+                pWatcher->deleteLater();
+                if (result.status == mixxx::library::ExportLoopStatus::Exported) {
+                    // The normal way to add a file to the Collection.
+                    pLibrary->importFiles({targetPath});
+                    return;
+                }
+                QMessageBox::warning(nullptr,
+                        QCoreApplication::translate("WTrackMenu", "Export Loop As WAV"),
+                        mixxx::library::exportLoopErrorText(result.status));
+            });
+    pWatcher->setFuture(QtConcurrent::run(
+            &mixxx::library::exportLoopAsWav, sourcePath, startFrame, endFrame, targetPath));
 }
 
 void WTrackMenu::slotExportTrack() {

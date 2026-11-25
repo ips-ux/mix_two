@@ -1472,6 +1472,7 @@ add_library(
   src/library/dlgtrackinfomulti.cpp
   src/library/dlgtrackinfomulti.ui
   src/library/dlgtrackmetadataexport.cpp
+  src/library/exportloop.cpp
   src/library/export/coverartcopyworker.cpp
   src/library/export/deviceexporter.cpp
   src/library/export/stickeject.cpp
@@ -3072,6 +3073,7 @@ if(BUILD_TESTING)
     src/test/devicelibraryplusdb_test.cpp
     src/test/devicelibraryplusexporter_test.cpp
     src/test/devicelibraryplusexportjob_test.cpp
+    src/test/exportloop_test.cpp
     src/test/devicelibraryplusmapping_test.cpp
     src/test/devicelibraryplusstick_test.cpp
     src/test/anlzwaveform_test.cpp

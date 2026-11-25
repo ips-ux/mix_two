@@ -719,6 +719,22 @@ cue marker of a stopped deck still opens the cue menu. The mouse wheel zoom
 does not change. Mix Two releases a held CUE when the waveform hides or the
 window loses focus.
 
+### Export Loop As WAV
+
+The track menu of a deck has a new item, **Export Loop As WAV**. It shows
+when the deck has a loop. Open the track menu of the deck, then select
+**Export Loop As WAV**. Type a file name. If the file exists, Mix Two asks
+before it replaces the file.
+
+Mix Two writes the part of the track from the loop in point to the loop out
+point. The WAV file has 48 kHz, 16 bit and two channels. The sound has the
+speed and the pitch of the track file. The tempo slider, MT and the effects
+have no effect on it. Mix Two does not change the track file.
+
+The deck keeps playing while Mix Two writes the file. When the file is ready,
+Mix Two adds it to the library. If an error occurs, a message shows and Mix
+Two leaves no half file.
+
 ### Track files on removable drives
 
 Mix Two does not move a track file to the trash when the file is on a removable

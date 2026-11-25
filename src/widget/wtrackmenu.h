@@ -16,6 +16,7 @@
 #include "track/trackref.h"
 #include "util/color/rgbcolor.h"
 #include "util/parented_ptr.h"
+#include "util/types.h"
 
 class DlgTagFetcher;
 class DlgTrackInfo;
@@ -66,12 +67,14 @@ class WTrackMenu : public QMenu {
         // Mix Two: "Import To Collection", for the tracks of the iTunes,
         // rekordbox and Explorer (folder) views.
         ImportToCollection = 1 << 19,
+        // Mix Two: "Export Loop As WAV", for the track of a deck with a loop.
+        ExportLoop = 1 << 20,
         // End of AI-generated text.
         TrackModelFeatures = Remove | HideUnhidePurge,
         All = AutoDJ | LoadTo | Playlist | Crate | Remove | Metadata | Reset | Analyze |
                 BPM | Color | HideUnhidePurge | RemoveFromDisk | FileBrowser |
                 Properties | SearchRelated | UpdateReplayGainFromPregain | SelectInLibrary |
-                FindOnWeb | ExportTrack | ImportToCollection
+                FindOnWeb | ExportTrack | ImportToCollection | ExportLoop
     };
     Q_DECLARE_FLAGS(Features, Feature)
 
@@ -91,7 +94,8 @@ class WTrackMenu : public QMenu {
             WTrackMenu::Feature::Properties |
             WTrackMenu::Feature::UpdateReplayGainFromPregain |
             WTrackMenu::Feature::FindOnWeb |
-            WTrackMenu::Feature::SelectInLibrary};
+            WTrackMenu::Feature::SelectInLibrary |
+            WTrackMenu::Feature::ExportLoop};
 
     WTrackMenu(QWidget* parent,
             UserSettingsPointer pConfig,
@@ -156,6 +160,7 @@ class WTrackMenu : public QMenu {
     void slotExportTrack();
     // AI-generated (Claude Code). Start of AI-generated text.
     void slotImportToCollection();
+    void slotExportLoop();
     // End of AI-generated text.
 
     // Track rating
@@ -268,6 +273,11 @@ class WTrackMenu : public QMenu {
             bool enabled = true);
 
     bool featureIsEnabled(Feature flag) const;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The loop of the deck as source frame indexes. False when this menu has
+    // no deck or the deck has no loop with a length.
+    bool deckLoopFrames(SINT* pStartFrame, SINT* pEndFrame) const;
+    // End of AI-generated text.
 
     void addSelectionToPlaylist(int iPlaylistId);
     void updateSelectionCrates(QWidget* pWidget);
@@ -364,6 +374,7 @@ class WTrackMenu : public QMenu {
     parented_ptr<QAction> m_pExportTrackAct;
     // AI-generated (Claude Code). Start of AI-generated text.
     parented_ptr<QAction> m_pImportToCollectionAct;
+    parented_ptr<QAction> m_pExportLoopAct;
     // End of AI-generated text.
 
     // Select track in library
