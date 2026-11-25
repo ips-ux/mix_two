@@ -62,6 +62,13 @@ class TrackRecord final {
     // for a new track, as in rekordbox. The export to a USB stick writes it.
     MIXXX_DECL_PROPERTY(bool, hotCueAutoLoad, HotCueAutoLoad)
     // End of AI-generated text.
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: the bits per sample of a lossless file. 0 means unknown: the
+    // track was in the library before the value existed, or the format is
+    // lossy and has no bit depth. The value is read from the file when the
+    // file is read.
+    MIXXX_DECL_PROPERTY(int, bitDepth, BitDepth)
+    // End of AI-generated text.
 
   public:
     // Data migration: Reload track total from file tags if not initialized

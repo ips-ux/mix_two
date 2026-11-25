@@ -1,7 +1,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <QTemporaryDir>
+
 #include "library/library_prefs.h"
+#include "test/bitdepthtestfiles.h"
 #include "test/librarytest.h"
 #include "track/globaltrackcache.h"
 #include "track/track.h"
@@ -276,5 +279,91 @@ TEST_F(TrackDAOTest, hotCueAutoLoadIsOnForNewTrackAndSaved) {
     const TrackPointer pOffReloaded = trackCollectionManager()->getTrackById(offId);
     ASSERT_TRUE(pOffReloaded);
     EXPECT_FALSE(pOffReloaded->isHotCueAutoLoad());
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(TrackDAOTest, bitDepthIsReadAtImportAndSaved) {
+    QTemporaryDir dir;
+    ASSERT_TRUE(dir.isValid());
+    const QString wav24 = bitdepthtest::writeFile(
+            QDir(dir.path()), QStringLiteral("deep.wav"), bitdepthtest::wavBytes(24));
+    const QString aiff24 = bitdepthtest::writeFile(
+            QDir(dir.path()), QStringLiteral("deep.aiff"), bitdepthtest::aiffBytes(24));
+    const QString dataDir = getTestDir().filePath(QStringLiteral("id3-test-data/"));
+
+    TrackPointer pWav24 = getOrAddTrackByLocation(wav24);
+    TrackPointer pAiff24 = getOrAddTrackByLocation(aiff24);
+    TrackPointer pFlac16 = getOrAddTrackByLocation(getTestFile(u".flac"));
+    TrackPointer pWav16 = getOrAddTrackByLocation(getTestFile(u".wav"));
+    TrackPointer pMp3 = getOrAddTrackByLocation(dataDir + QStringLiteral("artist.mp3"));
+    ASSERT_TRUE(pWav24);
+    ASSERT_TRUE(pAiff24);
+    ASSERT_TRUE(pFlac16);
+    ASSERT_TRUE(pWav16);
+    ASSERT_TRUE(pMp3);
+
+    // The import reads the bit depth. A lossy format has none.
+    EXPECT_EQ(24, pWav24->getBitDepth());
+    EXPECT_EQ(24, pAiff24->getBitDepth());
+    EXPECT_EQ(16, pFlac16->getBitDepth());
+    EXPECT_EQ(16, pWav16->getBitDepth());
+    EXPECT_EQ(0, pMp3->getBitDepth());
+
+    const TrackId wavId = pWav24->getId();
+    const TrackId flacId = pFlac16->getId();
+    const TrackId mp3Id = pMp3->getId();
+    ASSERT_TRUE(wavId.isValid());
+    ASSERT_TRUE(flacId.isValid());
+    ASSERT_TRUE(mp3Id.isValid());
+
+    // The value is in the database: it is there when the track is read again.
+    for (const auto& pTrack : {pWav24, pFlac16, pMp3}) {
+        trackCollectionManager()->saveTrack(pTrack);
+    }
+    pWav24.reset();
+    pAiff24.reset();
+    pFlac16.reset();
+    pWav16.reset();
+    pMp3.reset();
+    ASSERT_TRUE(GlobalTrackCacheLocker().isEmpty());
+
+    EXPECT_EQ(24, trackCollectionManager()->getTrackById(wavId)->getBitDepth());
+    EXPECT_EQ(16, trackCollectionManager()->getTrackById(flacId)->getBitDepth());
+    EXPECT_EQ(0, trackCollectionManager()->getTrackById(mp3Id)->getBitDepth());
+}
+
+TEST_F(TrackDAOTest, bitDepthOfOldRowIsUnknownAndChangeIsSaved) {
+    // A row of an old library has 0. Nothing reads the file when the row is read.
+    QTemporaryDir dir;
+    ASSERT_TRUE(dir.isValid());
+    const QString wav24 = bitdepthtest::writeFile(
+            QDir(dir.path()), QStringLiteral("old.wav"), bitdepthtest::wavBytes(24));
+    TrackPointer pTrack = getOrAddTrackByLocation(wav24);
+    ASSERT_TRUE(pTrack);
+    const TrackId id = pTrack->getId();
+    ASSERT_TRUE(id.isValid());
+    pTrack.reset();
+    ASSERT_TRUE(GlobalTrackCacheLocker().isEmpty());
+
+    QSqlQuery query(dbConnection());
+    ASSERT_TRUE(query.exec(QStringLiteral("UPDATE library SET bit_depth=0 WHERE id=%1")
+                                   .arg(id.toString())));
+    EXPECT_EQ(0, trackCollectionManager()->getTrackById(id)->getBitDepth());
+
+    // A new value is saved. A negative value is the same as unknown.
+    {
+        TrackPointer pReloaded = trackCollectionManager()->getTrackById(id);
+        pReloaded->setBitDepth(32);
+        EXPECT_EQ(TrackCollectionManager::SaveTrackResult::Saved,
+                trackCollectionManager()->saveTrack(pReloaded));
+    }
+    ASSERT_TRUE(GlobalTrackCacheLocker().isEmpty());
+    EXPECT_EQ(32, trackCollectionManager()->getTrackById(id)->getBitDepth());
+    {
+        TrackPointer pReloaded = trackCollectionManager()->getTrackById(id);
+        pReloaded->setBitDepth(-1);
+        EXPECT_EQ(0, pReloaded->getBitDepth());
+    }
 }
 // End of AI-generated text.

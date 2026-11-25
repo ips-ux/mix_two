@@ -15,6 +15,7 @@
 #include <cstring>
 #include <limits>
 
+#include "track/bitdepth.h"
 #include "track/keyutils.h"
 #include "track/taglib/trackmetadata_file.h"
 #include "util/mp3timingshift.h"
@@ -456,35 +457,21 @@ int rekordboxTimingOffsetMs(const QString& location) {
 
 int dlpBitDepth(const QString& filePath, int fileType) {
     constexpr int kDefaultBitDepth = 16;
+    // The header reader is the one that the bit depth column of the library
+    // uses. Here an unknown value gives 16, the value that rekordbox writes.
+    int bitDepth = 0;
     switch (fileType) {
-    case 5: {
-        TagLib::FLAC::File file(TAGLIB_FILENAME_FROM_QSTRING(filePath));
-        const auto* pProperties = file.isValid() ? file.audioProperties() : nullptr;
-        if (pProperties && pProperties->bitsPerSample() > 0) {
-            return pProperties->bitsPerSample();
-        }
+    case 5:
+        bitDepth = bitDepthFromHeader(filePath, BitDepthFileKind::Flac);
+        break;
+    case 11:
+        bitDepth = bitDepthFromHeader(filePath, BitDepthFileKind::Wav);
+        break;
+    case 12:
+        bitDepth = bitDepthFromHeader(filePath, BitDepthFileKind::Aiff);
         break;
     }
-    case 11: {
-        TagLib::RIFF::WAV::File file(TAGLIB_FILENAME_FROM_QSTRING(filePath));
-        const auto* pProperties = file.isValid() ? file.audioProperties() : nullptr;
-        if (pProperties && pProperties->bitsPerSample() > 0) {
-            return pProperties->bitsPerSample();
-        }
-        break;
-    }
-    case 12: {
-        TagLib::RIFF::AIFF::File file(TAGLIB_FILENAME_FROM_QSTRING(filePath));
-        const auto* pProperties = file.isValid() ? file.audioProperties() : nullptr;
-        if (pProperties && pProperties->bitsPerSample() > 0) {
-            return pProperties->bitsPerSample();
-        }
-        break;
-    }
-    default:
-        break;
-    }
-    return kDefaultBitDepth;
+    return bitDepth > 0 ? bitDepth : kDefaultBitDepth;
 }
 
 } // namespace rekordbox

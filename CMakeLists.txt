@@ -1714,6 +1714,7 @@ add_library(
   src/track/taglib/trackmetadata_mp4.cpp
   src/track/taglib/trackmetadata_riff.cpp
   src/track/taglib/trackmetadata_xiph.cpp
+  src/track/bitdepth.cpp
   src/track/track.cpp
   src/track/trackinfo.cpp
   src/track/trackmetadata.cpp
@@ -3141,6 +3142,7 @@ if(BUILD_TESTING)
     src/test/tableview_test.cpp
     src/test/taglibtest.cpp
     src/test/overviewslipline_test.cpp
+    src/test/bitdepth_test.cpp
     src/test/trackdao_test.cpp
     src/test/trackdisplayprops_test.cpp
     src/test/trackexport_test.cpp

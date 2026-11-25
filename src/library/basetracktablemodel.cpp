@@ -28,6 +28,7 @@
 #include "mixer/playerinfo.h"
 #include "mixer/playermanager.h"
 #include "moc_basetracktablemodel.cpp"
+#include "track/bitdepth.h"
 #include "track/keyutils.h"
 #include "track/track.h"
 #include "util/assert.h"
@@ -359,6 +360,7 @@ bool BaseTrackTableModel::isColumnHiddenByDefault(
     return column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_ALBUMARTIST) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BPM_LOCK) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BITRATE) ||
+            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_CHANNELS) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_COMPOSER) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_FILETYPE) ||
@@ -837,6 +839,9 @@ QVariant BaseTrackTableModel::roleValue(
                 }
             }
         }
+        case ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH:
+            // Nothing shows for unknown (0) and for lossy formats.
+            return mixxx::bitDepthDisplayValue(rawValue);
         case ColumnCache::COLUMN_LIBRARYTABLE_TUNING_FREQUENCY: {
             if (rawValue.isNull()) {
                 return QVariant();
@@ -961,6 +966,7 @@ QVariant BaseTrackTableModel::roleValue(
         case ColumnCache::COLUMN_LIBRARYTABLE_BPM:
         case ColumnCache::COLUMN_LIBRARYTABLE_DURATION:
         case ColumnCache::COLUMN_LIBRARYTABLE_BITRATE:
+        case ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH:
         case ColumnCache::COLUMN_LIBRARYTABLE_TRACKNUMBER:
         case ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION:
         case ColumnCache::COLUMN_LIBRARYTABLE_REPLAYGAIN:
@@ -1077,6 +1083,7 @@ Qt::ItemFlags BaseTrackTableModel::readWriteFlags(
 
     const int column = index.column();
     if (column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BITRATE) ||
+            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_CHANNELS) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_COLOR) ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_COVERART) ||

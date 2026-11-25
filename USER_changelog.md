@@ -24,7 +24,7 @@ Writing rules for this file (ASD-STE100):
 ### Before you start
 
 CAUTION: Make a copy of your Mixxx library before you start Mix Two for the
-first time. Mix Two changes the library database to schema version 42.
+first time. Mix Two changes the library database to schema version 43.
 
 To start Mix Two, double-click `tools\mixtwo_windows.bat`. Mix Two builds,
 then starts. If an error occurs, the window stays open. Push a key to close
@@ -603,6 +603,18 @@ puts only these tracks on the stick, with no playlist.
 The export dialog now shows a warning icon next to the text about a stick
 that players cannot read. The question before the export also has the warning
 icon. You can still continue.
+
+### Bit depth column in the library
+
+The track list has a new column, **Bit Depth**. It shows the bits per sample of
+a track, for example 16 or 24. It works for FLAC, WAV and AIFF files. The column
+is empty for MP3, AAC and other lossy files, which have no bit depth. You can
+sort the list by this column.
+
+The column is hidden at first. To show it, right-click a column header, then
+select **Bit Depth**. A track that is already in your library shows the value
+after Mix Two reads the file again. This happens at an import, at a rescan or
+when you load the track to a deck.
 
 ### Hot cue auto load on CDJ and XDJ
 

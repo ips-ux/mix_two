@@ -20,6 +20,7 @@ TrackRecord::TrackRecord(TrackId id)
           m_rating(0),
           m_bpmLocked(false),
           m_hotCueAutoLoad(true),
+          m_bitDepth(0),
           m_headerParsed(false) {
 }
 
@@ -374,6 +375,7 @@ bool operator==(const TrackRecord& lhs, const TrackRecord& rhs) {
             lhs.getMainCuePosition() == rhs.getMainCuePosition() &&
             lhs.getBpmLocked() == rhs.getBpmLocked() &&
             lhs.getHotCueAutoLoad() == rhs.getHotCueAutoLoad() &&
+            lhs.getBitDepth() == rhs.getBitDepth() &&
             lhs.getKeys() == rhs.getKeys() &&
             lhs.getRating() == rhs.getRating() &&
             lhs.m_headerParsed == rhs.m_headerParsed;

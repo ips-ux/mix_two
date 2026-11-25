@@ -25,6 +25,7 @@ const QString LIBRARYTABLE_LOCATION = QStringLiteral("location");
 const QString LIBRARYTABLE_COMMENT = QStringLiteral("comment");
 const QString LIBRARYTABLE_DURATION = QStringLiteral("duration");
 const QString LIBRARYTABLE_BITRATE = QStringLiteral("bitrate");
+const QString LIBRARYTABLE_BIT_DEPTH = QStringLiteral("bit_depth");
 const QString LIBRARYTABLE_BPM = QStringLiteral("bpm");
 const QString LIBRARYTABLE_REPLAYGAIN = QStringLiteral("replaygain");
 const QString LIBRARYTABLE_CUEPOINT = QStringLiteral("cuepoint");

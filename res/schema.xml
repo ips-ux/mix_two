@@ -620,4 +620,16 @@ reapplying those migrations.
       ALTER TABLE library ADD COLUMN hotcue_autoload INTEGER NOT NULL DEFAULT 1;
     </sql>
   </revision>
+  <revision version="43" min_compatible="3">
+    <description>
+      Mix Two: the bit depth (bits per sample) of a track. 0 means unknown.
+      Every track that is in the library has 0. The value is read from the file
+      the next time that Mix Two reads the file: at import, at rescan or when
+      the track loads. Lossy formats have no bit depth and stay at 0. The
+      migration does not read any file. Older versions ignore the column.
+    </description>
+    <sql>
+      ALTER TABLE library ADD COLUMN bit_depth INTEGER NOT NULL DEFAULT 0;
+    </sql>
+  </revision>
 </schema>

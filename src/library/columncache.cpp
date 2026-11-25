@@ -79,6 +79,9 @@ constexpr ColumnProperties kColumnPropertiesByEnum[] = {
         DI(ColumnCache::COLUMN_LIBRARYTABLE_BITRATE){&LIBRARYTABLE_BITRATE,
                 QT_TRANSLATE_NOOP("BaseTrackTableModel", "Bitrate"),
                 kDefaultColumnWidth},
+        DI(ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH){&LIBRARYTABLE_BIT_DEPTH,
+                QT_TRANSLATE_NOOP("BaseTrackTableModel", "Bit Depth"),
+                kDefaultColumnWidth},
         DI(ColumnCache::COLUMN_LIBRARYTABLE_BPM){&LIBRARYTABLE_BPM,
                 QT_TRANSLATE_NOOP("BaseTrackTableModel", "BPM"),
                 kDefaultColumnWidth * 2},
@@ -242,6 +245,7 @@ void ColumnCache::setColumns(QStringList columns) {
     insertColumnSortByEnum(COLUMN_LIBRARYTABLE_FILETYPE, kSortNoCase);
     insertColumnSortByEnum(COLUMN_LIBRARYTABLE_COMMENT, kSortNoCaseLex);
     insertColumnSortByEnum(COLUMN_LIBRARYTABLE_BITRATE, kSortInt);
+    insertColumnSortByEnum(COLUMN_LIBRARYTABLE_BIT_DEPTH, kSortInt);
     insertColumnSortByEnum(COLUMN_LIBRARYTABLE_SAMPLERATE, kSortInt);
     insertColumnSortByEnum(COLUMN_LIBRARYTABLE_TIMESPLAYED, kSortInt);
 

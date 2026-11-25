@@ -525,6 +525,7 @@ void TrackDAO::addTracksPrepare() {
             "beats,"
             "bpm_lock,"
             "hotcue_autoload,"
+            "bit_depth,"
             "keys_version,"
             "keys_sub_version,"
             "keys,"
@@ -575,6 +576,7 @@ void TrackDAO::addTracksPrepare() {
             ":beats,"
             ":bpm_lock,"
             ":hotcue_autoload,"
+            ":bit_depth,"
             ":keys_version,"
             ":keys_sub_version,"
             ":keys,"
@@ -662,6 +664,7 @@ void bindTrackLibraryValues(
             track.getMainCuePosition().toEngineSamplePosMaybeInvalid());
     pTrackLibraryQuery->bindValue(":bpm_lock", track.getBpmLocked() ? 1 : 0);
     pTrackLibraryQuery->bindValue(":hotcue_autoload", track.getHotCueAutoLoad() ? 1 : 0);
+    pTrackLibraryQuery->bindValue(":bit_depth", track.getBitDepth());
     pTrackLibraryQuery->bindValue(":tuning_frequency_hz",
             track.getKeys().getGlobalTuningFrequencyHz());
     pTrackLibraryQuery->bindValue(":replaygain", trackInfo.getReplayGain().getRatio());
@@ -1380,6 +1383,10 @@ void setTrackHotCueAutoLoad(const QSqlRecord& record, const int column, Track* p
     pTrack->setHotCueAutoLoad(record.value(column).toBool());
 }
 
+void setTrackBitDepth(const QSqlRecord& record, const int column, Track* pTrack) {
+    pTrack->setBitDepth(record.value(column).toInt());
+}
+
 void setTrackKey(const QSqlRecord& record, const int column, Track* pTrack) {
     QString keyText = record.value(column).toString();
     QString keysVersion = record.value(column + 1).toString();
@@ -1482,6 +1489,7 @@ TrackPointer TrackDAO::getTrackById(TrackId trackId) const {
             {"beats", nullptr},
             {"bpm_lock", setTrackBpmLock},
             {"hotcue_autoload", setTrackHotCueAutoLoad},
+            {"bit_depth", setTrackBitDepth},
 
             // Key detection columns are handled by setTrackKey. Do not change the
             // ordering of these columns or put other columns in between them!
@@ -1788,6 +1796,7 @@ bool TrackDAO::updateTrack(const Track& track) const {
             "beats=:beats,"
             "bpm_lock=:bpm_lock,"
             "hotcue_autoload=:hotcue_autoload,"
+            "bit_depth=:bit_depth,"
             "keys_version=:keys_version,"
             "keys_sub_version=:keys_sub_version,"
             "keys=:keys,"

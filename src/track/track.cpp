@@ -1678,6 +1678,23 @@ bool Track::isHotCueAutoLoad() const {
 }
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+void Track::setBitDepth(int bitDepth) {
+    if (bitDepth < 0) {
+        bitDepth = 0;
+    }
+    auto locked = lockMutex(&m_qMutex);
+    if (compareAndSet(m_record.ptrBitDepth(), bitDepth)) {
+        markDirtyAndUnlock(&locked);
+    }
+}
+
+int Track::getBitDepth() const {
+    const auto locked = lockMutex(&m_qMutex);
+    return m_record.getBitDepth();
+}
+// End of AI-generated text.
+
 void Track::setCoverInfo(const CoverInfoRelative& coverInfo) {
     DEBUG_ASSERT((coverInfo.type != CoverInfo::METADATA) || coverInfo.coverLocation.isEmpty());
     DEBUG_ASSERT((coverInfo.source != CoverInfo::UNKNOWN) || (coverInfo.type == CoverInfo::NONE));

@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 
 #include "sources/audiosourcetrackproxy.h"
+#include "track/bitdepth.h"
 
 #ifdef __MAD__
 #include "sources/soundsourcemp3.h"
@@ -851,6 +852,11 @@ SoundSourceProxy::UpdateTrackFromSourceResult SoundSourceProxy::updateTrackFromS
     m_pTrack->replaceMetadataFromSource(
             std::move(trackMetadata),
             sourceSynchronizedAt);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The file is read now, so the bit depth for the library column is read
+    // now. A lossy format gives 0 (unknown).
+    m_pTrack->setBitDepth(mixxx::bitDepthFromFile(m_pTrack->getFileInfo().location()));
+    // End of AI-generated text.
 
     const bool pendingBeatsImport =
             m_pTrack->getBeatsImportStatus() == Track::ImportStatus::Pending;
@@ -965,5 +971,13 @@ mixxx::AudioSourcePointer SoundSourceProxy::openAudioSource(
     // Overwrite metadata with actual audio properties
     m_pTrack->updateStreamInfoFromSource(
             m_pSoundSource->getStreamInfo());
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A track that was in the library before the bit depth existed has 0.
+    // The value is read when the track loads. A track with a value or a track
+    // of a lossy format does not read the file again.
+    if (m_pTrack->getBitDepth() == 0) {
+        m_pTrack->setBitDepth(mixxx::bitDepthFromFile(m_pTrack->getFileInfo().location()));
+    }
+    // End of AI-generated text.
     return mixxx::AudioSourceTrackProxy::create(m_pTrack, m_pSoundSource);
 }

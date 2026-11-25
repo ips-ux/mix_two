@@ -351,6 +351,9 @@ QVariant BaseTrackCache::getTrackValueForColumn(TrackPointer pTrack,
     if (fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BITRATE) == column) {
         return QVariant{pTrack->getBitrate()};
     }
+    if (fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH) == column) {
+        return QVariant{pTrack->getBitDepth()};
+    }
     if (fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BPM) == column) {
         return QVariant{pTrack->getBpm()};
     }
@@ -684,6 +687,7 @@ int BaseTrackCache::compareColumnValues(int sortColumn,
             sortColumn == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_TRACKNUMBER) ||
             sortColumn == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_DURATION) ||
             sortColumn == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BITRATE) ||
+            sortColumn == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BIT_DEPTH) ||
             sortColumn == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BPM) ||
             sortColumn == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_REPLAYGAIN) ||
             sortColumn == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_SAMPLERATE) ||

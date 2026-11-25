@@ -174,6 +174,12 @@ class Track : public QObject {
     bool isHotCueAutoLoad() const;
     // End of AI-generated text.
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: the bits per sample of a lossless file. 0 means unknown.
+    void setBitDepth(int bitDepth);
+    int getBitDepth() const;
+    // End of AI-generated text.
+
     void setReplayGain(const mixxx::ReplayGain&);
     // Adjust ReplayGain by multiplying the given gain amount.
     void adjustReplayGainFromPregain(double gain, const QString& requestingPlayerGroup);

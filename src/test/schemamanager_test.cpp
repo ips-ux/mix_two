@@ -127,3 +127,49 @@ TEST_F(SchemaManagerTest, HotCueAutoLoadIsOnForExistingTracks) {
     EXPECT_EQ(1, query.value(0).toInt());
 }
 // End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(SchemaManagerTest, BitDepthIsUnknownForExistingTracks) {
+    // A library of the version before the bit depth exists, with two tracks.
+    {
+        SchemaManager schemaManager(dbConnection());
+        ASSERT_EQ(SchemaManager::Result::UpgradeSucceeded,
+                schemaManager.upgradeToSchemaVersion(
+                        42, MixxxDb::kDefaultSchemaFile));
+        QSqlQuery query(dbConnection());
+        ASSERT_TRUE(query.exec("INSERT INTO library (artist, title) VALUES ('a', 'one')"));
+        ASSERT_TRUE(query.exec("INSERT INTO library (artist, title) VALUES ('b', 'two')"));
+        EXPECT_FALSE(query.exec("SELECT bit_depth FROM library"));
+    }
+
+    SchemaManager schemaManager(dbConnection());
+    ASSERT_EQ(SchemaManager::Result::UpgradeSucceeded,
+            schemaManager.upgradeToSchemaVersion(
+                    43, MixxxDb::kDefaultSchemaFile));
+
+    // The tracks of the old library keep their rows. Their bit depth is 0
+    // (unknown), not NULL. The migration does not read any file.
+    QSqlQuery query(dbConnection());
+    ASSERT_TRUE(query.exec("SELECT title, bit_depth FROM library ORDER BY id"));
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(QStringLiteral("one"), query.value(0).toString());
+    EXPECT_FALSE(query.value(1).isNull());
+    EXPECT_EQ(0, query.value(1).toInt());
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(QStringLiteral("two"), query.value(0).toString());
+    EXPECT_FALSE(query.value(1).isNull());
+    EXPECT_EQ(0, query.value(1).toInt());
+    EXPECT_FALSE(query.next());
+
+    // The flag column of the version before is still there.
+    ASSERT_TRUE(query.exec("SELECT hotcue_autoload FROM library"));
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(1, query.value(0).toInt());
+
+    // A row that does not set the bit depth gets 0 as well.
+    ASSERT_TRUE(query.exec("INSERT INTO library (artist, title) VALUES ('c', 'three')"));
+    ASSERT_TRUE(query.exec("SELECT bit_depth FROM library WHERE title='three'"));
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(0, query.value(0).toInt());
+}
+// End of AI-generated text.
