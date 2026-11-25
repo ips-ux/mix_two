@@ -568,8 +568,7 @@ An import adds the tracks to the library. The files stay where they are. Mix
 Two does not copy, move or change them. An import adds no watched folder. A
 track that the library already has is not added again, also when the path
 uses other letters or a link. A track that you hid shows again with its data.
-An import alone never writes tags to a file. The window stays
-usable while a long import runs. When the import ends, a message shows the
+The window stays usable while a long import runs. When the import ends, a message shows the
 number of added tracks.
 
 The track menu has a new item, **Import To Collection**. It shows in the iTunes,

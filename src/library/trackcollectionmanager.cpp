@@ -342,17 +342,8 @@ ExportTrackMetadataResult TrackCollectionManager::exportTrackMetadataBeforeSavin
     // a timestamp is used to keep track of when metadata has been
     // last synchronized. Exporting metadata will update this time
     // stamp on the track object!
-    // AI-generated (Claude Code). Start of AI-generated text.
-    // The first save with changes of a track that an import added never
-    // exports the tags (see m_importedUnsaved).
-    bool firstSaveAfterImport = false;
-    if (pTrack->isDirty()) {
-        std::lock_guard lock(m_importedUnsavedMutex);
-        firstSaveAfterImport = m_importedUnsaved.remove(pTrack->getLocation());
-    }
-    // End of AI-generated text.
     if (pTrack->isMarkedForMetadataExport() ||
-            (!firstSaveAfterImport && pTrack->isDirty() &&
+            (pTrack->isDirty() &&
                     m_pConfig &&
                     m_pConfig->getValueString(
                                      kSyncTrackMetadataConfigKey)
@@ -641,7 +632,8 @@ mixxx::library::ImportFilesResult TrackCollectionManager::importFiles(
         const QStringList& locations,
         mixxx::library::ImportIndex* pIndex,
         std::optional<std::chrono::milliseconds> budget,
-        int* pProcessed) const {
+        int* pProcessed,
+        int firstIndex) const {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
     std::optional<mixxx::library::ImportIndex> ownIndex;
     if (!pIndex) {
@@ -651,7 +643,8 @@ mixxx::library::ImportFilesResult TrackCollectionManager::importFiles(
     const auto start = std::chrono::steady_clock::now();
     int processed = 0;
     mixxx::library::ImportFilesResult result;
-    for (const QString& location : locations) {
+    for (int i = firstIndex; i < locations.size(); ++i) {
+        const QString& location = locations.at(i);
         if (budget && processed > 0 &&
                 std::chrono::steady_clock::now() - start >= *budget) {
             break;
@@ -677,21 +670,15 @@ mixxx::library::ImportFilesResult TrackCollectionManager::importFiles(
             }
             continue;
         }
-        bool alreadyInLibrary = false;
-        const TrackPointer pTrack =
-                getOrAddTrack(TrackRef::fromFilePath(location), &alreadyInLibrary);
-        if (!pTrack) {
+        // The same call that a file dropped into the track table uses, so an
+        // import adds a track exactly as a drop does.
+        const QList<TrackId> ids = resolveTrackIdsFromLocations({location});
+        if (ids.isEmpty() || !ids.constFirst().isValid()) {
             ++result.skipped;
             continue;
         }
-        pIndex->add(location, pTrack->getId(), false);
-        if (alreadyInLibrary) {
-            ++result.alreadyInLibrary;
-        } else {
-            ++result.added;
-            std::lock_guard lock(m_importedUnsavedMutex);
-            m_importedUnsaved.insert(pTrack->getLocation());
-        }
+        pIndex->add(location, ids.constFirst(), false);
+        ++result.added;
     }
     if (pProcessed) {
         *pProcessed = processed;

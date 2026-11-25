@@ -1,11 +1,11 @@
 #pragma once
 
 #include <QFont>
-#include <chrono>
-#include <memory>
 #include <QList>
 #include <QObject>
 #include <QPointer>
+#include <chrono>
+#include <memory>
 
 #include "analyzer/trackanalysisscheduler.h"
 #include "library/library_decl.h"

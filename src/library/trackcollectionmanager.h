@@ -165,17 +165,18 @@ class TrackCollectionManager : public QObject,
     // AI-generated (Claude Code). Start of AI-generated text.
     // Adds the sound files to the library. A file that is in the library
     // already stays as it is; a hidden track is shown again. The files are
-    // never written. Call it in the main thread.
+    // never written by the import itself. Call it in the main thread.
     //
     // The index tells which files the library has. Without one, the call
     // makes its own. With a time budget the call stops after the file that
     // used up the budget (it handles at least one file); *pProcessed tells
-    // how many files it handled.
+    // how many files it handled, counted from firstIndex.
     mixxx::library::ImportFilesResult importFiles(
             const QStringList& locations,
             mixxx::library::ImportIndex* pIndex = nullptr,
             std::optional<std::chrono::milliseconds> budget = std::nullopt,
-            int* pProcessed = nullptr) const;
+            int* pProcessed = nullptr,
+            int firstIndex = 0) const;
     /// Reads the tracks of the library into an index.
     mixxx::library::ImportIndex makeImportIndex(
             mixxx::library::ImportIndex::PathResolver resolver =
@@ -241,16 +242,6 @@ class TrackCollectionManager : public QObject,
     // TODO: Extract and decouple LibraryScanner from TrackCollectionManager
     std::unique_ptr<LibraryScanner> m_pScanner;
 
-    // AI-generated (Claude Code). Start of AI-generated text.
-    // Locations of tracks that an import added and that no save has seen
-    // yet. The first save of such a track that has changes does not write
-    // the tags to the file, also when the preference "write tags to files"
-    // is on: an import alone never writes to a file (the background guess of
-    // the cover art marks the track as changed). A later save writes as
-    // always; it exports only tags that differ from the file.
-    mutable std::mutex m_importedUnsavedMutex;
-    mutable QSet<QString> m_importedUnsaved;
-    // End of AI-generated text.
     std::atomic_bool m_libraryScanActive{false};
     std::mutex m_libraryScanSummaryMutex;
     std::optional<LibraryScanResultSummary> m_pendingLibraryScanSummary;

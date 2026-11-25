@@ -1,12 +1,12 @@
 #include "library/library.h"
 
 #include <QApplication>
+#include <QDir>
 #include <QFutureWatcher>
+#include <QMessageBox>
 #include <QTimer>
 #include <QtConcurrent>
 #include <algorithm>
-#include <QDir>
-#include <QMessageBox>
 
 #include "control/controlobject.h"
 #include "controllers/keyboard/keyboardeventfilter.h"
@@ -716,10 +716,11 @@ void Library::slotImportNextChunk() {
     // the time for one file depends on the drive and the file format.
     int processed = 0;
     const auto result = m_pTrackCollectionManager->importFiles(
-            m_importQueue.mid(m_importPos),
+            m_importQueue,
             m_pImportIndex.get(),
             kImportStepBudget,
-            &processed);
+            &processed,
+            m_importPos);
     m_importPos += std::max(1, processed);
     m_importAdded += result.added;
     m_importAlreadyInLibrary += result.alreadyInLibrary;

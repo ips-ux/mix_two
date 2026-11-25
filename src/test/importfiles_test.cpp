@@ -9,7 +9,6 @@
 #include <QSqlQuery>
 #include <QTemporaryDir>
 
-#include "library/library_prefs.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "test/librarytest.h"
@@ -229,21 +228,4 @@ TEST_F(ImportFilesTest, DifferentLetterCaseIsTheSameFileOnWindows) {
 }
 #endif
 
-TEST_F(ImportFilesTest, ImportAloneNeverWritesTheFileEvenWithTagWritingOn) {
-    config()->setValue(mixxx::library::prefs::kSyncTrackMetadataConfigKey, 1);
-    const QString a = makeSoundFile("a.mp3", kSound1);
-    const QByteArray before = readAll(a);
-    ASSERT_EQ(1, trackCollectionManager()->importFiles({a}).added);
-    {
-        TrackPointer pTrack = getOrAddTrackByLocation(a);
-        ASSERT_TRUE(pTrack);
-        // The background cover guess marks a new track as changed, as this
-        // change does.
-        pTrack->setColor(mixxx::RgbColor::optional(0x112233));
-        EXPECT_TRUE(pTrack->isDirty());
-        trackCollectionManager()->saveTrack(pTrack);
-    }
-    // The track left the cache; a deferred tag export would have happened now.
-    EXPECT_EQ(before, readAll(a));
-}
 // End of AI-generated text.
