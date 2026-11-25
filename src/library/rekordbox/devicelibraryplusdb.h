@@ -12,6 +12,8 @@
 #include <memory>
 #include <optional>
 
+#include "library/rekordbox/legacyfromdlp.h"
+
 struct sqlite3;
 
 namespace mixxx {
@@ -274,6 +276,8 @@ class DeviceLibraryPlusDb {
 
   private:
     friend class DeviceLibraryPlusDbTest;
+    friend class LegacyFromDlpTest;
+    friend std::optional<LegacyLibrary> legacyFromDlp(const DeviceLibraryPlusDb&, QString*);
 
     explicit DeviceLibraryPlusDb(const QString& stickRoot);
 

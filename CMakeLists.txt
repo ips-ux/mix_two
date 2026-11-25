@@ -1524,6 +1524,7 @@ add_library(
   src/library/rekordbox/devicelibrarypluskey.cpp
   src/library/rekordbox/devicelibraryplusschema.cpp
   src/library/rekordbox/devicelibraryplusstick.cpp
+  src/library/rekordbox/legacyfromdlp.cpp
   src/library/rekordbox/legacypdbwriter.cpp
   src/library/rekordbox/rekordboxbeats.cpp
   src/library/rekordbox/rekordboxfeature.cpp
@@ -3080,6 +3081,7 @@ if(BUILD_TESTING)
     src/test/devicelibraryplusdb_test.cpp
     src/test/devicelibraryplusexporter_test.cpp
     src/test/devicelibraryplusexportjob_test.cpp
+    src/test/legacyfromdlp_test.cpp
     src/test/exportloop_test.cpp
     src/test/devicelibraryplusmapping_test.cpp
     src/test/devicelibraryplusstick_test.cpp

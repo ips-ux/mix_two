@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
 #include <QEventLoop>
@@ -11,11 +12,13 @@
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <utility>
 
 #include "library/dao/analysisdao.h"
 #include "library/dao/playlistdao.h"
 #include "library/export/dlgdeviceexport.h"
 #include "library/rekordbox/devicelibraryplusdb.h"
+#include "library/rekordbox/legacyfromdlp.h"
 #include "library/trackset/crate/crate.h"
 #include "sources/soundsourceproxy.h"
 #include "test/librarytest.h"
@@ -107,9 +110,19 @@ class DeviceLibraryPlusExportJobTest : public LibraryTest {
 
     /// Runs the job to its end. The main thread runs an event loop, because
     /// the job loads its data there.
-    Outcome runJob(const DeviceLibraryPlusExportRequest& jobRequest, bool cancelFirst = false) {
+    Outcome runJob(const DeviceLibraryPlusExportRequest& jobRequest,
+            bool cancelFirst = false,
+            DeviceLibraryPlusExportJob::LegacyWriter writer = rekordbox::legacyPdbBytes) {
+        DeviceLibraryPlusExportJob job(
+                nullptr, trackCollectionManager(), jobRequest, std::move(writer));
+        if (cancelFirst) {
+            job.slotCancel();
+        }
+        return runJob(job);
+    }
+
+    Outcome runJob(DeviceLibraryPlusExportJob& job) {
         Outcome outcome;
-        DeviceLibraryPlusExportJob job(nullptr, trackCollectionManager(), jobRequest);
         QObject context;
         QEventLoop loop;
         QObject::connect(
@@ -140,9 +153,6 @@ class DeviceLibraryPlusExportJobTest : public LibraryTest {
                 },
                 Qt::QueuedConnection);
         QTimer::singleShot(120000, &loop, &QEventLoop::quit);
-        if (cancelFirst) {
-            job.slotCancel();
-        }
         job.start();
         loop.exec();
         if (!outcome.finished) {
@@ -345,8 +355,17 @@ TEST_F(DeviceLibraryPlusExportJobTest, SelectedTracksKeepTheOtherRowsOfAStick) {
 
     DeviceLibraryPlusExportRequest trackRequest = request();
     trackRequest.trackIds.insert(pSecond->getId().toVariant().toInt());
-    const Outcome second = runJob(trackRequest);
+    trackRequest.writeLegacyLibrary = true;
+    const Outcome second = runJob(trackRequest, false,
+            [](const rekordbox::LegacyLibrary& library, QString*) {
+                EXPECT_EQ(2, library.tracks.size());
+                return QByteArray("legacy bytes");
+            });
     ASSERT_EQ(1, second.completedCount) << qPrintable(second.failure);
+    EXPECT_TRUE(second.summary.legacyLibraryError.isEmpty());
+    QFile legacy(m_stick.filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
+    ASSERT_TRUE(legacy.open(QIODevice::ReadOnly));
+    EXPECT_EQ(QByteArray("legacy bytes"), legacy.readAll());
     EXPECT_EQ(1, second.summary.tracksExported);
     EXPECT_EQ(0, second.summary.playlistsExported);
 
@@ -365,6 +384,114 @@ TEST_F(DeviceLibraryPlusExportJobTest, SelectedTracksKeepTheOtherRowsOfAStick) {
     }
     EXPECT_TRUE(firstKept);
     EXPECT_TRUE(pDb->findPlaylistOnly(QStringLiteral("On Stick"), 0));
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusExportJobTest, LegacyFailureKeepsThePreviousFileAndPlusExport) {
+    const QDir root(m_stick.path());
+    ASSERT_TRUE(root.mkpath(QStringLiteral("PIONEER/rekordbox")));
+    QFile file(root.filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    ASSERT_EQ(3, file.write("old"));
+    file.close();
+    auto jobRequest = request();
+    jobRequest.writeLegacyLibrary = true;
+    const Outcome outcome = runJob(jobRequest, false,
+            [](const rekordbox::LegacyLibrary&, QString* pError) {
+                *pError = QStringLiteral("Test writer cannot write the data.");
+                return QByteArray();
+            });
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_EQ(0, outcome.failedCount);
+    EXPECT_EQ(QStringLiteral("Test writer cannot write the data."),
+            outcome.summary.legacyLibraryError);
+    QString error;
+    EXPECT_TRUE(DeviceLibraryPlusDb::open(m_stick.path(), &error)) << qPrintable(error);
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_EQ(QByteArray("old"), file.readAll());
+    const QDir folder = QFileInfo(file).dir();
+    EXPECT_EQ((QStringList{QStringLiteral("export.pdb"), QStringLiteral("exportLibrary.db")}),
+            folder.entryList(QDir::Files | QDir::Hidden, QDir::Name));
+}
+
+TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToTheExistingFolder) {
+    const QDir root(m_stick.path());
+    ASSERT_TRUE(root.mkpath(QStringLiteral("pIoNeEr/ReKoRdBoX")));
+    QFile file(root.filePath(QStringLiteral("pIoNeEr/ReKoRdBoX/ExPoRt.PdB")));
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    ASSERT_EQ(3, file.write("old"));
+    file.close();
+    auto jobRequest = request();
+    jobRequest.writeLegacyLibrary = true;
+    const auto pTrack = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
+    ASSERT_TRUE(pTrack);
+    storeWaveform(pTrack);
+    const QByteArray bytes("legacy data", 11);
+    const Outcome outcome = runJob(jobRequest, false,
+            [&bytes](const rekordbox::LegacyLibrary& library, QString*) {
+                EXPECT_EQ(1, library.tracks.size());
+                EXPECT_NE(QThread::currentThread(), QCoreApplication::instance()->thread());
+                return bytes;
+            });
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_TRUE(outcome.summary.legacyLibraryError.isEmpty());
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_EQ(bytes, file.readAll());
+}
+
+TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToANewStick) {
+    auto jobRequest = request();
+    jobRequest.writeLegacyLibrary = true;
+    const Outcome outcome = runJob(jobRequest, false,
+            [](const rekordbox::LegacyLibrary&, QString*) { return QByteArray("new library"); });
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_TRUE(outcome.summary.legacyLibraryError.isEmpty());
+    QFile file(m_stick.filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_EQ(QByteArray("new library"), file.readAll());
+}
+
+TEST_F(DeviceLibraryPlusExportJobTest, UsesTheDefaultLegacyWriter) {
+    auto jobRequest = request();
+    jobRequest.writeLegacyLibrary = true;
+    DeviceLibraryPlusExportJob job(nullptr, trackCollectionManager(), jobRequest);
+    const Outcome outcome = runJob(job);
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_EQ(0, outcome.failedCount);
+    QString error;
+    const auto pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    const auto library = rekordbox::legacyFromDlp(*pDb, &error);
+    ASSERT_TRUE(library) << qPrintable(error);
+    const QByteArray expected = rekordbox::legacyPdbBytes(*library, &error);
+    QFile file(m_stick.filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
+    if (expected.isEmpty()) {
+        EXPECT_FALSE(error.isEmpty());
+        EXPECT_EQ(error, outcome.summary.legacyLibraryError);
+        EXPECT_FALSE(file.exists());
+    } else {
+        EXPECT_TRUE(outcome.summary.legacyLibraryError.isEmpty());
+        ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+        EXPECT_EQ(expected, file.readAll());
+    }
+}
+
+TEST_F(DeviceLibraryPlusExportJobTest, DialogSelectsBothFormatsByDefault) {
+    DlgDeviceExport dialog(nullptr, config(), trackCollectionManager());
+    QCheckBox* pLegacy = nullptr;
+    for (auto* pBox : dialog.findChildren<QCheckBox*>()) {
+        if (pBox->text() == QStringLiteral("Device Library")) {
+            pLegacy = pBox;
+            break;
+        }
+    }
+    ASSERT_TRUE(pLegacy);
+    EXPECT_TRUE(pLegacy->isEnabled());
+    EXPECT_TRUE(pLegacy->isChecked());
+    EXPECT_TRUE(dialog.makeRequest(m_stick.path())->writeLegacyLibrary);
+    pLegacy->setChecked(false);
+    EXPECT_FALSE(dialog.makeRequest(m_stick.path())->writeLegacyLibrary);
 }
 // End of AI-generated text.
 

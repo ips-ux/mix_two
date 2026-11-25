@@ -275,6 +275,11 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
                                   "Eject the stick before you remove it.")
                                        .arg(summary.tracksExported)
                                        .arg(summary.playlistsExported);
+                if (!summary.legacyLibraryError.isEmpty()) {
+                    text += QStringLiteral("\n\n") +
+                            tr("Mix Two did not write the Device Library. Reason: %1")
+                                    .arg(summary.legacyLibraryError);
+                }
                 if (!summary.skipped.isEmpty()) {
                     text += QStringLiteral("\n\n") +
                             tr("Mix Two did not export %n tracks.", nullptr, summary.skipped.size());

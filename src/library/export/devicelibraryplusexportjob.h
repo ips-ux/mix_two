@@ -5,9 +5,11 @@
 #include <QPair>
 #include <QString>
 #include <QThread>
+#include <functional>
 
 #include "library/export/devicelibraryplusexportrequest.h"
 #include "library/rekordbox/devicelibraryplusexporter.h"
+#include "library/rekordbox/legacylibrary.h"
 #include "library/trackset/crate/crateid.h"
 #include "track/trackid.h"
 
@@ -33,10 +35,13 @@ namespace mixxx {
 class DeviceLibraryPlusExportJob : public QThread {
     Q_OBJECT
   public:
+    using LegacyWriter = std::function<QByteArray(const rekordbox::LegacyLibrary&, QString*)>;
+
     DeviceLibraryPlusExportJob(
             QObject* parent,
             TrackCollectionManager* pTrackCollectionManager,
-            const DeviceLibraryPlusExportRequest& request);
+            const DeviceLibraryPlusExportRequest& request,
+            LegacyWriter legacyWriter = rekordbox::legacyPdbBytes);
 
     ~DeviceLibraryPlusExportJob() override;
 
@@ -89,6 +94,7 @@ class DeviceLibraryPlusExportJob : public QThread {
     bool callInMainThread(const char* slotName, int index = -1);
 
     const DeviceLibraryPlusExportRequest m_request;
+    const LegacyWriter m_legacyWriter;
     TrackCollectionManager* const m_pTrackCollectionManager;
     QAtomicInteger<int> m_cancellationRequested;
 

@@ -57,6 +57,11 @@ operates. The Pioneer audio driver can also stop Mix Two.
 If rekordbox operates when Mix Two starts, a message shows. Quit rekordbox,
 then click **Retry**. Click **Start Anyway** only if you accept the risk.
 
+### USB export
+
+Mix Two writes Device Library Plus and Device Library by default. Both
+formats use the same audio files on the stick.
+
 ### Pioneer DDJ-800
 
 Mix Two now has a mapping for the Pioneer DDJ-800.

@@ -159,9 +159,8 @@ DlgDeviceExport::DlgDeviceExport(
             this,
             &DlgDeviceExport::updateModeAndFormat);
     m_pLegacyCheckBox = make_parented<QCheckBox>(tr("Device Library"), this);
-    m_pLegacyCheckBox->setChecked(false);
-    m_pLegacyCheckBox->setEnabled(false);
-    m_pLegacyCheckBox->setToolTip(tr("Mix Two cannot write this format at this time."));
+    m_pLegacyCheckBox->setChecked(true);
+    connect(m_pLegacyCheckBox, &QCheckBox::toggled, this, &DlgDeviceExport::updateStickInfo);
     auto pFormatGroup = make_parented<QGroupBox>(tr("Format"), this);
     auto pFormatLayout = make_parented<QVBoxLayout>(pFormatGroup.get());
     pFormatLayout->addWidget(m_pPlusCheckBox);
@@ -344,7 +343,14 @@ void DlgDeviceExport::updateStickInfo() {
     }
     m_pStickWarningIcon->setVisible(!fileSystemText.isEmpty());
     if (info.hasLegacyLibrary) {
-        lines << rekordbox::dlpMessageHasLegacyLibrary();
+        if (m_pLegacyCheckBox->isChecked() && !info.hasPlusLibrary) {
+            lines << tr("This stick has only a Device Library. The new Device Library does not "
+                        "contain tracks from the old one.");
+        } else if (m_pLegacyCheckBox->isChecked()) {
+            lines << tr("Mix Two uses Device Library Plus to replace the Device Library.");
+        } else {
+            lines << rekordbox::dlpMessageHasLegacyLibrary();
+        }
     }
     if (info.hasPlusLibrary) {
         lines << tr("This stick has a Device Library Plus. Mix Two adds the tracks to it.");
@@ -381,12 +387,18 @@ void DlgDeviceExport::exportRequested() {
     // Read the stick again: it can be different from the time of the choice.
     const rekordbox::DlpStickInfo info = rekordbox::dlpStickInfo(root);
     const QString fileSystemText = fileSystemWarning(info);
-    if (info.hasPlusLibrary || !fileSystemText.isEmpty()) {
+    const bool replacesLegacyOnly =
+            info.hasLegacyLibrary && !info.hasPlusLibrary && m_pLegacyCheckBox->isChecked();
+    if (info.hasPlusLibrary || replacesLegacyOnly || !fileSystemText.isEmpty()) {
         QString question;
         if (!fileSystemText.isEmpty()) {
             question = fileSystemText + QStringLiteral("\n\n");
         }
-        if (info.hasPlusLibrary && m_pSelectedTracksRadio->isChecked()) {
+        if (replacesLegacyOnly) {
+            question += tr("Mix Two replaces the Device Library on this stick. "
+                           "Tracks and playlists from the old Device Library do not move to "
+                           "the new one. Do you want to continue?");
+        } else if (info.hasPlusLibrary && m_pSelectedTracksRadio->isChecked()) {
             // AI-generated (Claude Code). Start of AI-generated text.
             // The mode "Selected tracks" writes no playlist.
             question += tr("Mix Two adds the selected tracks to the stick. "
@@ -421,6 +433,7 @@ QSharedPointer<DeviceLibraryPlusExportRequest> DlgDeviceExport::makeRequest(
         const QString& stickRoot) const {
     auto pRequest = QSharedPointer<DeviceLibraryPlusExportRequest>::create();
     pRequest->stickRoot = stickRoot;
+    pRequest->writeLegacyLibrary = m_pLegacyCheckBox->isChecked();
     if (m_pSelectedTracksRadio->isChecked()) {
         for (const TrackId& trackId : m_trackIds) {
             pRequest->trackIds.insert(trackId.toVariant().toInt());

@@ -46,6 +46,9 @@ struct DeviceLibraryPlusExportRequest {
     /// no playlist. The set counts only when `crateIds` and `playlistIds` are
     /// empty. With all three sets empty, the whole library is exported.
     QSet<int> trackIds;
+
+    /// Also write the Device Library from the updated Device Library Plus.
+    bool writeLegacyLibrary = false;
     // End of AI-generated text.
 };
 
@@ -60,6 +63,11 @@ struct DeviceLibraryPlusExportSummary {
 
     /// One line for each warning of a track: "<artist> - <title>: <warning>".
     QStringList warnings;
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Empty unless Device Library Plus succeeds and Device Library fails.
+    QString legacyLibraryError;
+    // End of AI-generated text.
 };
 
 } // namespace mixxx

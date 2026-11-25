@@ -2,8 +2,11 @@
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QHash>
 #include <QMetaObject>
+#include <QSaveFile>
 #include <QSet>
 #include <QSqlQuery>
 #include <QtDebug>
@@ -16,6 +19,7 @@
 #include "library/queryutil.h"
 #include "library/rekordbox/devicelibraryplusdb.h"
 #include "library/rekordbox/devicelibraryplusstick.h"
+#include "library/rekordbox/legacyfromdlp.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackset/crate/crate.h"
@@ -67,14 +71,73 @@ QString messageOrDefault(const QString& message) {
             "Mix Two cannot use the library on the stick.");
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// Resolve names before Device Library Plus can create its own folders.
+QString existingPathOrDefault(const QString& folder, const QString& name) {
+    const QString existing = rekordbox::dlpFindPathNoCase(folder, name);
+    return existing.isEmpty() ? QDir(folder).filePath(name) : existing;
+}
+
+QString legacyPathForStick(const QString& root) {
+    const QString pioneer = existingPathOrDefault(root, QStringLiteral("PIONEER"));
+    const QString rekordbox = existingPathOrDefault(pioneer, QStringLiteral("rekordbox"));
+    return existingPathOrDefault(rekordbox, QStringLiteral("export.pdb"));
+}
+
+bool makeLegacyFolder(const QDir& parent, const QString& name) {
+    const QFileInfo folder(parent.filePath(name));
+    return !folder.isSymLink() && (folder.isDir() || parent.mkdir(name));
+}
+
+QString writeLegacyLibrary(const DeviceLibraryPlusDb& db,
+        const QString& root,
+        const QString& path,
+        const DeviceLibraryPlusExportJob::LegacyWriter& writer) {
+    QString error;
+    const auto library = rekordbox::legacyFromDlp(db, &error);
+    if (!library) {
+        return error;
+    }
+    const QByteArray bytes = writer(*library, &error);
+    if (bytes.isEmpty()) {
+        return error.isEmpty()
+                ? QCoreApplication::translate("DeviceLibraryPlus",
+                          "The Device Library has no data.")
+                : error;
+    }
+
+    const QDir folder = QFileInfo(path).dir();
+    const QFileInfo pioneer(QFileInfo(folder.path()).path());
+    if (!makeLegacyFolder(QDir(root), pioneer.fileName()) ||
+            !makeLegacyFolder(QDir(pioneer.filePath()), folder.dirName())) {
+        return QCoreApplication::translate("DeviceLibraryPlus",
+                "Mix Two cannot use the Device Library folder.");
+    }
+    if (QFileInfo(path).isSymLink()) {
+        return QCoreApplication::translate("DeviceLibraryPlus",
+                "The Device Library file is a link.");
+    }
+    // Keep the old file until the new file is complete and ready to rename.
+    QSaveFile file(path);
+    file.setDirectWriteFallback(false);
+    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() ||
+            !file.flush() || !file.commit()) {
+        return file.errorString();
+    }
+    return {};
+}
+// End of AI-generated text.
+
 } // namespace
 
 DeviceLibraryPlusExportJob::DeviceLibraryPlusExportJob(
         QObject* parent,
         TrackCollectionManager* pTrackCollectionManager,
-        const DeviceLibraryPlusExportRequest& request)
+        const DeviceLibraryPlusExportRequest& request,
+        LegacyWriter legacyWriter)
         : QThread{parent},
           m_request(request),
+          m_legacyWriter(std::move(legacyWriter)),
           m_pTrackCollectionManager(pTrackCollectionManager) {
     qRegisterMetaType<mixxx::DeviceLibraryPlusExportSummary>();
     // Must be collocated with the TrackCollectionManager.
@@ -325,8 +388,9 @@ void DeviceLibraryPlusExportJob::run() {
     const int crateCount = static_cast<int>(m_crateIds.size());
     const int playlistCount = static_cast<int>(m_playlistIdsAndNames.size());
     // One count for each track, playlist and crate, and one each for the
-    // checks, the opening of the library and the writing of the library.
-    emit jobMaximum(trackCount + crateCount + playlistCount + 3);
+    // checks, the opening of the library and the writing of each format.
+    emit jobMaximum(trackCount + crateCount + playlistCount + 3 +
+            (m_request.writeLegacyLibrary ? 1 : 0));
     int progress = 0;
     emit jobProgress(progress);
     if (isCancelled()) {
@@ -520,11 +584,20 @@ void DeviceLibraryPlusExportJob::run() {
         emit failed(rekordbox::dlpMessageNoTrackExported());
         return;
     }
+    const QString legacyPath = m_request.writeLegacyLibrary
+            ? legacyPathForStick(m_request.stickRoot)
+            : QString();
     if (!exporter.finish(&error)) {
         emit failed(messageOrDefault(error));
         return;
     }
     emit jobProgress(++progress);
+
+    if (m_request.writeLegacyLibrary) {
+        summary.legacyLibraryError = writeLegacyLibrary(
+                *pDb, m_request.stickRoot, legacyPath, m_legacyWriter);
+        emit jobProgress(++progress);
+    }
 
     summary.playlistsExported = exporter.playlistCount();
     qInfo() << "Device Library Plus export completed:" << summary.tracksExported
