@@ -12,20 +12,20 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 326 | 220 | 224 | 61 | 0 | 0 | 72 |
+| Features | 340 | 222 | 224 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
 | Controller (DDJ-800 mapping) | Critical | 104 | 0 % | Yes |
 | Sound: effects | Critical | 81 | 0 % | Yes |
 | Sound: deck | Critical | 18 | 0 % | Yes |
-| Device export | Critical | 82 | 0 % | Yes |
+| Device export | Critical | 91 | 0 % | Yes |
 | rekordbox import | High | 26 | 0 % |  |
 | Mixer & I/O | Critical | 38 | 0 % | Yes |
 | Analysis | Medium | 49 | 0 % |  |
 | Library | High | 96 | 0 % |  |
 | Performance features | Medium | 91 | 0 % | Yes |
-| Prepare UI | High | 43 | 0 % |  |
+| Prepare UI | High | 50 | 0 % |  |
 | Legacy Design (performance) | High | 72 | 0 % | Yes |
 | Hardware Design + skin system | Medium | 13 | 0 % | Yes |
 | Hardware link | Medium | 63 | 0 % | Yes |
