@@ -3068,6 +3068,7 @@ if(BUILD_TESTING)
     src/test/keysync_test.cpp
     src/test/platter_test.cpp
     src/test/platterrender_test.cpp
+    src/test/legacypdbwriter_test.cpp
     src/test/rekordboxanlz_test.cpp
     src/test/rekordboxbeats_test.cpp
     src/test/removablevolume_test.cpp
