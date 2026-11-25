@@ -23,6 +23,12 @@ constexpr int kBlinkingPeriodMillis = 1600;
 // Used as default outline color in case no value is provided in the theme
 constexpr QColor kDefaultColor = QColor(224, 224, 224);
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// The line at the playback position in slip mode, in pixels, and its colour.
+constexpr float kPlaybackLineWidth = 2.f;
+constexpr QVector4D kPlaybackLineColor{1.f, 0.867f, 0.f, 1.f};
+// End of AI-generated text.
+
 } // anonymous namespace
 
 using namespace rendergraph;
@@ -86,10 +92,15 @@ void WaveformRendererSlipMode::preprocess() {
 }
 
 bool WaveformRendererSlipMode::preprocessInner() {
-    if (!m_pSlipModeControl || !m_pSlipModeControl->toBool() ||
-            !m_waveformRenderer->isSlipActive()) {
+    if (!m_pSlipModeControl || !m_pSlipModeControl->toBool()) {
         return false;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The yellow line at the playback position shows while slip mode is on.
+    // The blinking border shows only while the playback position differs
+    // from the background position.
+    const bool slipActive = m_waveformRenderer->isSlipActive();
+    // End of AI-generated text.
 
     TrackPointer pTrack = m_waveformRenderer->getTrackInfo();
     const bool isStemTrack = pTrack && pTrack->hasStem() &&
@@ -128,12 +139,13 @@ bool WaveformRendererSlipMode::preprocessInner() {
     const QVector4D borderColor0{m_color.redF(), m_color.greenF(), m_color.blueF(), 0.f};
 
     const int numVerticesPerLine = 6; // 2 triangles
-    geometry().allocate(numVerticesPerLine * 5 *
-            numBoxes); // border on 4 sides + bgColor filler in center
+    // border on 4 sides + bgColor filler in center, and the playback line
+    const int numBorderBoxes = slipActive ? numBoxes : 0;
+    geometry().allocate(numVerticesPerLine * 5 * numBorderBoxes + numVerticesPerLine);
 
     RGBAVertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::RGBAColoredPoint2D>()};
 
-    for (int boxIdx = 0; boxIdx < numBoxes; ++boxIdx) {
+    for (int boxIdx = 0; boxIdx < numBorderBoxes; ++boxIdx) {
         const float posy1 = boxIdx * boxBreadth;
         const float posy2 = posy1 + boxBreadth / 2.f;
 
@@ -156,6 +168,16 @@ bool WaveformRendererSlipMode::preprocessInner() {
                 borderColor,
                 borderColor0);
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The play marker is at the same place in both slip states. The line is
+    // drawn last, so it lies over the border.
+    const float playbackX = static_cast<float>(
+            m_waveformRenderer->getPlayMarkerPosition() * m_waveformRenderer->getLength());
+    vertexUpdater.addRectangle({playbackX - kPlaybackLineWidth / 2.f, 0.f},
+            {playbackX + kPlaybackLineWidth / 2.f, breadth},
+            kPlaybackLineColor);
+    // End of AI-generated text.
 
     markDirtyGeometry();
     markDirtyMaterial();

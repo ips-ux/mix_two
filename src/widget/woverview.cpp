@@ -92,6 +92,15 @@ WOverview::WOverview(
     m_pPassthroughControl->connectValueChanged(this, &WOverview::onPassthroughChange);
     m_bPassthroughEnabled = m_pPassthroughControl->toBool();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pSlipEnabledControl = make_parented<ControlProxy>(
+            m_group, QStringLiteral("slip_enabled"), this, ControlFlag::NoAssertIfMissing);
+    m_pSlipEnabledControl->connectValueChanged(this, &WOverview::onSlipChange);
+    m_pSlipPositionControl = make_parented<ControlProxy>(
+            m_group, QStringLiteral("slip_position"), this, ControlFlag::NoAssertIfMissing);
+    m_pSlipPositionControl->connectValueChanged(this, &WOverview::onSlipChange);
+    // End of AI-generated text.
+
     m_pTypeControl = make_parented<ControlProxy>(
             QStringLiteral("[Waveform]"),
             QStringLiteral("WaveformOverviewType"),
@@ -462,6 +471,13 @@ void WOverview::onRateRatioChange(double v) {
     update();
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+void WOverview::onSlipChange(double v) {
+    Q_UNUSED(v);
+    update();
+}
+// End of AI-generated text.
+
 void WOverview::onPassthroughChange(double v) {
     m_bPassthroughEnabled = static_cast<bool>(v);
 
@@ -777,6 +793,7 @@ void WOverview::paintEvent(QPaintEvent* pEvent) {
 
             drawRangeMarks(&painter, offset, gain);
             drawMarks(&painter, offset, gain);
+            drawSlipLines(&painter);
             drawPickupPosition(&painter);
             drawTimeRuler(&painter);
             drawMarkLabels(&painter, offset, gain);
@@ -954,6 +971,32 @@ void WOverview::drawPlayPosition(QPainter* pPainter) {
         pPainter->drawLine(line);
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// In slip mode: a yellow line at the playback position and a white line at
+// the background position (where the track would be without the slip).
+void WOverview::drawSlipLines(QPainter* pPainter) {
+    if (!m_pSlipEnabledControl || !m_pSlipEnabledControl->toBool()) {
+        return;
+    }
+    const int slipPos = mixxx::overviewSlipLinePixel(
+            m_pSlipPositionControl->get(), m_maxPixelPos);
+    if (slipPos < 0) {
+        return;
+    }
+    PainterScope painterScope(pPainter);
+    const auto drawLine = [&](int pos, const QColor& color) {
+        pPainter->setPen(QPen(color, 2.0 * m_scaleFactor));
+        if (m_orientation == Qt::Horizontal) {
+            pPainter->drawLine(QLineF(pos, 0.0, pos, height()));
+        } else {
+            pPainter->drawLine(QLineF(0.0, pos, width(), pos));
+        }
+    };
+    drawLine(slipPos, QColor(255, 255, 255));
+    drawLine(m_iPlayPos, QColor(255, 221, 0));
+}
+// End of AI-generated text.
 
 void WOverview::drawEndOfTrackFrame(QPainter* pPainter) {
     if (m_endOfTrack) {

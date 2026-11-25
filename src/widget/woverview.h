@@ -21,6 +21,20 @@ class PlayerManager;
 class QDomNode;
 class SkinContext;
 
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace mixxx {
+/// The pixel of a slip line on the overview. `fraction` is a position in the
+/// track from 0 to 1; a negative value (no slip position) gives -1.
+/// `maxPixelPos` is the last pixel of the overview. A value above 1 is 1.
+inline int overviewSlipLinePixel(double fraction, int maxPixelPos) {
+    if (!(fraction >= 0.0)) {
+        return -1;
+    }
+    return static_cast<int>(maxPixelPos * (fraction > 1.0 ? 1.0 : fraction));
+}
+} // namespace mixxx
+// End of AI-generated text.
+
 class WOverview : public WWidget, public TrackDropTarget {
     Q_OBJECT
   public:
@@ -62,6 +76,7 @@ class WOverview : public WWidget, public TrackDropTarget {
     void onMarkRangeChange(double v);
     void onRateRatioChange(double v);
     void onPassthroughChange(double v);
+    void onSlipChange(double v);
     void receiveCuesUpdated();
 
     void slotWaveformSummaryUpdated();
@@ -93,6 +108,7 @@ class WOverview : public WWidget, public TrackDropTarget {
     void drawMinuteMarkers(QPainter* pPainter);
     void drawPlayedOverlay(QPainter* pPainter);
     void drawPlayPosition(QPainter* pPainter);
+    void drawSlipLines(QPainter* pPainter);
     void drawEndOfTrackFrame(QPainter* pPainter);
     void drawAnalyzerProgress(QPainter* pPainter);
     void drawRangeMarks(QPainter* pPainter, const float& offset, const float& gain);
@@ -207,6 +223,12 @@ class WOverview : public WWidget, public TrackDropTarget {
     PollingControlProxy m_trackSamplesControl;
     PollingControlProxy m_playpositionControl;
     parented_ptr<ControlProxy> m_pPassthroughControl;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // slip_enabled and slip_position of the deck. slip_position is the
+    // background position (0 to 1) while slip mode is on, else -1.
+    parented_ptr<ControlProxy> m_pSlipEnabledControl;
+    parented_ptr<ControlProxy> m_pSlipPositionControl;
+    // End of AI-generated text.
     parented_ptr<ControlProxy> m_pTypeControl;
     parented_ptr<ControlProxy> m_pStereoControl;
     parented_ptr<ControlProxy> m_pMinuteMarkersControl;

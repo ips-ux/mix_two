@@ -457,6 +457,10 @@ class EngineBuffer : public EngineObject {
 
     PollingControlProxy m_quantize;
     ControlPotmeter* m_playposSlider;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// slip_position: the background position (0 to 1) while slip mode is on, else -1.
+    ControlObject* m_pSlipPosition;
+    // End of AI-generated text.
     ControlProxy* m_pSampleRate;
     ControlProxy* m_pKeylockEngine;
     ControlProxy* m_pScratchAlgorithm;

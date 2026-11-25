@@ -172,6 +172,12 @@ EngineBuffer::EngineBuffer(const QString& group,
             this, &EngineBuffer::slotControlSeek,
             Qt::DirectConnection);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pSlipPosition = new ControlObject(ConfigKey(m_group, "slip_position"));
+    m_pSlipPosition->set(-1.0);
+    m_pSlipPosition->setReadOnly();
+    // End of AI-generated text.
+
     // Control used to communicate ratio playpos to GUI thread
     m_visualPlayPos = VisualPlayPosition::getVisualPlayPosition(m_group);
 
@@ -333,6 +339,7 @@ EngineBuffer::~EngineBuffer() {
     delete m_endButton;
     delete m_stopButton;
     delete m_playposSlider;
+    delete m_pSlipPosition;
 
     delete m_pSlipButton;
     delete m_pRepeat;
@@ -1569,6 +1576,9 @@ void EngineBuffer::updateIndicators(double speed, std::size_t bufferSize) {
             (mixxx::kEngineChannelOutputCount * m_pSampleRate->get() /
                     kPlaypositionUpdateRate)) {
         m_playposSlider->set(fFractionalPlaypos);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_pSlipPosition->set(m_bSlipEnabledProcessing ? fFractionalSlipPos : -1.0);
+        // End of AI-generated text.
         m_pCueControl->updateIndicators();
         m_samplesSinceLastIndicatorUpdate = 0;
     }

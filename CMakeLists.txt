@@ -3137,6 +3137,7 @@ if(BUILD_TESTING)
     src/test/synctrackmetadatatest.cpp
     src/test/tableview_test.cpp
     src/test/taglibtest.cpp
+    src/test/overviewslipline_test.cpp
     src/test/trackdao_test.cpp
     src/test/trackdisplayprops_test.cpp
     src/test/trackexport_test.cpp
