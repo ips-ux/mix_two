@@ -29,6 +29,8 @@ enum class ExportLoopStatus {
     TargetIsSource,
     /// The folder of the target file does not exist.
     TargetFolderMissing,
+    /// The loop is too long for a WAV file (more than 4 GB).
+    TooLong,
     /// The WAV file could not be written or put in place. No file is left,
     /// and an existing file at the target stays as it was.
     WriteFailed,
@@ -38,6 +40,9 @@ struct ExportLoopResult {
     ExportLoopStatus status = ExportLoopStatus::InvalidLoop;
     /// The frames in the WAV file (set when `status` is `Exported`).
     SINT framesWritten = 0;
+    /// True when the rate change used the fallback scaler of the deck engine
+    /// (a build without FFmpeg). Tell the user.
+    bool limitedQuality = false;
 };
 
 /// The frames that the WAV file holds for a loop of `loopFrames` source
@@ -45,14 +50,20 @@ struct ExportLoopResult {
 /// the nearest frame.
 SINT exportLoopFrameCount(SINT loopFrames, int sourceRate);
 
+/// True when a WAV file with that many frames (2 channels, 16 bit) has sizes
+/// that fit in the 32 bit fields of the RIFF header.
+bool exportLoopFitsInWav(SINT frames);
+
 /// Writes the loop `[startFrame, endFrame)` of the file `sourcePath` to the
 /// WAV file `targetPath`. The positions are frame indexes of the source file
 /// at its own sample rate (the end is not part of the loop). An end behind the
 /// end of the audio is cut to the end of the audio.
 ///
 /// The audio has the speed and the pitch of the file: no tempo change, no key
-/// lock, no effect. A source at another rate than 48 kHz goes through the
-/// band-limited resampler of the deck engine. The WAV file has two channels
+/// lock, no effect. A source at 48 kHz is copied. Another rate goes through
+/// libswresample (default filter) when the build has FFmpeg, else through the
+/// scaler of the deck engine (`limitedQuality`). `allowFfmpeg` false forces
+/// the scaler (for tests). The WAV file has two channels
 /// (a mono source goes to both), 16 bit and 48 kHz.
 ///
 /// The source file is only read. The function writes a temporary file in the
@@ -66,7 +77,11 @@ ExportLoopResult exportLoopAsWav(
         const QString& sourcePath,
         SINT startFrame,
         SINT endFrame,
-        const QString& targetPath);
+        const QString& targetPath,
+        bool allowFfmpeg = true);
+
+/// The text for the user about a rate change of limited quality.
+QString exportLoopLimitedQualityText();
 
 /// The text for the user that tells why an export failed (Simplified
 /// Technical English). `Exported` gives an empty text.

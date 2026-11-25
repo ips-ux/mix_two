@@ -1700,14 +1700,20 @@ void WTrackMenu::slotExportLoop() {
                 if (result.status == mixxx::library::ExportLoopStatus::Exported) {
                     // The normal way to add a file to the Collection.
                     pLibrary->importFiles({targetPath});
+                    if (result.limitedQuality) {
+                        QMessageBox::information(nullptr,
+                                QCoreApplication::translate("WTrackMenu", "Export Loop As WAV"),
+                                mixxx::library::exportLoopLimitedQualityText());
+                    }
                     return;
                 }
                 QMessageBox::warning(nullptr,
                         QCoreApplication::translate("WTrackMenu", "Export Loop As WAV"),
                         mixxx::library::exportLoopErrorText(result.status));
             });
-    pWatcher->setFuture(QtConcurrent::run(
-            &mixxx::library::exportLoopAsWav, sourcePath, startFrame, endFrame, targetPath));
+    pWatcher->setFuture(QtConcurrent::run([sourcePath, startFrame, endFrame, targetPath]() {
+        return mixxx::library::exportLoopAsWav(sourcePath, startFrame, endFrame, targetPath);
+    }));
 }
 
 void WTrackMenu::slotExportTrack() {
