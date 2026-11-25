@@ -749,6 +749,18 @@ have audio problems with an old kernel. Update the Linux kernel to version
 The notice shows one time for each profile. It does not stop the start of Mix
 Two. Windows is not changed.
 
+### Real-time priority on Linux
+
+The .deb package of Mix Two has a limits file for the group `audio`. The
+file is `/etc/security/limits.d/mixtwo-audio.conf`. It allows a real-time
+priority of 82 and unlimited locked memory. Mix Two needs this for stable
+sound.
+
+Make sure that your user is in the group `audio`. Then log out and log in
+again. If Mix Two cannot use real-time priority, a notice shows at the start.
+The notice shows one time for each profile. It does not stop the start of Mix
+Two. Windows is not changed.
+
 ### Track files on removable drives
 
 Mix Two does not move a track file to the trash when the file is on a removable

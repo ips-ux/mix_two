@@ -21,6 +21,16 @@ constexpr int kDdj800KernelMinor = 4;
 /// The comparison ignores letter case.
 bool soundCardsListDdj800(const QString& cardsText);
 
+/// The real-time priority that the audio code asks for (the value that
+/// PortAudio uses). The limits file for the audio group allows it.
+constexpr unsigned int kRequiredRtPrio = 82;
+
+/// True when the real-time priority limit blocks the audio code. `cur` is the
+/// soft limit and `max` is the hard limit of the process. The soft limit
+/// decides, as `RLimit::isRtPrioAllowed()` does; Mix Two does not raise the
+/// soft limit itself, so the hard limit does not change the answer.
+bool rtNoticeNeeded(unsigned int cur, unsigned int max);
+
 /// The decision "show a notice": the condition holds and the user has not
 /// seen the notice in this profile before.
 bool shouldShowNotice(bool conditionHolds, bool alreadyShown);

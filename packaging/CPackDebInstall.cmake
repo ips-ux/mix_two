@@ -106,6 +106,18 @@ run_dh(dh_installchangelogs)
 run_dh(dh_installman)
 run_dh(dh_installudev --name=mixxx-usb-uaccess --priority=69)
 
+# Real-time limits for the group audio. The file goes straight into the package
+# tree, as dh_installudev does for the udev rule.
+file(
+  MAKE_DIRECTORY
+  ${CPACK_TOPLEVEL_DIRECTORY}/${CPACK_PACKAGE_FILE_NAME}/etc/security/limits.d
+)
+configure_file(
+  ${CPACK_DEBIAN_SOURCE_DIR}/packaging/linux/mixtwo-audio.conf
+  ${CPACK_TOPLEVEL_DIRECTORY}/${CPACK_PACKAGE_FILE_NAME}/etc/security/limits.d/mixtwo-audio.conf
+  COPYONLY
+)
+
 # Remove temporary files only needed by debhelpers
 file(
   REMOVE_RECURSE

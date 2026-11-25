@@ -7,6 +7,7 @@
 namespace {
 
 using mixxx::kernelOlderThan;
+using mixxx::rtNoticeNeeded;
 using mixxx::shouldShowNotice;
 using mixxx::soundCardsListDdj800;
 
@@ -57,6 +58,20 @@ TEST(LinuxSystemCheckTest, NoticeShowsOnceOnly) {
     EXPECT_FALSE(shouldShowNotice(true, true));
     EXPECT_FALSE(shouldShowNotice(false, false));
     EXPECT_FALSE(shouldShowNotice(false, true));
+}
+
+TEST(LinuxSystemCheckTest, RtNoticeNeededWhenLimitIsLow) {
+    EXPECT_TRUE(rtNoticeNeeded(0, 0));
+    EXPECT_TRUE(rtNoticeNeeded(0, 95));
+    EXPECT_TRUE(rtNoticeNeeded(81, 81));
+    EXPECT_TRUE(rtNoticeNeeded(81, 99));
+}
+
+TEST(LinuxSystemCheckTest, RtNoticeNotNeededWhenLimitIsEnough) {
+    EXPECT_FALSE(rtNoticeNeeded(82, 82));
+    EXPECT_FALSE(rtNoticeNeeded(95, 99));
+    // RLimit::getCurRtPrio() gives 100 when the limit cannot be read.
+    EXPECT_FALSE(rtNoticeNeeded(100, 0));
 }
 
 } // namespace

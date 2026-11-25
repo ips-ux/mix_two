@@ -33,6 +33,11 @@ bool soundCardsListDdj800(const QString& cardsText) {
     return kDdj800.match(cardsText).hasMatch();
 }
 
+bool rtNoticeNeeded(unsigned int cur, unsigned int max) {
+    Q_UNUSED(max);
+    return cur < kRequiredRtPrio;
+}
+
 bool shouldShowNotice(bool conditionHolds, bool alreadyShown) {
     return conditionHolds && !alreadyShown;
 }

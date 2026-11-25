@@ -61,6 +61,9 @@
 #include "util/font.h"
 #include "util/linuxsystemcheck.h"
 #include "util/logger.h"
+#ifdef __LINUX__
+#include "util/rlimit.h"
+#endif
 #include "util/screensavermanager.h"
 #include "util/statsmanager.h"
 #include "util/time.h"
@@ -163,6 +166,34 @@ void showOldKernelNoticeOnce(const UserSettingsPointer& pConfig) {
     pBox->setAttribute(Qt::WA_DeleteOnClose);
     pBox->setWindowModality(Qt::NonModal);
     pBox->show();
+}
+
+/// On Linux: when the real-time priority limit is too low for the audio code,
+/// shows one notice for each profile. The window is not modal and does not
+/// block the start.
+void showRtPrioNoticeOnce(const UserSettingsPointer& pConfig) {
+#ifdef __LINUX__
+    const ConfigKey shownKey(QStringLiteral("[Mixtwo]"), QStringLiteral("RtPrioNoticeShown"));
+    const bool alreadyShown = pConfig->getValue<bool>(shownKey, false);
+    const bool needed = mixxx::rtNoticeNeeded(
+            RLimit::getCurRtPrio(), RLimit::getMaxRtPrio());
+    if (!mixxx::shouldShowNotice(needed, alreadyShown)) {
+        return;
+    }
+    pConfig->setValue(shownKey, true);
+    auto* pBox = new QMessageBox(QMessageBox::Information,
+            QObject::tr("Real-time priority is off"),
+            QObject::tr("Mix Two cannot use real-time priority. The sound can have "
+                        "dropouts. Make sure that your user is in the group "
+                        "audio. Then log out and log in again. This notice "
+                        "shows one time."),
+            QMessageBox::Ok);
+    pBox->setAttribute(Qt::WA_DeleteOnClose);
+    pBox->setWindowModality(Qt::NonModal);
+    pBox->show();
+#else
+    Q_UNUSED(pConfig);
+#endif
 }
 // End of AI-generated text.
 #endif // Q_OS_LINUX
@@ -626,6 +657,7 @@ void CoreServices::initialize(QApplication* pApp) {
     }
 #ifdef Q_OS_LINUX
     showOldKernelNoticeOnce(pConfig);
+    showRtPrioNoticeOnce(pConfig);
 #endif
     // Although m_pSoundManager is created here, m_pSoundManager->setupDevices()
     // needs to be called after m_pPlayerManager registers sound IO for each EngineChannel.
