@@ -588,14 +588,18 @@ export always set it to on.
 ### Library preferences
 
 Click the artwork of a track in the track list to preview the track from the
-start. Click the artwork again during the preview to skip ahead 30 seconds.
-The preview stops when the pointer leaves the artwork cell. A double-click
-still loads the track to a deck.
+start. The preview starts when the double-click time has passed. Click the
+artwork again during the preview to skip ahead 30 seconds. The preview stops
+when the pointer leaves the artwork cell. A double-click still loads the
+track to a deck.
+
+Click the overview column of a track to start the preview at that position
+in the track. Click the overview again during the preview to move to another
+position. Use the stop control of the preview deck to stop it.
 
 The overview column can show the memory cue marks and hot cue marks. Go to
 Preferences > Library, select **Display cue markers on preview**, then push
-**Apply**. Click near a mark to start the preview at that cue. A click away
-from a mark does not start the preview.
+**Apply**. Click near a mark to start the preview at that cue.
 
 The sidebar no longer shows the track count after the name of a playlist or
 crate. To show it again, go to Preferences > Library, then select **Show the

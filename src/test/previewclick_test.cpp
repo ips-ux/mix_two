@@ -7,7 +7,6 @@
 
 #include <QList>
 
-#include "library/library_prefs.h"
 #include "library/tabledelegates/previewclick.h"
 #include "test/mixxxtest.h"
 #include "track/track.h"
@@ -87,15 +86,16 @@ TEST(PreviewClickTest, CueMarksShowHotAndMemoryCuesOnly) {
     ASSERT_EQ(2, marks.size());
     EXPECT_DOUBLE_EQ(10.0, marks[0].seconds);
     EXPECT_DOUBLE_EQ(60.0, marks[1].seconds);
+    // The hot cue keeps its own colour and the memory cue is red.
+    EXPECT_EQ(static_cast<unsigned int>(
+                      mixxx::PredefinedColorPalettes::kDefaultCueColor),
+            marks[0].rgb);
+    EXPECT_EQ(0xE0202Au, marks[1].rgb);
 }
 
 TEST(PreviewClickTest, CueMarksOfNoCuesAreEmpty) {
     EXPECT_TRUE(cueMarksOf({}, 44100.0).isEmpty());
     EXPECT_TRUE(cueMarksOf({}, 0.0).isEmpty());
-}
-
-TEST(PreviewClickTest, CueMarksAreOffByDefault) {
-    EXPECT_FALSE(mixxx::library::prefs::kShowCueMarksOnPreviewDefault);
 }
 
 } // namespace

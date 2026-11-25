@@ -2,7 +2,9 @@
 
 #include <QAbstractItemModel>
 #include <QElapsedTimer>
+#include <QPersistentModelIndex>
 #include <QPoint>
+#include <optional>
 #include <QSortFilterProxyModel>
 
 #include "control/controlproxy.h"
@@ -10,6 +12,7 @@
 #include "library/dao/playlistdao.h"
 #include "library/trackmodel.h" // Can't forward declare enums
 #include "preferences/usersettings.h"
+#include "library/tabledelegates/previewclickcontroller.h"
 #include "track/track_decl.h"
 #include "util/duration.h"
 #include "util/parented_ptr.h"
@@ -188,6 +191,8 @@ class WTrackTableView : public WLibraryTableView {
     // AI-generated (Claude Code). Start of AI-generated text.
     // The pointer leaves the list: a preview that a click started stops.
     bool viewportEvent(QEvent* pEvent) override;
+    void mouseDoubleClickEvent(QMouseEvent* pEvent) override;
+    void hideEvent(QHideEvent* pEvent) override;
     // End of AI-generated text.
     // Mouse move event, implemented to hide the text and show an icon instead
     // when dragging.
@@ -215,17 +220,19 @@ class WTrackTableView : public WLibraryTableView {
     void cancelHoldTimer();
     void slotHoldTimeout();
     // Preview by click: a click on the artwork starts the preview from the
-    // start and a click during the preview skips ahead; a click near a cue mark
-    // on the overview column starts the preview at that cue. Returns true when
-    // a click started or moved the preview.
-    bool handlePreviewClick(const QPoint& pos);
-    void startClickPreview(const TrackPointer& pTrack,
-            double startSeconds,
-            const QModelIndex& cell);
-    void stopClickPreview();
-    void slotPreviewTrackLoaded(double loaded);
-    void applyPendingPreview();
+    // start and a click during the preview skips ahead; a click on the overview
+    // column starts the preview at the clicked position or at a cue mark near
+    // it. The decisions are in PreviewClickController.
+    struct PreviewClick {
+        TrackPointer pTrack;
+        PreviewClickController::Origin origin;
+        double startSeconds;
+        double lengthSeconds;
+    };
+    std::optional<PreviewClick> previewClickAt(const QPoint& pos);
     void ensurePreviewControls();
+    void slotStopClickPreview();
+    void slotClickStartTimeout();
     // End of AI-generated text.
 
     const UserSettingsPointer m_pConfig;
@@ -258,14 +265,16 @@ class WTrackTableView : public WLibraryTableView {
     QElapsedTimer m_prefixClock;
     QTimer* m_pHoldTimer;
     QPoint m_holdPressPos;
+    // The preview deck and the click logic (see ensurePreviewControls()).
     ControlProxy* m_pPreviewPlay;
     ControlProxy* m_pPreviewPosition;
-    ControlProxy* m_pPreviewLoaded;
-    // The cell of the click that owns the preview, and the track that it loads.
+    PreviewPlayerPort* m_pPreviewPort;
+    PreviewClickController* m_pPreviewClick;
+    QTimer* m_pClickStartTimer;
+    // The cell that the left button went down on, and the cell of the preview.
+    QPersistentModelIndex m_pressCell;
     QPersistentModelIndex m_previewCell;
-    TrackPointer m_pPreviewTrack;
-    // True while the preview deck still loads the track of the click.
-    bool m_previewPending;
-    double m_previewStartSeconds;
+    // The release after a double click that the preview used is not a click.
+    bool m_ignoreRelease;
     // End of AI-generated text.
 };

@@ -57,14 +57,24 @@ bool OverviewDelegate::showCueMarks() {
     return s_showCueMarks.load();
 }
 
-OverviewDelegate::CueMarks OverviewDelegate::cueMarksOfRow(const QModelIndex& index) const {
+OverviewDelegate::CueMarks OverviewDelegate::cueMarksOfRow(
+        const QModelIndex& index, bool allowLoad) const {
     const TrackId trackId(m_pTrackModel->getTrackId(index));
     if (!trackId.isValid()) {
-        return {};
+        return {{}, 0.0};
     }
     const auto it = m_cueMarkCache.constFind(trackId);
     if (it != m_cueMarkCache.constEnd()) {
         return *it;
+    }
+    if (!allowLoad) {
+        // Paint must not read the database. Remember the row; the marks come
+        // in a later event loop turn and the view paints again.
+        m_cueMarkWanted.insert(trackId, QPersistentModelIndex(index));
+        if (!m_inhibitLazyLoading) {
+            scheduleCueMarkLoad();
+        }
+        return {{}, 0.0};
     }
     CueMarks result{{}, 0.0};
     const TrackPointer pTrack = m_pTrackModel->getTrack(index);
@@ -81,13 +91,40 @@ void OverviewDelegate::clearCueMarkCache() {
     m_cueMarkCache.clear();
 }
 
+void OverviewDelegate::scheduleCueMarkLoad() const {
+    if (m_cueMarkLoadScheduled || m_cueMarkWanted.isEmpty()) {
+        return;
+    }
+    m_cueMarkLoadScheduled = true;
+    QMetaObject::invokeMethod(
+            const_cast<OverviewDelegate*>(this),
+            &OverviewDelegate::loadWantedCueMarks,
+            Qt::QueuedConnection);
+}
+
+void OverviewDelegate::loadWantedCueMarks() {
+    m_cueMarkLoadScheduled = false;
+    if (m_inhibitLazyLoading) {
+        return;
+    }
+    const auto wanted = std::move(m_cueMarkWanted);
+    m_cueMarkWanted.clear();
+    for (const QPersistentModelIndex& index : wanted) {
+        if (index.isValid()) {
+            cueMarksOfRow(index, true);
+        }
+    }
+    m_pTableView->viewport()->update();
+}
+
 std::optional<double> OverviewDelegate::cueNearClick(
         const QModelIndex& index, int xInCell) const {
     if (!showCueMarks() || !index.isValid()) {
         return std::nullopt;
     }
     const int width = m_pTableView->columnWidth(index.column());
-    const CueMarks cues = cueMarksOfRow(index);
+    // A click is not a paint: the marks may load here.
+    const CueMarks cues = cueMarksOfRow(index, true);
     return previewclick::cueNearClick(cues.marks,
             xInCell,
             width,
@@ -177,6 +214,9 @@ void OverviewDelegate::emitOverviewRowsChanged(QSet<TrackId>&& trackIds) {
 
 void OverviewDelegate::slotInhibitLazyLoading(bool inhibitLazyLoading) {
     m_inhibitLazyLoading = inhibitLazyLoading;
+    if (!m_inhibitLazyLoading) {
+        scheduleCueMarkLoad();
+    }
     if (m_inhibitLazyLoading || m_cacheMissIds.isEmpty()) {
         return;
     }
@@ -239,7 +279,7 @@ void OverviewDelegate::paintItem(QPainter* painter,
 
     // AI-generated (Claude Code). Start of AI-generated text.
     if (showCueMarks()) {
-        const CueMarks cues = cueMarksOfRow(index);
+        const CueMarks cues = cueMarksOfRow(index, false);
         painter->save();
         painter->setClipRect(option.rect);
         for (const previewclick::CueMark& mark : cues.marks) {

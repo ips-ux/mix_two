@@ -81,8 +81,14 @@ class OverviewDelegate : public TableItemDelegate {
     };
     // The marks of a track and its length. The cache is cleared when the model
     // reports a change, so the marks follow the cues of the track.
-    CueMarks cueMarksOfRow(const QModelIndex& index) const;
+    // With `allowLoad` false the function only reads the cache (for paint) and
+    // asks for a later load of a missing entry.
+    CueMarks cueMarksOfRow(const QModelIndex& index, bool allowLoad) const;
     void clearCueMarkCache();
+    void scheduleCueMarkLoad() const;
+    void loadWantedCueMarks();
     mutable QHash<TrackId, CueMarks> m_cueMarkCache;
+    mutable QHash<TrackId, QPersistentModelIndex> m_cueMarkWanted;
+    mutable bool m_cueMarkLoadScheduled = false;
     // End of AI-generated text.
 };

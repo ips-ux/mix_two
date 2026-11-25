@@ -28,6 +28,17 @@ inline double skipAhead(double positionSeconds, double stepSeconds, double lengt
     return std::clamp(positionSeconds + stepSeconds, 0.0, std::max(lengthSeconds, 0.0));
 }
 
+/// The time in the track for a click at `xInCell` in a cell of `widthPx`
+/// (the overview column shows the whole track over the cell width). The
+/// result is between 0 and the length.
+inline double previewPositionFromClick(int xInCell, int widthPx, double lengthSeconds) {
+    if (widthPx <= 0 || lengthSeconds <= 0.0) {
+        return 0.0;
+    }
+    const double fraction = std::clamp(static_cast<double>(xInCell) / widthPx, 0.0, 1.0);
+    return fraction * lengthSeconds;
+}
+
 /// The x position in a cell of `widthPx` for a cue at `cueSeconds` in a track
 /// of `lengthSeconds`. Gives 0 when the length is not known.
 inline int cueX(double cueSeconds, double lengthSeconds, int widthPx) {

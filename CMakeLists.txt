@@ -1549,6 +1549,7 @@ add_library(
   src/library/tabledelegates/multilineeditdelegate.cpp
   src/library/tabledelegates/overviewdelegate.cpp
   src/library/tabledelegates/previewbuttondelegate.cpp
+  src/library/tabledelegates/previewclickcontroller.cpp
   src/library/tabledelegates/stardelegate.cpp
   src/library/tabledelegates/stareditor.cpp
   src/library/tabledelegates/tableitemdelegate.cpp
@@ -3100,6 +3101,7 @@ if(BUILD_TESTING)
     src/test/playtimegate_test.cpp
     src/test/trackviewkeys_test.cpp
     src/test/previewclick_test.cpp
+    src/test/previewstart_test.cpp
     src/test/sidebarlabel_test.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp
