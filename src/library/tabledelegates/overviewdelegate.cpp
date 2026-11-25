@@ -1,12 +1,16 @@
 #include "library/tabledelegates/overviewdelegate.h"
 
 #include <QMetaEnum>
+#include <QPainter>
+#include <atomic>
 
 #include "control/controlproxy.h"
 #include "library/dao/trackdao.h"
+#include "library/library_prefs.h"
 #include "library/overviewcache.h"
 #include "library/trackmodel.h"
 #include "moc_overviewdelegate.cpp"
+#include "track/track.h"
 #include "util/logger.h"
 #include "util/make_const_iterator.h"
 #include "widget/wlibrary.h"
@@ -36,7 +40,61 @@ inline WLibrary* findLibraryWidgetParent(QWidget* pWidget) {
     return nullptr;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+std::atomic<bool> s_showCueMarks{mixxx::library::prefs::kShowCueMarksOnPreviewDefault};
+// End of AI-generated text.
+
 } // anonymous namespace
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// static
+void OverviewDelegate::setShowCueMarks(bool show) {
+    s_showCueMarks.store(show);
+}
+
+// static
+bool OverviewDelegate::showCueMarks() {
+    return s_showCueMarks.load();
+}
+
+OverviewDelegate::CueMarks OverviewDelegate::cueMarksOfRow(const QModelIndex& index) const {
+    const TrackId trackId(m_pTrackModel->getTrackId(index));
+    if (!trackId.isValid()) {
+        return {};
+    }
+    const auto it = m_cueMarkCache.constFind(trackId);
+    if (it != m_cueMarkCache.constEnd()) {
+        return *it;
+    }
+    CueMarks result{{}, 0.0};
+    const TrackPointer pTrack = m_pTrackModel->getTrack(index);
+    if (pTrack) {
+        result.lengthSeconds = pTrack->getDuration();
+        result.marks = previewclick::cueMarksOf(
+                pTrack->getCuePoints(), pTrack->getSampleRate().value());
+    }
+    m_cueMarkCache.insert(trackId, result);
+    return result;
+}
+
+void OverviewDelegate::clearCueMarkCache() {
+    m_cueMarkCache.clear();
+}
+
+std::optional<double> OverviewDelegate::cueNearClick(
+        const QModelIndex& index, int xInCell) const {
+    if (!showCueMarks() || !index.isValid()) {
+        return std::nullopt;
+    }
+    const int width = m_pTableView->columnWidth(index.column());
+    const CueMarks cues = cueMarksOfRow(index);
+    return previewclick::cueNearClick(cues.marks,
+            xInCell,
+            width,
+            cues.lengthSeconds,
+            previewclick::kCueToleranceDefaultPx);
+}
+// End of AI-generated text.
 
 OverviewDelegate::OverviewDelegate(QTableView* pTableView)
         : TableItemDelegate(pTableView),
@@ -65,6 +123,15 @@ OverviewDelegate::OverviewDelegate(QTableView* pTableView)
             this);
     m_pTypeControl->connectValueChanged(this, &OverviewDelegate::slotTypeControlChanged);
     slotTypeControlChanged(m_pTypeControl->get());
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A change of the model can be a change of the cues of a track.
+    if (QAbstractItemModel* pModel = pTableView->model()) {
+        connect(pModel, &QAbstractItemModel::dataChanged, this, &OverviewDelegate::clearCueMarkCache);
+        connect(pModel, &QAbstractItemModel::modelReset, this, &OverviewDelegate::clearCueMarkCache);
+        connect(pModel, &QAbstractItemModel::layoutChanged, this, &OverviewDelegate::clearCueMarkCache);
+    }
+    // End of AI-generated text.
 }
 
 void OverviewDelegate::slotTypeControlChanged(double v) {
@@ -169,6 +236,26 @@ void OverviewDelegate::paintItem(QPainter* painter,
         pixmap.setDevicePixelRatio(scaleFactor);
         painter->drawPixmap(option.rect, pixmap);
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (showCueMarks()) {
+        const CueMarks cues = cueMarksOfRow(index);
+        painter->save();
+        painter->setClipRect(option.rect);
+        for (const previewclick::CueMark& mark : cues.marks) {
+            const int x = option.rect.left() +
+                    previewclick::cueX(mark.seconds,
+                            cues.lengthSeconds,
+                            option.rect.width());
+            // A dark edge keeps the mark visible on a bright waveform.
+            painter->fillRect(QRect(x - 1, option.rect.top(), 4, option.rect.height()),
+                    QColor(0, 0, 0, 160));
+            painter->fillRect(QRect(x, option.rect.top(), 2, option.rect.height()),
+                    QColor::fromRgb(mark.rgb));
+        }
+        painter->restore();
+    }
+    // End of AI-generated text.
 
     // Draw a border if the cover art cell has focus
     if (option.state & QStyle::State_HasFocus) {

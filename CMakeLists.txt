@@ -3099,6 +3099,7 @@ if(BUILD_TESTING)
     src/test/playlisttest.cpp
     src/test/playtimegate_test.cpp
     src/test/trackviewkeys_test.cpp
+    src/test/previewclick_test.cpp
     src/test/sidebarlabel_test.cpp
     src/test/portmidicontroller_test.cpp
     src/test/portmidienumeratortest.cpp

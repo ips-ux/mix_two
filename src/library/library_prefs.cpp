@@ -160,6 +160,11 @@ const ConfigKey mixxx::library::prefs::kCoverArtShowWholeConfigKey =
                 mixxx::library::prefs::kConfigGroup,
                 QStringLiteral("CoverArtShowWhole")};
 
+const ConfigKey mixxx::library::prefs::kShowCueMarksOnPreviewConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("ShowCueMarksOnPreview")};
+
 const ConfigKey mixxx::library::prefs::kConsolidateFolderPatternConfigKey =
         ConfigKey{
                 mixxx::library::prefs::kConfigGroup,

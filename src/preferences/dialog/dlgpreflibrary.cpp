@@ -19,6 +19,7 @@
 #include "library/library_prefs.h"
 #include "library/libraryviewprefs.h"
 #include "library/tabledelegates/coverartdelegate.h"
+#include "library/tabledelegates/overviewdelegate.h"
 #include "library/searchquery.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -328,6 +329,7 @@ void DlgPrefLibrary::slotResetToDefaults() {
     checkBox_show_track_count->setChecked(kShowTrackCountInSidebarDefault);
     checkBox_center_selected_track->setChecked(kCenterSelectedTrackDefault);
     checkBox_artwork_whole->setChecked(kCoverArtShowWholeDefault);
+    checkBox_show_cue_marks->setChecked(kShowCueMarksOnPreviewDefault);
     checkBox_reset_played_on_exit->setChecked(kResetPlayedOnExitDefault);
     lineEdit_consolidate_folder_pattern->setText(mixxx::library::defaultFolderPattern());
     setAutoRelocateFolders({});
@@ -466,6 +468,10 @@ void DlgPrefLibrary::slotUpdate() {
             kCoverArtShowWholeConfigKey, kCoverArtShowWholeDefault);
     checkBox_artwork_whole->setChecked(artworkWhole);
     CoverArtDelegate::setShowWholeArtwork(artworkWhole);
+    const bool showCueMarks = m_pConfig->getValue(
+            kShowCueMarksOnPreviewConfigKey, kShowCueMarksOnPreviewDefault);
+    checkBox_show_cue_marks->setChecked(showCueMarks);
+    OverviewDelegate::setShowCueMarks(showCueMarks);
     checkBox_reset_played_on_exit->setChecked(m_pConfig->getValue(
             kResetPlayedOnExitConfigKey, kResetPlayedOnExitDefault));
     lineEdit_consolidate_folder_pattern->setText(m_pConfig->getValue(
@@ -771,6 +777,8 @@ void DlgPrefLibrary::slotApply() {
     WTrackTableView::setCenterSelectedTrack(checkBox_center_selected_track->isChecked());
     m_pConfig->setValue(kCoverArtShowWholeConfigKey, checkBox_artwork_whole->isChecked());
     CoverArtDelegate::setShowWholeArtwork(checkBox_artwork_whole->isChecked());
+    m_pConfig->setValue(kShowCueMarksOnPreviewConfigKey, checkBox_show_cue_marks->isChecked());
+    OverviewDelegate::setShowCueMarks(checkBox_show_cue_marks->isChecked());
     m_pConfig->setValue(kResetPlayedOnExitConfigKey,
             checkBox_reset_played_on_exit->isChecked());
     {

@@ -407,6 +407,17 @@
        </widget>
       </item>
 
+      <item row="16" column="0" colspan="4">
+       <widget class="QCheckBox" name="checkBox_show_cue_marks">
+        <property name="toolTip">
+         <string>Show the memory cue marks and hot cue marks on the overview column. Click near a mark to start the preview at that cue. This starts when you push Apply or OK.</string>
+        </property>
+        <property name="text">
+         <string>Display cue markers on preview</string>
+        </property>
+       </widget>
+      </item>
+
      </layout>
     </widget>
    </item><!-- Track Table View -->
@@ -940,6 +951,7 @@
   <tabstop>checkBox_hold_to_open_menu</tabstop>
   <tabstop>checkBox_center_selected_track</tabstop>
   <tabstop>checkBox_artwork_whole</tabstop>
+  <tabstop>checkBox_show_cue_marks</tabstop>
   <tabstop>checkBox_reset_played_on_exit</tabstop>
   <tabstop>pushButton_reset_played</tabstop>
   <tabstop>spinBox_search_debouncing_timeout</tabstop>

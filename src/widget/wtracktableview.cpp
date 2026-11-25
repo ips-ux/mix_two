@@ -22,6 +22,10 @@
 #include "library/searchqueryparser.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
+#include "library/tabledelegates/coverartdelegate.h"
+#include "library/tabledelegates/overviewdelegate.h"
+#include "library/tabledelegates/previewclick.h"
+#include "mixer/playerinfo.h"
 #include "mixer/playermanager.h"
 #include "moc_wtracktableview.cpp"
 #include "preferences/colorpalettesettings.h"
@@ -66,7 +70,12 @@ WTrackTableView::WTrackTableView(QWidget* pParent,
           m_selectionChangedSinceLastGuiTick(true),
           m_loadCachedOnly(false),
           m_dropRow(-1),
-          m_pHoldTimer(nullptr) {
+          m_pHoldTimer(nullptr),
+          m_pPreviewPlay(nullptr),
+          m_pPreviewPosition(nullptr),
+          m_pPreviewLoaded(nullptr),
+          m_previewPending(false),
+          m_previewStartSeconds(0.0) {
     // AI-generated (Claude Code). Start of AI-generated text.
     m_prefixClock.start();
     m_pHoldTimer = new QTimer(this);
@@ -452,6 +461,11 @@ void WTrackTableView::initTrackMenu() {
 
 // slot
 void WTrackTableView::slotMouseDoubleClicked(const QModelIndex& index) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The first click of a double click may have started a preview. The load
+    // that follows needs silence from the preview.
+    stopClickPreview();
+    // End of AI-generated text.
     // Read the current TrackDoubleClickAction setting
     // TODO simplify this casting madness
     int doubleClickActionConfigValue =
@@ -750,6 +764,13 @@ void WTrackTableView::mousePressEvent(QMouseEvent* pEvent) {
     DragAndDropHelper::mousePressed(pEvent);
     WLibraryTableView::mousePressEvent(pEvent);
     startHoldTimer(pEvent);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The base class has done the selection and has prepared the drag, so the
+    // click does here what it does today. The preview comes on top.
+    if (pEvent->button() == Qt::LeftButton && pEvent->modifiers() == Qt::NoModifier) {
+        handlePreviewClick(pEvent->pos());
+    }
+    // End of AI-generated text.
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
@@ -793,6 +814,137 @@ void WTrackTableView::slotHoldTimeout() {
     showTrackMenu(QCursor::pos(), indexAt(pos));
 }
 
+bool WTrackTableView::viewportEvent(QEvent* pEvent) {
+    if (pEvent->type() == QEvent::Leave) {
+        stopClickPreview();
+    }
+    return WLibraryTableView::viewportEvent(pEvent);
+}
+
+void WTrackTableView::ensurePreviewControls() {
+    if (m_pPreviewPlay) {
+        return;
+    }
+    const QString group = PlayerManager::groupForPreviewDeck(0);
+    m_pPreviewPlay = new ControlProxy(group, QStringLiteral("play"), this);
+    m_pPreviewPosition = new ControlProxy(group, QStringLiteral("playposition"), this);
+    m_pPreviewLoaded = new ControlProxy(group, QStringLiteral("track_loaded"), this);
+    m_pPreviewLoaded->connectValueChanged(this, &WTrackTableView::slotPreviewTrackLoaded);
+}
+
+bool WTrackTableView::handlePreviewClick(const QPoint& pos) {
+    const QModelIndex index = indexAt(pos);
+    if (!index.isValid()) {
+        return false;
+    }
+    QAbstractItemDelegate* pDelegate = itemDelegateForColumn(index.column());
+    const bool onArtwork = qobject_cast<CoverArtDelegate*>(pDelegate) != nullptr;
+    auto* pOverview = qobject_cast<OverviewDelegate*>(pDelegate);
+    if (!onArtwork && !pOverview) {
+        return false;
+    }
+    TrackModel* pTrackModel = getTrackModel();
+    if (!pTrackModel) {
+        return false;
+    }
+    double startSeconds = 0.0;
+    if (pOverview) {
+        // Only the part of the cell near a cue mark starts the preview.
+        const std::optional<double> cue = pOverview->cueNearClick(
+                index, pos.x() - visualRect(index).left());
+        if (!cue) {
+            return false;
+        }
+        startSeconds = *cue;
+    }
+    const TrackPointer pTrack = pTrackModel->getTrack(index);
+    if (!pTrack) {
+        return false;
+    }
+    ensurePreviewControls();
+    if (onArtwork) {
+        const QString group = PlayerManager::groupForPreviewDeck(0);
+        const double lengthSeconds = pTrack->getDuration();
+        if (PlayerInfo::instance().getTrackInfo(group) == pTrack &&
+                m_pPreviewPlay->toBool() && lengthSeconds > 0.0) {
+            // A click on the artwork during the preview skips ahead.
+            startSeconds = previewclick::skipAhead(
+                    m_pPreviewPosition->get() * lengthSeconds,
+                    previewclick::kSkipAheadSeconds,
+                    lengthSeconds);
+        }
+    }
+    startClickPreview(pTrack, startSeconds, index);
+    return true;
+}
+
+void WTrackTableView::startClickPreview(const TrackPointer& pTrack,
+        double startSeconds,
+        const QModelIndex& cell) {
+    const QString group = PlayerManager::groupForPreviewDeck(0);
+    m_previewCell = cell;
+    m_pPreviewTrack = pTrack;
+    m_previewStartSeconds = startSeconds;
+    if (PlayerInfo::instance().getTrackInfo(group) == pTrack) {
+        applyPendingPreview();
+        return;
+    }
+    // Load to the preview deck only, never to a deck of the mixer. The deck
+    // loads without play. The play starts when the load is done.
+    m_previewPending = true;
+#ifdef __STEM__
+    emit loadTrackToPlayer(pTrack, group, mixxx::StemChannelSelection(), false);
+#else
+    emit loadTrackToPlayer(pTrack, group, false);
+#endif
+}
+
+void WTrackTableView::slotPreviewTrackLoaded(double loaded) {
+    if (loaded <= 0.0 || !m_previewPending || !m_pPreviewTrack) {
+        return;
+    }
+    const QString group = PlayerManager::groupForPreviewDeck(0);
+    if (PlayerInfo::instance().getTrackInfo(group) != m_pPreviewTrack) {
+        return;
+    }
+    // Let the deck finish its own work after the load (the move to the load
+    // point) before the preview moves to the start time.
+    QTimer::singleShot(0, this, &WTrackTableView::applyPendingPreview);
+}
+
+void WTrackTableView::applyPendingPreview() {
+    if (!m_pPreviewTrack) {
+        m_previewPending = false;
+        return;
+    }
+    const QString group = PlayerManager::groupForPreviewDeck(0);
+    if (PlayerInfo::instance().getTrackInfo(group) != m_pPreviewTrack) {
+        return;
+    }
+    m_previewPending = false;
+    const double lengthSeconds = m_pPreviewTrack->getDuration();
+    if (lengthSeconds > 0.0) {
+        m_pPreviewPosition->set(std::clamp(m_previewStartSeconds / lengthSeconds, 0.0, 1.0));
+    }
+    m_pPreviewPlay->set(1.0);
+}
+
+void WTrackTableView::stopClickPreview() {
+    if (!m_pPreviewTrack) {
+        return;
+    }
+    // Stop only the preview that the click started. A preview of another track
+    // (for example from the preview button) keeps playing.
+    if (m_pPreviewPlay &&
+            PlayerInfo::instance().getTrackInfo(PlayerManager::groupForPreviewDeck(0)) ==
+                    m_pPreviewTrack) {
+        m_pPreviewPlay->set(0.0);
+    }
+    m_pPreviewTrack.reset();
+    m_previewCell = QPersistentModelIndex();
+    m_previewPending = false;
+}
+
 bool WTrackTableView::alphabetSearch(const QKeyEvent* pEvent) {
     if (state() == QAbstractItemView::EditingState ||
             (pEvent->modifiers() &
@@ -829,6 +981,12 @@ bool WTrackTableView::alphabetSearch(const QKeyEvent* pEvent) {
 // End of AI-generated text.
 
 void WTrackTableView::mouseMoveEvent(QMouseEvent* pEvent) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The preview of a click stops when the pointer leaves the cell.
+    if (m_pPreviewTrack && indexAt(pEvent->pos()) != QModelIndex(m_previewCell)) {
+        stopClickPreview();
+    }
+    // End of AI-generated text.
     // Only use this for drag and drop if the LeftButton is pressed we need to
     // check for this because mousetracking is activated and this function is
     // called every time the mouse is moved -- kain88 May 2012

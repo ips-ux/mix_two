@@ -10,6 +10,7 @@
 #include "library/dao/playlistdao.h"
 #include "library/trackmodel.h" // Can't forward declare enums
 #include "preferences/usersettings.h"
+#include "track/track_decl.h"
 #include "util/duration.h"
 #include "util/parented_ptr.h"
 #include "widget/prefixsearch.h"
@@ -184,6 +185,10 @@ class WTrackTableView : public WLibraryTableView {
 
     void mousePressEvent(QMouseEvent* pEvent) override;
     void mouseReleaseEvent(QMouseEvent* pEvent) override;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The pointer leaves the list: a preview that a click started stops.
+    bool viewportEvent(QEvent* pEvent) override;
+    // End of AI-generated text.
     // Mouse move event, implemented to hide the text and show an icon instead
     // when dragging.
     void mouseMoveEvent(QMouseEvent *pEvent) override;
@@ -209,6 +214,18 @@ class WTrackTableView : public WLibraryTableView {
     void startHoldTimer(const QMouseEvent* pEvent);
     void cancelHoldTimer();
     void slotHoldTimeout();
+    // Preview by click: a click on the artwork starts the preview from the
+    // start and a click during the preview skips ahead; a click near a cue mark
+    // on the overview column starts the preview at that cue. Returns true when
+    // a click started or moved the preview.
+    bool handlePreviewClick(const QPoint& pos);
+    void startClickPreview(const TrackPointer& pTrack,
+            double startSeconds,
+            const QModelIndex& cell);
+    void stopClickPreview();
+    void slotPreviewTrackLoaded(double loaded);
+    void applyPendingPreview();
+    void ensurePreviewControls();
     // End of AI-generated text.
 
     const UserSettingsPointer m_pConfig;
@@ -241,5 +258,14 @@ class WTrackTableView : public WLibraryTableView {
     QElapsedTimer m_prefixClock;
     QTimer* m_pHoldTimer;
     QPoint m_holdPressPos;
+    ControlProxy* m_pPreviewPlay;
+    ControlProxy* m_pPreviewPosition;
+    ControlProxy* m_pPreviewLoaded;
+    // The cell of the click that owns the preview, and the track that it loads.
+    QPersistentModelIndex m_previewCell;
+    TrackPointer m_pPreviewTrack;
+    // True while the preview deck still loads the track of the click.
+    bool m_previewPending;
+    double m_previewStartSeconds;
     // End of AI-generated text.
 };

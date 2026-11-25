@@ -89,6 +89,11 @@ const bool kCenterSelectedTrackDefault = false;
 extern const ConfigKey kCoverArtShowWholeConfigKey;
 const bool kCoverArtShowWholeDefault = false;
 
+// Draw the memory and hot cue marks on the overview column. A click near a mark
+// starts the preview at that cue.
+extern const ConfigKey kShowCueMarksOnPreviewConfigKey;
+const bool kShowCueMarksOnPreviewDefault = false;
+
 // The folder pattern of consolidate (see libraryFolderFor()). The default
 // pattern is in library/consolidate/folderpattern.h.
 extern const ConfigKey kConsolidateFolderPatternConfigKey;
