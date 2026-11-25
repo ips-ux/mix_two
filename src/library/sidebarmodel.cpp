@@ -1,5 +1,6 @@
 #include "library/sidebarmodel.h"
 
+#include <QMimeData>
 #include <QTimer>
 #include <QUrl>
 
@@ -325,6 +326,13 @@ QVariant SidebarModel::data(const QModelIndex& index, int role) const {
             return pTreeItem->getIcon();
         case SidebarModel::DataRole:
             return pTreeItem->getData();
+        case Qt::EditRole: {
+            // The editor shows the plain name, not the label with the count.
+            LibraryFeature* pFeature = pTreeItem->feature();
+            return pFeature && pFeature->canRenameChildInline(index)
+                    ? QVariant(pFeature->nameOfChildForEdit(index))
+                    : QVariant();
+        }
         case SidebarModel::IconNameRole:
             // TODO: Add support for icon names in tree items
         default:
@@ -449,6 +457,96 @@ void SidebarModel::deleteItem(const QModelIndex& index) {
         }
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+/// The feature that owns the item, and the index to give it. A root item of a
+/// feature gives an invalid index.
+LibraryFeature* featureOfNode(const SidebarModel* pModel,
+        const QModelIndex& index,
+        QModelIndex* pChildIndex,
+        const QList<LibraryFeature*>& features) {
+    if (!index.isValid()) {
+        return nullptr;
+    }
+    if (index.internalPointer() == pModel) {
+        *pChildIndex = QModelIndex();
+        return features.value(index.row(), nullptr);
+    }
+    const TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
+    *pChildIndex = index;
+    return pTreeItem ? pTreeItem->feature() : nullptr;
+}
+} // namespace
+
+Qt::ItemFlags SidebarModel::flags(const QModelIndex& index) const {
+    Qt::ItemFlags flags = QAbstractItemModel::flags(index);
+    if (!index.isValid() || index.internalPointer() == this) {
+        return flags;
+    }
+    const TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
+    LibraryFeature* pFeature = pTreeItem ? pTreeItem->feature() : nullptr;
+    if (!pFeature) {
+        return flags;
+    }
+    if (pFeature->canRenameChildInline(index)) {
+        flags |= Qt::ItemIsEditable;
+    }
+    if (!pFeature->dragIdOfChild(index).isEmpty()) {
+        flags |= Qt::ItemIsDragEnabled;
+    }
+    return flags;
+}
+
+bool SidebarModel::setData(const QModelIndex& index, const QVariant& value, int role) {
+    if (role != Qt::EditRole || !index.isValid() || index.internalPointer() == this) {
+        return false;
+    }
+    const TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
+    LibraryFeature* pFeature = pTreeItem ? pTreeItem->feature() : nullptr;
+    if (!pFeature || !pFeature->canRenameChildInline(index)) {
+        return false;
+    }
+    return pFeature->renameChildInline(index, value.toString());
+}
+
+QStringList SidebarModel::mimeTypes() const {
+    return {QString::fromLatin1(kNodeMimeType)};
+}
+
+QMimeData* SidebarModel::mimeData(const QModelIndexList& indexes) const {
+    for (const QModelIndex& index : indexes) {
+        if (!index.isValid() || index.internalPointer() == this) {
+            continue;
+        }
+        const TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
+        LibraryFeature* pFeature = pTreeItem ? pTreeItem->feature() : nullptr;
+        if (!pFeature) {
+            continue;
+        }
+        const QString dragId = pFeature->dragIdOfChild(index);
+        if (dragId.isEmpty()) {
+            continue;
+        }
+        auto* pMimeData = new QMimeData();
+        pMimeData->setData(QString::fromLatin1(kNodeMimeType), dragId.toUtf8());
+        return pMimeData;
+    }
+    return nullptr;
+}
+
+bool SidebarModel::dragMoveAcceptNode(const QModelIndex& index, const QString& dragId) const {
+    QModelIndex childIndex;
+    LibraryFeature* pFeature = featureOfNode(this, index, &childIndex, m_sFeatures);
+    return pFeature && pFeature->dragMoveAcceptNode(childIndex, dragId);
+}
+
+bool SidebarModel::dropAcceptNode(const QModelIndex& index, const QString& dragId) {
+    QModelIndex childIndex;
+    LibraryFeature* pFeature = featureOfNode(this, index, &childIndex, m_sFeatures);
+    return pFeature && pFeature->dropAcceptNode(childIndex, dragId);
+}
+// End of AI-generated text.
 
 bool SidebarModel::dropAccept(const QModelIndex& index, const QList<QUrl>& urls, QObject* pSource) {
     if constexpr (kDebug) {

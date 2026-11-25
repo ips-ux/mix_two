@@ -71,6 +71,46 @@ class LibraryFeature : public QObject {
         return false;
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Moves inside the sidebar tree and rename in the tree. A feature that
+    // supports them overrides these functions. They must be cheap: the
+    // sidebar asks for every item that it draws.
+    /// The text that stands for the item in a drag, or an empty string when
+    /// the item cannot be dragged.
+    virtual QString dragIdOfChild(const QModelIndex& index) {
+        Q_UNUSED(index);
+        return QString();
+    }
+    /// Accepts or refuses the drag of an item of this feature (the text of
+    /// dragIdOfChild()). An invalid index is the root item of the feature.
+    virtual bool dragMoveAcceptNode(const QModelIndex& index, const QString& dragId) {
+        Q_UNUSED(index);
+        Q_UNUSED(dragId);
+        return false;
+    }
+    virtual bool dropAcceptNode(const QModelIndex& index, const QString& dragId) {
+        Q_UNUSED(index);
+        Q_UNUSED(dragId);
+        return false;
+    }
+    /// True when the item can be renamed with an editor in the tree.
+    virtual bool canRenameChildInline(const QModelIndex& index) {
+        Q_UNUSED(index);
+        return false;
+    }
+    /// The plain name that the editor shows.
+    virtual QString nameOfChildForEdit(const QModelIndex& index) {
+        Q_UNUSED(index);
+        return QString();
+    }
+    /// Takes the text of the editor. False refuses it.
+    virtual bool renameChildInline(const QModelIndex& index, const QString& newName) {
+        Q_UNUSED(index);
+        Q_UNUSED(newName);
+        return false;
+    }
+    // End of AI-generated text.
+
     virtual void clear() {
     }
     virtual void paste() {

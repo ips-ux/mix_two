@@ -2,6 +2,7 @@
 
 #include <QAbstractItemModel>
 #include <QList>
+#include <QMimeData>
 #include <QModelIndex>
 #include <QVariant>
 
@@ -38,6 +39,24 @@ class SidebarModel : public QAbstractItemModel {
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index,
                   int role = Qt::DisplayRole) const override;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The format of the drag data of an item that moves inside the sidebar.
+    static constexpr char kNodeMimeType[] = "application/x-mixtwo-sidebar-node";
+    Qt::ItemFlags flags(const QModelIndex& index) const override;
+    bool setData(const QModelIndex& index,
+            const QVariant& value,
+            int role = Qt::EditRole) override;
+    QStringList mimeTypes() const override;
+    QMimeData* mimeData(const QModelIndexList& indexes) const override;
+    Qt::DropActions supportedDragActions() const override {
+        // The drop only moves an item inside its feature. The view must not
+        // remove the dragged row itself after a move.
+        return Qt::CopyAction;
+    }
+    /// The index is the item under the cursor, also a root item of a feature.
+    bool dragMoveAcceptNode(const QModelIndex& index, const QString& dragId) const;
+    bool dropAcceptNode(const QModelIndex& index, const QString& dragId);
+    // End of AI-generated text.
     bool dropAccept(const QModelIndex& index, const QList<QUrl>& urls, QObject* pSource);
     bool dragMoveAccept(const QModelIndex& index, const QList<QUrl>& urls) const;
     bool hasChildren(const QModelIndex& parent = QModelIndex()) const override;

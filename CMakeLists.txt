@@ -1563,6 +1563,7 @@ add_library(
   src/library/trackset/crate/cratefeaturehelper.cpp
   src/library/trackset/crate/cratestorage.cpp
   src/library/trackset/crate/cratetablemodel.cpp
+  src/library/trackset/playlistdrop.cpp
   src/library/trackset/playlistfeature.cpp
   src/library/trackset/playtimegate.cpp
   src/library/trackset/setlogfeature.cpp

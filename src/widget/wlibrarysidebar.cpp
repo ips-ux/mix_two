@@ -1,6 +1,7 @@
 #include "widget/wlibrarysidebar.h"
 
 #include <QHeaderView>
+#include <QMimeData>
 #include <QUrl>
 #include <QtDebug>
 
@@ -9,6 +10,21 @@
 #include "moc_wlibrarysidebar.cpp"
 #include "util/defs.h"
 #include "util/dnd.h"
+
+namespace {
+
+// AI-generated (Claude Code). Start of AI-generated text.
+/// The text of an item that is dragged inside the sidebar, or an empty string.
+QString sidebarNodeDragId(const QMimeData* pMimeData) {
+    const QString format = QString::fromLatin1(SidebarModel::kNodeMimeType);
+    if (!pMimeData || !pMimeData->hasFormat(format)) {
+        return QString();
+    }
+    return QString::fromUtf8(pMimeData->data(format));
+}
+// End of AI-generated text.
+
+} // namespace
 
 WLibrarySidebar::WLibrarySidebar(QWidget* parent)
         : QTreeView(parent),
@@ -20,7 +36,11 @@ WLibrarySidebar::WLibrarySidebar(QWidget* parent)
     setHeaderHidden(true);
     setSelectionMode(QAbstractItemView::SingleSelection);
     //Drag and drop setup
-    setDragEnabled(false);
+    // Playlists and folders can be dragged onto folders (see SidebarModel).
+    setDragEnabled(true);
+    // The editor of a name opens only from renameSelectedItem(): a double
+    // click expands or activates the item.
+    setEditTriggers(QAbstractItemView::NoEditTriggers);
     setDragDropMode(QAbstractItemView::DragDrop);
     setDropIndicatorShown(true);
     setAcceptDrops(true);
@@ -48,6 +68,11 @@ void WLibrarySidebar::contextMenuEvent(QContextMenuEvent* pEvent) {
 void WLibrarySidebar::dragEnterEvent(QDragEnterEvent* pEvent) {
     qDebug() << "WLibrarySidebar::dragEnterEvent" << pEvent->mimeData()->formats();
     resetHoverIndexAndDragMoveResult();
+    if (pEvent->source() == this && !sidebarNodeDragId(pEvent->mimeData()).isEmpty()) {
+        pEvent->setDropAction(Qt::CopyAction);
+        pEvent->accept();
+        return;
+    }
     if (pEvent->mimeData()->hasUrls()) {
         // We don't have a way to ask the LibraryFeatures whether to accept a
         // drag so for now we accept all drags. Since almost every
@@ -101,6 +126,20 @@ void WLibrarySidebar::dragMoveEvent(QDragMoveEvent* pEvent) {
     // This has to be here instead of after, otherwise all drags will be
     // rejected -- rryan 3/2011
     QTreeView::dragMoveEvent(pEvent);
+    const QString nodeDragId = sidebarNodeDragId(pEvent->mimeData());
+    if (!nodeDragId.isEmpty()) {
+        // An item of the sidebar moves onto another item of the sidebar.
+        SidebarModel* pNodeModel = qobject_cast<SidebarModel*>(model());
+        m_lastDragMoveAccepted = pEvent->source() == this && pNodeModel &&
+                pNodeModel->dragMoveAcceptNode(index, nodeDragId);
+        if (m_lastDragMoveAccepted) {
+            pEvent->setDropAction(Qt::CopyAction);
+            pEvent->accept();
+        } else {
+            pEvent->ignore();
+        }
+        return;
+    }
     if (!pEvent->mimeData()->hasUrls()) {
         pEvent->ignore();
         m_lastDragMoveAccepted = false;
@@ -151,6 +190,25 @@ void WLibrarySidebar::dropEvent(QDropEvent* pEvent) {
     // qDebug() << "WLibrarySidebar::dropEvent";
     resetHoverIndexAndDragMoveResult();
     toggleDragHoverPropertyAndUpdateStyle(false);
+
+    const QString nodeDragId = sidebarNodeDragId(pEvent->mimeData());
+    if (!nodeDragId.isEmpty()) {
+        SidebarModel* pNodeModel = qobject_cast<SidebarModel*>(model());
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        const QPoint nodePos = pEvent->position().toPoint();
+#else
+        const QPoint nodePos = pEvent->pos();
+#endif
+        if (pEvent->source() == this && pNodeModel &&
+                pNodeModel->dropAcceptNode(indexAt(nodePos), nodeDragId)) {
+            // Copy, not Move: the view must not remove the dragged row itself.
+            pEvent->setDropAction(Qt::CopyAction);
+            pEvent->accept();
+        } else {
+            pEvent->ignore();
+        }
+        return;
+    }
 
     if (!pEvent->mimeData()->hasUrls()) {
         pEvent->ignore();
@@ -209,6 +267,11 @@ void WLibrarySidebar::renameSelectedItem() {
     // Rename crate or playlist (internal, external, history)
     QModelIndex selIndex = selectedIndex();
     if (!selIndex.isValid()) {
+        return;
+    }
+    if (model()->flags(selIndex) & Qt::ItemIsEditable) {
+        // Rename in the tree.
+        edit(selIndex);
         return;
     }
     emit renameItem(selIndex);

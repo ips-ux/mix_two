@@ -4,6 +4,7 @@
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
+#include <QTimer>
 #include <QSqlTableModel>
 #include <QStyle>
 #include <QtDebug>
@@ -15,6 +16,7 @@
 #include "library/queryutil.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
+#include "library/trackset/playlistdrop.h"
 #include "library/treeitem.h"
 #include "moc_playlistfeature.cpp"
 #include "sources/soundsourceproxy.h"
@@ -851,3 +853,110 @@ QString PlaylistFeature::getRootViewHtml() const {
                         .arg(createPlaylistLink));
     return html;
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+bool PlaylistFeature::dragMoveAccept(const QList<QUrl>& urls) {
+    // Only a folder that holds a track. Files go onto a playlist.
+    const QStringList folderPaths = playlistdrop::existingFolderPathsFromUrls(urls);
+    return std::any_of(folderPaths.cbegin(), folderPaths.cend(), [](const QString& path) {
+        return DragAndDropHelper::urlsContainSupportedTrackFiles(
+                {QUrl::fromLocalFile(path)}, false);
+    });
+}
+
+bool PlaylistFeature::dropAccept(const QList<QUrl>& urls, QObject* pSource) {
+    Q_UNUSED(pSource);
+    // One playlist for each dropped folder, named after the folder.
+    bool created = false;
+    const QStringList folderPaths = playlistdrop::existingFolderPathsFromUrls(urls);
+    for (const QString& path : folderPaths) {
+        const int playlistId = playlistdrop::createPlaylistFromFolder(
+                m_playlistDao, m_pLibrary->trackCollectionManager(), path);
+        created = created || playlistId != kInvalidPlaylistId;
+    }
+    return created;
+}
+
+QString PlaylistFeature::dragIdOfChild(const QModelIndex& index) {
+    const int folderId = folderIdFromIndex(index);
+    if (folderId != kInvalidPlaylistFolderId) {
+        return playlistdrop::nodeIdForFolder(folderId);
+    }
+    const int playlistId = playlistIdFromIndex(index);
+    return playlistId != kInvalidPlaylistId ? playlistdrop::nodeIdForPlaylist(playlistId)
+                                            : QString();
+}
+
+bool PlaylistFeature::dragMoveAcceptNode(const QModelIndex& index, const QString& dragId) {
+    // The target is a folder, or [Playlists] itself (the top level). A drop
+    // on a playlist does nothing.
+    const playlistdrop::Node node = playlistdrop::parseNodeId(dragId);
+    const int targetFolderId = index.isValid() ? folderIdFromIndex(index)
+                                               : kInvalidPlaylistFolderId;
+    if (index.isValid() && targetFolderId == kInvalidPlaylistFolderId) {
+        return false;
+    }
+    return playlistdrop::canDropNode(m_playlistDao, node, targetFolderId);
+}
+
+bool PlaylistFeature::dropAcceptNode(const QModelIndex& index, const QString& dragId) {
+    if (!dragMoveAcceptNode(index, dragId)) {
+        return false;
+    }
+    const playlistdrop::Node node = playlistdrop::parseNodeId(dragId);
+    const int targetFolderId = index.isValid() ? folderIdFromIndex(index)
+                                               : kInvalidPlaylistFolderId;
+    if (node.kind == playlistdrop::NodeKind::Playlist) {
+        return playlistdrop::dropPlaylistOnFolder(m_playlistDao, node.id, targetFolderId);
+    }
+    if (!playlistdrop::dropFolderOnFolder(m_playlistDao, node.id, targetFolderId)) {
+        QMessageBox::warning(nullptr,
+                tr("Moving Folder Failed"),
+                tr("A folder by that name already exists there."));
+        return false;
+    }
+    return true;
+}
+
+bool PlaylistFeature::canRenameChildInline(const QModelIndex& index) {
+    return !dragIdOfChild(index).isEmpty();
+}
+
+QString PlaylistFeature::nameOfChildForEdit(const QModelIndex& index) {
+    return playlistdrop::nodeName(
+            m_playlistDao, playlistdrop::parseNodeId(dragIdOfChild(index)));
+}
+
+bool PlaylistFeature::renameChildInline(const QModelIndex& index, const QString& newName) {
+    const playlistdrop::Node node = playlistdrop::parseNodeId(dragIdOfChild(index));
+    if (node.kind == playlistdrop::NodeKind::None) {
+        return false;
+    }
+    // The tree is rebuilt after a rename. Do that after the editor has closed.
+    QTimer::singleShot(0, this, [this, node, newName] {
+        const bool isFolder = node.kind == playlistdrop::NodeKind::Folder;
+        const QString failedTitle = isFolder ? tr("Renaming Folder Failed")
+                                             : tr("Renaming Playlist Failed");
+        switch (playlistdrop::renameNode(m_playlistDao, node, newName)) {
+        case playlistdrop::RenameResult::Ok:
+            break;
+        case playlistdrop::RenameResult::Blank:
+            QMessageBox::warning(nullptr,
+                    failedTitle,
+                    isFolder ? tr("A folder cannot have a blank name.")
+                             : tr("A playlist cannot have a blank name."));
+            break;
+        case playlistdrop::RenameResult::Locked:
+            // The same as the menu: a locked playlist keeps its name.
+            break;
+        case playlistdrop::RenameResult::NameTaken:
+            QMessageBox::warning(nullptr,
+                    failedTitle,
+                    isFolder ? tr("A folder by that name already exists here.")
+                             : tr("A playlist by that name already exists."));
+            break;
+        }
+    });
+    return true;
+}
+// End of AI-generated text.

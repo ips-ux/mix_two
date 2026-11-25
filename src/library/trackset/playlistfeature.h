@@ -30,6 +30,19 @@ class PlaylistFeature : public BasePlaylistFeature {
             QObject* pSource) override;
     bool dragMoveAcceptChild(const QModelIndex& index, const QList<QUrl>& urls) override;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A folder of the file manager dropped on [Playlists] makes a playlist.
+    bool dropAccept(const QList<QUrl>& urls, QObject* pSource) override;
+    bool dragMoveAccept(const QList<QUrl>& urls) override;
+    // Playlists and folders move into folders by drag; rename in the tree.
+    QString dragIdOfChild(const QModelIndex& index) override;
+    bool dragMoveAcceptNode(const QModelIndex& index, const QString& dragId) override;
+    bool dropAcceptNode(const QModelIndex& index, const QString& dragId) override;
+    bool canRenameChildInline(const QModelIndex& index) override;
+    QString nameOfChildForEdit(const QModelIndex& index) override;
+    bool renameChildInline(const QModelIndex& index, const QString& newName) override;
+    // End of AI-generated text.
+
   public slots:
     void onRightClick(const QPoint& globalPos) override;
     void onRightClickChild(const QPoint& globalPos, const QModelIndex& index) override;

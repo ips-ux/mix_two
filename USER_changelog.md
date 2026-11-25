@@ -516,8 +516,18 @@ Folders stay open when the playlist tree changes.
 
 In the track menu, **Add to Playlist** shows the folders as submenus.
 
-You cannot drag playlists into folders yet. Mix Two sorts the tree
-alphabetically, with folders first.
+Mix Two sorts the tree alphabetically, with folders first.
+
+To move a playlist or a folder, drag it onto a folder. To move it out of all
+folders, drag it onto **Playlists**. A folder cannot go into itself.
+
+To rename a playlist or a folder in the tree, select it, then push F2. Type the
+new name, then push Enter.
+
+To make a playlist from a folder of your computer, drag the folder from the file
+manager onto **Playlists**. The playlist has the name of the folder. It holds
+the tracks of the folder and of the folders in it. Mix Two adds new tracks to
+the library.
 
 ### Export to a USB stick
 
