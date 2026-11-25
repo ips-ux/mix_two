@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 329 | 220 | 221 | 61 | 0 | 0 | 72 |
+| Features | 328 | 220 | 222 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: bit depth column (schema revision 43); hot cue list widget (commit: see git log, "Library: bit depth ..." and "Hot cue list widget ...")
 - 2026-11-24: search column menu; INFO tab details, beat count position, slip lines; online lookup notice; waveform click for PLAY and CUE (commit: see git log)
 - 2026-11-24: Library Protection; Import Track, Import Folder, Import To Collection (commit: see git log, "Library: Library Protection ..." and "Library: Import ...")
 - 2026-11-24: Relocate and Auto Relocate for missing tracks; preview from the track list (commit: see git log, "Library: Relocate ..." and "Track list preview ...")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-24: history after 60 seconds of audible play; question before duplicates go into a playlist (commit: see git log, "History: add a track after 60 seconds of play" and the commits after it)
 - 2026-11-24: Beat FX VINYL BRAKE; Beat FX BPM modes AUTO and TAP (commit: see git log, "Beat FX: VINYL BRAKE" and "Beat FX: BPM modes AUTO and TAP")
 - 2026-11-24: stick functions: restore the newest backup; delete a playlist with its unused tracks (commit: see git log, "Device export: restore the newest backup of a stick" and "Device export: delete a playlist from a stick with its unused tracks")
-- 2026-11-24: 256-frame buffer for a new DDJ-800 sound setup; Preview volume in the sound preferences (commit: see git log, "Sound: 256-frame buffer for the DDJ-800; preview volume in the sound preferences")
 
 <!-- mixtwo-status:end -->
 
