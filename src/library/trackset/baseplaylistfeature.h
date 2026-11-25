@@ -18,6 +18,7 @@ class PlaylistTableModel;
 class TreeItem;
 class WLibrarySidebar;
 class QAction;
+class QMenu;
 class QUrl;
 class QWidget;
 
@@ -101,6 +102,10 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     void slotAddToAutoDJTop();
     void slotAddToAutoDJReplace();
     void slotRenamePlaylist();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void slotAddPlaylistArtwork();
+    void slotRemovePlaylistArtwork();
+    // End of AI-generated text.
     void slotTogglePlaylistLock();
     void slotImportPlaylist();
     void slotImportPlaylistFile(const QString& playlistFile, int playlistId);
@@ -111,6 +116,11 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     void slotAnalyzePlaylist();
 
   protected:
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Adds the picture of the playlist (if it has one) and the entries
+    /// "Add Artwork..." and "Remove Artwork" to the right-click menu.
+    void addPlaylistArtworkToMenu(QMenu* pMenu, int playlistId);
+    // End of AI-generated text.
     struct IdAndLabel {
         int id;
         QString label;
@@ -148,6 +158,10 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     parented_ptr<QAction> m_pAddToAutoDJReplaceAction;
     parented_ptr<QAction> m_pRenamePlaylistAction;
     parented_ptr<QAction> m_pLockPlaylistAction;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    parented_ptr<QAction> m_pAddArtworkAction;
+    parented_ptr<QAction> m_pRemoveArtworkAction;
+    // End of AI-generated text.
     parented_ptr<QAction> m_pImportPlaylistAction;
     parented_ptr<QAction> m_pCreateImportPlaylistAction;
     parented_ptr<QAction> m_pExportPlaylistAction;

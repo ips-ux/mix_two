@@ -174,6 +174,10 @@ void PlaylistFeature::onRightClickChild(
     menu.addAction(m_pLockPlaylistAction);
     menu.addMenu(createMoveToFolderMenu(&menu, playlistId, kInvalidPlaylistFolderId));
     menu.addSeparator();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    addPlaylistArtworkToMenu(&menu, playlistId);
+    // End of AI-generated text.
+    menu.addSeparator();
     menu.addAction(m_pAddToAutoDJAction);
     menu.addAction(m_pAddToAutoDJTopAction);
     menu.addAction(m_pAddToAutoDJReplaceAction);

@@ -173,3 +173,38 @@ TEST_F(SchemaManagerTest, BitDepthIsUnknownForExistingTracks) {
     EXPECT_EQ(0, query.value(0).toInt());
 }
 // End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(SchemaManagerTest, PlaylistArtworkIsEmptyForExistingPlaylists) {
+    // A library of the version before the playlist artwork exists.
+    {
+        SchemaManager schemaManager(dbConnection());
+        ASSERT_EQ(SchemaManager::Result::UpgradeSucceeded,
+                schemaManager.upgradeToSchemaVersion(
+                        43, MixxxDb::kDefaultSchemaFile));
+        QSqlQuery query(dbConnection());
+        ASSERT_TRUE(query.exec("INSERT INTO Playlists (name, hidden) VALUES ('Friday', 0)"));
+        ASSERT_TRUE(query.exec("INSERT INTO Playlists (name, hidden) VALUES ('Sat', 0)"));
+        EXPECT_FALSE(query.exec("SELECT artwork FROM Playlists"));
+    }
+
+    SchemaManager schemaManager(dbConnection());
+    ASSERT_EQ(SchemaManager::Result::UpgradeSucceeded,
+            schemaManager.upgradeToSchemaVersion(
+                    44, MixxxDb::kDefaultSchemaFile));
+
+    // The playlists of the old library keep their rows and have no artwork.
+    QSqlQuery query(dbConnection());
+    ASSERT_TRUE(query.exec("SELECT name, artwork FROM Playlists ORDER BY id"));
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(QStringLiteral("Friday"), query.value(0).toString());
+    EXPECT_TRUE(query.value(1).isNull());
+    ASSERT_TRUE(query.next());
+    EXPECT_EQ(QStringLiteral("Sat"), query.value(0).toString());
+    EXPECT_TRUE(query.value(1).isNull());
+    EXPECT_FALSE(query.next());
+
+    // The column of the version before is still there.
+    EXPECT_TRUE(query.exec("SELECT bit_depth FROM library"));
+}
+// End of AI-generated text.

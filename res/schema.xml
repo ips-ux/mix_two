@@ -632,4 +632,15 @@ reapplying those migrations.
       ALTER TABLE library ADD COLUMN bit_depth INTEGER NOT NULL DEFAULT 0;
     </sql>
   </revision>
+  <revision version="44" min_compatible="3">
+    <description>
+      Mix Two: the artwork of a playlist, as in rekordbox. The column holds
+      the picture as PNG bytes (the library keeps its own copy, not a link to
+      the file of the user). NULL means no artwork. Older versions ignore the
+      column.
+    </description>
+    <sql>
+      ALTER TABLE Playlists ADD COLUMN artwork BLOB DEFAULT NULL;
+    </sql>
+  </revision>
 </schema>

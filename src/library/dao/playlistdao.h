@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QHash>
 #include <QObject>
 #include <QSet>
@@ -164,6 +165,16 @@ class PlaylistDAO : public QObject, public virtual DAO {
     QSet<int> getFolderAndSubfolderIds(int folderId) const;
     /// The ids of the playlists in the folder and all folders below it.
     QList<int> getPlaylistIdsInFolder(int folderId) const;
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The artwork of a playlist (Mix Two). The bytes are a PNG picture that
+    /// the library keeps as its own copy. The empty array means no artwork.
+    /// The artwork goes away with the playlist.
+    bool setPlaylistArtwork(int playlistId, const QByteArray& pngBytes);
+    QByteArray getPlaylistArtwork(int playlistId) const;
+    bool hasPlaylistArtwork(int playlistId) const;
+    bool removePlaylistArtwork(int playlistId);
+    // End of AI-generated text.
 
     void setCurrentHistoryPlaylistId(int id) {
         m_currentHistoryPlaylist = id;

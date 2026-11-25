@@ -1799,3 +1799,57 @@ QList<int> PlaylistDAO::getPlaylistIdsInFolder(int folderId) const {
     }
     return playlistIds;
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+bool PlaylistDAO::setPlaylistArtwork(int playlistId, const QByteArray& pngBytes) {
+    if (pngBytes.isEmpty()) {
+        return false;
+    }
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral("UPDATE Playlists SET artwork=:artwork WHERE id=:id"));
+    query.bindValue(":artwork", pngBytes);
+    query.bindValue(":id", playlistId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return false;
+    }
+    return query.numRowsAffected() > 0;
+}
+
+QByteArray PlaylistDAO::getPlaylistArtwork(int playlistId) const {
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral("SELECT artwork FROM Playlists WHERE id=:id"));
+    query.bindValue(":id", playlistId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return QByteArray();
+    }
+    if (!query.next()) {
+        return QByteArray();
+    }
+    return query.value(0).toByteArray();
+}
+
+bool PlaylistDAO::hasPlaylistArtwork(int playlistId) const {
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "SELECT 1 FROM Playlists WHERE id=:id AND artwork IS NOT NULL"));
+    query.bindValue(":id", playlistId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return false;
+    }
+    return query.next();
+}
+
+bool PlaylistDAO::removePlaylistArtwork(int playlistId) {
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral("UPDATE Playlists SET artwork=NULL WHERE id=:id"));
+    query.bindValue(":id", playlistId);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        return false;
+    }
+    return true;
+}
+// End of AI-generated text.

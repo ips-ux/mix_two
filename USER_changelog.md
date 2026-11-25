@@ -24,7 +24,7 @@ Writing rules for this file (ASD-STE100):
 ### Before you start
 
 CAUTION: Make a copy of your Mixxx library before you start Mix Two for the
-first time. Mix Two changes the library database to schema version 43.
+first time. Mix Two changes the library database to schema version 44.
 
 To start Mix Two, double-click `tools\mixtwo_windows.bat`. Mix Two builds,
 then starts. If an error occurs, the window stays open. Push a key to close
@@ -603,6 +603,20 @@ puts only these tracks on the stick, with no playlist.
 The export dialog now shows a warning icon next to the text about a stick
 that players cannot read. The question before the export also has the warning
 icon. You can still continue.
+
+### Artwork for playlists
+
+You can add a picture to a playlist. Right-click the playlist, then select
+**Add Artwork...**. Select a JPEG or PNG file. The picture shows at the top of
+the menu each time that you right-click the playlist.
+
+Mix Two keeps its own copy of the picture. You can move or delete your file
+after you add it. Mix Two makes a very large picture smaller. Your file does
+not change.
+
+To change the picture, select **Change Artwork...**. To remove it, select
+**Remove Artwork**. When you delete the playlist, the picture goes with it.
+When Library Protection is on, you cannot add or remove artwork.
 
 ### Bit depth column in the library
 

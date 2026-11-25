@@ -1,13 +1,19 @@
 #include "library/trackset/baseplaylistfeature.h"
 
 #include <QAction>
+#include <QFileDialog>
 #include <QFileInfo>
+#include <QImage>
+#include <QLabel>
+#include <QMenu>
+#include <QPixmap>
 #include <QInputDialog>
 #include <QList>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSqlTableModel>
 #include <QStandardPaths>
+#include <QWidgetAction>
 
 #include "library/export/trackexportwizard.h"
 #include "library/library.h"
@@ -19,6 +25,7 @@
 #include "library/playlisttablemodel.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
+#include "library/trackset/playlistartwork.h"
 #include "library/treeitem.h"
 #include "library/treeitemmodel.h"
 #include "moc_baseplaylistfeature.cpp"
@@ -84,6 +91,18 @@ void BasePlaylistFeature::initActions() {
             &QAction::triggered,
             this,
             &BasePlaylistFeature::slotRenamePlaylist);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pAddArtworkAction = make_parented<QAction>(tr("Add Artwork..."), this);
+    connect(m_pAddArtworkAction,
+            &QAction::triggered,
+            this,
+            &BasePlaylistFeature::slotAddPlaylistArtwork);
+    m_pRemoveArtworkAction = make_parented<QAction>(tr("Remove Artwork"), this);
+    connect(m_pRemoveArtworkAction,
+            &QAction::triggered,
+            this,
+            &BasePlaylistFeature::slotRemovePlaylistArtwork);
+    // End of AI-generated text.
     m_pDuplicatePlaylistAction = make_parented<QAction>(tr("Duplicate"), this);
     connect(m_pDuplicatePlaylistAction,
             &QAction::triggered,
@@ -306,6 +325,80 @@ void BasePlaylistFeature::renameItem(const QModelIndex& index) {
     m_lastRightClickedIndex = index;
     slotRenamePlaylist();
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+// Choice: the picture in the right-click menu is at most this wide and high.
+constexpr int kMenuArtworkEdge = 160;
+} // namespace
+
+void BasePlaylistFeature::addPlaylistArtworkToMenu(QMenu* pMenu, int playlistId) {
+    // Library Protection switches off add and remove, as it does for rename.
+    const bool allowed = mixxx::library::isActionAllowed(
+            mixxx::library::ProtectedAction::RenameTrackSet);
+    const bool hasArtwork = m_playlistDao.hasPlaylistArtwork(playlistId);
+    if (hasArtwork) {
+        const QImage image = mixxx::library::playlistArtworkImage(
+                m_playlistDao.getPlaylistArtwork(playlistId));
+        if (!image.isNull()) {
+            auto* pLabel = new QLabel(pMenu);
+            pLabel->setAlignment(Qt::AlignCenter);
+            pLabel->setContentsMargins(4, 4, 4, 4);
+            pLabel->setPixmap(QPixmap::fromImage(image).scaled(
+                    kMenuArtworkEdge,
+                    kMenuArtworkEdge,
+                    Qt::KeepAspectRatio,
+                    Qt::SmoothTransformation));
+            auto* pPictureAction = new QWidgetAction(pMenu);
+            pPictureAction->setDefaultWidget(pLabel);
+            // The picture is the first item of the menu.
+            pMenu->insertAction(pMenu->actions().value(0), pPictureAction);
+        }
+    }
+    m_pAddArtworkAction->setText(hasArtwork ? tr("Change Artwork...") : tr("Add Artwork..."));
+    m_pAddArtworkAction->setEnabled(allowed);
+    m_pRemoveArtworkAction->setEnabled(allowed && hasArtwork);
+    pMenu->addAction(m_pAddArtworkAction);
+    pMenu->addAction(m_pRemoveArtworkAction);
+}
+
+void BasePlaylistFeature::slotAddPlaylistArtwork() {
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    const int playlistId = playlistIdFromIndex(m_lastRightClickedIndex);
+    if (playlistId == kInvalidPlaylistId) {
+        return;
+    }
+    const QString filePath = QFileDialog::getOpenFileName(nullptr,
+            tr("Add Artwork"),
+            QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
+            tr("Pictures (*.jpg *.jpeg *.png)"));
+    if (filePath.isEmpty()) {
+        return;
+    }
+    // The file of the user is only read. The library keeps its own copy.
+    const QByteArray stored = mixxx::library::makePlaylistArtworkFromFile(filePath);
+    if (stored.isEmpty() || !m_playlistDao.setPlaylistArtwork(playlistId, stored)) {
+        QMessageBox::warning(nullptr,
+                tr("Add Artwork"),
+                tr("Mix Two cannot use this file. Select a JPEG or PNG picture."));
+    }
+}
+
+void BasePlaylistFeature::slotRemovePlaylistArtwork() {
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    const int playlistId = playlistIdFromIndex(m_lastRightClickedIndex);
+    if (playlistId == kInvalidPlaylistId) {
+        return;
+    }
+    m_playlistDao.removePlaylistArtwork(playlistId);
+}
+// End of AI-generated text.
 
 void BasePlaylistFeature::slotRenamePlaylist() {
     // AI-generated (Claude Code). Start of AI-generated text.

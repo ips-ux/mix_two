@@ -2,6 +2,8 @@
 
 #include <QDataStream>
 #include <QDebug>
+#include <QFile>
+#include <QImage>
 #include <QTemporaryDir>
 #include <QTemporaryFile>
 #include <QUrl>
@@ -12,6 +14,7 @@
 #include "library/parserm3u.h"
 #include "library/parserpls.h"
 #include "library/dao/playlistdao.h"
+#include "library/trackset/playlistartwork.h"
 #include "test/librarytest.h"
 #include "track/track.h"
 
@@ -257,5 +260,166 @@ TEST_F(PlaylistDuplicateTest, TracksNotInPlaylistKeepsOrderAndDropsRepeatsInTheI
     // An empty playlist: all tracks are new. The helper does not change the order.
     EXPECT_EQ(QList<TrackId>({b, a}), dao().tracksNotInPlaylist(playlist, {b, a}));
     EXPECT_EQ(QList<TrackId>({a}), dao().tracksNotInPlaylist(playlist, {a, a}));
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+class PlaylistArtworkTest : public LibraryTest {
+  protected:
+    QTemporaryDir m_dir;
+
+    PlaylistDAO& dao() const {
+        return internalCollection()->getPlaylistDAO();
+    }
+
+    QString writePicture(const QString& name, int width, int height, const char* format) {
+        QImage image(width, height, QImage::Format_RGB32);
+        image.fill(Qt::red);
+        const QString path = m_dir.filePath(name);
+        EXPECT_TRUE(image.save(path, format)) << qPrintable(path);
+        return path;
+    }
+};
+
+TEST_F(PlaylistArtworkTest, NewPlaylistHasNoArtwork) {
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    ASSERT_NE(kInvalidPlaylistId, playlist);
+    EXPECT_TRUE(dao().getPlaylistArtwork(playlist).isEmpty());
+    EXPECT_FALSE(dao().hasPlaylistArtwork(playlist));
+}
+
+TEST_F(PlaylistArtworkTest, SetGetAndRemove) {
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    const int other = dao().createPlaylist(QStringLiteral("Saturday"));
+    ASSERT_NE(kInvalidPlaylistId, playlist);
+    const QByteArray bytes = QByteArray("\x89PNG-test-bytes\0with-zero", 25);
+
+    ASSERT_TRUE(dao().setPlaylistArtwork(playlist, bytes));
+    EXPECT_EQ(bytes, dao().getPlaylistArtwork(playlist));
+    EXPECT_TRUE(dao().hasPlaylistArtwork(playlist));
+    // Another playlist is not affected.
+    EXPECT_FALSE(dao().hasPlaylistArtwork(other));
+
+    // A new picture replaces the old one.
+    const QByteArray bytes2 = QByteArray("second");
+    ASSERT_TRUE(dao().setPlaylistArtwork(playlist, bytes2));
+    EXPECT_EQ(bytes2, dao().getPlaylistArtwork(playlist));
+
+    ASSERT_TRUE(dao().removePlaylistArtwork(playlist));
+    EXPECT_TRUE(dao().getPlaylistArtwork(playlist).isEmpty());
+    EXPECT_FALSE(dao().hasPlaylistArtwork(playlist));
+    EXPECT_EQ(QStringLiteral("Friday"), dao().getPlaylistName(playlist));
+}
+
+TEST_F(PlaylistArtworkTest, UnknownPlaylistAndEmptyBytesFail) {
+    EXPECT_FALSE(dao().setPlaylistArtwork(9999, QByteArray("x")));
+    EXPECT_TRUE(dao().getPlaylistArtwork(9999).isEmpty());
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    EXPECT_FALSE(dao().setPlaylistArtwork(playlist, QByteArray()));
+    EXPECT_FALSE(dao().hasPlaylistArtwork(playlist));
+}
+
+TEST_F(PlaylistArtworkTest, DeletingThePlaylistRemovesTheArtwork) {
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    ASSERT_TRUE(dao().setPlaylistArtwork(playlist, QByteArray("abc")));
+    dao().deletePlaylist(playlist);
+    EXPECT_TRUE(dao().getPlaylistArtwork(playlist).isEmpty());
+
+    const int a = dao().createPlaylist(QStringLiteral("A"));
+    ASSERT_TRUE(dao().setPlaylistArtwork(a, QByteArray("abc")));
+    ASSERT_TRUE(dao().deletePlaylists({QString::number(a)}));
+    EXPECT_TRUE(dao().getPlaylistArtwork(a).isEmpty());
+
+    // A new playlist never gets the picture of a deleted one.
+    const int b = dao().createPlaylist(QStringLiteral("B"));
+    EXPECT_FALSE(dao().hasPlaylistArtwork(b));
+}
+
+TEST_F(PlaylistArtworkTest, DeletingTheFolderRemovesTheArtwork) {
+    const int folder = dao().createFolder(QStringLiteral("Sets"));
+    ASSERT_NE(kInvalidPlaylistFolderId, folder);
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    ASSERT_TRUE(dao().setPlaylistFolder(playlist, folder));
+    ASSERT_TRUE(dao().setPlaylistArtwork(playlist, QByteArray("abc")));
+    ASSERT_TRUE(dao().deleteFolder(folder));
+    EXPECT_FALSE(dao().playlistExists(playlist));
+    EXPECT_TRUE(dao().getPlaylistArtwork(playlist).isEmpty());
+}
+
+TEST_F(PlaylistArtworkTest, SmallPictureKeepsItsSizeAndIsStoredAsACopy) {
+    const QString path = writePicture(QStringLiteral("small.png"), 200, 100, "PNG");
+    const QByteArray stored = mixxx::library::makePlaylistArtworkFromFile(path);
+    ASSERT_FALSE(stored.isEmpty());
+    const QImage image = mixxx::library::playlistArtworkImage(stored);
+    EXPECT_EQ(QSize(200, 100), image.size());
+
+    // The stored bytes do not depend on the file any more.
+    ASSERT_TRUE(QFile::remove(path));
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    ASSERT_TRUE(dao().setPlaylistArtwork(playlist, stored));
+    EXPECT_FALSE(mixxx::library::playlistArtworkImage(
+            dao().getPlaylistArtwork(playlist))
+                         .isNull());
+}
+
+TEST_F(PlaylistArtworkTest, LargePictureIsScaledDownWithTheSameAspectRatio) {
+    const int limit = mixxx::library::kMaxPlaylistArtworkEdge;
+    const QString wide = writePicture(QStringLiteral("wide.jpg"), limit * 4, limit * 2, "JPG");
+    const QImage w = mixxx::library::playlistArtworkImage(
+            mixxx::library::makePlaylistArtworkFromFile(wide));
+    ASSERT_FALSE(w.isNull());
+    EXPECT_EQ(limit, w.width());
+    EXPECT_EQ(limit / 2, w.height());
+
+    const QString tall = writePicture(QStringLiteral("tall.png"), limit, limit * 3, "PNG");
+    const QImage t = mixxx::library::playlistArtworkImage(
+            mixxx::library::makePlaylistArtworkFromFile(tall));
+    ASSERT_FALSE(t.isNull());
+    EXPECT_EQ(limit, t.height());
+    EXPECT_LE(t.width(), limit);
+    EXPECT_NEAR(limit / 3.0, t.width(), 1.0);
+}
+
+TEST_F(PlaylistArtworkTest, PictureAtTheLimitIsNotScaled) {
+    const int limit = mixxx::library::kMaxPlaylistArtworkEdge;
+    const QString path = writePicture(QStringLiteral("exact.png"), limit, limit, "PNG");
+    const QImage image = mixxx::library::playlistArtworkImage(
+            mixxx::library::makePlaylistArtworkFromFile(path));
+    EXPECT_EQ(QSize(limit, limit), image.size());
+}
+
+TEST_F(PlaylistArtworkTest, FileOfTheUserIsOnlyRead) {
+    const QString path = writePicture(QStringLiteral("readonly.png"), 64, 64, "PNG");
+    QFile file(path);
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    const QByteArray before = file.readAll();
+    file.close();
+    // A read-only file must work: the code may not ask for write access.
+    ASSERT_TRUE(file.setPermissions(QFileDevice::ReadOwner));
+    EXPECT_FALSE(mixxx::library::makePlaylistArtworkFromFile(path).isEmpty());
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_EQ(before, file.readAll());
+    file.close();
+    file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+}
+
+TEST_F(PlaylistArtworkTest, BadFilesGiveNoArtwork) {
+    EXPECT_TRUE(mixxx::library::makePlaylistArtworkFromFile(
+            m_dir.filePath(QStringLiteral("missing.png")))
+                        .isEmpty());
+
+    const QString text = m_dir.filePath(QStringLiteral("text.png"));
+    QFile file(text);
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    file.write("this is not a picture");
+    file.close();
+    EXPECT_TRUE(mixxx::library::makePlaylistArtworkFromFile(text).isEmpty());
+
+    // Only JPEG and PNG are accepted.
+    const QString bmp = writePicture(QStringLiteral("a.bmp"), 10, 10, "BMP");
+    EXPECT_TRUE(mixxx::library::makePlaylistArtworkFromFile(bmp).isEmpty());
+
+    EXPECT_TRUE(mixxx::library::playlistArtworkImage(QByteArray()).isNull());
+    EXPECT_TRUE(mixxx::library::playlistArtworkImage(QByteArray("junk")).isNull());
 }
 // End of AI-generated text.
