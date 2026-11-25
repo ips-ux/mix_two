@@ -90,7 +90,9 @@ rekordbox_pdb_t::album_row_t::album_row_t(kaitai::kstream* p__io, rekordbox_pdb_
 }
 
 void rekordbox_pdb_t::album_row_t::_read() {
-    m__unnamed0 = m__io->read_u2le();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_subtype = m__io->read_u2le();
+    // End of AI-generated text.
     m_index_shift = m__io->read_u2le();
     m__unnamed2 = m__io->read_u4le();
     m_artist_id = m__io->read_u4le();
@@ -98,6 +100,12 @@ void rekordbox_pdb_t::album_row_t::_read() {
     m__unnamed5 = m__io->read_u4le();
     m__unnamed6 = m__io->read_u1();
     m_ofs_name = m__io->read_u1();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_ofs_name_far = 0;
+    if ((subtype() & 0x04) != 0) {
+        m_ofs_name_far = m__io->read_u2le();
+    }
+    // End of AI-generated text.
 }
 
 rekordbox_pdb_t::album_row_t::~album_row_t() {
@@ -117,7 +125,9 @@ rekordbox_pdb_t::device_sql_string_t* rekordbox_pdb_t::album_row_t::name() {
         return m_name;
     f_name = true;
     std::streampos _pos = m__io->pos();
-    m__io->seek(_parent()->row_base() + ofs_name());
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m__io->seek(_parent()->row_base() + ((subtype() & 0x04) != 0 ? ofs_name_far() : ofs_name()));
+    // End of AI-generated text.
     m_name = new device_sql_string_t(m__io, this, m__root);
     m__io->seek(_pos);
     return m_name;

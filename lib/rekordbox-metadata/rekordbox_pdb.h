@@ -148,7 +148,9 @@ public:
         device_sql_string_t* name();
 
     private:
-        uint16_t m__unnamed0;
+        // AI-generated (Claude Code). Start of AI-generated text.
+        uint16_t m_subtype;
+        // End of AI-generated text.
         uint16_t m_index_shift;
         uint32_t m__unnamed2;
         uint32_t m_artist_id;
@@ -156,15 +158,18 @@ public:
         uint32_t m__unnamed5;
         uint8_t m__unnamed6;
         uint8_t m_ofs_name;
+        // AI-generated (Claude Code). Start of AI-generated text.
+        uint16_t m_ofs_name_far;
+        // End of AI-generated text.
         rekordbox_pdb_t* m__root;
         rekordbox_pdb_t::row_ref_t* m__parent;
 
     public:
 
-        /**
-         * Some kind of magic word? Usually 0x80, 0x00.
-         */
-        uint16_t _unnamed0() const { return m__unnamed0; }
+        // AI-generated (Claude Code). Start of AI-generated text.
+        uint16_t subtype() const { return m_subtype; }
+        uint16_t ofs_name_far() const { return m_ofs_name_far; }
+        // End of AI-generated text.
 
         /**
          * TODO name from @flesniak, but what does it mean?

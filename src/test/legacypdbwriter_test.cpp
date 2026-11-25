@@ -3,8 +3,10 @@
 #include <gtest/gtest.h>
 #include <rekordbox_pdb.h>
 
+#include <QDate>
 #include <QElapsedTimer>
 #include <QtEndian>
+#include <algorithm>
 #include <cstdio>
 #include <sstream>
 
@@ -17,7 +19,7 @@ using Pdb = rekordbox_pdb_t;
 class ParsedPdb {
   public:
     explicit ParsedPdb(const QByteArray& bytes)
-            : m_input(bytes.toStdString()), m_stream(&m_input), db(&m_stream), m_size(bytes.size()) {
+            : m_input(bytes.toStdString()), m_stream(&m_input), db(&m_stream), m_bytes(bytes) {
     }
 
     template<typename Row>
@@ -33,14 +35,20 @@ class ParsedPdb {
         EXPECT_EQ(static_cast<unsigned>(table->type()), type);
         auto* ref = table->first_page();
         int dataPages = 0;
-        for (unsigned steps = 0; steps < m_size / db.len_page(); ++steps) {
-            if (ref->index() == 0 || ref->index() >= m_size / db.len_page()) {
+        quint32 previousSequence = 1;
+        for (unsigned steps = 0; steps < m_bytes.size() / db.len_page(); ++steps) {
+            if (ref->index() == 0 || ref->index() >= m_bytes.size() / db.len_page()) {
                 break;
             }
             auto* page = ref->body();
             EXPECT_EQ(ref->index(), page->page_index());
             EXPECT_EQ(table->type(), page->type());
+            const char* rawPage = m_bytes.constData() + ref->index() * db.len_page();
+            const auto sequence = qFromLittleEndian<quint32>(rawPage + 0x10);
+            SCOPED_TRACE(ref->index());
             if (page->is_data_page()) {
+                EXPECT_GT(sequence, previousSequence);
+                previousSequence = sequence;
                 ++dataPages;
                 unsigned count = 0;
                 unsigned groups = 0;
@@ -64,6 +72,9 @@ class ParsedPdb {
                 EXPECT_EQ(page->free_size() + page->used_size() + 36 * groups + 40, db.len_page());
             } else {
                 EXPECT_EQ(ref->index(), table->first_page()->index());
+                EXPECT_EQ(sequence, 1u);
+                EXPECT_EQ(qFromLittleEndian<quint32>(rawPage + 0x2c),
+                        qFromLittleEndian<quint32>(rawPage + 0x0c));
             }
             if (ref->index() == table->last_page()->index()) {
                 EXPECT_EQ(page->next_page()->index(), table->empty_candidate());
@@ -75,6 +86,27 @@ class ParsedPdb {
         return dataPages;
     }
 
+    QByteArray rowBytes(Pdb::row_ref_t* ref, qsizetype size) {
+        const auto index = ref->_parent()->_parent()->page_index();
+        return m_bytes.mid(index * db.len_page() + ref->row_base(), size);
+    }
+
+    void expectDataPageSequences() {
+        QList<quint32> sequences;
+        for (qsizetype offset = db.len_page(); offset < m_bytes.size(); offset += db.len_page()) {
+            const char* page = m_bytes.constData() + offset;
+            if (page[0x1b] == 0x24) {
+                sequences.append(qFromLittleEndian<quint32>(page + 0x10));
+            }
+        }
+        std::sort(sequences.begin(), sequences.end());
+        quint32 expected = 2;
+        for (const auto sequence : sequences) {
+            EXPECT_EQ(sequence, expected++);
+        }
+        EXPECT_EQ(db.sequence(), expected);
+    }
+
   private:
     std::istringstream m_input;
     kaitai::kstream m_stream;
@@ -83,7 +115,7 @@ class ParsedPdb {
     Pdb db;
 
   private:
-    size_t m_size;
+    const QByteArray& m_bytes;
 };
 
 QString text(Pdb::device_sql_string_t* string) {
@@ -108,7 +140,9 @@ QString text(Pdb::device_sql_string_t* string) {
 
 TEST(LegacyPdb, EmptyLibraryHasFixedTables) {
     QString error;
+    const auto dateBefore = QDate::currentDate();
     const auto bytes = legacyPdbBytes({}, &error);
+    const auto dateAfter = QDate::currentDate();
     ASSERT_FALSE(bytes.isEmpty()) << error.toStdString();
     ParsedPdb parsed(bytes);
     EXPECT_EQ(parsed.db.len_page(), 4096u);
@@ -129,14 +163,17 @@ TEST(LegacyPdb, EmptyLibraryHasFixedTables) {
             "YEAR", "REMIXER", "LABEL", "ORIGINAL ARTIST", "KEY", "CUE", "COLOR", "TIME",
             "BITRATE", "FILE NAME", "PLAYLIST", "HOT CUE BANK", "HISTORY", "SEARCH",
             "COMMENTS", "DATE ADDED", "DJ PLAY COUNT", "FOLDER", "DEFAULT", "ALPHABET", "MATCHING"};
-    const auto* table = parsed.db.tables()->at(16);
     int i = 0;
     parsed.visit(16, [&](auto* ref) {
         ASSERT_LT(i, columns.size());
-        const char* row = bytes.constData() + table->last_page()->index() * 4096 + ref->row_base();
+        const auto rowBytes = parsed.rowBytes(ref, 12 + 2 * columns[i].size());
+        ASSERT_EQ(rowBytes.size(), 12 + 2 * columns[i].size());
+        const char* row = rowBytes.constData();
         EXPECT_EQ(qFromLittleEndian<quint16>(row), i + 1);
         EXPECT_EQ(qFromLittleEndian<quint16>(row + 2), columnIds[i]);
         EXPECT_EQ(static_cast<unsigned char>(row[4]), 0x90);
+        EXPECT_EQ(qFromLittleEndian<quint16>(row + 5), 8 + 2 * columns[i].size());
+        EXPECT_EQ(row[7], 0);
         EXPECT_EQ(qFromLittleEndian<quint16>(row + 8), 0xfffa);
         for (int j = 0; j < columns[i].size(); ++j) {
             EXPECT_EQ(qFromLittleEndian<quint16>(row + 10 + j * 2), columns[i][j].unicode());
@@ -145,11 +182,45 @@ TEST(LegacyPdb, EmptyLibraryHasFixedTables) {
         ++i;
     });
     EXPECT_EQ(i, columns.size());
-    for (unsigned type = 0; type < 20; ++type) {
-        if (type != 6 && type != 16) {
-            EXPECT_EQ(parsed.visit(type, [](auto*) {}), type >= 17 ? 1 : 0);
+    // Row bytes from a public empty rekordbox export.
+    const auto expectSettings = [&](unsigned type, const QByteArray& hex) {
+        const auto expected = QByteArray::fromHex(hex);
+        QByteArray actual;
+        EXPECT_EQ(parsed.visit(type, [&](auto* ref) {
+            actual.append(parsed.rowBytes(ref, 8));
+        }), 1);
+        EXPECT_EQ(actual.toHex(), expected.toHex());
+    };
+    expectSettings(17,
+            "0100010063010000 0500060005010000 0600070063010000 0700080063010000 "
+            "0800090063010000 09000a0063010000 0a000b0063010000 0d000f0063010000 "
+            "0e00130004010000 0f00140006010000 1000150063010000 1200170063010000 "
+            "0200020002000100 0300030003000200 0400040001000300 0b000c0063000400 "
+            "1100050063000500 1300160063000600 1400120063000700 1b001a0063020800 "
+            "1800110063000900 16001b0063000a00");
+    expectSettings(18,
+            "0100060001000000 1500070001000000 0e00080001000000 0800090001000000 "
+            "09000a0001000000 0a000b0001000000 0f000d0001000000 0d000f0001000000 "
+            "1700100001000000 1600110001000000 1900000000010000 1a00010000020000 "
+            "0200020000030000 0300030000040000 0500040000050000 0600050000060000 "
+            "0b000c0000070000");
+    int historyRows = 0;
+    EXPECT_EQ(parsed.visit(19, [&](auto* ref) {
+        ++historyRows;
+        const auto row = parsed.rowBytes(ref, 40);
+        EXPECT_EQ(row.left(13).toHex(), "80020000000000000000000017");
+        const auto date = row.mid(13, 10);
+        EXPECT_TRUE(date == dateBefore.toString(Qt::ISODate).toLatin1() ||
+                date == dateAfter.toString(Qt::ISODate).toLatin1());
+        EXPECT_EQ(row.mid(23).toHex(), "191e0b3130303003000000000000000000");
+    }), 1);
+    EXPECT_EQ(historyRows, 1);
+    for (unsigned type = 0; type < 16; ++type) {
+        if (type != 6) {
+            EXPECT_EQ(parsed.visit(type, [](auto*) {}), 0);
         }
     }
+    parsed.expectDataPageSequences();
 }
 
 TEST(LegacyPdb, RoundTripsLibraryRows) {
@@ -332,6 +403,26 @@ TEST(LegacyPdb, SelectsStringEncodingWithoutLosingText) {
     }
 }
 
+TEST(LegacyPdb, RoundTripsFarAlbumNames) {
+    LegacyLibrary library;
+    library.albums = {{1, 0, QString(201, 'a')}, {2, 0, QString(101, QChar(0x65e5))}};
+    const auto bytes = legacyPdbBytes(library);
+    ASSERT_FALSE(bytes.isEmpty());
+    ParsedPdb parsed(bytes);
+    const auto albums = parsed.rows<Pdb::album_row_t>(3);
+    ASSERT_EQ(albums.size(), library.albums.size());
+    for (qsizetype i = 0; i < albums.size(); ++i) {
+        EXPECT_EQ(albums[i]->id(), library.albums[i].id);
+        // Check the marker before decoding so a bad offset does not hide the mismatch.
+        const auto marker = i == 0 ? 0x40 : 0x90;
+        auto* name = albums[i]->name();
+        EXPECT_EQ(name->length_and_kind(), marker);
+        if (name->length_and_kind() == marker) {
+            EXPECT_EQ(text(name), library.albums[i].name);
+        }
+    }
+}
+
 TEST(LegacyPdb, FollowsMultiplePagesIncludingDenseRows) {
     LegacyLibrary library;
     library.playlists = {{1, 0, 0, false, "All"}};
@@ -357,6 +448,7 @@ TEST(LegacyPdb, FollowsMultiplePagesIncludingDenseRows) {
         EXPECT_EQ(row->playlist_id(), 1u);
     }), 1);
     EXPECT_EQ(id, 2000u);
+    parsed.expectDataPageSequences();
 }
 
 TEST(LegacyPdb, RejectsZeroAndDuplicateTrackIds) {

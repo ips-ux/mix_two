@@ -333,9 +333,11 @@ types:
     doc: |
       A row that holds an album name and ID.
     seq:
-      - type: u2
-        doc: |
-          Some kind of magic word? Usually 0x80, 0x00.
+      # AI-generated (Claude Code). Start of AI-generated text.
+      - id: subtype
+        type: u2
+        doc: Bit 0x04 selects a two-byte name offset.
+      # End of AI-generated text.
       - id: index_shift
         type: u2
         doc: TODO name from @flesniak, but what does it mean?
@@ -358,10 +360,16 @@ types:
         doc: |
           The location of the variable-length name string, relative to
           the start of this row.
+      # AI-generated (Claude Code). Start of AI-generated text.
+      - id: ofs_name_far
+        type: u2
+        if: (subtype & 0x04) != 0
+        doc: The name offset at 0x16 when the subtype selects the far layout.
     instances:
       name:
         type: device_sql_string
-        pos: _parent.row_base + ofs_name
+        pos: '_parent.row_base + ((subtype & 0x04) != 0 ? ofs_name_far : ofs_name)'
+        # End of AI-generated text.
         doc: |
           The name of this album.
         -webide-parse-mode: eager
