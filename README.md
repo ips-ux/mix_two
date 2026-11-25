@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 331 | 224 | 215 | 61 | 0 | 0 | 72 |
+| Features | 331 | 221 | 218 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: Library Protection; Import Track, Import Folder, Import To Collection (commit: see git log, "Library: Library Protection ..." and "Library: Import ...")
 - 2026-11-24: Relocate and Auto Relocate for missing tracks; preview from the track list (commit: see git log, "Library: Relocate ..." and "Track list preview ...")
 - 2026-11-24: safe-removal button after an export; a playlist folder shows its tracks (commit: see git log, "Device export: eject ..." and "Playlists: a folder shows ...")
 - 2026-11-24: Mixer Mode switch Internal / External (commit: see git log, "Sound: Mixer Mode ..." and the two commits after it)
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-24: stick functions: restore the newest backup; delete a playlist with its unused tracks (commit: see git log, "Device export: restore the newest backup of a stick" and "Device export: delete a playlist from a stick with its unused tracks")
 - 2026-11-24: 256-frame buffer for a new DDJ-800 sound setup; Preview volume in the sound preferences (commit: see git log, "Sound: 256-frame buffer for the DDJ-800; preview volume in the sound preferences")
 - 2026-11-24: small tempo buttons use rekordbox's steps; one script runs all export judges (commit: see git log, "Tempo: the small tempo buttons use rekordbox's steps for the tempo range" and "tools: export_verify.py runs all export judges on a stick")
-- 2026-11-23: channel effect units are not heard on the headphone CUE (commit: see git log, "Engine: channel effect units are not heard on the headphone CUE")
 
 <!-- mixtwo-status:end -->
 
