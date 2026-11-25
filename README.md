@@ -12,7 +12,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 | Status | Build | Partial | Built | Checked | Deck-verified | CDJ-verified | Skip |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Features | 334 | 224 | 212 | 61 | 0 | 0 | 72 |
+| Features | 333 | 224 | 213 | 61 | 0 | 0 | 72 |
 
 | Area | Criticality | Features | Fill | Deck test |
 |---|---|---:|---:|---|
@@ -38,6 +38,7 @@ feature is complete only when the owner tests it on the DDJ-800.
 
 The latest changes, newest first.
 
+- 2026-11-24: safe-removal button after an export; a playlist folder shows its tracks (commit: see git log, "Device export: eject ..." and "Playlists: a folder shows ...")
 - 2026-11-24: Mixer Mode switch Internal / External (commit: see git log, "Sound: Mixer Mode ..." and the two commits after it)
 - 2026-11-24: consolidate core (no command yet); playlist folders: folder drop, drag into folders, rename in the tree (commit: see git log, "Library: consolidate ..." and "Playlists: ...")
 - 2026-11-24: Export Track in the track menu; files on removable and network drives are never sent to the trash (commit: see git log, "Track menu: Export Track ..." and "Track delete never trashes files on removable drives ...")
@@ -49,7 +50,6 @@ The latest changes, newest first.
 - 2026-11-24: small tempo buttons use rekordbox's steps; one script runs all export judges (commit: see git log, "Tempo: the small tempo buttons use rekordbox's steps for the tempo range" and "tools: export_verify.py runs all export judges on a stick")
 - 2026-11-23: channel effect units are not heard on the headphone CUE (commit: see git log, "Engine: channel effect units are not heard on the headphone CUE")
 - 2026-11-18: DDJ-800 TEMPO slider uses rekordbox's steps; SHIFT + BEAT LOOP pad does nothing (commit: see git log, "DDJ-800 mapping: TEMPO slider uses rekordbox's steps; SHIFT + BEAT LOOP pad does nothing" and "DDJ-800 mapping: TEMPO slider ends are exact for every range; sampler bank helper does not write")
-- 2026-11-18: DDJ-800 sampler pads use slots 1-8 and 9-16 of one shared bank; Beat FX selector order pinned by a test (commit: see git log, "DDJ-800 mapping: sampler pads use slots 1-8 and 9-16 of one shared bank" and "test: Beat FX selector order of the DDJ-800 is pinned")
 
 <!-- mixtwo-status:end -->
 
