@@ -492,7 +492,7 @@ Tracks list, push **Auto Relocate**. Mix Two searches these folders and the
 folders below them. A file matches a missing track when it has the same name
 and the same size. The library does not store a content hash of the file, so
 Mix Two cannot compare one. If more than one file matches, Mix Two takes the
-file with the most similar folder names.
+file with the most similar folder names. Mix Two then shows each match as the old path and the new path. Clear the mark of a match to keep that track as it is. Push **Apply** to relocate the marked tracks. Push **Cancel** to change nothing. The file dialog of **Relocate** shows the audio files that Mix Two supports.
 
 ### Playlist folders
 
