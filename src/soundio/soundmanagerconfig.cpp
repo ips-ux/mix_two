@@ -126,6 +126,15 @@ bool SoundManagerConfig::validateDevices() {
 
     const QList<SoundDevicePointer> soundDevices =
             m_pSoundManager->getDeviceList(m_api, true, true);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    {
+        QList<SoundDeviceId> present;
+        for (const auto& soundDevice : soundDevices) {
+            present.append(soundDevice->getDeviceId());
+        }
+        repairSavedOutputs(present);
+    }
+    // End of AI-generated text.
 
     for (int i = 0; i < devElements.count(); ++i) {
         QDomElement devElement(devElements.at(i).toElement());
@@ -656,14 +665,109 @@ SoundDeviceId SoundManagerConfig::mixerModeDevice() const {
     return SoundDeviceId();
 }
 
+// static
+SoundManagerConfig::MixerSetupState SoundManagerConfig::analyzeMixerSetup(
+        const QMultiHash<SoundDeviceId, AudioOutput>& outputs,
+        unsigned int deckCount,
+        bool storedExternal) {
+    bool mainMix = false;
+    bool anyDeck = false;
+    QSet<int> decks;
+    for (auto it = outputs.constBegin(); it != outputs.constEnd(); ++it) {
+        switch (it.value().getType()) {
+        case AudioPathType::Main:
+        case AudioPathType::Headphones:
+        case AudioPathType::Booth:
+            // The engine turns the main mix on for each of these.
+            mainMix = true;
+            break;
+        case AudioPathType::Deck:
+            anyDeck = true;
+            decks.insert(it.value().getIndex());
+            break;
+        default:
+            break;
+        }
+    }
+    MixerSetupState state;
+    QList<int> missing;
+    for (unsigned int i = 0; i < deckCount; ++i) {
+        if (!decks.contains(static_cast<int>(i))) {
+            missing.append(static_cast<int>(i));
+        }
+    }
+    if (!mainMix && missing.isEmpty() && deckCount > 0) {
+        state.setup = MixerSetup::External;
+    } else if (!anyDeck && (mainMix || outputs.isEmpty())) {
+        state.setup = MixerSetup::Internal;
+        // No outputs at all counts as Internal only when External is not
+        // the stored mode.
+        if (outputs.isEmpty() && storedExternal) {
+            state.setup = MixerSetup::Custom;
+        }
+    } else {
+        state.setup = MixerSetup::Custom;
+    }
+    if (storedExternal && !mainMix && !missing.isEmpty()) {
+        state.decksWithoutOutput = missing;
+    }
+    return state;
+}
+
+SoundManagerConfig::MixerSetupState SoundManagerConfig::mixerSetupState() const {
+    return analyzeMixerSetup(m_outputs, m_deckCount, m_mixerMode == MixerMode::External);
+}
+
+void SoundManagerConfig::syncMixerModeToOutputs() {
+    const MixerSetup setup = mixerSetupState().setup;
+    if (setup == MixerSetup::Internal) {
+        m_mixerMode = MixerMode::Internal;
+        m_internalOutputs.clear();
+    } else if (setup == MixerSetup::External) {
+        m_mixerMode = MixerMode::External;
+    }
+}
+
+int SoundManagerConfig::repairSavedOutputs(const QList<SoundDeviceId>& present) {
+    int dropped = 0;
+    QMultiHash<SoundDeviceId, AudioOutput> fixed;
+    for (auto it = m_internalOutputs.constBegin(); it != m_internalOutputs.constEnd(); ++it) {
+        // The same rule as validateDevices(): the name finds the device. The
+        // index is not stable across restarts, so the live one replaces it.
+        const SoundDeviceId* pFound = nullptr;
+        for (const SoundDeviceId& candidate : present) {
+            if (candidate.name != it.key().name) {
+                continue;
+            }
+            if (!pFound) {
+                pFound = &candidate;
+            }
+            if (!it.key().alsaHwDevice.isEmpty() &&
+                    candidate.alsaHwDevice == it.key().alsaHwDevice) {
+                pFound = &candidate;
+                break;
+            }
+        }
+        if (pFound) {
+            fixed.insert(*pFound, it.value());
+        } else {
+            ++dropped;
+        }
+    }
+    m_internalOutputs = fixed;
+    return dropped;
+}
+
 SoundManagerConfig::MixerModeChange SoundManagerConfig::setMixerMode(
         MixerMode mode, int deviceOutputChannels) {
     MixerModeChange result;
-    if (mode == m_mixerMode) {
-        return result;
-    }
+    const MixerSetup setup = mixerSetupState().setup;
     const SoundDeviceId device = mixerModeDevice();
     if (mode == MixerMode::External) {
+        if (setup == MixerSetup::External) {
+            m_mixerMode = MixerMode::External;
+            return result;
+        }
         if (device.name.isEmpty()) {
             result.status = MixerModeStatus::NoDevice;
             return result;
@@ -683,7 +787,16 @@ SoundManagerConfig::MixerModeChange SoundManagerConfig::setMixerMode(
         QMultiHash<SoundDeviceId, AudioOutput> kept;
         for (auto it = m_outputs.constBegin(); it != m_outputs.constEnd(); ++it) {
             const AudioPathType type = it.value().getType();
-            if (type == AudioPathType::Main || type == AudioPathType::Deck) {
+            if (type == AudioPathType::Deck) {
+                continue;
+            }
+            if (type == AudioPathType::Main) {
+                continue;
+            }
+            // The engine turns the main mix on for Headphones and Booth, so
+            // External cannot keep them.
+            if (type == AudioPathType::Headphones || type == AudioPathType::Booth) {
+                result.droppedNames.append(it.value().getString());
                 continue;
             }
             if (it.key() == device) {
@@ -692,7 +805,7 @@ SoundManagerConfig::MixerModeChange SoundManagerConfig::setMixerMode(
                     clash = clash || deck.channelsClash(it.value());
                 }
                 if (clash) {
-                    ++result.droppedOutputs;
+                    result.droppedNames.append(it.value().getString());
                     continue;
                 }
             }
@@ -701,31 +814,47 @@ SoundManagerConfig::MixerModeChange SoundManagerConfig::setMixerMode(
         for (const AudioOutput& deck : std::as_const(decks)) {
             kept.insert(device, deck);
         }
-        m_internalOutputs = m_outputs;
+        // An earlier saved setup stays when External was already stored.
+        if (m_mixerMode == MixerMode::Internal) {
+            m_internalOutputs = m_outputs;
+        }
         m_outputs = kept;
         m_mixerMode = MixerMode::External;
         return result;
     }
 
     // Internal
+    if (setup == MixerSetup::Internal && m_mixerMode == MixerMode::Internal) {
+        return result;
+    }
+    QMultiHash<SoundDeviceId, AudioOutput> restored;
     if (!m_internalOutputs.isEmpty()) {
-        m_outputs = m_internalOutputs;
+        restored = m_internalOutputs;
     } else {
-        // Nothing saved: keep the sound on. Main goes on the first channels.
+        for (auto it = m_outputs.constBegin(); it != m_outputs.constEnd(); ++it) {
+            if (it.value().getType() != AudioPathType::Deck) {
+                restored.insert(it.key(), it.value());
+            }
+        }
+    }
+    bool hasMain = false;
+    for (const AudioOutput& output : std::as_const(restored)) {
+        hasMain = hasMain || output.getType() == AudioPathType::Main;
+    }
+    if (!hasMain) {
+        // Choice: when the saved setup has no Main output (nothing saved, or
+        // its device is gone), Main goes on channels 1 and 2 of the device in
+        // use now. The sound stays on, and the user gets a message.
         if (device.name.isEmpty()) {
             result.status = MixerModeStatus::NoDevice;
             return result;
         }
-        QMultiHash<SoundDeviceId, AudioOutput> kept;
-        for (auto it = m_outputs.constBegin(); it != m_outputs.constEnd(); ++it) {
-            if (it.value().getType() != AudioPathType::Deck) {
-                kept.insert(it.key(), it.value());
-            }
-        }
-        kept.insert(device,
+        restored.insert(device,
                 AudioOutput(AudioPathType::Main, 0, mixxx::audio::ChannelCount::stereo(), 0));
-        m_outputs = kept;
+        result.mainFallback = true;
+        result.fallbackDevice = device.name;
     }
+    m_outputs = restored;
     m_internalOutputs.clear();
     m_mixerMode = MixerMode::Internal;
     return result;

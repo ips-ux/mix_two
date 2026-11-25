@@ -56,6 +56,13 @@ QString mainDeviceName(const SoundManagerConfig& config) {
             return it.key().name;
         }
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mixer Mode External has no Main output. The device of the deck outputs
+    // then names the target, so the setup stays valid for its target.
+    if (config.getMixerMode() == SoundManagerConfig::MixerMode::External) {
+        return config.mixerModeDevice().name;
+    }
+    // End of AI-generated text.
     return QString();
 }
 
@@ -212,8 +219,7 @@ SoundManagerConfig AudioTargetManager::buildConfig(
     saved.setFileName(configFileName(target));
     if (saved.readFromDisk() && saved.getAPI() == api) {
         saved.validateDevices();
-        if (hasMainOutput(saved) &&
-                usesHardwareUnit(saved) == (target == Target::Hardware)) {
+        if (acceptsSavedSetup(saved, target == Target::Hardware)) {
             if (api == kApiWasapi) {
                 restoreMicInputs(&saved);
             }
@@ -483,6 +489,23 @@ void AudioTargetManager::slotRoutingChanged(double value) {
 
 void AudioTargetManager::slotDevicesSetup() {
     const SoundManagerConfig config = m_pSoundManager->getConfig();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // External with a deck that has no output (for example after the deck
+    // count rose): tell the user once for each set of decks.
+    {
+        const QList<int> missing = config.mixerSetupState().decksWithoutOutput;
+        if (missing.isEmpty()) {
+            m_decksWithoutOutputShown.clear();
+        } else if (missing != m_decksWithoutOutputShown) {
+            m_decksWithoutOutputShown = missing;
+            QTimer::singleShot(0, this, [missing]() {
+                QMessageBox::warning(nullptr,
+                        tr("Mixer Mode"),
+                        decksWithoutOutputText(missing));
+            });
+        }
+    }
+    // End of AI-generated text.
     const bool wasapi = config.getAPI() == kApiWasapi;
     const bool wasWasapi = m_onWasapi;
     m_onWasapi = wasapi;
@@ -729,6 +752,27 @@ void AudioTargetManager::restoreMicInputsNow() {
         return;
     }
     applyOrGoBack(next, current);
+}
+
+// static
+QString AudioTargetManager::decksWithoutOutputText(const QList<int>& decks) {
+    QStringList numbers;
+    for (const int deck : decks) {
+        numbers.append(QString::number(deck + 1));
+    }
+    const QString which = decks.size() == 1
+            ? tr("Deck %1 has no output.").arg(numbers.join(QStringLiteral(", ")))
+            : tr("Decks %1 have no output.").arg(numbers.join(QStringLiteral(", ")));
+    return which + QChar(' ') +
+            tr("The sound of these decks is off. "
+               "Open Preferences > Sound Hardware and select Mixer Mode External "
+               "again, or select Mixer Mode Internal.");
+}
+
+// static
+bool AudioTargetManager::acceptsSavedSetup(
+        const SoundManagerConfig& saved, bool hardwareTarget) {
+    return hasMainOutput(saved) && usesHardwareUnit(saved) == hardwareTarget;
 }
 
 void AudioTargetManager::showMicrophonesOff() {

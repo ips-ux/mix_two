@@ -22,6 +22,7 @@
 #include "preferences/configobject.h"
 #include "preferences/dialog/dlgprefsound.h"
 #include "preferences/dialog/dlgprefsounditem.h"
+#include "soundio/audiotargetmanager.h"
 #include "soundio/sounddevice.h"
 #include "soundio/soundmanager.h"
 #include "soundio/soundmanagerconfig.h"
@@ -612,6 +613,7 @@ DlgPrefSound::DlgPrefSound(QWidget* pParent,
 
 /// Slot called when the preferences dialog is opened.
 void DlgPrefSound::slotUpdate() {
+    m_resetPending = false;
     m_bSkipConfigClear = true;
     loadSettings();
     checkLatencyCompensation();
@@ -640,6 +642,19 @@ void DlgPrefSound::slotApply() {
     m_config.clearInputs();
     m_config.clearOutputs();
     emit writePaths(&m_config);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The stored mode follows the real outputs. External with a deck that
+    // has no output would be silent, so it does not start.
+    m_config.syncMixerModeToOutputs();
+    const QList<int> missingDecks = m_config.mixerSetupState().decksWithoutOutput;
+    if (!missingDecks.isEmpty()) {
+        QMessageBox::warning(this,
+                tr("Mixer Mode"),
+                AudioTargetManager::decksWithoutOutputText(missingDecks));
+        return;
+    }
+    // End of AI-generated text.
 
     SoundDeviceStatus status = SoundDeviceStatus::Ok;
     {
@@ -685,16 +700,24 @@ void DlgPrefSound::slotApply() {
 #endif
 
         // AI-generated (Claude Code). Start of AI-generated text.
-        const auto oldMixerMode = m_pSoundManager->getConfig().getMixerMode();
+        const auto oldSetup = m_pSoundManager->getConfig().mixerSetupState().setup;
         // End of AI-generated text.
         status = m_pSoundManager->setConfig(m_config);
         m_configValid = (status == SoundDeviceStatus::Ok);
         // AI-generated (Claude Code). Start of AI-generated text.
-        // The main mix follows the mode when the mode changes. A manual
-        // choice in Main Mix stays when the mode does not change.
-        if (status == SoundDeviceStatus::Ok && oldMixerMode != m_config.getMixerMode()) {
-            m_pMainEnabled->set(
-                    SoundManagerConfig::mainMixEnabledFor(m_config.getMixerMode()) ? 1.0 : 0.0);
+        // The main mix follows the real mixer mode when it changes. A manual
+        // choice in Main Mix stays when the mode does not change. After
+        // Reset to Defaults the main mix goes on.
+        if (status == SoundDeviceStatus::Ok) {
+            const auto newSetup = m_config.mixerSetupState().setup;
+            if (m_resetPending) {
+                m_pMainEnabled->set(1.0);
+            } else if (newSetup != oldSetup &&
+                    newSetup != SoundManagerConfig::MixerSetup::Custom) {
+                m_pMainEnabled->set(
+                        newSetup == SoundManagerConfig::MixerSetup::Internal ? 1.0 : 0.0);
+            }
+            m_resetPending = false;
         }
         // End of AI-generated text.
     }
@@ -871,11 +894,7 @@ void DlgPrefSound::loadSettings(const SoundManagerConfig& config) {
         }
     }
     // AI-generated (Claude Code). Start of AI-generated text.
-    {
-        const QSignalBlocker mixerModeBlocker(mixerModeComboBox);
-        mixerModeComboBox->setCurrentIndex(mixerModeComboBox->findData(
-                static_cast<int>(m_config.getMixerMode())));
-    }
+    showMixerMode(m_config);
     // End of AI-generated text.
     int sizeIndex = audioBufferComboBox->findData(m_config.getAudioBufferSizeIndex());
     if (sizeIndex != -1) {
@@ -1260,6 +1279,10 @@ void DlgPrefSound::settingChanged() {
         return; // doesn't count if we're just loading prefs
     }
     m_settingsModified = true;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A change of an output row can change the real mixer mode.
+    updateMixerModeDisplay();
+    // End of AI-generated text.
 }
 
 #ifdef __RUBBERBAND__
@@ -1397,8 +1420,10 @@ void DlgPrefSound::slotResetToDefaults() {
     }
     m_pKeylockEngine.set(static_cast<double>(keylockEngine));
 
-    mainMixComboBox->setCurrentIndex(1);
-    m_pMainEnabled->set(1.0);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The main mix goes on when the user pushes Apply, not at once.
+    m_resetPending = true;
+    // End of AI-generated text.
 
     mainDelaySpinBox->setValue(0.0);
     m_pMainDelay.set(0.0);
@@ -1514,17 +1539,58 @@ void DlgPrefSound::previewVolumeSliderChanged(int position) {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+// The data of the combo box entry "Custom". It shows only when the output rows
+// are neither Internal nor External.
+constexpr int kMixerModeCustom = 2;
+} // namespace
+
+void DlgPrefSound::showMixerMode(const SoundManagerConfig& config) {
+    const QSignalBlocker blocker(mixerModeComboBox);
+    const auto setup = config.mixerSetupState().setup;
+    const int customIndex = mixerModeComboBox->findData(kMixerModeCustom);
+    if (setup == SoundManagerConfig::MixerSetup::Custom) {
+        if (customIndex < 0) {
+            mixerModeComboBox->addItem(tr("Custom"), kMixerModeCustom);
+        }
+        mixerModeComboBox->setCurrentIndex(mixerModeComboBox->findData(kMixerModeCustom));
+        return;
+    }
+    if (customIndex >= 0) {
+        mixerModeComboBox->removeItem(customIndex);
+    }
+    mixerModeComboBox->setCurrentIndex(mixerModeComboBox->findData(
+            static_cast<int>(setup == SoundManagerConfig::MixerSetup::External
+                            ? SoundManagerConfig::MixerMode::External
+                            : SoundManagerConfig::MixerMode::Internal)));
+}
+
+// The output rows as a config, without a change to m_config.
+SoundManagerConfig DlgPrefSound::configFromRows() {
+    SoundManagerConfig config = m_config;
+    config.clearInputs();
+    config.clearOutputs();
+    emit writePaths(&config);
+    config.syncMixerModeToOutputs();
+    return config;
+}
+
+void DlgPrefSound::updateMixerModeDisplay() {
+    showMixerMode(configFromRows());
+}
+
 void DlgPrefSound::mixerModeComboBoxChanged(int index) {
     if (m_loading || index < 0) {
         return;
     }
-    const auto mode = static_cast<SoundManagerConfig::MixerMode>(
-            mixerModeComboBox->itemData(index).toInt());
+    const int data = mixerModeComboBox->itemData(index).toInt();
+    if (data == kMixerModeCustom) {
+        return;
+    }
+    const auto mode = static_cast<SoundManagerConfig::MixerMode>(data);
 
     // Take the present choices of the output rows, then change them.
-    m_config.clearInputs();
-    m_config.clearOutputs();
-    emit writePaths(&m_config);
+    m_config = configFromRows();
 
     int deviceChannels = 0;
     const SoundDeviceId deviceId = m_config.mixerModeDevice();
@@ -1536,35 +1602,48 @@ void DlgPrefSound::mixerModeComboBoxChanged(int index) {
     }
     const auto result = m_config.setMixerMode(mode, deviceChannels);
     if (result.status != SoundManagerConfig::MixerModeStatus::Ok) {
-        // Keep the present setup. Show the old mode and say why.
-        {
-            const QSignalBlocker blocker(mixerModeComboBox);
-            mixerModeComboBox->setCurrentIndex(mixerModeComboBox->findData(
-                    static_cast<int>(m_config.getMixerMode())));
+        // Keep the present setup. Show what the rows are, and say why.
+        showMixerMode(m_config);
+        QString text;
+        if (result.status == SoundManagerConfig::MixerModeStatus::TooFewChannels &&
+                deviceChannels > 0) {
+            text = tr("External mode needs %1 output channels for %2 decks. "
+                      "The sound device has %3 output channels. "
+                      "The sound setup does not change.")
+                           .arg(2 * m_config.getDeckCount())
+                           .arg(m_config.getDeckCount())
+                           .arg(deviceChannels);
+        } else if (mode == SoundManagerConfig::MixerMode::External) {
+            text = tr("External mode needs an output device. "
+                      "Select a device for the main output first. "
+                      "The sound setup does not change.");
+        } else {
+            text = tr("Internal mode needs an output device. "
+                      "Select a device for a deck output first. "
+                      "The sound setup does not change.");
         }
-        const QString text =
-                result.status == SoundManagerConfig::MixerModeStatus::TooFewChannels
-                ? tr("External mode needs 2 output channels for each deck. "
-                     "That is %1 channels. The sound device has %2. "
-                     "The sound setup does not change.")
-                          .arg(2 * m_config.getDeckCount())
-                          .arg(deviceChannels)
-                : tr("External mode needs an output device. "
-                     "Select a device for the main output first. "
-                     "The sound setup does not change.");
         QMessageBox::warning(this, tr("Mixer Mode"), text);
         emit loadPaths(m_config);
         return;
     }
     emit loadPaths(m_config);
     settingChanged();
-    if (result.droppedOutputs > 0) {
+    if (!result.droppedNames.isEmpty()) {
         QMessageBox::information(this,
                 tr("Mixer Mode"),
-                tr("External mode uses the channels of %1 other output. "
-                   "Mix Two removes it from the setup. "
-                   "Internal mode brings it back.")
-                        .arg(result.droppedOutputs));
+                tr("External mode turns the main mix off. "
+                   "These outputs leave the setup: %1. "
+                   "Internal mode brings them back. "
+                   "The change starts when you push Apply.")
+                        .arg(result.droppedNames.join(QStringLiteral(", "))));
+    }
+    if (result.mainFallback) {
+        QMessageBox::information(this,
+                tr("Mixer Mode"),
+                tr("The outputs from before External mode are not available. "
+                   "Mix Two puts the main output on channels 1 and 2 of %1. "
+                   "The change starts when you push Apply.")
+                        .arg(result.fallbackDevice));
     }
 }
 // End of AI-generated text.

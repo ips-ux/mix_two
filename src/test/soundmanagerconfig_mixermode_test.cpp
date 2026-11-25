@@ -4,6 +4,7 @@
 #include <QDomDocument>
 
 #include "soundio/soundmanagerconfig.h"
+#include "soundio/audiotargetmanager.h"
 #include "soundio/soundmanagerutil.h"
 #include "test/mixxxtest.h"
 
@@ -117,27 +118,36 @@ TEST_F(MixerModeTest, ExternalDropsAnOutputOnTheSameChannelsAndCountsIt) {
     addMainAndHeadphones();
     const auto result = m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4);
     ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok, result.status);
-    EXPECT_EQ(1, result.droppedOutputs);
+    EXPECT_EQ(1, result.droppedNames.size());
     EXPECT_FALSE(has(m_config.getOutputs(), AudioPathType::Headphones, 0, 2));
 }
 
-TEST_F(MixerModeTest, ExternalKeepsAnOutputOnFreeChannels) {
+TEST_F(MixerModeTest, ExternalKeepsABusOutputOnFreeChannels) {
     m_config.addOutput(m_device, out(AudioPathType::Main, 0));
-    m_config.addOutput(m_device, out(AudioPathType::Headphones, 4));
+    m_config.addOutput(m_device, out(AudioPathType::Bus, 4));
     const auto result = m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 8);
     ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok, result.status);
-    EXPECT_EQ(0, result.droppedOutputs);
-    EXPECT_TRUE(has(m_config.getOutputs(), AudioPathType::Headphones, 0, 4));
+    EXPECT_TRUE(result.droppedNames.isEmpty());
+    EXPECT_TRUE(has(m_config.getOutputs(), AudioPathType::Bus, 0, 4));
 }
 
-TEST_F(MixerModeTest, ExternalKeepsAnOutputOnAnotherDevice) {
+TEST_F(MixerModeTest, ExternalDropsHeadphonesAndBoothOnAnotherDeviceToo) {
+    // The engine turns the main mix on for these two, so External cannot keep them.
     const SoundDeviceId other = makeDevice("Other", 1);
     m_config.addOutput(m_device, out(AudioPathType::Main, 0));
     m_config.addOutput(other, out(AudioPathType::Headphones, 0));
+    m_config.addOutput(other, out(AudioPathType::Booth, 2));
     const auto result = m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4);
     ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok, result.status);
-    EXPECT_EQ(0, result.droppedOutputs);
+    EXPECT_EQ(2, result.droppedNames.size());
+    EXPECT_FALSE(has(m_config.getOutputs(), AudioPathType::Headphones, 0, 0));
+    EXPECT_FALSE(has(m_config.getOutputs(), AudioPathType::Booth, 0, 2));
+    EXPECT_EQ(SoundManagerConfig::MixerSetup::External, m_config.mixerSetupState().setup);
+    // Internal brings both back.
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::Internal, 4).status);
     EXPECT_TRUE(has(m_config.getOutputs(), AudioPathType::Headphones, 0, 0));
+    EXPECT_TRUE(has(m_config.getOutputs(), AudioPathType::Booth, 0, 2));
 }
 
 TEST_F(MixerModeTest, InternalRestoresTheOutputsFromBeforeExternal) {
@@ -231,6 +241,191 @@ TEST_F(MixerModeTest, ResetGoesBackToInternalAndForgetsTheSavedSetup) {
     doc.appendChild(root);
     m_config.writeMixerModeXml(&doc, &root);
     EXPECT_EQ(0, root.elementsByTagName("output").count());
+}
+
+// Stale or missing devices after a restart.
+
+TEST_F(MixerModeTest, SavedOutputsFindTheirDeviceAgainWhenTheIndexChanged) {
+    addMainAndHeadphones();
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4).status);
+    QDomDocument doc;
+    QDomElement root = doc.createElement("SoundManagerConfig");
+    doc.appendChild(root);
+    m_config.writeMixerModeXml(&doc, &root);
+
+    // After a restart the same device has index 7. The live decks use it.
+    const SoundDeviceId now = makeDevice("DDJ-800", 7);
+    SoundManagerConfig other(nullptr);
+    other.setDeckCount(2);
+    other.readMixerModeXml(root);
+    other.addOutput(now, out(AudioPathType::Deck, 0, 0));
+    other.addOutput(now, out(AudioPathType::Deck, 2, 1));
+    EXPECT_EQ(0, other.repairSavedOutputs({now}));
+    const auto result = other.setMixerMode(SoundManagerConfig::MixerMode::Internal, 4);
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok, result.status);
+    EXPECT_FALSE(result.mainFallback);
+    const auto outputs = other.getOutputs();
+    for (auto it = outputs.cbegin(); it != outputs.cend(); ++it) {
+        EXPECT_EQ(now, it.key()) << "an output keeps a stale device id";
+    }
+    EXPECT_TRUE(has(outputs, AudioPathType::Main, 0, 0));
+    EXPECT_TRUE(has(outputs, AudioPathType::Headphones, 0, 2));
+}
+
+TEST_F(MixerModeTest, SavedOutputsOfAGoneDeviceGiveMainOnTheDeviceInUse) {
+    addMainAndHeadphones();
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4).status);
+    QDomDocument doc;
+    QDomElement root = doc.createElement("SoundManagerConfig");
+    doc.appendChild(root);
+    m_config.writeMixerModeXml(&doc, &root);
+
+    // The DDJ-800 is gone. The decks are now on "Speakers".
+    const SoundDeviceId speakers = makeDevice("Speakers", 2);
+    SoundManagerConfig other(nullptr);
+    other.setDeckCount(2);
+    other.readMixerModeXml(root);
+    other.addOutput(speakers, out(AudioPathType::Deck, 0, 0));
+    other.addOutput(speakers, out(AudioPathType::Deck, 2, 1));
+    EXPECT_EQ(2, other.repairSavedOutputs({speakers}));
+    const auto result = other.setMixerMode(SoundManagerConfig::MixerMode::Internal, 4);
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok, result.status);
+    EXPECT_TRUE(result.mainFallback);
+    EXPECT_EQ("Speakers", result.fallbackDevice);
+    const auto outputs = other.getOutputs();
+    EXPECT_EQ(1, outputs.size());
+    EXPECT_TRUE(has(outputs, AudioPathType::Main, 0, 0));
+    EXPECT_EQ(speakers, outputs.constBegin().key());
+}
+
+// What the setup really is.
+
+TEST_F(MixerModeTest, SetupIsInternalWithMainAndNoDeckOutput) {
+    addMainAndHeadphones();
+    EXPECT_EQ(SoundManagerConfig::MixerSetup::Internal, m_config.mixerSetupState().setup);
+}
+
+TEST_F(MixerModeTest, SetupIsCustomWhenMainIsAddedInExternal) {
+    addMainAndHeadphones();
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4).status);
+    m_config.addOutput(m_device, out(AudioPathType::Main, 4));
+    EXPECT_EQ(SoundManagerConfig::MixerSetup::Custom, m_config.mixerSetupState().setup);
+    EXPECT_TRUE(m_config.mixerSetupState().decksWithoutOutput.isEmpty());
+}
+
+TEST_F(MixerModeTest, SetupIsNotExternalWhenABoothOutputStays) {
+    m_config.addOutput(m_device, out(AudioPathType::Deck, 0, 0));
+    m_config.addOutput(m_device, out(AudioPathType::Deck, 2, 1));
+    m_config.addOutput(makeDevice("Other", 1), out(AudioPathType::Booth, 0));
+    EXPECT_EQ(SoundManagerConfig::MixerSetup::Custom, m_config.mixerSetupState().setup);
+}
+
+TEST_F(MixerModeTest, SyncSetsTheStoredModeFromTheOutputs) {
+    addMainAndHeadphones();
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4).status);
+    // The user puts Main back by hand and removes the deck rows.
+    m_config.clearOutputs();
+    m_config.addOutput(m_device, out(AudioPathType::Main, 0));
+    m_config.syncMixerModeToOutputs();
+    EXPECT_EQ(SoundManagerConfig::MixerMode::Internal, m_config.getMixerMode());
+}
+
+TEST_F(MixerModeTest, TwoDecksToFourDecksInExternalNamesTheDecksWithoutOutput) {
+    m_config.addOutput(m_device, out(AudioPathType::Main, 0));
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4).status);
+    EXPECT_TRUE(m_config.mixerSetupState().decksWithoutOutput.isEmpty());
+
+    m_config.setCorrectDeckCount(4);
+    const auto state = m_config.mixerSetupState();
+    EXPECT_EQ(SoundManagerConfig::MixerSetup::Custom, state.setup);
+    EXPECT_EQ((QList<int>{2, 3}), state.decksWithoutOutput);
+}
+
+TEST_F(MixerModeTest, SelectingExternalAgainGivesTheNewDecksAnOutput) {
+    addMainAndHeadphones();
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 8).status);
+    m_config.setCorrectDeckCount(4);
+    ASSERT_FALSE(m_config.mixerSetupState().decksWithoutOutput.isEmpty());
+
+    const auto result = m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 8);
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok, result.status);
+    EXPECT_EQ(SoundManagerConfig::MixerSetup::External, m_config.mixerSetupState().setup);
+    EXPECT_TRUE(has(m_config.getOutputs(), AudioPathType::Deck, 3, 6));
+    // The setup from before the first External is still the one that returns.
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::Internal, 8).status);
+    EXPECT_TRUE(has(m_config.getOutputs(), AudioPathType::Main, 0, 0));
+    EXPECT_TRUE(has(m_config.getOutputs(), AudioPathType::Headphones, 0, 2));
+}
+
+TEST_F(MixerModeTest, InternalOnACustomSetupRemovesTheDeckOutputs) {
+    m_config.addOutput(m_device, out(AudioPathType::Main, 0));
+    m_config.addOutput(m_device, out(AudioPathType::Deck, 4, 0));
+    ASSERT_EQ(SoundManagerConfig::MixerSetup::Custom, m_config.mixerSetupState().setup);
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::Internal, 8).status);
+    EXPECT_EQ(SoundManagerConfig::MixerSetup::Internal, m_config.mixerSetupState().setup);
+}
+
+TEST_F(MixerModeTest, InternalWithNoDeviceAtAllRefuses) {
+    EXPECT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::Internal, 0).status);
+    // Stored External with no outputs and nothing saved: no device to use.
+    QDomDocument doc;
+    QDomElement root = doc.createElement("SoundManagerConfig");
+    root.setAttribute("mixer_mode", "external");
+    doc.appendChild(root);
+    m_config.readMixerModeXml(root);
+    EXPECT_EQ(SoundManagerConfig::MixerModeStatus::NoDevice,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::Internal, 0).status);
+}
+
+// The target manager must accept an External setup.
+
+TEST_F(MixerModeTest, TargetManagerAcceptsAnExternalSetupOnItsDevice) {
+    m_config.addOutput(m_device, out(AudioPathType::Main, 0));
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4).status);
+    EXPECT_TRUE(AudioTargetManager::acceptsSavedSetup(m_config, true));
+    EXPECT_FALSE(AudioTargetManager::acceptsSavedSetup(m_config, false));
+}
+
+TEST_F(MixerModeTest, TargetManagerAcceptsAnExternalSetupOnAPcDevice) {
+    const SoundDeviceId pc = makeDevice("Audient EVO8", 4);
+    SoundManagerConfig config(nullptr);
+    config.setDeckCount(2);
+    config.addOutput(pc, out(AudioPathType::Main, 0));
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            config.setMixerMode(SoundManagerConfig::MixerMode::External, 8).status);
+    EXPECT_TRUE(AudioTargetManager::acceptsSavedSetup(config, false));
+    EXPECT_FALSE(AudioTargetManager::acceptsSavedSetup(config, true));
+}
+
+TEST_F(MixerModeTest, TargetManagerKeepsAnExternalSetupWhenDecksGrow) {
+    m_config.addOutput(m_device, out(AudioPathType::Main, 0));
+    ASSERT_EQ(SoundManagerConfig::MixerModeStatus::Ok,
+            m_config.setMixerMode(SoundManagerConfig::MixerMode::External, 4).status);
+    m_config.setCorrectDeckCount(4);
+    EXPECT_TRUE(AudioTargetManager::acceptsSavedSetup(m_config, true));
+}
+
+TEST_F(MixerModeTest, TargetManagerStillRejectsASetupWithNoOutput) {
+    EXPECT_FALSE(AudioTargetManager::acceptsSavedSetup(m_config, true));
+    EXPECT_FALSE(AudioTargetManager::acceptsSavedSetup(m_config, false));
+}
+
+TEST_F(MixerModeTest, TheMessageNamesTheDecksWithoutOutput) {
+    const QString text = AudioTargetManager::decksWithoutOutputText({2, 3});
+    EXPECT_TRUE(text.contains("3, 4"));
+    EXPECT_TRUE(text.contains("Preferences"));
+    EXPECT_NE(AudioTargetManager::decksWithoutOutputText({2}),
+            AudioTargetManager::decksWithoutOutputText({2, 3}));
 }
 
 } // namespace

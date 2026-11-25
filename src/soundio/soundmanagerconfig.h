@@ -6,8 +6,10 @@
 
 #include <QDomDocument>
 #include <QFileInfo>
+#include <QList>
 #include <QMultiHash>
 #include <QString>
+#include <QStringList>
 
 #include "audio/types.h"
 #include "soundio/soundmanagerutil.h"
@@ -133,10 +135,48 @@ class SoundManagerConfig {
 
     struct MixerModeChange {
         MixerModeStatus status = MixerModeStatus::Ok;
-        /// Outputs on the deck channels that External removed. Internal
-        /// brings them back.
-        int droppedOutputs = 0;
+        /// The outputs that External removed (the user text names them).
+        /// Internal brings them back.
+        QStringList droppedNames;
+        /// Internal found no usable Main output in the saved setup, so it put
+        /// Main on channels 1 and 2 of `fallbackDevice`.
+        bool mainFallback = false;
+        QString fallbackDevice;
     };
+
+    /// What the outputs really are, whatever the stored mode says.
+    enum class MixerSetup {
+        /// Main output, no deck output.
+        Internal,
+        /// An output for every deck, and no Main, Headphones or Booth output
+        /// (the engine turns the main mix on for each of those).
+        External,
+        /// Anything else.
+        Custom,
+    };
+
+    struct MixerSetupState {
+        MixerSetup setup = MixerSetup::Internal;
+        /// Not empty when the stored mode is External, there is no Main mix
+        /// output, and these decks (0-based) have no output.
+        QList<int> decksWithoutOutput;
+    };
+
+    /// Pure: decides the setup from the outputs.
+    static MixerSetupState analyzeMixerSetup(
+            const QMultiHash<SoundDeviceId, AudioOutput>& outputs,
+            unsigned int deckCount,
+            bool storedExternal);
+    MixerSetupState mixerSetupState() const;
+
+    /// Sets the stored mode from the real setup: Internal when the outputs
+    /// are Internal, External when they are External.
+    void syncMixerModeToOutputs();
+
+    /// Matches the saved pre-External outputs to the devices that exist now,
+    /// by device name, and drops the ones whose device is gone. Returns the
+    /// number dropped.
+    int repairSavedOutputs(const QList<SoundDeviceId>& present);
 
     /// True if the main mix is on in `mode`.
     static bool mainMixEnabledFor(MixerMode mode);

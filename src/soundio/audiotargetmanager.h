@@ -95,6 +95,17 @@ class AudioTargetManager : public QObject {
             unsigned int currentIndex);
     // End of AI-generated text.
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// True if a saved setup file belongs to the HARDWARE or the PC target.
+    /// A setup with Main on the target's device belongs to it. So does an
+    /// External Mixer Mode setup, which has no Main output: the device of its
+    /// deck outputs decides. Pure, so it needs no sound hardware.
+    static bool acceptsSavedSetup(const SoundManagerConfig& saved, bool hardwareTarget);
+
+    /// The text for decks (0-based) that have no output in External mode.
+    static QString decksWithoutOutputText(const QList<int>& decks);
+    // End of AI-generated text.
+
   private slots:
     void slotTargetChanged(double value);
     void slotRoutingChanged(double value);
@@ -156,4 +167,8 @@ class AudioTargetManager : public QObject {
     // True while applyConfig() runs: a config it applies has its mic inputs
     // restored (or dropped on purpose) already.
     bool m_applying;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The decks that the last message said have no output.
+    QList<int> m_decksWithoutOutputShown;
+    // End of AI-generated text.
 };

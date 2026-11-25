@@ -282,6 +282,14 @@ the sound device has fewer channels, Mix Two shows a message and keeps the
 present setup. Internal brings back the outputs that you had before you chose
 External. The change starts when you push Apply.
 
+External turns the main mix off, so Main, Headphones and Booth outputs leave
+the setup. A message names them. If a deck has no output in External mode,
+Mix Two tells you which decks, and Apply does not start the setup. The page
+shows Custom when the outputs are neither Internal nor External. If the
+device from before External is gone, Internal puts Main on channels 1 and 2
+of the device in use. A message says so. Reset to Defaults changes the
+main mix when you push Apply.
+
 To select the audio driver, go to Preferences > Sound Hardware > Audio
 Routing:
 - **ASIO**: the lowest latency. Other apps cannot play sound through the

@@ -106,6 +106,11 @@ class DlgPrefSound : public DlgPreferencePage, public Ui::DlgPrefSoundDlg  {
     void invalidateConfig();
 
   private:
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void showMixerMode(const SoundManagerConfig& config);
+    SoundManagerConfig configFromRows();
+    void updateMixerModeDisplay();
+    // End of AI-generated text.
     void initializePaths();
     void connectSoundItem(DlgPrefSoundItem *item);
     void loadSettings(const SoundManagerConfig &config);
@@ -143,6 +148,10 @@ class DlgPrefSound : public DlgPreferencePage, public Ui::DlgPrefSoundDlg  {
     bool m_bSkipConfigClear;
     bool m_loading;
     bool m_configValid;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Reset to Defaults was used; Apply then turns the main mix on.
+    bool m_resetPending = false;
+    // End of AI-generated text.
 
 #ifdef __PIPEWIRE__
     parented_ptr<QCheckBox> m_pipewireCheckBox;

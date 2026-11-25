@@ -2992,7 +2992,6 @@ if(BUILD_TESTING)
     src/test/analyzersilence_test.cpp
     src/test/audiotaperpot_test.cpp
     src/test/audiotargetmanager_test.cpp
-    src/test/soundmanagerconfig_mixermode_test.cpp
     src/test/autodjprocessor_test.cpp
     src/test/beatgridtest.cpp
     src/test/beatmaptest.cpp
@@ -3120,6 +3119,7 @@ if(BUILD_TESTING)
     src/test/micinputassignments_test.cpp
     src/test/skincontext_test.cpp
     src/test/softtakeover_test.cpp
+    src/test/soundmanagerconfig_mixermode_test.cpp
     src/test/soundproxy_test.cpp
     src/test/soundsourceproviderregistrytest.cpp
     src/test/sqliteliketest.cpp
