@@ -8,7 +8,7 @@
 #include "controllers/controllermappinginfo.h"
 #include "controllers/midi/midicontroller.h"
 
-#if defined(Q_OS_LINUX) && defined(__PORTMIDI__)
+#ifdef Q_OS_LINUX
 #include "controllers/midi/midiportwatcher.h"
 #endif
 
@@ -75,11 +75,7 @@ bool isDdj800Connected(const QStringList& midiPortNames, const QString& cardsTex
 
 bool isDdj800Connected() {
 #ifdef Q_OS_LINUX
-#ifdef __PORTMIDI__
     const QStringList midiPortNames = midi::currentPortNames().value_or(QStringList{});
-#else
-    const QStringList midiPortNames;
-#endif
     QFile cards(QStringLiteral("/proc/asound/cards"));
     const QString cardsText = cards.open(QIODevice::ReadOnly | QIODevice::Text)
             ? QString::fromUtf8(cards.readAll())

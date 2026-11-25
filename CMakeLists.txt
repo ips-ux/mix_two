@@ -3987,6 +3987,9 @@ endif()
 
 # PortMidi
 default_option(PORTMIDI "Enable the PortMidi backend for MIDI controllers" "NOT ANDROID")
+if(PORTMIDI OR CMAKE_SYSTEM_NAME STREQUAL "Linux" OR ANDROID)
+  target_sources(mixxx-lib PRIVATE src/controllers/midi/midiportwatcher.cpp)
+endif()
 if(PORTMIDI)
   target_compile_definitions(mixxx-lib PUBLIC __PORTMIDI__)
   find_package(PortMidi REQUIRED)
@@ -3995,7 +3998,6 @@ if(PORTMIDI)
   target_sources(
     mixxx-lib
     PRIVATE
-      src/controllers/midi/midiportwatcher.cpp
       src/controllers/midi/portmidicontroller.cpp
       src/controllers/midi/portmidienumerator.cpp
   )
