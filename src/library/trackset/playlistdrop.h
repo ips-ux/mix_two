@@ -5,6 +5,7 @@
 // rename in the tree. No widget code is in this file.
 
 #include <QList>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -60,13 +61,34 @@ RenameResult renameNode(PlaylistDAO& dao, const Node& node, const QString& newNa
 /// The paths of the URLs that are existing local folders.
 QStringList existingFolderPathsFromUrls(const QList<QUrl>& urls);
 
+/// True when the item can be renamed with the editor in the tree. A locked
+/// playlist cannot (the same as the greyed menu entry); a folder always can.
+bool isNodeRenamable(const Node& node, const QSet<int>& lockedPlaylistIds);
+
+// Choice: one drop makes a playlist of 2000 audio files at most. A larger
+// folder makes nothing, so that the window does not freeze for a long time.
+constexpr int kMaxDroppedFolderTracks = 2000;
+
+struct FolderImport {
+    int playlistId = kInvalidPlaylistId;
+    int trackCount = 0;
+    /// The folder has more audio files than the limit. Nothing was made.
+    bool tooManyFiles = false;
+};
+
 /// Makes a playlist at the top level. It has the name of the folder and the
 /// tracks in the folder and below it, sorted by path. The tracks that are not
-/// in the library go into the library. Returns kInvalidPlaylistId when the
-/// folder holds no track.
-int createPlaylistFromFolder(PlaylistDAO& dao,
+/// in the library go into the library. playlistId is kInvalidPlaylistId when
+/// the folder holds no track or too many (maxFiles).
+FolderImport createPlaylistFromFolder(PlaylistDAO& dao,
         TrackCollectionManager* pTrackCollectionManager,
-        const QString& folderPath);
+        const QString& folderPath,
+        int maxFiles = kMaxDroppedFolderTracks);
+
+/// Makes a playlist with the tracks. When the tracks cannot be added, the
+/// playlist is deleted again, so that no empty playlist stays. The DAO calls
+/// have a transaction each and a transaction cannot contain another one.
+int createPlaylistWithTracks(PlaylistDAO& dao, QString name, const QList<TrackId>& trackIds);
 
 } // namespace playlistdrop
 // End of AI-generated text.

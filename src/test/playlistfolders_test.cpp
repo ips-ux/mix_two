@@ -2,9 +2,14 @@
 
 #include <QDir>
 #include <QSignalSpy>
+#include <QSqlQuery>
 #include <QUrl>
 
 #include "library/dao/playlistdao.h"
+#include "library/libraryfeature.h"
+#include "library/sidebarmodel.h"
+#include "library/treeitem.h"
+#include "library/treeitemmodel.h"
 #include "library/trackset/playlistdrop.h"
 #include "test/librarytest.h"
 
@@ -216,16 +221,20 @@ TEST_F(PlaylistFoldersTest, DroppedFolderMakesPlaylistNamedAfterIt) {
             existingFolderPathsFromUrls({QUrl::fromLocalFile(folderPath),
                     QUrl::fromLocalFile(root.filePath(copies.first()))}));
 
-    const int playlistId = createPlaylistFromFolder(
+    const FolderImport first = createPlaylistFromFolder(
             dao(), trackCollectionManager(), folderPath);
+    const int playlistId = first.playlistId;
     ASSERT_NE(kInvalidPlaylistId, playlistId);
+    EXPECT_EQ(3, first.trackCount);
+    EXPECT_FALSE(first.tooManyFiles);
     EXPECT_EQ(QStringLiteral("Friday Warmup"), dao().getPlaylistName(playlistId));
     EXPECT_EQ(3, dao().getTrackIds(playlistId).size());
     EXPECT_EQ(kInvalidPlaylistFolderId, dao().getPlaylistFolderId(playlistId));
 
     // A second drop of the same folder gets a unique name.
     const int second = createPlaylistFromFolder(
-            dao(), trackCollectionManager(), folderPath);
+            dao(), trackCollectionManager(), folderPath)
+                               .playlistId;
     ASSERT_NE(kInvalidPlaylistId, second);
     EXPECT_NE(second, playlistId);
     EXPECT_NE(QStringLiteral("Friday Warmup"), dao().getPlaylistName(second));
@@ -235,9 +244,125 @@ TEST_F(PlaylistFoldersTest, DroppedFolderWithoutTracksMakesNoPlaylist) {
     const QDir root = getTestDataDir();
     ASSERT_TRUE(root.mkpath(QStringLiteral("Empty")));
     const QString folderPath = root.filePath(QStringLiteral("Empty"));
-    EXPECT_EQ(kInvalidPlaylistId,
-            createPlaylistFromFolder(dao(), trackCollectionManager(), folderPath));
-    EXPECT_FALSE(dao().getPlaylistIdFromName(QStringLiteral("Empty")) != kInvalidPlaylistId);
+    const FolderImport result =
+            createPlaylistFromFolder(dao(), trackCollectionManager(), folderPath);
+    EXPECT_EQ(kInvalidPlaylistId, result.playlistId);
+    EXPECT_FALSE(result.tooManyFiles);
+    EXPECT_EQ(kInvalidPlaylistId, dao().getPlaylistIdFromName(QStringLiteral("Empty")));
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(PlaylistFoldersTest, CaseOnlyRenameIsAllowed) {
+    const int playlist = dao().createPlaylist(QStringLiteral("Friday"));
+    const int folder = dao().createFolder(QStringLiteral("Sets"));
+    EXPECT_EQ(RenameResult::Ok,
+            renameNode(dao(), parseNodeId(nodeIdForPlaylist(playlist)), QStringLiteral("FRIDAY")));
+    EXPECT_EQ(QStringLiteral("FRIDAY"), dao().getPlaylistName(playlist));
+    EXPECT_EQ(RenameResult::Ok,
+            renameNode(dao(), parseNodeId(nodeIdForFolder(folder)), QStringLiteral("sets")));
+    EXPECT_EQ(QStringLiteral("sets"), dao().getFolderName(folder));
+}
+
+TEST_F(PlaylistFoldersTest, LockedPlaylistIsNotRenamableInTheTree) {
+    const QSet<int> locked = {7};
+    EXPECT_FALSE(isNodeRenamable(parseNodeId(nodeIdForPlaylist(7)), locked));
+    EXPECT_TRUE(isNodeRenamable(parseNodeId(nodeIdForPlaylist(8)), locked));
+    EXPECT_TRUE(isNodeRenamable(parseNodeId(nodeIdForFolder(7)), locked));
+    EXPECT_FALSE(isNodeRenamable(Node(), locked));
+}
+
+TEST_F(PlaylistFoldersTest, FolderWithTooManyFilesMakesNothing) {
+    const QDir root = getTestDataDir();
+    ASSERT_TRUE(root.mkpath(QStringLiteral("Big")));
+    const QString source = getTestDir().filePath(QStringLiteral("sine-30.wav"));
+    for (const char* name : {"a.wav", "b.wav", "c.wav"}) {
+        ASSERT_TRUE(QFile::copy(source, root.filePath(QStringLiteral("Big/") + QLatin1String(name))));
+    }
+    const QString folderPath = root.filePath(QStringLiteral("Big"));
+
+    // With a limit of 2 the folder of 3 files is too large.
+    const FolderImport tooMany =
+            createPlaylistFromFolder(dao(), trackCollectionManager(), folderPath, 2);
+    EXPECT_TRUE(tooMany.tooManyFiles);
+    EXPECT_EQ(kInvalidPlaylistId, tooMany.playlistId);
+    EXPECT_EQ(kInvalidPlaylistId, dao().getPlaylistIdFromName(QStringLiteral("Big")));
+    // Nothing went into the library either.
+    {
+        QSqlQuery query(internalCollection()->database());
+        ASSERT_TRUE(query.exec(QStringLiteral("SELECT COUNT(*) FROM library")));
+        ASSERT_TRUE(query.next());
+        EXPECT_EQ(0, query.value(0).toInt());
+    }
+
+    // A limit that fits the folder makes the playlist.
+    const FolderImport fits =
+            createPlaylistFromFolder(dao(), trackCollectionManager(), folderPath, 3);
+    EXPECT_FALSE(fits.tooManyFiles);
+    EXPECT_NE(kInvalidPlaylistId, fits.playlistId);
+    EXPECT_EQ(3, dao().getTrackIds(fits.playlistId).size());
+    EXPECT_EQ(2000, kMaxDroppedFolderTracks);
+}
+
+namespace {
+/// A feature of another kind: its tree items can be edited and dragged only
+/// when asked for.
+class StubFeature : public LibraryFeature {
+  public:
+    StubFeature(bool supportsNodes, const QSet<int>& locked)
+            : LibraryFeature(nullptr, UserSettingsPointer(), QString()),
+              m_supportsNodes(supportsNodes),
+              m_locked(locked),
+              m_pModel(new TreeItemModel(this)) {
+        m_pModel->setRootItem(TreeItem::newRoot(this));
+        m_pModel->getRootItem()->appendChild(QStringLiteral("one"), 1);
+        m_pModel->getRootItem()->appendChild(QStringLiteral("two"), 2);
+    }
+    QVariant title() override {
+        return QStringLiteral("Stub");
+    }
+    TreeItemModel* sidebarModel() const override {
+        return m_pModel;
+    }
+    void activate() override {
+    }
+    QString dragIdOfChild(const QModelIndex& index) override {
+        return m_supportsNodes ? nodeIdForPlaylist(index.row() + 1) : QString();
+    }
+    bool canRenameChildInline(const QModelIndex& index) override {
+        return m_supportsNodes &&
+                isNodeRenamable(parseNodeId(dragIdOfChild(index)), m_locked);
+    }
+
+  private:
+    const bool m_supportsNodes;
+    const QSet<int> m_locked;
+    TreeItemModel* m_pModel;
+};
+} // namespace
+
+TEST_F(PlaylistFoldersTest, SidebarFlagsFollowTheFeature) {
+    StubFeature plain(false, {});
+    StubFeature playlists(true, {2});
+    SidebarModel sidebar;
+    sidebar.addLibraryFeature(&plain);
+    sidebar.addLibraryFeature(&playlists);
+
+    const auto childFlags = [&](int featureRow, int childRow) {
+        return sidebar.flags(sidebar.index(childRow, 0, sidebar.index(featureRow, 0)));
+    };
+    // The items of a feature that does not ask for it: no edit, no drag.
+    EXPECT_FALSE(childFlags(0, 0) & Qt::ItemIsEditable);
+    EXPECT_FALSE(childFlags(0, 0) & Qt::ItemIsDragEnabled);
+    // An unlocked playlist: both.
+    EXPECT_TRUE(childFlags(1, 0) & Qt::ItemIsEditable);
+    EXPECT_TRUE(childFlags(1, 0) & Qt::ItemIsDragEnabled);
+    // A locked playlist: no editor, but it still moves.
+    EXPECT_FALSE(childFlags(1, 1) & Qt::ItemIsEditable);
+    EXPECT_TRUE(childFlags(1, 1) & Qt::ItemIsDragEnabled);
+    // The root items of the features are never editable or draggable.
+    EXPECT_FALSE(sidebar.flags(sidebar.index(1, 0)) & Qt::ItemIsEditable);
+    EXPECT_FALSE(sidebar.flags(sidebar.index(1, 0)) & Qt::ItemIsDragEnabled);
 }
 // End of AI-generated text.
 

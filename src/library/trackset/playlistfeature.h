@@ -84,6 +84,10 @@ class PlaylistFeature : public BasePlaylistFeature {
     /// "Move to Folder" submenu for a playlist (playlistId) or a folder.
     QMenu* createMoveToFolderMenu(QWidget* pParent, int playlistId, int folderId);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The locked playlists, kept by decorateChild(); read by canRenameChildInline().
+    QSet<int> m_lockedPlaylistIds;
+    // End of AI-generated text.
     parented_ptr<QAction> m_pShufflePlaylistAction;
     parented_ptr<QAction> m_pOrderByCurrentPosAction;
     parented_ptr<QAction> m_pUnlockPlaylistsAction;

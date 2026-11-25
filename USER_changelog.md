@@ -528,6 +528,8 @@ To make a playlist from a folder of your computer, drag the folder from the file
 manager onto **Playlists**. The playlist has the name of the folder. It holds
 the tracks of the folder and of the folders in it. Mix Two adds new tracks to
 the library.
+A folder with more than 2000 audio files makes no playlist. Mix Two tells you.
+A locked playlist cannot be renamed in the tree.
 
 ### Export to a USB stick
 

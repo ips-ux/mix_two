@@ -126,7 +126,10 @@ RenameResult renameNode(PlaylistDAO& dao, const Node& node, const QString& newNa
         if (dao.getPlaylistName(node.id) == name) {
             return RenameResult::Ok;
         }
-        if (dao.getPlaylistIdFromName(name) != kInvalidPlaylistId) {
+        const int existingId = dao.getPlaylistIdFromName(name);
+        // Another playlist with the name; the playlist itself is no clash, so
+        // a change of the letter case is fine.
+        if (existingId != kInvalidPlaylistId && existingId != node.id) {
             return RenameResult::NameTaken;
         }
         dao.renamePlaylist(node.id, name);
@@ -153,18 +156,48 @@ QStringList existingFolderPathsFromUrls(const QList<QUrl>& urls) {
     return paths;
 }
 
-int createPlaylistFromFolder(PlaylistDAO& dao,
-        TrackCollectionManager* pTrackCollectionManager,
-        const QString& folderPath) {
-    if (!pTrackCollectionManager) {
+bool isNodeRenamable(const Node& node, const QSet<int>& lockedPlaylistIds) {
+    switch (node.kind) {
+    case NodeKind::Playlist:
+        return !lockedPlaylistIds.contains(node.id);
+    case NodeKind::Folder:
+        return true;
+    case NodeKind::None:
+        break;
+    }
+    return false;
+}
+
+int createPlaylistWithTracks(PlaylistDAO& dao, QString name, const QList<TrackId>& trackIds) {
+    const int playlistId = dao.createUniquePlaylist(&name);
+    if (playlistId == kInvalidPlaylistId) {
         return kInvalidPlaylistId;
+    }
+    if (!dao.appendTracksToPlaylist(trackIds, playlistId)) {
+        dao.deletePlaylist(playlistId);
+        return kInvalidPlaylistId;
+    }
+    return playlistId;
+}
+
+FolderImport createPlaylistFromFolder(PlaylistDAO& dao,
+        TrackCollectionManager* pTrackCollectionManager,
+        const QString& folderPath,
+        int maxFiles) {
+    FolderImport result;
+    if (!pTrackCollectionManager) {
+        return result;
     }
     // Choice: the tracks of the subfolders are in the playlist too, sorted by
     // path (the folder walk has no fixed order).
     QList<mixxx::FileInfo> fileInfos = DragAndDropHelper::supportedTracksFromUrls(
             {QUrl::fromLocalFile(folderPath)}, false, false);
+    if (fileInfos.size() > maxFiles) {
+        result.tooManyFiles = true;
+        return result;
+    }
     if (fileInfos.isEmpty()) {
-        return kInvalidPlaylistId;
+        return result;
     }
     std::sort(fileInfos.begin(),
             fileInfos.end(),
@@ -174,7 +207,7 @@ int createPlaylistFromFolder(PlaylistDAO& dao,
     const QList<TrackId> trackIds =
             pTrackCollectionManager->resolveTrackIds(fileInfos, nullptr);
     if (trackIds.isEmpty()) {
-        return kInvalidPlaylistId;
+        return result;
     }
 
     QString name = QFileInfo(folderPath).fileName();
@@ -185,12 +218,11 @@ int createPlaylistFromFolder(PlaylistDAO& dao,
             name.chop(1);
         }
     }
-    const int playlistId = dao.createUniquePlaylist(&name);
-    if (playlistId == kInvalidPlaylistId) {
-        return kInvalidPlaylistId;
+    result.playlistId = createPlaylistWithTracks(dao, name, trackIds);
+    if (result.playlistId != kInvalidPlaylistId) {
+        result.trackCount = trackIds.size();
     }
-    dao.appendTracksToPlaylist(trackIds, playlistId);
-    return playlistId;
+    return result;
 }
 
 } // namespace playlistdrop

@@ -4,7 +4,9 @@
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
+#include <QFileInfo>
 #include <QTimer>
+#include <QScopeGuard>
 #include <QSqlTableModel>
 #include <QStyle>
 #include <QtDebug>
@@ -770,7 +772,14 @@ void PlaylistFeature::deleteItem(const QModelIndex& index) {
 }
 
 void PlaylistFeature::decorateChild(TreeItem* item, int playlistId) {
-    if (m_playlistDao.isPlaylistLocked(playlistId)) {
+    const bool locked = m_playlistDao.isPlaylistLocked(playlistId);
+    // The sidebar asks for the lock of every item that it draws: keep it here.
+    if (locked) {
+        m_lockedPlaylistIds.insert(playlistId);
+    } else {
+        m_lockedPlaylistIds.remove(playlistId);
+    }
+    if (locked) {
         item->setIcon(
                 QIcon(":/images/library/ic_library_locked_tracklist.svg"));
     } else {
@@ -856,23 +865,37 @@ QString PlaylistFeature::getRootViewHtml() const {
 
 // AI-generated (Claude Code). Start of AI-generated text.
 bool PlaylistFeature::dragMoveAccept(const QList<QUrl>& urls) {
-    // Only a folder that holds a track. Files go onto a playlist.
-    const QStringList folderPaths = playlistdrop::existingFolderPathsFromUrls(urls);
-    return std::any_of(folderPaths.cbegin(), folderPaths.cend(), [](const QString& path) {
-        return DragAndDropHelper::urlsContainSupportedTrackFiles(
-                {QUrl::fromLocalFile(path)}, false);
-    });
+    // Only a check that a URL is a folder: the folder is not scanned while the
+    // cursor moves. A folder without audio makes no playlist at the drop.
+    return !playlistdrop::existingFolderPathsFromUrls(urls).isEmpty();
 }
 
 bool PlaylistFeature::dropAccept(const QList<QUrl>& urls, QObject* pSource) {
     Q_UNUSED(pSource);
     // One playlist for each dropped folder, named after the folder.
     bool created = false;
-    const QStringList folderPaths = playlistdrop::existingFolderPathsFromUrls(urls);
-    for (const QString& path : folderPaths) {
-        const int playlistId = playlistdrop::createPlaylistFromFolder(
-                m_playlistDao, m_pLibrary->trackCollectionManager(), path);
-        created = created || playlistId != kInvalidPlaylistId;
+    QStringList tooLargeFolders;
+    {
+        // The work runs in this thread: show a busy cursor.
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        const auto restoreCursor = qScopeGuard([] { QApplication::restoreOverrideCursor(); });
+        const QStringList folderPaths = playlistdrop::existingFolderPathsFromUrls(urls);
+        for (const QString& path : folderPaths) {
+            const playlistdrop::FolderImport import = playlistdrop::createPlaylistFromFolder(
+                    m_playlistDao, m_pLibrary->trackCollectionManager(), path);
+            created = created || import.playlistId != kInvalidPlaylistId;
+            if (import.tooManyFiles) {
+                tooLargeFolders.append(QFileInfo(path).fileName());
+            }
+        }
+    }
+    for (const QString& name : std::as_const(tooLargeFolders)) {
+        QMessageBox::warning(nullptr,
+                tr("Folder Too Large"),
+                tr("The folder \"%1\" has more than %2 audio files. "
+                   "Mix Two does not make a playlist from it. "
+                   "Drop a smaller folder.")
+                        .arg(name, QString::number(playlistdrop::kMaxDroppedFolderTracks)));
     }
     return created;
 }
@@ -919,7 +942,9 @@ bool PlaylistFeature::dropAcceptNode(const QModelIndex& index, const QString& dr
 }
 
 bool PlaylistFeature::canRenameChildInline(const QModelIndex& index) {
-    return !dragIdOfChild(index).isEmpty();
+    // No editor for a locked playlist, as the menu entry is grey for it.
+    return playlistdrop::isNodeRenamable(
+            playlistdrop::parseNodeId(dragIdOfChild(index)), m_lockedPlaylistIds);
 }
 
 QString PlaylistFeature::nameOfChildForEdit(const QModelIndex& index) {

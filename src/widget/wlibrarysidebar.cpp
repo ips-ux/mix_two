@@ -1,9 +1,11 @@
 #include "widget/wlibrarysidebar.h"
 
+#include <QFileInfo>
 #include <QHeaderView>
 #include <QMimeData>
 #include <QUrl>
 #include <QtDebug>
+#include <algorithm>
 
 #include "library/library_prefs.h"
 #include "library/sidebarmodel.h"
@@ -81,7 +83,15 @@ void WLibrarySidebar::dragEnterEvent(QDragEnterEvent* pEvent) {
         // FIXME Unless the cursor is steady after entering the sidebar (which
         // is veryhard to achieve for humans) QDragEnterEvent is followed by one
         // or more QDragMoveEvent, so don't check here at all and rely on dragMove?
-        if (DragAndDropHelper::urlsContainSupportedTrackFiles(pEvent->mimeData()->urls(), true)) {
+        // A folder is accepted without a scan; the feature under the cursor
+        // decides in the move event.
+        const QList<QUrl> enterUrls = pEvent->mimeData()->urls();
+        const bool hasFolder = std::any_of(enterUrls.cbegin(),
+                enterUrls.cend(),
+                [](const QUrl& url) {
+                    return url.isLocalFile() && QFileInfo(url.toLocalFile()).isDir();
+                });
+        if (hasFolder || DragAndDropHelper::urlsContainSupportedTrackFiles(enterUrls, true)) {
             pEvent->acceptProposedAction();
             return;
         }
