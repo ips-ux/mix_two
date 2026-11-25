@@ -232,6 +232,9 @@ class WTrackTableView : public WLibraryTableView {
     std::optional<PreviewClick> previewClickAt(const QPoint& pos);
     void ensurePreviewControls();
     void slotStopClickPreview();
+    // The model changes or the view hides: only an artwork preview stops.
+    void slotViewChangedForPreview();
+    void slotClickLoadTimeout();
     void slotClickStartTimeout();
     // End of AI-generated text.
 
@@ -271,6 +274,7 @@ class WTrackTableView : public WLibraryTableView {
     PreviewPlayerPort* m_pPreviewPort;
     PreviewClickController* m_pPreviewClick;
     QTimer* m_pClickStartTimer;
+    QTimer* m_pClickLoadTimer;
     // The cell that the left button went down on, and the cell of the preview.
     QPersistentModelIndex m_pressCell;
     QPersistentModelIndex m_previewCell;

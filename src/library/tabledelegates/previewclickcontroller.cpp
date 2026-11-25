@@ -45,12 +45,14 @@ bool PreviewClickController::fireDelayed(qint64 nowMillis, qint64 intervalMillis
     const Origin origin = m_armedOrigin;
     const double start = m_armedStart;
     cancelDelayed();
-    begin(pTrack, origin, start);
+    begin(pTrack, origin, start, nowMillis);
     return true;
 }
 
-void PreviewClickController::begin(
-        const TrackPointer& pTrack, Origin origin, double startSeconds) {
+void PreviewClickController::begin(const TrackPointer& pTrack,
+        Origin origin,
+        double startSeconds,
+        qint64 nowMillis) {
     // A preview that another source plays is not ours: leave it alone.
     if (!m_pOwner && m_pPort->isPlaying() && m_pPort->isLoaded(pTrack)) {
         return;
@@ -59,19 +61,26 @@ void PreviewClickController::begin(
     m_origin = origin;
     m_startSeconds = startSeconds;
     m_started = false;
+    if (m_pInFlight) {
+        // The deck still loads an earlier click. The new track loads after it.
+        m_loadPending = true;
+        m_loadStartedAt = nowMillis;
+        return;
+    }
     if (m_pPort->isLoaded(pTrack)) {
         m_loadPending = false;
         m_started = true;
         m_pPort->seekAndPlay(pTrack, startSeconds);
         return;
     }
-    // The deck holds another track. Wait until the deck reports this track.
     m_loadPending = true;
+    m_loadStartedAt = nowMillis;
+    m_pInFlight = pTrack;
     m_pPort->load(pTrack);
 }
 
 void PreviewClickController::onTrackLoaded() {
-    if (!m_loadPending || !m_pOwner || !m_pPort->isLoaded(m_pOwner)) {
+    if (!m_loadPending || m_pInFlight || !m_pOwner || !m_pPort->isLoaded(m_pOwner)) {
         return;
     }
     m_loadPending = false;
@@ -80,9 +89,34 @@ void PreviewClickController::onTrackLoaded() {
 }
 
 void PreviewClickController::onDeckTrackChanged(const TrackPointer& pNewTrack) {
+    if (!pNewTrack) {
+        // The load call of the deck reports an empty deck first.
+        if (m_pOwner && !m_loadPending) {
+            release();
+        }
+        return;
+    }
+    if (m_pInFlight && pNewTrack == m_pInFlight) {
+        m_pInFlight.reset();
+        if (m_pOwner && m_pOwner != pNewTrack) {
+            // A later click wants another track: load it now.
+            m_pInFlight = m_pOwner;
+            m_pPort->load(m_pOwner);
+        }
+        return;
+    }
     if (m_pOwner && pNewTrack != m_pOwner) {
         release();
     }
+}
+
+bool PreviewClickController::expireLoad(qint64 nowMillis, qint64 timeoutMillis) {
+    if ((!m_loadPending && !m_pInFlight) || nowMillis - m_loadStartedAt < timeoutMillis) {
+        return false;
+    }
+    m_pInFlight.reset();
+    release();
+    return true;
 }
 
 void PreviewClickController::onPlayChanged(bool playing) {

@@ -60,8 +60,17 @@ class PreviewClickController {
     /// The preview deck has finished loading a track (PlayerInfo reports it).
     /// Applies the start time to the track of the click, never to another one.
     void onTrackLoaded();
-    /// The track of the preview deck changed.
+    /// The track of the preview deck changed. A load call of the deck first
+    /// reports an empty deck (it unloads the old track), so an empty deck does
+    /// not end a click that waits for its load.
     void onDeckTrackChanged(const TrackPointer& pNewTrack);
+    /// True while a click waits for the deck to load its track.
+    bool isLoadPending() const {
+        return m_loadPending;
+    }
+    /// The deck sends no signal when a load fails. A click that waits longer
+    /// than `timeoutMillis` for its load ends. Returns true when it ended.
+    bool expireLoad(qint64 nowMillis, qint64 timeoutMillis);
     void onPlayChanged(bool playing);
 
     /// The pointer left the cell of the click. Stops the preview of an artwork click.
@@ -75,7 +84,7 @@ class PreviewClickController {
     std::optional<Origin> ownerOrigin() const;
 
   private:
-    void begin(const TrackPointer& pTrack, Origin origin, double startSeconds);
+    void begin(const TrackPointer& pTrack, Origin origin, double startSeconds, qint64 nowMillis);
     void release();
 
     PreviewPlayerPort* const m_pPort;
@@ -83,6 +92,11 @@ class PreviewClickController {
     Origin m_origin = Origin::Artwork;
     double m_startSeconds = 0.0;
     bool m_loadPending = false;
+    // The track that the deck is loading now. A click on another track waits
+    // until the deck reports this one, so a late report of it is never taken
+    // for the report of the new track.
+    TrackPointer m_pInFlight;
+    qint64 m_loadStartedAt = 0;
     bool m_started = false;
 
     bool m_armed = false;

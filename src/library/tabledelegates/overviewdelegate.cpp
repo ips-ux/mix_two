@@ -107,13 +107,19 @@ void OverviewDelegate::loadWantedCueMarks() {
     if (m_inhibitLazyLoading) {
         return;
     }
-    const auto wanted = std::move(m_cueMarkWanted);
-    m_cueMarkWanted.clear();
-    for (const QPersistentModelIndex& index : wanted) {
+    // A few rows in each turn, so a fast scroll does not stall the GUI.
+    constexpr int kRowsPerTurn = 16;
+    int loaded = 0;
+    for (auto it = m_cueMarkWanted.begin();
+            it != m_cueMarkWanted.end() && loaded < kRowsPerTurn;) {
+        const QPersistentModelIndex index = it.value();
+        it = m_cueMarkWanted.erase(it);
         if (index.isValid()) {
             cueMarksOfRow(index, true);
+            ++loaded;
         }
     }
+    scheduleCueMarkLoad();
     m_pTableView->viewport()->update();
 }
 

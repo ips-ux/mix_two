@@ -5,6 +5,7 @@
 // End of AI-generated text.
 #include <gtest/gtest.h>
 
+#include <functional>
 #include <vector>
 
 #include "library/tabledelegates/previewclick.h"
@@ -36,7 +37,9 @@ TEST(PreviewStartTest, UnknownSizeGivesZero) {
     EXPECT_DOUBLE_EQ(0.0, previewPositionFromClick(10, 400, 0.0));
 }
 
-// A fake preview deck. A load finishes only when the test calls finishLoad().
+// A fake preview deck that behaves like the real one: a load call first reports
+// an empty deck (when a track was loaded), and the new track comes later, when
+// the test calls finishLoad(). A load can also fail with no report.
 class FakePort : public PreviewPlayerPort {
   public:
     bool isLoaded(const TrackPointer& pTrack) const override {
@@ -49,8 +52,14 @@ class FakePort : public PreviewPlayerPort {
         return position;
     }
     void load(const TrackPointer& pTrack) override {
-        loading = pTrack;
         ++loadCount;
+        if (loaded) {
+            loaded.reset();
+            if (report) {
+                report(TrackPointer());
+            }
+        }
+        loading = pTrack;
     }
     void seekAndPlay(const TrackPointer& pTrack, double seconds) override {
         // The deck can only seek the track that it holds.
@@ -64,9 +73,17 @@ class FakePort : public PreviewPlayerPort {
         ++stopCount;
     }
     void finishLoad() {
-        loaded = loading;
+        const TrackPointer pTrack = loading;
+        loaded = pTrack;
+        loading.reset();
+        if (report) {
+            report(pTrack);
+        }
+    }
+    void failLoad() {
         loading.reset();
     }
+    std::function<void(const TrackPointer&)> report;
 
     TrackPointer loaded;
     TrackPointer loading;
@@ -83,6 +100,14 @@ class PreviewFlowTest : public MixxxTest {
             : controller(&port),
               track(Track::newTemporary()),
               other(Track::newTemporary()) {
+        port.report = [this](const TrackPointer& pTrack) {
+            controller.onDeckTrackChanged(pTrack);
+        };
+    }
+    // The deck finishes its load; the view applies the start one turn later.
+    void loadDone() {
+        port.finishLoad();
+        controller.onTrackLoaded();
     }
     // A click and the end of the double click time, as the view does it.
     void clickAndWait(const TrackPointer& pTrack, Origin origin, double start) {
@@ -102,17 +127,70 @@ TEST_F(PreviewFlowTest, ArtworkClickLoadsFirstAndPlaysFromTheStartAfterTheLoad) 
     port.loaded = other; // an old track is in the deck
     clickAndWait(track, Origin::Artwork, 0.0);
     EXPECT_EQ(1, port.loadCount);
-    EXPECT_TRUE(port.seeks.empty());
-    // The deck reports the old track first: nothing may be applied to it.
+    // The load call reported an empty deck: the click still waits.
+    EXPECT_EQ(track, controller.owner());
+    EXPECT_TRUE(controller.isLoadPending());
     controller.onTrackLoaded();
     EXPECT_TRUE(port.seeks.empty());
-    port.finishLoad();
-    controller.onDeckTrackChanged(track);
-    controller.onTrackLoaded();
+    loadDone();
     ASSERT_EQ(1u, port.seeks.size());
     EXPECT_DOUBLE_EQ(0.0, port.seeks[0]);
     EXPECT_TRUE(port.playing);
     EXPECT_EQ(track, controller.owner());
+}
+
+TEST_F(PreviewFlowTest, DeckHoldsTrackAClickOnBPlaysBFromTheClickedPosition) {
+    port.loaded = other;
+    clickAndWait(track, Origin::Overview, 70.0);
+    loadDone();
+    ASSERT_EQ(1u, port.seeks.size());
+    EXPECT_DOUBLE_EQ(70.0, port.seeks[0]);
+    EXPECT_EQ(track, port.loaded);
+    EXPECT_TRUE(port.playing);
+}
+
+TEST_F(PreviewFlowTest, ClickOnCBeforeBIsReportedPlaysOnlyC) {
+    auto third = Track::newTemporary();
+    port.loaded = other;
+    clickAndWait(track, Origin::Artwork, 0.0);
+    clickAndWait(third, Origin::Overview, 30.0);
+    // The deck still loads the first track: no second load call yet.
+    EXPECT_EQ(1, port.loadCount);
+    loadDone(); // the deck reports the first track
+    EXPECT_TRUE(port.seeks.empty());
+    EXPECT_FALSE(port.playing);
+    EXPECT_EQ(2, port.loadCount);
+    loadDone(); // the deck reports the third track
+    ASSERT_EQ(1u, port.seeks.size());
+    EXPECT_DOUBLE_EQ(30.0, port.seeks[0]);
+    EXPECT_EQ(third, port.loaded);
+    EXPECT_EQ(third, controller.owner());
+}
+
+TEST_F(PreviewFlowTest, AFailedLoadLeavesNoPendingStateAndTheNextClickWorks) {
+    port.loaded = other;
+    clickAndWait(track, Origin::Artwork, 0.0);
+    port.failLoad(); // no report comes
+    EXPECT_TRUE(controller.isLoadPending());
+    EXPECT_FALSE(controller.expireLoad(now + 9999, 10000));
+    EXPECT_TRUE(controller.expireLoad(now + 10000, 10000));
+    EXPECT_FALSE(controller.isLoadPending());
+    EXPECT_FALSE(controller.owner());
+    EXPECT_TRUE(port.seeks.empty());
+    now += 10000;
+    clickAndWait(track, Origin::Artwork, 0.0);
+    EXPECT_EQ(2, port.loadCount);
+    loadDone();
+    ASSERT_EQ(1u, port.seeks.size());
+    EXPECT_TRUE(port.playing);
+}
+
+TEST_F(PreviewFlowTest, AnEmptyDeckEndsAClickThatIsNotWaiting) {
+    port.loaded = track;
+    clickAndWait(track, Origin::Artwork, 0.0);
+    port.loaded.reset();
+    controller.onDeckTrackChanged(TrackPointer());
+    EXPECT_FALSE(controller.owner());
 }
 
 TEST_F(PreviewFlowTest, ClickOnTheTrackThatTheDeckHoldsPlaysAtOnceAfterTheWait) {
@@ -231,6 +309,7 @@ TEST_F(PreviewFlowTest, AStartThatWaitsForTheLoadIsDroppedWhenAnotherTrackArrive
     // The button loads a third track while ours loads.
     auto third = Track::newTemporary();
     port.loaded = third;
+    port.failLoad();
     controller.onDeckTrackChanged(third);
     controller.onTrackLoaded();
     EXPECT_TRUE(port.seeks.empty());

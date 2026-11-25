@@ -78,6 +78,7 @@ WTrackTableView::WTrackTableView(QWidget* pParent,
           m_pPreviewPort(nullptr),
           m_pPreviewClick(nullptr),
           m_pClickStartTimer(nullptr),
+          m_pClickLoadTimer(nullptr),
           m_ignoreRelease(false) {
     // AI-generated (Claude Code). Start of AI-generated text.
     m_prefixClock.start();
@@ -120,6 +121,8 @@ WTrackTableView::~WTrackTableView() {
 namespace {
 // AI-generated (Claude Code). Start of AI-generated text.
 std::atomic<bool> s_centerSelectedTrack{mixxx::library::prefs::kCenterSelectedTrackDefault};
+// The longest wait for the preview deck to load the track of a click.
+constexpr int kPreviewLoadTimeoutMillis = 10000;
 // End of AI-generated text.
 } // namespace
 
@@ -310,19 +313,19 @@ void WTrackTableView::loadTrackModel(QAbstractItemModel* pNewModel, bool restore
     setHorizontalHeader(tempHeader);
 
     // AI-generated (Claude Code). Start of AI-generated text.
-    slotStopClickPreview();
+    slotViewChangedForPreview();
     // End of AI-generated text.
     setModel(pNewModel);
     // AI-generated (Claude Code). Start of AI-generated text.
     connect(pNewModel,
             &QAbstractItemModel::modelAboutToBeReset,
             this,
-            &WTrackTableView::slotStopClickPreview,
+            &WTrackTableView::slotViewChangedForPreview,
             Qt::UniqueConnection);
     connect(pNewModel,
             &QAbstractItemModel::rowsAboutToBeRemoved,
             this,
-            &WTrackTableView::slotStopClickPreview,
+            &WTrackTableView::slotViewChangedForPreview,
             Qt::UniqueConnection);
     // End of AI-generated text.
     setHorizontalHeader(pHeader);
@@ -832,6 +835,9 @@ void WTrackTableView::mouseReleaseEvent(QMouseEvent* pEvent) {
         // Wait for a double click. It cancels the start.
         m_pClickStartTimer->start(QApplication::doubleClickInterval());
     }
+    if (m_pPreviewClick->isLoadPending()) {
+        m_pClickLoadTimer->start(kPreviewLoadTimeoutMillis);
+    }
 }
 
 void WTrackTableView::mouseDoubleClickEvent(QMouseEvent* pEvent) {
@@ -858,7 +864,7 @@ void WTrackTableView::mouseDoubleClickEvent(QMouseEvent* pEvent) {
 }
 
 void WTrackTableView::hideEvent(QHideEvent* pEvent) {
-    slotStopClickPreview();
+    slotViewChangedForPreview();
     WLibraryTableView::hideEvent(pEvent);
 }
 
@@ -976,6 +982,15 @@ void WTrackTableView::ensurePreviewControls() {
     m_pPreviewClick = new PreviewClickController(m_pPreviewPort);
     m_pClickStartTimer = new QTimer(this);
     m_pClickStartTimer->setSingleShot(true);
+    // A coarse timer can fire a few milliseconds early: use a precise one.
+    m_pClickStartTimer->setTimerType(Qt::PreciseTimer);
+    m_pClickLoadTimer = new QTimer(this);
+    m_pClickLoadTimer->setSingleShot(true);
+    m_pClickLoadTimer->setTimerType(Qt::PreciseTimer);
+    connect(m_pClickLoadTimer,
+            &QTimer::timeout,
+            this,
+            &WTrackTableView::slotClickLoadTimeout);
     connect(m_pClickStartTimer,
             &QTimer::timeout,
             this,
@@ -1006,14 +1021,33 @@ void WTrackTableView::ensurePreviewControls() {
 
 void WTrackTableView::slotClickStartTimeout() {
     if (m_pPreviewClick) {
+        // Five milliseconds of margin for the clock of the timer.
         m_pPreviewClick->fireDelayed(
-                m_prefixClock.elapsed(), QApplication::doubleClickInterval());
+                m_prefixClock.elapsed(), QApplication::doubleClickInterval() - 5);
+        if (m_pPreviewClick->isLoadPending()) {
+            m_pClickLoadTimer->start(kPreviewLoadTimeoutMillis);
+        }
+    }
+}
+
+void WTrackTableView::slotClickLoadTimeout() {
+    // The deck sends no signal when a load fails, so a wait has a time limit.
+    if (m_pPreviewClick) {
+        m_pPreviewClick->expireLoad(m_prefixClock.elapsed(), kPreviewLoadTimeoutMillis - 5);
+    }
+}
+
+void WTrackTableView::slotViewChangedForPreview() {
+    if (m_pPreviewClick) {
+        m_pClickStartTimer->stop();
+        m_pPreviewClick->leftCell();
     }
 }
 
 void WTrackTableView::slotStopClickPreview() {
     if (m_pPreviewClick) {
         m_pClickStartTimer->stop();
+        m_pClickLoadTimer->stop();
         m_pPreviewClick->stop();
     }
     m_previewCell = QPersistentModelIndex();
