@@ -172,8 +172,14 @@ bool WaveformRendererSlipMode::preprocessInner() {
     // AI-generated (Claude Code). Start of AI-generated text.
     // The play marker is at the same place in both slip states. The line is
     // drawn last, so it lies over the border.
-    const float playbackX = static_cast<float>(
-            m_waveformRenderer->getPlayMarkerPosition() * m_waveformRenderer->getLength());
+    // The width is in logical units, so it grows with the device pixel ratio.
+    // The centre snaps to a device pixel, as the beat lines do.
+    const float devicePixelRatio = m_waveformRenderer->getDevicePixelRatio();
+    const float playbackX = std::round(static_cast<float>(
+                                    m_waveformRenderer->getPlayMarkerPosition() *
+                                    m_waveformRenderer->getLength()) *
+                                    devicePixelRatio) /
+            devicePixelRatio;
     vertexUpdater.addRectangle({playbackX - kPlaybackLineWidth / 2.f, 0.f},
             {playbackX + kPlaybackLineWidth / 2.f, breadth},
             kPlaybackLineColor);

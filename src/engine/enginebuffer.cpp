@@ -667,6 +667,9 @@ void EngineBuffer::ejectTrack() {
     setTrackEndPosition(mixxx::audio::kInvalidFramePos);
     m_pTrackSampleRate->set(0);
     m_pTrackLoaded->forceSet(0);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pSlipPosition->forceSet(-1.0);
+    // End of AI-generated text.
 
     m_playButton->set(0.0);
     m_playposSlider->set(0);
@@ -1577,7 +1580,8 @@ void EngineBuffer::updateIndicators(double speed, std::size_t bufferSize) {
                     kPlaypositionUpdateRate)) {
         m_playposSlider->set(fFractionalPlaypos);
         // AI-generated (Claude Code). Start of AI-generated text.
-        m_pSlipPosition->set(m_bSlipEnabledProcessing ? fFractionalSlipPos : -1.0);
+        m_pSlipPosition->forceSet(
+                m_bSlipEnabledProcessing && isTrackLoaded() ? fFractionalSlipPos : -1.0);
         // End of AI-generated text.
         m_pCueControl->updateIndicators();
         m_samplesSinceLastIndicatorUpdate = 0;

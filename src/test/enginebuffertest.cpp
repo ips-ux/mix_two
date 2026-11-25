@@ -8,6 +8,7 @@
 #include <QtDebug>
 
 #include "control/controlobject.h"
+#include "control/controlproxy.h"
 #include "engine/controls/ratecontrol.h"
 #include "engine/defs_keylock.h"
 #include "mixer/basetrackplayer.h"
@@ -335,6 +336,50 @@ TEST_F(EngineBufferE2ETest, ReverseTest) {
     assertBufferMatchesReference(m_pEngineMixer->getMainBuffer(),
             QStringLiteral("ReverseTest"));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// slip_position holds the background position (0 to 1) while slip mode is
+// on, and -1 with slip mode off and with no track.
+TEST_F(EngineBufferE2ETest, SlipPositionFollowsSlipMode) {
+    ControlProxy slipPosition(m_sGroup1, "slip_position");
+    ControlObject::set(ConfigKey(m_sGroup1, "rate"), 0.05);
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
+    for (int i = 0; i < 40; ++i) {
+        ProcessBuffer();
+    }
+    EXPECT_DOUBLE_EQ(-1.0, slipPosition.get());
+
+    ControlObject::set(ConfigKey(m_sGroup1, "slip_enabled"), 1.0);
+    for (int i = 0; i < 40; ++i) {
+        ProcessBuffer();
+    }
+    EXPECT_GE(slipPosition.get(), 0.0);
+    EXPECT_LE(slipPosition.get(), 1.0);
+
+    ControlObject::set(ConfigKey(m_sGroup1, "slip_enabled"), 0.0);
+    for (int i = 0; i < 40; ++i) {
+        ProcessBuffer();
+    }
+    EXPECT_DOUBLE_EQ(-1.0, slipPosition.get());
+}
+
+TEST_F(EngineBufferE2ETest, SlipPositionResetsOnEject) {
+    ControlProxy slipPosition(m_sGroup1, "slip_position");
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 1.0);
+    ControlObject::set(ConfigKey(m_sGroup1, "slip_enabled"), 1.0);
+    for (int i = 0; i < 40; ++i) {
+        ProcessBuffer();
+    }
+    ASSERT_GE(slipPosition.get(), 0.0);
+    // A playing deck does not eject.
+    ControlObject::set(ConfigKey(m_sGroup1, "play"), 0.0);
+    ProcessBuffer();
+    ASSERT_GE(slipPosition.get(), 0.0);
+    m_pMixerDeck1->slotEjectTrack(1.0);
+    ProcessBuffer();
+    EXPECT_DOUBLE_EQ(-1.0, slipPosition.get());
+}
+// End of AI-generated text.
 
 // DISABLED: This test is too dependent on the sound touch library version.
 TEST_F(EngineBufferE2ETest, DISABLED_SoundTouchToggleTest) {

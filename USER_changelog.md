@@ -751,8 +751,8 @@ cell to change the mode. NEXT CUE shows the bars and beats to the next cue.
 POSITION shows the bars and beats from the first beat of the beat grid to
 the play position. Mix Two saves the mode.
 
-The beat count now rounds to the nearest beat when it is very near a whole
-beat. Before, a count of 8 beats could show as 1.3 and not as 2.0.
+The beat count now goes up to the next beat when the position is within 0.01
+beat of it. Before, a count of 8 beats could show as 1.3 and not as 2.0.
 
 In slip mode, a yellow line now shows the playback position on the overview
 and on the zoomed waveform. On the overview, a white line also shows the

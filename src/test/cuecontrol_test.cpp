@@ -900,6 +900,21 @@ TEST_F(CueControlTest, UpdatesAfterGridChange) {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
+// beats_from_start counts whole beats from the first beat and is -1 with no track.
+TEST_F(CueControlTest, BeatsFromStartFollowsPositionAndResetsOnEject) {
+    auto pBeatsFromStart = std::make_unique<ControlProxy>(m_sGroup1, "beats_from_start");
+    TrackPointer pTrack = createTestTrack();
+    pTrack->trySetBpm(120.0);
+    loadTrack(pTrack);
+    setCurrentFramePos(mixxx::audio::FramePos(8 * 22050.0));
+    ProcessBuffer();
+    EXPECT_GE(pBeatsFromStart->get(), 8.0);
+    unloadTrack();
+    EXPECT_DOUBLE_EQ(-1.0, pBeatsFromStart->get());
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
 
 namespace {
 

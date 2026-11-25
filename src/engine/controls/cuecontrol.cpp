@@ -731,6 +731,9 @@ void CueControl::trackLoaded(TrackPointer pNewTrack) {
         m_pCalledMemoryCue.reset();
         m_pBeats.reset();
         m_pBeatsToNextCue->forceSet(-1.0);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_pBeatsFromStart->forceSet(-1.0);
+        // End of AI-generated text.
         setHotcueFocusIndex(Cue::kNoHotCue);
         m_pLoadedTrack.reset();
         m_usedSeekOnLoadPosition.setValue(mixxx::audio::kStartFramePos);

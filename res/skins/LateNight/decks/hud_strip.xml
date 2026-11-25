@@ -222,10 +222,12 @@ End of AI-generated text.
 
       <WidgetGroup><Size>5f,0min</Size></WidgetGroup>
 
-      <!-- NEXT CUE / POSITION: the button lies under the cell text. A click changes
+      <!-- AI-generated (Claude Code). Start of AI-generated text.
+           NEXT CUE / POSITION: the button lies under the cell text. A click changes
            between the count to the next cue and the beats from the first beat of the
            grid. [LateNight],beat_count_position is 0 (next cue, default) or 1 and is
-           saved; the button border is lit in the POSITION mode. -->
+           saved; the button border is lit in the POSITION mode.
+           End of AI-generated text. -->
       <WidgetGroup>
         <Layout>stacked</Layout>
         <Size>66f,44f</Size>

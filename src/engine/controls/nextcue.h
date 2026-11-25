@@ -23,7 +23,9 @@ double beatsToNextCue(const Beats& beats,
 // AI-generated (Claude Code). Start of AI-generated text.
 /// Positions come from floating point arithmetic: a count of 7.9999 beats is
 /// meant to be 8. A count within this many beats below a whole beat shows as
-/// that whole beat. Choice: 0.01 beats (about 5 ms at 120 BPM).
+/// that whole beat. The count goes up to the next beat when the position is
+/// within 0.01 beats of it (about 5 ms at 120 BPM); it is not rounded to the
+/// nearest beat: 7.5 stays 7. Choice: 0.01 beats.
 constexpr double kBeatCountTolerance = 0.01;
 
 /// The whole number of beats in `beats`, with the tolerance above. A

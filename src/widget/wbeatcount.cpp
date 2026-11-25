@@ -10,6 +10,8 @@ namespace mixxx {
 QString formatBarsBeats(double beats) {
     // AI-generated (Claude Code). Start of AI-generated text.
     // A count just below a whole beat (7.9999) shows as that beat (2.0), not as 1.3.
+    // The count goes up only when the position is within 0.01 beats of the
+    // next beat; it is not rounded to the nearest beat.
     const int wholeBeats = wholeBeatCount(beats);
     // End of AI-generated text.
     if (wholeBeats < 0) {
