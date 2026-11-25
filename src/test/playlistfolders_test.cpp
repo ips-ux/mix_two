@@ -1,15 +1,20 @@
 #include <gtest/gtest.h>
 
 #include <QDir>
+#include <memory>
 #include <QSignalSpy>
 #include <QSqlQuery>
 #include <QUrl>
 
+#include "control/controlobject.h"
 #include "library/dao/playlistdao.h"
 #include "library/libraryfeature.h"
+#include "library/playlisttablemodel.h"
 #include "library/sidebarmodel.h"
 #include "library/treeitem.h"
+#include "library/trackset/baseplaylistfeature.h"
 #include "library/treeitemmodel.h"
+#include "mixer/playerinfo.h"
 #include "library/trackset/playlistdrop.h"
 #include "test/librarytest.h"
 
@@ -303,6 +308,122 @@ TEST_F(PlaylistFoldersTest, FolderWithTooManyFilesMakesNothing) {
     EXPECT_EQ(3, dao().getTrackIds(fits.playlistId).size());
     EXPECT_EQ(2000, kMaxDroppedFolderTracks);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// The view of a folder: every track of the playlists in it and below it, each
+// track once, and read-only.
+class FolderViewTest : public PlaylistFoldersTest {
+  protected:
+    void SetUp() override {
+        PlaylistFoldersTest::SetUp();
+        m_pCrossfader = std::make_unique<ControlObject>(
+                ConfigKey(QStringLiteral("[Master]"), QStringLiteral("crossfader")));
+        for (const char* key : {"num_decks", "num_samplers", "num_preview_decks"}) {
+            m_appControls.push_back(std::make_unique<ControlObject>(
+                    ConfigKey(QStringLiteral("[App]"), QString::fromLatin1(key))));
+        }
+        PlayerInfo::create();
+    }
+    void TearDown() override {
+        PlayerInfo::destroy();
+        m_appControls.clear();
+        m_pCrossfader.reset();
+        PlaylistFoldersTest::TearDown();
+    }
+    std::unique_ptr<ControlObject> m_pCrossfader;
+    std::vector<std::unique_ptr<ControlObject>> m_appControls;
+
+    TrackId makeTrack(const QString& name) {
+        const QString target = getTestDataDir().filePath(name);
+        EXPECT_TRUE(QFile::copy(getTestDir().filePath(QStringLiteral("sine-30.wav")), target));
+        const TrackPointer pTrack = getOrAddTrackByLocation(target);
+        EXPECT_TRUE(pTrack);
+        return pTrack ? pTrack->getId() : TrackId();
+    }
+
+    QSet<TrackId> shownTrackIds(PlaylistTableModel& model) {
+        QSet<TrackId> ids;
+        for (int row = 0; row < model.rowCount(); ++row) {
+            ids.insert(model.getTrackId(model.index(row, 0)));
+        }
+        return ids;
+    }
+};
+
+TEST_F(FolderViewTest, FolderShowsTracksOfAllLevelsOnce) {
+    const TrackId t1 = makeTrack(QStringLiteral("f1.wav"));
+    const TrackId t2 = makeTrack(QStringLiteral("f2.wav"));
+    const TrackId t3 = makeTrack(QStringLiteral("f3.wav"));
+    const TrackId outside = makeTrack(QStringLiteral("f4.wav"));
+    ASSERT_TRUE(t1.isValid() && t2.isValid() && t3.isValid() && outside.isValid());
+
+    const int top = dao().createFolder(QStringLiteral("Top"));
+    const int deep = dao().createFolder(QStringLiteral("Deep"), top);
+    const int a = dao().createPlaylist(QStringLiteral("A"));
+    const int b = dao().createPlaylist(QStringLiteral("B"));
+    const int c = dao().createPlaylist(QStringLiteral("C"));
+    const int other = dao().createPlaylist(QStringLiteral("Other"));
+    ASSERT_TRUE(dao().setPlaylistFolder(a, top));
+    ASSERT_TRUE(dao().setPlaylistFolder(b, top));
+    ASSERT_TRUE(dao().setPlaylistFolder(c, deep));
+    dao().appendTrackToPlaylist(t1, a);
+    dao().appendTrackToPlaylist(t2, a);
+    // t2 is in two playlists: it shows once.
+    dao().appendTrackToPlaylist(t2, b);
+    dao().appendTrackToPlaylist(t3, c);
+    dao().appendTrackToPlaylist(outside, other);
+
+    PlaylistTableModel model(nullptr, trackCollectionManager(), "mixxx.db.model.test_folder");
+    model.selectPlaylistFolder(top);
+    model.select();
+    EXPECT_TRUE(model.isFolderView());
+    EXPECT_EQ(3, model.rowCount());
+    EXPECT_EQ(QSet<TrackId>({t1, t2, t3}), shownTrackIds(model));
+
+    // The inner folder shows its own tracks only.
+    model.selectPlaylistFolder(deep);
+    model.select();
+    EXPECT_EQ(QSet<TrackId>({t3}), shownTrackIds(model));
+
+    // A playlist after a folder is a plain playlist again.
+    model.selectPlaylist(other);
+    model.select();
+    EXPECT_FALSE(model.isFolderView());
+    EXPECT_EQ(QSet<TrackId>({outside}), shownTrackIds(model));
+}
+
+TEST_F(FolderViewTest, FolderViewIsReadOnly) {
+    const TrackId t1 = makeTrack(QStringLiteral("g1.wav"));
+    const TrackId t2 = makeTrack(QStringLiteral("g2.wav"));
+    const int top = dao().createFolder(QStringLiteral("Top"));
+    const int a = dao().createPlaylist(QStringLiteral("A"));
+    ASSERT_TRUE(dao().setPlaylistFolder(a, top));
+    dao().appendTrackToPlaylist(t1, a);
+
+    PlaylistTableModel model(nullptr, trackCollectionManager(), "mixxx.db.model.test_folder");
+    model.selectPlaylistFolder(top);
+    model.select();
+    ASSERT_EQ(1, model.rowCount());
+
+    EXPECT_TRUE(model.isLocked());
+    EXPECT_FALSE(model.hasCapabilities(TrackModel::Capability::ReceiveDrops));
+    EXPECT_FALSE(model.hasCapabilities(TrackModel::Capability::Reorder));
+    EXPECT_FALSE(model.hasCapabilities(TrackModel::Capability::Remove));
+    EXPECT_FALSE(model.hasCapabilities(TrackModel::Capability::RemovePlaylist));
+    EXPECT_FALSE(model.hasCapabilities(TrackModel::Capability::Hide));
+    EXPECT_TRUE(model.hasCapabilities(TrackModel::Capability::Locked));
+    EXPECT_TRUE(model.hasCapabilities(TrackModel::Capability::LoadToDeck));
+
+    // Drops and removals change nothing.
+    int pos = 0;
+    EXPECT_EQ(0, model.addTracksWithTrackIds(model.index(0, 0), {t2}, &pos));
+    EXPECT_FALSE(model.appendTrack(t2));
+    model.removeTrack(model.index(0, 0));
+    model.removeTracks({model.index(0, 0)});
+    EXPECT_EQ(QList<TrackId>({t1}), dao().getTrackIds(a));
+    EXPECT_EQ(1, model.rowCount());
+}
+// End of AI-generated text.
 
 namespace {
 /// A feature of another kind: its tree items can be edited and dragged only

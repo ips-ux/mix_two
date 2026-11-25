@@ -20,6 +20,7 @@ PlaylistTableModel::PlaylistTableModel(QObject* parent,
         bool keepHiddenTracks)
         : TrackSetTableModel(parent, pTrackCollectionManager, settingsNamespace),
           m_iPlaylistId(kInvalidPlaylistId),
+          m_iFolderId(kInvalidPlaylistFolderId),
           m_keepHiddenTracks(keepHiddenTracks) {
     connect(&m_pTrackCollectionManager->internalCollection()->getPlaylistDAO(),
             &PlaylistDAO::tracksAdded,
@@ -132,6 +133,8 @@ void PlaylistTableModel::initSortColumnMapping() {
 
 void PlaylistTableModel::selectPlaylist(int playlistId) {
     // qDebug() << "PlaylistTableModel::selectPlaylist" << playlistId;
+    m_iFolderId = kInvalidPlaylistFolderId;
+    m_folderPlaylistIds.clear();
     if (m_iPlaylistId == playlistId) {
         qDebug() << "Already focused on playlist " << playlistId;
         return;
@@ -202,10 +205,94 @@ void PlaylistTableModel::selectPlaylist(int playlistId) {
     setSort(defaultSortColumn(), defaultSortOrder());
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+void PlaylistTableModel::selectPlaylistFolder(int folderId) {
+    if (folderId == kInvalidPlaylistFolderId) {
+        return;
+    }
+    // Keep the search text of the playlist that we leave.
+    const QString currSearch = currentSearch();
+    if (m_iPlaylistId != kInvalidPlaylistId) {
+        if (!currSearch.trimmed().isEmpty()) {
+            m_searchTexts.insert(m_iPlaylistId, currSearch);
+        } else {
+            m_searchTexts.remove(m_iPlaylistId);
+        }
+    }
+    m_iPlaylistId = kInvalidPlaylistId;
+    m_iFolderId = folderId;
+
+    const QList<int> playlistIds = m_pTrackCollectionManager->internalCollection()
+                                           ->getPlaylistDAO()
+                                           .getPlaylistIdsInFolder(folderId);
+    m_folderPlaylistIds = QSet<int>(playlistIds.cbegin(), playlistIds.cend());
+    QStringList idStrings;
+    for (const int playlistId : playlistIds) {
+        idStrings << QString::number(playlistId);
+    }
+    // No playlist in the folder: the list is empty.
+    const QString idList = idStrings.isEmpty() ? QStringLiteral("-1") : idStrings.join(',');
+
+    const QString tableName = QStringLiteral("playlistfolder_") + QString::number(folderId);
+    QSqlQuery query(m_database);
+    FieldEscaper escaper(m_database);
+    // The set of playlists can change between two calls: make the view again.
+    query.prepare(QStringLiteral("DROP VIEW IF EXISTS %1").arg(escaper.escapeString(tableName)));
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+    }
+
+    // One row for each track. A track in several playlists shows once, with
+    // a new position and the first date that it has in them.
+    QStringList columns;
+    columns << PLAYLISTTRACKSTABLE_TRACKID + QStringLiteral(" AS ") + LIBRARYTABLE_ID
+            // The model needs a position that is unique for each row. The
+            // tracks are in the order of the playlists, then of the positions.
+            << QStringLiteral("ROW_NUMBER() OVER (ORDER BY MIN(") +
+                    PLAYLISTTRACKSTABLE_PLAYLISTID +
+                    QStringLiteral(" * 1000000 + ") + PLAYLISTTRACKSTABLE_POSITION +
+                    QStringLiteral(")) AS ") + PLAYLISTTRACKSTABLE_POSITION
+            << QStringLiteral("MIN(") + PLAYLISTTRACKSTABLE_DATETIMEADDED +
+                    QStringLiteral(") AS ") + PLAYLISTTRACKSTABLE_DATETIMEADDED
+            << "'' AS " + LIBRARYTABLE_PREVIEW
+            << QStringLiteral("MIN(") + LIBRARYTABLE_COVERART_DIGEST +
+                    QStringLiteral(") AS ") + LIBRARYTABLE_COVERART;
+    const QString queryString = QStringLiteral(
+            "CREATE TEMPORARY VIEW IF NOT EXISTS %1 AS "
+            "SELECT %2 FROM PlaylistTracks "
+            "INNER JOIN library ON library.id = PlaylistTracks.track_id "
+            "WHERE PlaylistTracks.playlist_id IN (%3) "
+            "AND library.mixxx_deleted = 0 "
+            "GROUP BY PlaylistTracks.track_id")
+                                        .arg(escaper.escapeString(tableName),
+                                                columns.join(','),
+                                                idList);
+    query.prepare(queryString);
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+    }
+
+    columns[0] = LIBRARYTABLE_ID;
+    columns[1] = PLAYLISTTRACKSTABLE_POSITION;
+    columns[2] = PLAYLISTTRACKSTABLE_DATETIMEADDED;
+    columns[3] = LIBRARYTABLE_PREVIEW;
+    columns[4] = LIBRARYTABLE_COVERART;
+    setTable(tableName,
+            LIBRARYTABLE_ID,
+            columns,
+            m_pTrackCollectionManager->internalCollection()->getTrackSource());
+
+    setSearch(QString());
+    setDefaultSort(fieldIndex(ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION),
+            Qt::AscendingOrder);
+    setSort(defaultSortColumn(), defaultSortOrder());
+}
+// End of AI-generated text.
+
 int PlaylistTableModel::addTracksWithTrackIds(const QModelIndex& insertionIndex,
         const QList<TrackId>& allTrackIds,
         int* pOutInsertionPos) {
-    if (allTrackIds.isEmpty()) {
+    if (isFolderView() || allTrackIds.isEmpty()) {
         return 0;
     }
     // AI-generated (Claude Code). Start of AI-generated text.
@@ -247,14 +334,15 @@ int PlaylistTableModel::addTracksWithTrackIds(const QModelIndex& insertionIndex,
 }
 
 bool PlaylistTableModel::appendTrack(TrackId trackId) {
-    if (!trackId.isValid()) {
+    if (isFolderView() || !trackId.isValid()) {
         return false;
     }
     return m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().appendTrackToPlaylist(trackId, m_iPlaylistId);
 }
 
 void PlaylistTableModel::removeTrack(const QModelIndex& index) {
-    if (m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
+    if (isFolderView() ||
+m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
         return;
     }
 
@@ -264,7 +352,8 @@ void PlaylistTableModel::removeTrack(const QModelIndex& index) {
 }
 
 void PlaylistTableModel::removeTracks(const QModelIndexList& indices) {
-    if (m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
+    if (isFolderView() ||
+m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
         return;
     }
 
@@ -287,6 +376,9 @@ void PlaylistTableModel::removeTracks(const QModelIndexList& indices) {
 
 void PlaylistTableModel::moveTrack(const QModelIndex& sourceIndex,
         const QModelIndex& destIndex) {
+    if (isFolderView()) {
+        return;
+    }
     int playlistPositionColumn = fieldIndex(ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION);
 
     int newPosition = destIndex.sibling(destIndex.row(), playlistPositionColumn).data().toInt();
@@ -315,10 +407,16 @@ void PlaylistTableModel::moveTrack(const QModelIndex& sourceIndex,
 }
 
 bool PlaylistTableModel::isLocked() {
+    if (isFolderView()) {
+        return true;
+    }
     return m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId);
 }
 
 void PlaylistTableModel::shuffleTracks(const QModelIndexList& shuffle, const QModelIndex& exclude) {
+    if (isFolderView()) {
+        return;
+    }
     QList<int> positions;
     QHash<int, TrackId> allIds;
     const int positionColumn = fieldIndex(ColumnCache::COLUMN_PLAYLISTTRACKSTABLE_POSITION);
@@ -356,6 +454,9 @@ void PlaylistTableModel::shuffleTracks(const QModelIndexList& shuffle, const QMo
 }
 
 void PlaylistTableModel::orderTracksByCurrPos() {
+    if (isFolderView()) {
+        return;
+    }
     QList<std::pair<TrackId, int>> idPosList;
     int numOfTracks = rowCount();
     idPosList.reserve(numOfTracks);
@@ -416,6 +517,20 @@ bool PlaylistTableModel::isColumnHiddenByDefault(int column) {
 }
 
 TrackModel::Capabilities PlaylistTableModel::getCapabilities() const {
+    if (isFolderView()) {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Read-only: no drops, no reorder, no removal, no hide.
+        return Capability::AddToTrackSet |
+                Capability::LoadToDeck |
+                Capability::LoadToSampler |
+                Capability::LoadToPreviewDeck |
+                Capability::AddToAutoDJ |
+                Capability::Sorting |
+                Capability::Analyze |
+                Capability::Properties |
+                Capability::Locked;
+        // End of AI-generated text.
+    }
     TrackModel::Capabilities caps =
             Capability::ReceiveDrops |
             Capability::Reorder |
@@ -465,7 +580,8 @@ QString PlaylistTableModel::modelKey(bool noSearch) const {
 }
 
 void PlaylistTableModel::playlistsChanged(const QSet<int>& playlistIds) {
-    if (playlistIds.contains(m_iPlaylistId)) {
+    if (playlistIds.contains(m_iPlaylistId) ||
+            (isFolderView() && m_folderPlaylistIds.intersects(playlistIds))) {
         select(); // Repopulate the data model.
     }
 }

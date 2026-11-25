@@ -43,6 +43,11 @@ class BasePlaylistFeature : public BaseTrackSetFeature {
     int getSiblingPlaylistIdOf(QModelIndex& start);
 
     // AI-generated (Claude Code). Start of AI-generated text.
+    /// The folder id of a sidebar item of a folder, or kInvalidPlaylistFolderId.
+    static int folderIdOfTreeItem(const QModelIndex& index);
+    // End of AI-generated text.
+
+    // AI-generated (Claude Code). Start of AI-generated text.
     /// Call it before tracks go into a normal playlist. When the playlist
     /// holds some of the tracks already, it asks the user: "Add them" (all
     /// tracks), "Skip duplicates" (new tracks only) or "Cancel". Returns the

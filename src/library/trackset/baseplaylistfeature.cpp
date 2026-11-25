@@ -226,6 +226,22 @@ int BasePlaylistFeature::playlistIdFromIndex(const QModelIndex& index) const {
     }
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+int BasePlaylistFeature::folderIdOfTreeItem(const QModelIndex& index) {
+    const TreeItem* pItem = static_cast<TreeItem*>(index.internalPointer());
+    if (!pItem) {
+        return kInvalidPlaylistFolderId;
+    }
+    const QString data = pItem->getData().toString();
+    if (!data.startsWith(QLatin1String("folder:"))) {
+        return kInvalidPlaylistFolderId;
+    }
+    bool ok = false;
+    const int folderId = data.mid(7).toInt(&ok);
+    return ok ? folderId : kInvalidPlaylistFolderId;
+}
+// End of AI-generated text.
+
 void BasePlaylistFeature::selectPlaylistInSidebar(int playlistId, bool select) {
     if (!m_pSidebarWidget) {
         return;
@@ -243,7 +259,19 @@ void BasePlaylistFeature::activateChild(const QModelIndex& index) {
     //qDebug() << "BasePlaylistFeature::activateChild()" << index;
     int playlistId = playlistIdFromIndex(index);
     if (playlistId == kInvalidPlaylistId) {
-        // may happen during initialization
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // A folder shows the tracks of all playlists in it and below it.
+        const int folderId = folderIdOfTreeItem(index);
+        if (folderId != kInvalidPlaylistFolderId) {
+            m_lastClickedIndex = index;
+            m_lastRightClickedIndex = QModelIndex();
+            emit saveModelState();
+            m_pPlaylistTableModel->selectPlaylistFolder(folderId);
+            emit showTrackModel(m_pPlaylistTableModel);
+            emit enableCoverArtDisplay(true);
+        }
+        // End of AI-generated text.
+        // Otherwise it may happen during initialization.
         return;
     }
     m_lastClickedIndex = index;
