@@ -67,6 +67,131 @@ const QRegularExpression kSplitIntoWordsRegexp = QRegularExpression(
 const QRegularExpression kSplitOnOrOperatorRegexp = QRegularExpression(
         QStringLiteral("(?:\\||\\bOR\\b)" QUOTED_STRING_LOOKAHEAD));
 
+// AI-generated (Claude Code). Start of AI-generated text.
+// static
+QStringList SearchQueryParser::searchableColumns() {
+    // Choice: the order is the order of the columns in the track list.
+    // "type:" is not in the list. The parser accepts it but builds no filter
+    // from it, so a search with it would show every track.
+    return {QStringLiteral("artist"),
+            QStringLiteral("title"),
+            QStringLiteral("album"),
+            QStringLiteral("album_artist"),
+            QStringLiteral("genre"),
+            QStringLiteral("composer"),
+            QStringLiteral("grouping"),
+            QStringLiteral("comment"),
+            QStringLiteral("year"),
+            QStringLiteral("key"),
+            QStringLiteral("bpm"),
+            QStringLiteral("rating"),
+            QStringLiteral("bitrate"),
+            QStringLiteral("track"),
+            QStringLiteral("played"),
+            QStringLiteral("added"),
+            QStringLiteral("duration"),
+            QStringLiteral("location"),
+            QStringLiteral("directory"),
+            QStringLiteral("crate")};
+}
+
+// static
+QStringList SearchQueryParser::knownSearchPrefixNames() {
+    // Same names as the filters that the constructor registers.
+    return {QStringLiteral("a"),
+            QStringLiteral("artist"),
+            QStringLiteral("aa"),
+            QStringLiteral("album_artist"),
+            QStringLiteral("al"),
+            QStringLiteral("album"),
+            QStringLiteral("t"),
+            QStringLiteral("title"),
+            QStringLiteral("g"),
+            QStringLiteral("genre"),
+            QStringLiteral("cp"),
+            QStringLiteral("composer"),
+            QStringLiteral("gr"),
+            QStringLiteral("grouping"),
+            QStringLiteral("cm"),
+            QStringLiteral("comment"),
+            QStringLiteral("lo"),
+            QStringLiteral("location"),
+            QStringLiteral("dir"),
+            QStringLiteral("directory"),
+            QStringLiteral("c"),
+            QStringLiteral("crate"),
+            QStringLiteral("type"),
+            QStringLiteral("tr"),
+            QStringLiteral("track"),
+            QStringLiteral("pl"),
+            QStringLiteral("played"),
+            QStringLiteral("r"),
+            QStringLiteral("rating"),
+            QStringLiteral("br"),
+            QStringLiteral("bitrate"),
+            QStringLiteral("id"),
+            QStringLiteral("y"),
+            QStringLiteral("year"),
+            QStringLiteral("k"),
+            QStringLiteral("key"),
+            QStringLiteral("b"),
+            QStringLiteral("bpm"),
+            QStringLiteral("du"),
+            QStringLiteral("duration"),
+            QStringLiteral("ad"),
+            QStringLiteral("added"),
+            QStringLiteral("dateadded"),
+            QStringLiteral("datetime_added"),
+            QStringLiteral("date_added")};
+}
+
+// static
+QString SearchQueryParser::searchPrefixForColumn(const QString& column) {
+    if (!searchableColumns().contains(column)) {
+        return QString();
+    }
+    return column + QLatin1Char(':');
+}
+
+// static
+QString SearchQueryParser::applySearchPrefix(const QString& text, const QString& prefix) {
+    if (prefix.isEmpty()) {
+        return text;
+    }
+    QString rest = text;
+    // Remove leading spaces only. Trailing spaces stay as the user typed them.
+    while (rest.startsWith(QLatin1Char(' '))) {
+        rest.remove(0, 1);
+    }
+    QString sign;
+    if (rest.startsWith(QLatin1Char('-')) || rest.startsWith(QLatin1Char('~'))) {
+        // The fuzzy sign has a meaning for some filters only: drop it.
+        if (rest.startsWith(QLatin1Char('-'))) {
+            sign = QStringLiteral("-");
+        }
+        rest.remove(0, 1);
+    }
+    // Replace a prefix that the text has already.
+    const int colon = rest.indexOf(QLatin1Char(':'));
+    if (colon > 0 && knownSearchPrefixNames().contains(rest.left(colon))) {
+        return sign + prefix + rest.mid(colon + 1);
+    }
+    if (rest.trimmed().isEmpty()) {
+        return sign + prefix;
+    }
+    // More than one word, and no other operator: the prefix is for the whole
+    // text, so quote it.
+    const QString trimmed = rest.trimmed();
+    if (trimmed.contains(QLatin1Char(' ')) &&
+            !trimmed.contains(QLatin1Char('"')) &&
+            !trimmed.contains(QLatin1Char(':')) &&
+            !trimmed.contains(QLatin1Char('|'))) {
+        return sign + prefix + QLatin1Char('"') + trimmed + QLatin1Char('"');
+    }
+    return sign + prefix + rest;
+}
+// End of AI-generated text.
+
 SearchQueryParser::SearchQueryParser(TrackCollection* pTrackCollection, QStringList searchColumns)
         : m_pTrackCollection(pTrackCollection),
           m_searchCrates(false) {

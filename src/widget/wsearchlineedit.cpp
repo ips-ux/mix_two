@@ -6,12 +6,14 @@
 #include <QFont>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QMenu>
 #include <QShortcut>
 #include <QSizePolicy>
 #include <QStringLiteral>
 #include <QToolButton>
 
 #include "moc_wsearchlineedit.cpp"
+#include "library/searchqueryparser.h"
 #include "preferences/configobject.h"
 #include "skin/legacy/skincontext.h"
 #include "util/assert.h"
@@ -88,6 +90,7 @@ WSearchLineEdit::WSearchLineEdit(QWidget* pParent, UserSettingsPointer pConfig)
           m_pConfig(pConfig),
           m_completer(make_parented<QCompleter>(this)),
           m_clearButton(make_parented<QToolButton>(this)),
+          m_columnButton(make_parented<QToolButton>(this)),
           m_queryEmitted(false) {
     qRegisterMetaType<FocusWidget>("FocusWidget");
     setAcceptDrops(false);
@@ -121,6 +124,62 @@ WSearchLineEdit::WSearchLineEdit(QWidget* pParent, UserSettingsPointer pConfig)
             &QAbstractButton::clicked,
             this,
             &WSearchLineEdit::slotClearSearch);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The column menu: a button next to the clear button. A chosen column
+    // puts its prefix before the search text.
+    m_columnButton->setCursor(Qt::ArrowCursor);
+    m_columnButton->setObjectName(QStringLiteral("SearchColumnButton"));
+    // The button never takes the keyboard focus, so Tab, the shortcuts and
+    // the Return handling of the clear button work as before.
+    m_columnButton->setFocusPolicy(Qt::NoFocus);
+    m_columnButton->setAutoRaise(true);
+    m_columnButton->setText(QStringLiteral("▾"));
+    m_columnButton->setPopupMode(QToolButton::InstantPopup);
+    m_columnButton->setStyleSheet(QStringLiteral(
+            "QToolButton { border: none; padding: 0; }"
+            "QToolButton::menu-indicator { image: none; width: 0; }"));
+    {
+        auto* pMenu = new QMenu(m_columnButton);
+        const struct {
+            const char* column;
+            QString label;
+        } columns[] = {
+                // The labels are the column names of the track list.
+                {"artist", tr("Artist")},
+                {"title", tr("Title")},
+                {"album", tr("Album")},
+                {"album_artist", tr("Album Artist")},
+                {"genre", tr("Genre")},
+                {"composer", tr("Composer")},
+                {"grouping", tr("Grouping")},
+                {"comment", tr("Comment")},
+                {"year", tr("Year")},
+                {"key", tr("Key")},
+                {"bpm", tr("BPM")},
+                {"rating", tr("Rating")},
+                {"bitrate", tr("Bitrate")},
+                {"track", tr("Track #")},
+                {"played", tr("Played")},
+                {"added", tr("Date Added")},
+                {"duration", tr("Duration")},
+                {"location", tr("Location")},
+                {"directory", tr("Directory")},
+                {"crate", tr("Crate")}};
+        for (const auto& entry : columns) {
+            const QString prefix = SearchQueryParser::searchPrefixForColumn(
+                    QString::fromLatin1(entry.column));
+            if (prefix.isEmpty()) {
+                continue;
+            }
+            QAction* pAction = pMenu->addAction(entry.label);
+            connect(pAction, &QAction::triggered, this, [this, prefix] {
+                slotApplyColumnPrefix(prefix);
+            });
+        }
+        m_columnButton->setMenu(pMenu);
+    }
+    // End of AI-generated text.
 
     // Set up a timer to search after a few hundred milliseconds timeout.  This
     // stops us from thrashing the database if you type really fast.
@@ -212,6 +271,11 @@ void WSearchLineEdit::setup(const QDomNode& node, const SkinContext& context) {
 
     m_clearButton->setToolTip(tr("Clear input") + "\n" +
             tr("Clear the search bar input field"));
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_columnButton->setToolTip(tr("Search in a column") + "\n" +
+            tr("Choose a column. The search bar then shows the prefix of the "
+               "column before the text."));
+    // End of AI-generated text.
 }
 
 void WSearchLineEdit::setupToolTip(const QString& searchInCurrentViewShortcut,
@@ -294,14 +358,29 @@ void WSearchLineEdit::resizeEvent(QResizeEvent* e) {
         // after skin change/reload.
         refreshState();
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (m_columnButton->size().height() != innerHeight) {
+        m_columnButton->resize(QSize(innerHeight, innerHeight));
+        refreshState();
+    }
+    // End of AI-generated text.
     int top = rect().top() + kBorderWidth;
     if (layoutDirection() == Qt::LeftToRight) {
         m_clearButton->move(rect().right() -
                         static_cast<int>(1.7 * innerHeight) - kBorderWidth,
                 top);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_columnButton->move(rect().right() -
+                        static_cast<int>(2.7 * innerHeight) - kBorderWidth,
+                top);
+        // End of AI-generated text.
     } else {
         m_clearButton->move(static_cast<int>(0.7 * innerHeight) + kBorderWidth,
                 top);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_columnButton->move(static_cast<int>(1.7 * innerHeight) + kBorderWidth,
+                top);
+        // End of AI-generated text.
     }
 }
 
@@ -707,7 +786,13 @@ void WSearchLineEdit::updateClearAndDropdownButton(const QString& text) {
     // Ensure the text is not obscured by the clear button. Otherwise no text,
     // no clear button, so the placeholder should use the entire width.
     const int innerHeight = height() - 2 * kBorderWidth;
-    const int paddingPx = text.isEmpty() ? 0 : innerHeight;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The column button takes the room of one more button while the search is
+    // enabled.
+    m_columnButton->setVisible(isEnabled());
+    const int columnButtonPx = isEnabled() ? innerHeight : 0;
+    const int paddingPx = (text.isEmpty() ? 0 : innerHeight) + columnButtonPx;
+    // End of AI-generated text.
     const QString clearPos(layoutDirection() == Qt::RightToLeft ? "left" : "right");
 
     // Hide the nonfunctional drop-down button (set width to 0) if the search is disabled.
@@ -767,6 +852,20 @@ void WSearchLineEdit::slotClearSearch() {
     // Refocus the edit field
     setFocus(Qt::OtherFocusReason);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void WSearchLineEdit::slotApplyColumnPrefix(const QString& prefix) {
+    if (!isEnabled()) {
+        return;
+    }
+    const QString newText = SearchQueryParser::applySearchPrefix(currentText(), prefix);
+    // Set the line edit text as typing does: the text change starts the
+    // debounced search.
+    lineEdit()->setText(newText);
+    setFocus(Qt::OtherFocusReason);
+    lineEdit()->setCursorPosition(newText.length());
+}
+// End of AI-generated text.
 
 bool WSearchLineEdit::slotClearSearchIfClearButtonHasFocus() {
     if (!m_clearButton->hasFocus()) {

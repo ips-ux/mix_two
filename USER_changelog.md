@@ -557,6 +557,17 @@ the library.
 A folder with more than 2000 audio files makes no playlist. Mix Two tells you.
 A locked playlist cannot be renamed in the tree.
 
+### Search in one column
+
+The search box has a new button with a small arrow, to the left of the clear
+button. Click it to see a list of the columns that you can search: for
+example **Artist**, **Title**, **BPM**, **Key** and **Date Added**. Choose a
+column. The search box then puts the prefix of the column before your text,
+for example `artist:`. If the text has a prefix already, the new prefix
+replaces it. A text of more than one word goes between quotation marks. The
+search then starts as when you type. Typing, the search history and the
+shortcuts work as before. This is the same as in rekordbox.
+
 ### Import Track and Import Folder
 
 The **File** menu has two new items, **Import Track...** and **Import

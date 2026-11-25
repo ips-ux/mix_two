@@ -69,6 +69,13 @@ class WSearchLineEdit : public QComboBox, public WBaseWidget {
     void slotMoveSelectedHistory(int steps);
     void slotDeleteCurrentItem();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Puts the prefix of a searchable column (for example "artist:") before
+    /// the search text, replaces a prefix that the text has, and starts the
+    /// search like typing does.
+    void slotApplyColumnPrefix(const QString& prefix);
+    // End of AI-generated text.
+
   private slots:
     void slotTextChanged(const QString& text);
     void slotIndexChanged(int index);
@@ -113,6 +120,9 @@ class WSearchLineEdit : public QComboBox, public WBaseWidget {
 
     parented_ptr<QCompleter> m_completer;
     parented_ptr<QToolButton> const m_clearButton;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    parented_ptr<QToolButton> const m_columnButton;
+    // End of AI-generated text.
 
     QTimer m_debouncingTimer;
     QTimer m_saveTimer;

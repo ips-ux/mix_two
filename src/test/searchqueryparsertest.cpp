@@ -1421,3 +1421,111 @@ TEST_F(SearchQueryParserTest, QuotedOrOperator) {
     pTrackI->setComment("house");
     EXPECT_TRUE(pQuery->match(pTrackI));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(SearchQueryParserTest, SearchPrefixForColumn) {
+    EXPECT_EQ(QStringLiteral("artist:"), SearchQueryParser::searchPrefixForColumn("artist"));
+    EXPECT_EQ(QStringLiteral("album_artist:"),
+            SearchQueryParser::searchPrefixForColumn("album_artist"));
+    EXPECT_EQ(QStringLiteral("bpm:"), SearchQueryParser::searchPrefixForColumn("bpm"));
+    EXPECT_EQ(QString(), SearchQueryParser::searchPrefixForColumn("nonsense"));
+    EXPECT_EQ(QString(), SearchQueryParser::searchPrefixForColumn(QString()));
+}
+
+TEST_F(SearchQueryParserTest, SearchColumnsAreKnownPrefixNames) {
+    const QStringList known = SearchQueryParser::knownSearchPrefixNames();
+    for (const QString& column : SearchQueryParser::searchableColumns()) {
+        EXPECT_TRUE(known.contains(column)) << qPrintable(column);
+    }
+}
+
+TEST_F(SearchQueryParserTest, ApplySearchPrefix) {
+    // Empty text: the prefix alone.
+    EXPECT_EQ(QStringLiteral("artist:"),
+            SearchQueryParser::applySearchPrefix(QString(), "artist:"));
+    // One word: the prefix goes before it.
+    EXPECT_EQ(QStringLiteral("artist:foo"),
+            SearchQueryParser::applySearchPrefix("foo", "artist:"));
+    // Leading spaces go away.
+    EXPECT_EQ(QStringLiteral("artist:foo"),
+            SearchQueryParser::applySearchPrefix("  foo", "artist:"));
+    // More than one word: the prefix is for the whole text.
+    EXPECT_EQ(QStringLiteral("artist:\"foo bar\""),
+            SearchQueryParser::applySearchPrefix("foo bar", "artist:"));
+    // A prefix that the text has is replaced, long or short form.
+    EXPECT_EQ(QStringLiteral("genre:foo"),
+            SearchQueryParser::applySearchPrefix("artist:foo", "genre:"));
+    EXPECT_EQ(QStringLiteral("genre:foo"),
+            SearchQueryParser::applySearchPrefix("a:foo", "genre:"));
+    EXPECT_EQ(QStringLiteral("genre:\"foo bar\""),
+            SearchQueryParser::applySearchPrefix("artist:\"foo bar\"", "genre:"));
+    // Choosing the same column again changes nothing.
+    EXPECT_EQ(QStringLiteral("artist:foo"),
+            SearchQueryParser::applySearchPrefix("artist:foo", "artist:"));
+    // The negation stays.
+    EXPECT_EQ(QStringLiteral("-genre:foo"),
+            SearchQueryParser::applySearchPrefix("-artist:foo", "genre:"));
+    EXPECT_EQ(QStringLiteral("-artist:foo"),
+            SearchQueryParser::applySearchPrefix("-foo", "artist:"));
+    // Text with other operators gets the prefix only before the first word.
+    EXPECT_EQ(QStringLiteral("artist:foo bpm:120"),
+            SearchQueryParser::applySearchPrefix("foo bpm:120", "artist:"));
+    // An unknown word before a colon is not a prefix.
+    EXPECT_EQ(QStringLiteral("artist:foo:bar"),
+            SearchQueryParser::applySearchPrefix("foo:bar", "artist:"));
+    // An empty prefix changes nothing.
+    EXPECT_EQ(QStringLiteral("foo"), SearchQueryParser::applySearchPrefix("foo", QString()));
+}
+
+TEST_F(SearchQueryParserTest, SearchPrefixRoundTripWithParser) {
+    // Every prefix that the column menu inserts must make the parser build a
+    // filter on that column, not a plain text search.
+    m_parser.setSearchColumns({"artist", "album"});
+    const QHash<QString, QString> expectedSql = {
+            {"artist", "artist"},
+            {"title", "title"},
+            {"album", "album"},
+            {"album_artist", "album_artist"},
+            {"genre", "genre"},
+            {"composer", "composer"},
+            {"grouping", "grouping"},
+            {"comment", "comment"},
+            {"year", "year"},
+            {"key", "key"},
+            {"bpm", "bpm"},
+            {"rating", "rating"},
+            {"bitrate", "bitrate"},
+            {"track", "tracknumber"},
+            {"played", "timesplayed"},
+            {"added", "datetime_added"},
+            {"duration", "duration"},
+            {"location", "location"},
+            {"directory", "directory"},
+            {"crate", "crate"},
+    };
+    for (const QString& column : SearchQueryParser::searchableColumns()) {
+        ASSERT_TRUE(expectedSql.contains(column)) << qPrintable(column);
+        // "added" takes a date, the other filters take "1".
+        const QString argument = column == "added" ? QStringLiteral("2024-01-01")
+                                                    : QStringLiteral("1");
+        const QString text = SearchQueryParser::applySearchPrefix(
+                argument, SearchQueryParser::searchPrefixForColumn(column));
+        auto pQuery = m_parser.parseQuery(text, QString());
+        ASSERT_TRUE(pQuery != nullptr);
+        const QString sql = pQuery->toSql();
+        EXPECT_TRUE(sql.contains(expectedSql.value(column)))
+                << qPrintable(text) << " -> " << qPrintable(sql);
+        // The filter is not the plain search on the default columns.
+        const QString plainSql = m_parser.parseQuery(argument, QString())->toSql();
+        EXPECT_NE(plainSql, sql) << qPrintable(text);
+    }
+    // The text that the function returns for a replaced prefix parses too.
+    const QString replaced = SearchQueryParser::applySearchPrefix("artist:foo", "genre:");
+    auto pQuery = m_parser.parseQuery(replaced, QString());
+    EXPECT_STREQ("genre IS NOT NULL AND genre LIKE '%foo%'", qPrintable(pQuery->toSql()));
+    // A quoted phrase stays one term.
+    pQuery = m_parser.parseQuery(
+            SearchQueryParser::applySearchPrefix("foo bar", "comment:"), QString());
+    EXPECT_STREQ("comment IS NOT NULL AND comment LIKE '%foo bar%'", qPrintable(pQuery->toSql()));
+}
+// End of AI-generated text.

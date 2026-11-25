@@ -26,6 +26,21 @@ class SearchQueryParser {
     /// checks if the changed search query is less specific then the original term
     static bool queryIsLessSpecific(const QString& original, const QString& changed);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The columns that the search box offers in its column menu, as the
+    /// long name of the prefix that the parser understands ("artist").
+    static QStringList searchableColumns();
+    /// The prefix text for a column of searchableColumns() ("artist:"),
+    /// or an empty string for an unknown column.
+    static QString searchPrefixForColumn(const QString& column);
+    /// Returns the search text after the user chooses a column: the prefix
+    /// goes before the text. A prefix that the text already has (also its
+    /// short form, with or without a leading "-") is replaced.
+    static QString applySearchPrefix(const QString& text, const QString& prefix);
+    /// Every prefix name (long and short form) that the parser understands.
+    static QStringList knownSearchPrefixNames();
+    // End of AI-generated text.
+
   private:
     void parseTokens(QStringList tokens,
                      AndNode* pQuery) const;
