@@ -18,6 +18,7 @@
 #include "library/queryutil.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
+#include "library/libraryprotection.h"
 #include "library/trackset/playlistdrop.h"
 #include "library/treeitem.h"
 #include "moc_playlistfeature.cpp"
@@ -102,6 +103,10 @@ void PlaylistFeature::onRightClick(const QPoint& globalPos) {
     menu.addAction(m_pCreateFolderAction);
     menu.addSeparator();
     menu.addAction(m_pUnlockPlaylistsAction);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pDeleteAllUnlockedPlaylistsAction->setEnabled(mixxx::library::isActionAllowed(
+            mixxx::library::ProtectedAction::DeleteTrackSet));
+    // End of AI-generated text.
     menu.addAction(m_pDeleteAllUnlockedPlaylistsAction);
     menu.addSeparator();
     menu.addAction(m_pCreateImportPlaylistAction);
@@ -124,6 +129,12 @@ void PlaylistFeature::onRightClickChild(
         menu.addAction(m_pCreatePlaylistAction);
         menu.addAction(m_pCreateFolderAction);
         menu.addSeparator();
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_pRenameFolderAction->setEnabled(mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::RenameTrackSet));
+        m_pDeleteFolderAction->setEnabled(mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::DeleteTrackSet));
+        // End of AI-generated text.
         menu.addAction(m_pRenameFolderAction);
         menu.addAction(m_pDeleteFolderAction);
         menu.addMenu(createMoveToFolderMenu(&menu, kInvalidPlaylistId, folderId));
@@ -136,8 +147,13 @@ void PlaylistFeature::onRightClickChild(
     bool locked = m_playlistDao.isPlaylistLocked(playlistId);
     m_pShufflePlaylistAction->setEnabled(!locked);
     m_pOrderByCurrentPosAction->setEnabled(!locked && isChildIndexSelectedInSidebar(index));
-    m_pDeletePlaylistAction->setEnabled(!locked);
-    m_pRenamePlaylistAction->setEnabled(!locked);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection switches off rename and delete.
+    m_pDeletePlaylistAction->setEnabled(!locked &&
+            mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet));
+    m_pRenamePlaylistAction->setEnabled(!locked &&
+            mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet));
+    // End of AI-generated text.
     m_pShufflePlaylistAction->setEnabled(!locked);
     m_pImportPlaylistAction->setEnabled(!locked);
 
@@ -356,6 +372,13 @@ void PlaylistFeature::slotUnlockAllPlaylists() {
 }
 
 void PlaylistFeature::slotDeleteAllUnlockedPlaylists() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     // Collect playlists to display the count
     const QList<QPair<int, QString>> playlists =
             m_playlistDao.getUnlockedPlaylists(PlaylistDAO::PLHT_NOT_HIDDEN);
@@ -586,6 +609,10 @@ void PlaylistFeature::slotFoldersChanged() {
 
 QMenu* PlaylistFeature::createMoveToFolderMenu(QWidget* pParent, int playlistId, int folderId) {
     auto* pMenu = new QMenu(tr("Move to Folder"), pParent);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    pMenu->setEnabled(mixxx::library::isActionAllowed(
+            mixxx::library::ProtectedAction::MoveTrackSet));
+    // End of AI-generated text.
     const int currentParentId = playlistId != kInvalidPlaylistId
             ? m_playlistDao.getPlaylistFolderId(playlistId)
             : [&] {
@@ -603,6 +630,13 @@ QMenu* PlaylistFeature::createMoveToFolderMenu(QWidget* pParent, int playlistId,
             : QSet<int>();
 
     const auto moveTo = [this, playlistId, folderId](int targetFolderId) {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Library Protection is on: playlists and folders stay where they are.
+        if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::MoveTrackSet)) {
+            mixxx::library::showProtectionMessage(nullptr);
+            return;
+        }
+        // End of AI-generated text.
         if (playlistId != kInvalidPlaylistId) {
             m_playlistDao.setPlaylistFolder(playlistId, targetFolderId);
         } else if (!m_playlistDao.moveFolder(folderId, targetFolderId)) {
@@ -698,6 +732,13 @@ void PlaylistFeature::slotCreateFolder() {
 }
 
 void PlaylistFeature::slotRenameFolder() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     const int folderId = folderIdFromIndex(m_lastRightClickedIndex);
     if (folderId == kInvalidPlaylistFolderId) {
         return;
@@ -730,6 +771,13 @@ void PlaylistFeature::slotRenameFolder() {
 }
 
 void PlaylistFeature::slotDeleteFolder() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     const int folderId = folderIdFromIndex(m_lastRightClickedIndex);
     if (folderId == kInvalidPlaylistFolderId) {
         return;
@@ -986,6 +1034,9 @@ bool PlaylistFeature::renameChildInline(const QModelIndex& index, const QString&
             break;
         case playlistdrop::RenameResult::Locked:
             // The same as the menu: a locked playlist keeps its name.
+            break;
+        case playlistdrop::RenameResult::Protected:
+            mixxx::library::showProtectionMessage(nullptr);
             break;
         case playlistdrop::RenameResult::NameTaken:
             QMessageBox::warning(nullptr,

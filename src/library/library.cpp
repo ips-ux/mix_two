@@ -18,6 +18,7 @@
 #include "library/externaltrackcollection.h"
 #include "library/itunes/itunesfeature.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/libraryviewprefs.h"
 #include "library/librarycontrol.h"
 #include "library/libraryfeature.h"
@@ -78,6 +79,11 @@ Library::Library(
           m_pKeyNotation(std::make_unique<ControlObject>(
                   mixxx::library::prefs::kKeyNotationConfigKey, false)) {
     qRegisterMetaType<LibraryRemovalType>("LibraryRemovalType");
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is read before any track list or sidebar item exists.
+    mixxx::library::loadLibraryProtection(m_pConfig);
+    // End of AI-generated text.
 
     DateFormatChangedBroadcaster::createInstance();
 
@@ -704,6 +710,15 @@ bool Library::requestAddDir(const QString& dir) {
 }
 
 bool Library::requestRemoveDir(const QString& dir, LibraryRemovalType removalType) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: hide and purge take tracks out of the library. A
+    // folder can still stop being watched when its tracks stay unchanged.
+    if (removalType != LibraryRemovalType::KeepTracks &&
+            !mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return false;
+    }
+    // End of AI-generated text.
     // Remove the directory from the directory list.
     DirectoryDAO::RemoveResult result =
             m_pTrackCollectionManager->removeDirectory(mixxx::FileInfo(dir));
@@ -741,6 +756,13 @@ bool Library::requestRemoveDir(const QString& dir, LibraryRemovalType removalTyp
 }
 
 bool Library::requestRelocateDir(const QString& oldDir, const QString& newDir) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the move of a folder changes the place of its tracks.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RelocateTracks)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return false;
+    }
+    // End of AI-generated text.
     DirectoryDAO::RelocateResult result =
             m_pTrackCollectionManager->relocateDirectory(oldDir, newDir);
     if (result == DirectoryDAO::RelocateResult::Ok) {

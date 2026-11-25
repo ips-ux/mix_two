@@ -72,6 +72,11 @@ class PlaylistTableModel final : public TrackSetTableModel {
   private:
     void initSortColumnMapping() override;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// True when Library Protection keeps the tracks in this playlist.
+    bool isProtectedFromRemoval() const;
+    // End of AI-generated text.
+
     int m_iPlaylistId;
     int m_iFolderId;
     QSet<int> m_folderPlaylistIds;

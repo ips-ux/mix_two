@@ -7,6 +7,7 @@
 
 #include "library/browse/browsetablemodel.h"
 #include "library/browse/browsethread.h"
+#include "library/libraryprotection.h"
 #include "library/tabledelegates/previewbuttondelegate.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -425,6 +426,12 @@ Qt::ItemFlags BrowseTableModel::flags(const QModelIndex& index) const {
         return defaultFlags;
     default:
         // editable
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Library Protection: the track data cannot change here.
+        if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+            return defaultFlags;
+        }
+        // End of AI-generated text.
         return defaultFlags | Qt::ItemIsEditable;
     }
 #endif
@@ -438,6 +445,13 @@ bool BrowseTableModel::setData(
 
     QStandardItem* item = itemFromIndex(index);
     DEBUG_ASSERT(nullptr != item);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: keep the cell as it is.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return false;
+    }
+    // End of AI-generated text.
 
     TrackPointer pTrack(getTrack(index));
     if (!pTrack) {

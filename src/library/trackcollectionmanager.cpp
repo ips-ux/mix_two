@@ -5,6 +5,7 @@
 #include "library/externaltrackcollection.h"
 #include "library/library_decl.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/scanner/libraryscanner.h"
 #include "library/trackcollection.h"
 #include "moc_trackcollectionmanager.cpp"
@@ -397,6 +398,14 @@ DirectoryDAO::RelocateResult TrackCollectionManager::relocateDirectory(
         const QString& oldDir, const QString& newDir) const {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the move of a library folder changes the file place
+    // of its tracks. Nothing changes; the caller shows the reason.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RelocateTracks)) {
+        return DirectoryDAO::RelocateResult::InvalidOrMissingDirectory;
+    }
+    // End of AI-generated text.
+
     kLogger.debug()
             << "Relocating directory in internal track collection:"
             << oldDir
@@ -425,6 +434,13 @@ DirectoryDAO::RelocateResult TrackCollectionManager::relocateDirectory(
 bool TrackCollectionManager::hideTracks(const QList<TrackId>& trackIds) const {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: tracks stay in the library.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        return false;
+    }
+    // End of AI-generated text.
+
     return m_pInternalCollection->hideTracks(trackIds);
 }
 
@@ -437,11 +453,23 @@ bool TrackCollectionManager::unhideTracks(const QList<TrackId>& trackIds) const 
 void TrackCollectionManager::hideAllTracks(const QDir& rootDir) const {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        return;
+    }
+    // End of AI-generated text.
+
     m_pInternalCollection->hideAllTracks(rootDir);
 }
 
 void TrackCollectionManager::purgeTracks(const QList<TrackRef>& trackRefs) const {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        return;
+    }
+    // End of AI-generated text.
 
     if (trackRefs.isEmpty()) {
         return;
@@ -485,6 +513,12 @@ void TrackCollectionManager::purgeTracks(const QList<TrackRef>& trackRefs) const
 
 void TrackCollectionManager::purgeAllTracks(const QDir& rootDir) const {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        return;
+    }
+    // End of AI-generated text.
 
     kLogger.debug()
             << "Purging directory"

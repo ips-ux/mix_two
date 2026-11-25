@@ -174,4 +174,9 @@ const ConfigKey mixxx::library::prefs::kAutoRelocateFoldersConfigKey =
         ConfigKey{
                 mixxx::library::prefs::kConfigGroup,
                 QStringLiteral("AutoRelocateFolders")};
+
+const ConfigKey mixxx::library::prefs::kLibraryProtectionConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("LibraryProtection")};
 // End of AI-generated text.

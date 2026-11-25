@@ -238,7 +238,12 @@ class WTrackMenu : public QMenu {
             const QString& progressLabelText,
             const mixxx::TrackPointerOperation* pTrackPointerOperation,
             mixxx::ModalTrackBatchOperationProcessor::Mode operationMode =
-                    mixxx::ModalTrackBatchOperationProcessor::Mode::Apply) const;
+                    mixxx::ModalTrackBatchOperationProcessor::Mode::Apply,
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // False for an operation that does not change track data (Library
+            // Protection does not stop it).
+            bool changesTrackInfo = true) const;
+            // End of AI-generated text.
 
     bool isEmpty() const {
         return getTrackCount() == 0;

@@ -12,6 +12,7 @@
 #include "controllers/keyboard/keyboardeventfilter.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/missing_hidden/missingtablemodel.h"
 #include "moc_dlgmissing.cpp"
@@ -114,6 +115,11 @@ void DlgMissing::slotAutoRelocate() {
     if (m_searchWatcher.isRunning()) {
         return;
     }
+    // Library Protection: Auto Relocate changes the place of tracks.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RelocateTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
     const QStringList folders = mixxx::library::decodeRelocateFolders(
             m_pConfig->getValue(
                     mixxx::library::prefs::kAutoRelocateFoldersConfigKey, QString()));
@@ -136,6 +142,11 @@ void DlgMissing::slotAutoRelocate() {
 void DlgMissing::slotAutoRelocateSearchFinished() {
     btnAutoRelocate->setEnabled(true);
     if (m_cancelSearch) {
+        return;
+    }
+    // The preference can change while the search runs.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RelocateTracks)) {
+        mixxx::library::showProtectionMessage(this);
         return;
     }
     QList<TrackId> trackIds;

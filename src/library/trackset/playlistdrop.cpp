@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <algorithm>
 
+#include "library/libraryprotection.h"
 #include "library/trackcollectionmanager.h"
 #include "util/dnd.h"
 #include "util/fileinfo.h"
@@ -86,6 +87,10 @@ QString nodeName(const PlaylistDAO& dao, const Node& node) {
 }
 
 bool canDropNode(const PlaylistDAO& dao, const Node& node, int targetFolderId) {
+    // Library Protection: playlists and folders stay where they are.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::MoveTrackSet)) {
+        return false;
+    }
     if (!nodeExists(dao, node)) {
         return false;
     }
@@ -115,6 +120,10 @@ bool dropFolderOnFolder(PlaylistDAO& dao, int folderId, int targetFolderId) {
 }
 
 RenameResult renameNode(PlaylistDAO& dao, const Node& node, const QString& newName) {
+    // Library Protection: playlists and folders keep their names.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet)) {
+        return RenameResult::Protected;
+    }
     const QString name = newName.trimmed();
     if (name.isEmpty()) {
         return RenameResult::Blank;
@@ -157,6 +166,10 @@ QStringList existingFolderPathsFromUrls(const QList<QUrl>& urls) {
 }
 
 bool isNodeRenamable(const Node& node, const QSet<int>& lockedPlaylistIds) {
+    // Library Protection: no editor in the tree.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet)) {
+        return false;
+    }
     switch (node.kind) {
     case NodeKind::Playlist:
         return !lockedPlaylistIds.contains(node.id);

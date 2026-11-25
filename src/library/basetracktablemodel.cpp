@@ -10,6 +10,7 @@
 #include "library/coverartcache.h"
 #include "library/dao/trackschema.h"
 #include "library/dateformatbroadcaster.h"
+#include "library/libraryprotection.h"
 #include "library/starrating.h"
 #include "library/tabledelegates/bpmdelegate.h"
 #include "library/tabledelegates/checkboxdelegate.h"
@@ -558,6 +559,14 @@ bool BaseTrackTableModel::setData(
             return false;
         }
         const auto checked = value.toInt() > 0;
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // The BPM lock is track data. The play count is not.
+        if (field == ColumnCache::COLUMN_LIBRARYTABLE_BPM &&
+                !mixxx::library::isActionAllowed(
+                        mixxx::library::ProtectedAction::EditTrackInfo)) {
+            return false;
+        }
+        // End of AI-generated text.
         switch (field) {
         case ColumnCache::COLUMN_LIBRARYTABLE_TIMESPLAYED: {
             // Override sets to TIMESPLAYED and redirect them to PLAYED
@@ -576,6 +585,19 @@ bool BaseTrackTableModel::setData(
             return false;
         }
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // With Library Protection on, only the play count and the played mark can
+    // change here. The cells are read only (see readWriteFlags()); this stops
+    // a change that does not come from the cell editor.
+    const ColumnCache::Column editedField = mapColumn(column);
+    if (editedField != ColumnCache::COLUMN_LIBRARYTABLE_PLAYED &&
+            editedField != ColumnCache::COLUMN_LIBRARYTABLE_TIMESPLAYED &&
+            !mixxx::library::isActionAllowed(
+                    mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return false;
+    }
+    // End of AI-generated text.
 
     TrackPointer pTrack = getTrack(index);
     if (!pTrack) {
@@ -1070,8 +1092,19 @@ Qt::ItemFlags BaseTrackTableModel::readWriteFlags(
     }
 
     Qt::ItemFlags itemFlags = defaultItemFlags(index);
-    if (column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_PLAYED) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_TIMESPLAYED) ||
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The played mark and the play count are not track data: the user can
+    // change them also with Library Protection on. Every other cell is read
+    // only then (the cell can still be dragged to a deck).
+    const bool isPlayCountColumn = column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_PLAYED) ||
+            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_TIMESPLAYED);
+    if (!isPlayCountColumn &&
+            !mixxx::library::isActionAllowed(
+                    mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return readOnlyFlags(index);
+    }
+    // End of AI-generated text.
+    if (isPlayCountColumn ||
             column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BPM_LOCK)) {
         // Checkable cells
         itemFlags |= Qt::ItemIsUserCheckable;

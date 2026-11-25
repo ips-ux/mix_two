@@ -11,6 +11,7 @@
 #include "library/export/trackexportwizard.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/libraryviewprefs.h"
 #include "library/parser.h"
 #include "library/parsercsv.h"
@@ -411,8 +412,12 @@ void CrateFeature::onRightClickChild(
         return;
     }
 
-    m_pDeleteCrateAction->setEnabled(!crate.isLocked());
-    m_pRenameCrateAction->setEnabled(!crate.isLocked());
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pDeleteCrateAction->setEnabled(!crate.isLocked() &&
+            mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet));
+    m_pRenameCrateAction->setEnabled(!crate.isLocked() &&
+            mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet));
+    // End of AI-generated text.
     m_pImportPlaylistAction->setEnabled(!crate.isLocked());
 
     m_pAutoDjTrackSourceAction->setChecked(crate.isAutoDjSource());
@@ -457,6 +462,13 @@ void CrateFeature::deleteItem(const QModelIndex& index) {
 }
 
 void CrateFeature::slotDeleteCrate() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     Crate crate;
     if (readLastRightClickedCrate(&crate)) {
         if (crate.isLocked()) {
@@ -495,6 +507,13 @@ void CrateFeature::renameItem(const QModelIndex& index) {
 }
 
 void CrateFeature::slotRenameCrate() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     Crate crate;
     if (readLastRightClickedCrate(&crate)) {
         const QString oldName = crate.getName();

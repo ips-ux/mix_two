@@ -19,6 +19,7 @@
 #include "library/dao/trackschema.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/librarytablemodel.h"
 #include "library/libraryviewprefs.h"
 #include "library/searchqueryparser.h"
@@ -533,6 +534,12 @@ TrackModel::SortColumnId WTrackTableView::getColumnIdFromCurrentIndex() {
 }
 
 void WTrackTableView::toggleBpmLock(bool locked) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the BPM lock is track data.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return;
+    }
+    // End of AI-generated text.
     TrackModel* pTrackModel = getTrackModel();
     if (!pTrackModel) {
         return;
@@ -548,6 +555,12 @@ void WTrackTableView::toggleBpmLock(bool locked) {
 }
 
 void WTrackTableView::assignPreviousTrackColor() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the colour is track data.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return;
+    }
+    // End of AI-generated text.
     TrackModel* pTrackModel = getTrackModel();
     if (!pTrackModel) {
         return;
@@ -568,6 +581,12 @@ void WTrackTableView::assignPreviousTrackColor() {
 }
 
 void WTrackTableView::assignNextTrackColor() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the colour is track data.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return;
+    }
+    // End of AI-generated text.
     TrackModel* pTrackModel = getTrackModel();
     if (!pTrackModel) {
         return;
@@ -588,6 +607,12 @@ void WTrackTableView::assignNextTrackColor() {
 }
 
 void WTrackTableView::trackRatingChangeRequestRelative(int change) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the rating is track data.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return;
+    }
+    // End of AI-generated text.
     TrackModel* pTrackModel = getTrackModel();
     if (!pTrackModel) {
         return;
@@ -609,6 +634,13 @@ void WTrackTableView::trackRatingChangeRequestRelative(int change) {
 }
 
 void WTrackTableView::slotPurge() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     TrackModel* pTrackModel = getTrackModel();
     if (!pTrackModel) {
         return;
@@ -623,6 +655,13 @@ void WTrackTableView::slotPurge() {
 }
 
 void WTrackTableView::slotDeleteTracksFromDisk() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     const QModelIndexList indices = getSelectedRows();
     if (indices.isEmpty()) {
         return;
@@ -1433,6 +1472,15 @@ QModelIndex calculateCutIndex(const QModelIndex& currentIndex,
 } // namespace
 
 void WTrackTableView::removeSelectedTracks() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection keeps the tracks in a playlist or a crate. The Auto DJ
+    // queue is not library data: its tracks can go.
+    if (!getTrackModel()->hasCapabilities(TrackModel::Capability::Remove) &&
+            !mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     const QModelIndexList indices = getSelectedRows();
     const QModelIndex newIndex = calculateCutIndex(currentIndex(), indices);
     getTrackModel()->removeTracks(indices);
@@ -1440,6 +1488,14 @@ void WTrackTableView::removeSelectedTracks() {
 }
 
 void WTrackTableView::cutSelectedTracks() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A cut removes the tracks from the list.
+    if (!getTrackModel()->hasCapabilities(TrackModel::Capability::Remove) &&
+            !mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     const QModelIndexList indices = getSelectedRows();
     const QModelIndex newIndex = calculateCutIndex(currentIndex(), indices);
     getTrackModel()->cutTracks(indices);
@@ -1822,6 +1878,16 @@ void WTrackTableView::hideOrRemoveSelectedTracks() {
     if (indices.isEmpty()) {
         return;
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the tracks stay in the library, and in playlists
+    // and crates. The Auto DJ queue is not library data.
+    if (!pTrackModel->hasCapabilities(TrackModel::Capability::Remove) &&
+            !mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
 
     TrackModel::Capability cap;
     // Remove is the primary action if allowed (playlists and crates).

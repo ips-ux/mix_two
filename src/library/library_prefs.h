@@ -102,6 +102,11 @@ extern const ConfigKey kConsolidateFolderPatternConfigKey;
 // encodeRelocateFolders() in library/trackcollection.h). The default is no
 // folder.
 extern const ConfigKey kAutoRelocateFoldersConfigKey;
+
+// Library Protection: on, the library data cannot be changed by mistake (see
+// library/libraryprotection.h). Off by default.
+extern const ConfigKey kLibraryProtectionConfigKey;
+const bool kLibraryProtectionDefault = false;
 // End of AI-generated text.
 
 } // namespace prefs

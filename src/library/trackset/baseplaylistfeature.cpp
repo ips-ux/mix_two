@@ -12,6 +12,7 @@
 #include "library/export/trackexportwizard.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/libraryviewprefs.h"
 #include "library/parser.h"
 #include "library/parsercsv.h"
@@ -307,6 +308,13 @@ void BasePlaylistFeature::renameItem(const QModelIndex& index) {
 }
 
 void BasePlaylistFeature::slotRenamePlaylist() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RenameTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     int playlistId = playlistIdFromIndex(m_lastRightClickedIndex);
     if (playlistId == kInvalidPlaylistId) {
         return;
@@ -534,6 +542,13 @@ void BasePlaylistFeature::deleteItem(const QModelIndex& index) {
 }
 
 void BasePlaylistFeature::slotDeletePlaylist() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     //qDebug() << "slotDeletePlaylist() row:" << m_lastRightClickedIndex.data();
     if (!m_lastRightClickedIndex.isValid()) {
         return;

@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "library/basetrackcache.h"
+#include "library/libraryprotection.h"
 #include "library/trackset/crate/crate.h"
 #include "moc_trackcollection.cpp"
 #include "sources/soundsourceproxy.h"
@@ -236,6 +237,11 @@ DirectoryDAO::RelocateResult TrackCollection::relocateDirectory(
 bool TrackCollection::relocateTrackLocation(TrackId trackId, const QString& newLocation) {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
     if (!trackId.isValid()) {
+        return false;
+    }
+    // Library Protection: the file place of a track does not change. Relocate,
+    // Auto Relocate and the library folder consolidation all end here.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RelocateTracks)) {
         return false;
     }
     const mixxx::FileInfo newFile(newLocation);

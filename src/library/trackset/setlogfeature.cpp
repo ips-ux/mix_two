@@ -7,6 +7,7 @@
 
 #include "library/library.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/playlisttablemodel.h"
 #include "library/queryutil.h"
 #include "library/trackcollection.h"
@@ -191,6 +192,13 @@ void SetlogFeature::deleteAllUnlockedPlaylistsWithFewerTracks() {
 }
 
 void SetlogFeature::slotDeletePlaylist() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     if (!m_lastRightClickedIndex.isValid()) {
         return;
     }
@@ -234,13 +242,25 @@ void SetlogFeature::onRightClickChild(const QPoint& globalPos, const QModelIndex
         menu.addAction(m_pLockAllChildPlaylists);
         menu.addAction(m_pUnlockAllChildPlaylists);
         menu.addSeparator();
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_pDeleteAllChildPlaylists->setEnabled(mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::DeleteTrackSet));
+        // End of AI-generated text.
         menu.addAction(m_pDeleteAllChildPlaylists);
     } else {
         // this is a playlist
         bool locked = m_playlistDao.isPlaylistLocked(playlistId);
-        m_pDeletePlaylistAction->setEnabled(!locked);
-        m_pRenamePlaylistAction->setEnabled(!locked);
-        m_pJoinWithPreviousAction->setEnabled(!locked);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Library Protection keeps the History lists as they are. The
+        // History still records on its own.
+        const bool canDelete = mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::DeleteTrackSet);
+        const bool canRename = mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::RenameTrackSet);
+        // End of AI-generated text.
+        m_pDeletePlaylistAction->setEnabled(!locked && canDelete);
+        m_pRenamePlaylistAction->setEnabled(!locked && canRename);
+        m_pJoinWithPreviousAction->setEnabled(!locked && canDelete);
         m_pLockPlaylistAction->setText(locked ? tr("Unlock") : tr("Lock"));
 
         menu.addAction(m_pAddToAutoDJAction);
@@ -441,6 +461,13 @@ void SetlogFeature::slotGetNewPlaylist() {
 }
 
 void SetlogFeature::slotJoinWithPrevious() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     // qDebug() << "SetlogFeature::slotJoinWithPrevious() row:" << m_lastRightClickedIndex.data();
     if (!m_lastRightClickedIndex.isValid()) {
         return;
@@ -580,6 +607,13 @@ void SetlogFeature::lockOrUnlockAllChildPlaylists(bool lock) {
 }
 
 void SetlogFeature::slotDeleteAllUnlockedChildPlaylists() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::DeleteTrackSet)) {
+        mixxx::library::showProtectionMessage(nullptr);
+        return;
+    }
+    // End of AI-generated text.
     if (!m_lastRightClickedIndex.isValid()) {
         return;
     }

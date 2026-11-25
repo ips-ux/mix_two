@@ -7,6 +7,7 @@
 #include "library/coverartcache.h"
 #include "library/coverartutils.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "library/trackmodel.h"
 #include "moc_dlgtagfetcher.cpp"
 #include "preferences/dialog/dlgpreflibrary.h"
@@ -299,6 +300,13 @@ void DlgTagFetcher::slotTrackChanged(TrackId trackId) {
 }
 
 void DlgTagFetcher::apply() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the fetched tags and cover do not go into the track.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        statusMessage->setText(mixxx::library::protectionMessageText());
+        return;
+    }
+    // End of AI-generated text.
     if (checkBoxTags->isChecked()) {
         applyTags();
         statusMessage->setText(tr("Metadata applied"));

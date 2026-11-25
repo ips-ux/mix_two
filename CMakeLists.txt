@@ -1490,6 +1490,7 @@ add_library(
   src/library/itunes/itunestrackmodel.cpp
   src/library/itunes/itunesxmlimporter.cpp
   src/library/library_prefs.cpp
+  src/library/libraryprotection.cpp
   src/library/libraryviewprefs.cpp
   src/library/library.cpp
   src/library/librarycontrol.cpp
@@ -3097,6 +3098,7 @@ if(BUILD_TESTING)
     src/test/playlistfolders_test.cpp
     src/test/prefsearch_test.cpp
     src/test/prefsnapshot_test.cpp
+    src/test/libraryprotection_test.cpp
     src/test/playlisttest.cpp
     src/test/playtimegate_test.cpp
     src/test/trackviewkeys_test.cpp

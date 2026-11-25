@@ -25,6 +25,7 @@
 #include "library/trackcollectionmanager.h"
 #include "moc_dlgpreflibrary.cpp"
 #include "util/desktophelper.h"
+#include "library/libraryprotection.h"
 #include "widget/holdtomenu.h"
 #include "widget/wsearchlineedit.h"
 #include "widget/wtracktableview.h"
@@ -343,6 +344,7 @@ void DlgPrefLibrary::slotResetToDefaults() {
 
     // AI-generated (Claude Code). Start of AI-generated text.
     checkBox_hold_to_open_menu->setChecked(holdtomenu::kEnabledDefault);
+    checkBox_library_protection->setChecked(kLibraryProtectionDefault);
     // End of AI-generated text.
 }
 
@@ -525,6 +527,8 @@ void DlgPrefLibrary::slotUpdate() {
     // AI-generated (Claude Code). Start of AI-generated text.
     checkBox_hold_to_open_menu->setChecked(m_pConfig->getValue(
             kHoldToOpenMenuConfigKey, holdtomenu::kEnabledDefault));
+    checkBox_library_protection->setChecked(m_pConfig->getValue(
+            kLibraryProtectionConfigKey, kLibraryProtectionDefault));
     // End of AI-generated text.
 }
 
@@ -816,6 +820,11 @@ void DlgPrefLibrary::slotApply() {
 
     // AI-generated (Claude Code). Start of AI-generated text.
     m_pConfig->setValue(kHoldToOpenMenuConfigKey, checkBox_hold_to_open_menu->isChecked());
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The new state counts at once in the running program.
+    m_pConfig->setValue(kLibraryProtectionConfigKey, checkBox_library_protection->isChecked());
+    mixxx::library::setLibraryProtectionOn(checkBox_library_protection->isChecked());
+    // End of AI-generated text.
     // End of AI-generated text.
 
     // TODO(rryan): Don't save here.

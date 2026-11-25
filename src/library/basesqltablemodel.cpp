@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "library/dao/trackschema.h"
+#include "library/libraryprotection.h"
 #include "library/queryutil.h"
 #include "library/starrating.h"
 #include "library/trackcollection.h"
@@ -839,6 +840,12 @@ void BaseSqlTableModel::tracksChanged(const QSet<TrackId>& trackIds) {
 }
 
 void BaseSqlTableModel::hideTracks(const QModelIndexList& indices) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the tracks stay in the library, and in the list.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        return;
+    }
+    // End of AI-generated text.
     QList<TrackId> trackIds;
     foreach (QModelIndex index, indices) {
         TrackId trackId(getTrackId(index));

@@ -587,6 +587,14 @@ export always set it to on.
 
 ### Library preferences
 
+Library Protection stops mistakes in the library. Go to Preferences > Library,
+select **Library Protection**, then push **Apply**. The option is off by
+default. With the option on, you cannot edit the track information, remove or
+delete tracks, rename or delete playlists, crates and folders, or relocate
+tracks. The track menu items for these actions are grey. You can still load
+tracks to a deck, and use the play count and the played mark. The History list
+and the cues and loops that you set on a deck continue to work.
+
 Click the artwork of a track in the track list to preview the track from the
 start. The preview starts when the double-click time has passed. Click the
 artwork again during the preview to skip ahead 30 seconds. The preview stops

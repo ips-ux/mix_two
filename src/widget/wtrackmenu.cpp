@@ -25,6 +25,7 @@
 #include "library/dlgtrackmetadataexport.h"
 #include "library/externaltrackcollection.h"
 #include "library/library.h"
+#include "library/libraryprotection.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackmodel.h"
@@ -1153,11 +1154,16 @@ void WTrackMenu::updateMenus() {
         if (m_pTrackModel->hasCapabilities(TrackModel::Capability::Remove)) {
             m_pRemoveAct->setEnabled(!locked);
         }
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // Library Protection keeps the tracks in playlists and crates.
+        const bool canRemoveTracks = mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::RemoveTracks);
+        // End of AI-generated text.
         if (m_pTrackModel->hasCapabilities(TrackModel::Capability::RemovePlaylist)) {
-            m_pRemovePlaylistAct->setEnabled(!locked);
+            m_pRemovePlaylistAct->setEnabled(!locked && canRemoveTracks);
         }
         if (m_pTrackModel->hasCapabilities(TrackModel::Capability::RemoveCrate)) {
-            m_pRemoveCrateAct->setEnabled(!locked);
+            m_pRemoveCrateAct->setEnabled(!locked && canRemoveTracks);
         }
     }
 
@@ -1253,8 +1259,17 @@ void WTrackMenu::updateMenus() {
         if (m_pTrackModel->hasCapabilities(TrackModel::Capability::Unhide)) {
             m_pUnhideAct->setEnabled(!locked);
         }
+        // AI-generated (Claude Code). Start of AI-generated text.
+        const bool canRemoveFromLibrary = mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::RemoveTracks);
+        const bool canRelocate = mixxx::library::isActionAllowed(
+                mixxx::library::ProtectedAction::RelocateTracks);
+        if (m_pHideAct) {
+            m_pHideAct->setEnabled(canRemoveFromLibrary);
+        }
+        // End of AI-generated text.
         if (m_pTrackModel->hasCapabilities(TrackModel::Capability::Purge)) {
-            m_pPurgeAct->setEnabled(!locked);
+            m_pPurgeAct->setEnabled(!locked && canRemoveFromLibrary);
             // AI-generated (Claude Code). Start of AI-generated text.
             // Relocate is for missing tracks: it is off when every selected
             // track has its file.
@@ -1271,7 +1286,7 @@ void WTrackMenu::updateMenus() {
                     break;
                 }
             }
-            m_pRelocateAct->setEnabled(!locked && anyMissing);
+            m_pRelocateAct->setEnabled(!locked && anyMissing && canRelocate);
             // End of AI-generated text.
         }
     }
@@ -1280,7 +1295,9 @@ void WTrackMenu::updateMenus() {
         if (m_pTrackModel) {
             bool locked = m_pTrackModel->hasCapabilities(TrackModel::Capability::Locked);
             if (m_pTrackModel->hasCapabilities(TrackModel::Capability::RemoveFromDisk)) {
-                m_pRemoveFromDiskAct->setEnabled(!locked);
+                m_pRemoveFromDiskAct->setEnabled(!locked &&
+                        mixxx::library::isActionAllowed(
+                                mixxx::library::ProtectedAction::RemoveTracks));
             }
         }
     }
@@ -1324,6 +1341,53 @@ void WTrackMenu::updateMenus() {
         }
         m_pFindOnWebMenu->setEnabled(!m_pFindOnWebMenu->isEmpty());
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the entries that change track data are off. Load,
+    // the play count, cues on a deck and Auto DJ are not in this list.
+    const bool canEditTrackInfo = mixxx::library::isActionAllowed(
+            mixxx::library::ProtectedAction::EditTrackInfo);
+    for (QMenu* pMenu : {m_pBPMMenu.get(),
+                 m_pColorMenu.get(),
+                 m_pHotcueMenu.get(),
+                 static_cast<QMenu*>(m_pCoverMenu.get())}) {
+        if (pMenu) {
+            pMenu->setEnabled(canEditTrackInfo);
+        }
+    }
+    // These entries get their state here only.
+    for (QAction* pAction : {static_cast<QAction*>(m_pStarRatingAction.get()),
+                 m_pImportMetadataFromFileAct.get(),
+                 m_pReanalyzeAction.get(),
+                 m_pReanalyzeConstBpmAction.get(),
+                 m_pReanalyzeVarBpmAction.get(),
+                 m_pClearRatingAction.get(),
+                 m_pClearCommentAction.get(),
+                 m_pClearMainCueAction.get(),
+                 m_pClearHotCuesAction.get(),
+                 m_pClearIntroCueAction.get(),
+                 m_pClearOutroCueAction.get(),
+                 m_pClearLoopsAction.get(),
+                 m_pClearKeyAction.get(),
+                 m_pClearReplayGainAction.get(),
+                 m_pClearWaveformAction.get(),
+                 m_pClearAllMetadataAction.get()}) {
+        if (pAction) {
+            pAction->setEnabled(canEditTrackInfo);
+        }
+    }
+    // These entries get their state above too: protection only switches off.
+    if (!canEditTrackInfo) {
+        for (QAction* pAction : {m_pImportMetadataFromMusicBrainzAct.get(),
+                     m_pUpdateReplayGainAct.get(),
+                     m_pTranslateBeatsHalf.get(),
+                     m_pClearBeatsAction.get()}) {
+            if (pAction) {
+                pAction->setEnabled(false);
+            }
+        }
+    }
+    // End of AI-generated text.
 }
 
 void WTrackMenu::loadTrack(
@@ -1454,7 +1518,17 @@ std::unique_ptr<mixxx::TrackPointerIterator> WTrackMenu::newTrackPointerIterator
 int WTrackMenu::applyTrackPointerOperation(
         const QString& progressLabelText,
         const mixxx::TrackPointerOperation* pTrackPointerOperation,
-        mixxx::ModalTrackBatchOperationProcessor::Mode operationMode) const {
+        mixxx::ModalTrackBatchOperationProcessor::Mode operationMode,
+        bool changesTrackInfo) const {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: every batch change of track data ends here. The
+    // few operations that are not track data (the play count, the export of
+    // tags into the file) pass changesTrackInfo = false.
+    if (changesTrackInfo &&
+            !mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return 0;
+    }
+    // End of AI-generated text.
     const auto pTrackPointerIter = newTrackPointerIterator();
     if (!pTrackPointerIter) {
         // Empty, i.e. nothing to do
@@ -1547,6 +1621,13 @@ class ImportMetadataFromFileTagsTrackPointerOperation : public mixxx::TrackPoint
 } // anonymous namespace
 
 void WTrackMenu::slotUpdateReplayGainFromPregain() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     VERIFY_OR_DEBUG_ASSERT(m_pTrack) {
         return;
     }
@@ -1563,6 +1644,13 @@ void WTrackMenu::slotUpdateReplayGainFromPregain() {
 }
 
 void WTrackMenu::slotTranslateBeatsHalf() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     VERIFY_OR_DEBUG_ASSERT(m_pTrack) {
         return;
     }
@@ -1616,9 +1704,14 @@ void WTrackMenu::slotExportMetadataIntoFileTags() {
                     getTrackCount());
     const auto trackOperator =
             ExportMetadataIntoFileTagsTrackPointerOperation();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // This only marks the tracks: the library data does not change.
     applyTrackPointerOperation(
             progressLabelText,
-            &trackOperator);
+            &trackOperator,
+            mixxx::ModalTrackBatchOperationProcessor::Mode::Apply,
+            false);
+    // End of AI-generated text.
 }
 
 void WTrackMenu::slotUpdateExternalTrackCollection(
@@ -1920,11 +2013,25 @@ void WTrackMenu::slotAnalyze() {
 }
 
 void WTrackMenu::slotReanalyze() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     clearBeats();
     addToAnalysis();
 }
 
 void WTrackMenu::slotReanalyzeWithFixedTempo() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     clearBeats();
     AnalyzerTrack::Options options;
     options.useFixedTempo = true;
@@ -1932,6 +2039,13 @@ void WTrackMenu::slotReanalyzeWithFixedTempo() {
 }
 
 void WTrackMenu::slotReanalyzeWithVariableTempo() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     clearBeats();
     AnalyzerTrack::Options options;
     options.useFixedTempo = false;
@@ -2178,9 +2292,14 @@ void WTrackMenu::slotClearPlayCount() {
             tr("Resetting play count of %n track(s)", "", getTrackCount());
     const auto trackOperator =
             ResetPlayCounterTrackPointerOperation();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The play count stays open to the user with Library Protection on.
     applyTrackPointerOperation(
             progressLabelText,
-            &trackOperator);
+            &trackOperator,
+            mixxx::ModalTrackBatchOperationProcessor::Mode::Apply,
+            false);
+    // End of AI-generated text.
 }
 
 namespace {
@@ -2624,6 +2743,13 @@ class RemoveTrackFilesFromDiskTrackPointerOperation : public mixxx::TrackPointer
 } // anonymous namespace
 
 void WTrackMenu::slotRemoveFromDisk() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     QStringList locations;
     if (m_pTrackModel) {
         const auto trackRefs = getTrackRefs();
@@ -2754,9 +2880,14 @@ void WTrackMenu::slotRemoveFromDisk() {
                     getTrackCount());
     const auto trackOperator =
             RemoveTrackFilesFromDiskTrackPointerOperation();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection was checked at the start of this function.
     applyTrackPointerOperation(
             progressLabelText,
-            &trackOperator);
+            &trackOperator,
+            mixxx::ModalTrackBatchOperationProcessor::Mode::Apply,
+            false);
+    // End of AI-generated text.
 
     // Purge deleted tracks and show deletion summary message.
     const QList<TrackRef> tracksToPurge(trackOperator.getTracksToPurge());
@@ -2944,6 +3075,13 @@ void WTrackMenu::slotShowDlgTrackInfo() {
 }
 
 void WTrackMenu::slotShowDlgTagFetcher() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     if (isEmpty()) {
         return;
     }
@@ -3079,6 +3217,15 @@ void WTrackMenu::slotRemove() {
     if (!m_pTrackModel) {
         return;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection keeps the tracks in a playlist or a crate. The Auto
+    // DJ queue is not library data: its remove action stays open.
+    if (!m_pTrackModel->hasCapabilities(TrackModel::Capability::Remove) &&
+            !mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     m_pTrackModel->removeTracks(getTrackIndices());
     emit restoreCurrentViewStateOrIndex();
 }
@@ -3087,6 +3234,13 @@ void WTrackMenu::slotHide() {
     if (!m_pTrackModel) {
         return;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     m_pTrackModel->hideTracks(getTrackIndices());
     emit restoreCurrentViewStateOrIndex();
 }
@@ -3103,6 +3257,12 @@ void WTrackMenu::slotUnhide() {
 bool WTrackMenu::relocateMissingTracks(
         QWidget* pParent, TrackCollection* pCollection, const TrackIdList& trackIds) {
     if (!pCollection) {
+        return false;
+    }
+    // Library Protection: the file place of a track does not change. The
+    // Relocate button of the Missing view and the track menu both call this.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RelocateTracks)) {
+        mixxx::library::showProtectionMessage(pParent);
         return false;
     }
     // Only a track with a missing file is relocated. The first of them gets
@@ -3176,6 +3336,13 @@ void WTrackMenu::slotPurge() {
     if (!m_pTrackModel) {
         return;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection is on: nothing changes.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     m_pTrackModel->purgeTracks(getTrackIndices());
     emit restoreCurrentViewStateOrIndex();
 }

@@ -11,6 +11,7 @@
 #include "library/coverartcache.h"
 #include "library/coverartutils.h"
 #include "library/library_prefs.h"
+#include "library/libraryprotection.h"
 #include "moc_dlgtrackinfomulti.cpp"
 #include "preferences/colorpalettesettings.h"
 #include "sources/soundsourceproxy.h"
@@ -129,6 +130,18 @@ DlgTrackInfoMulti::DlgTrackInfoMulti(UserSettingsPointer pUserSettings)
 void DlgTrackInfoMulti::init() {
     setupUi(this);
     setWindowIcon(QIcon(MIXXX_ICON_PATH));
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the window shows the track data and changes nothing.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        tags_groupBox->setEnabled(false);
+        btnApply->setEnabled(false);
+        btnOK->setEnabled(false);
+        const QString reason = mixxx::library::protectionMessageText();
+        btnApply->setToolTip(reason);
+        btnOK->setToolTip(reason);
+    }
+    // End of AI-generated text.
 
     // Store tag edit widget pointers to allow focusing a specific widgets when
     // this is opened by double-clicking a WTrackProperty label.
@@ -812,6 +825,11 @@ void DlgTrackInfoMulti::saveTracks() {
     if (m_pLoadedTracks.isEmpty()) {
         return;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        return;
+    }
+    // End of AI-generated text.
 
     // In case Apply is triggered by hotkey AND user did not yet hit Enter to
     // finish editing, we might have an editor with pending changes.

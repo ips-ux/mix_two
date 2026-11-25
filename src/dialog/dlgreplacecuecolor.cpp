@@ -10,6 +10,7 @@
 #include <QStyleFactory>
 
 #include "library/dao/cuedao.h"
+#include "library/libraryprotection.h"
 #include "library/queryutil.h"
 #include "moc_dlgreplacecuecolor.cpp"
 #include "preferences/colorpalettesettings.h"
@@ -226,6 +227,13 @@ void DlgReplaceCueColor::setCurrentColor(mixxx::RgbColor color) {
 }
 
 void DlgReplaceCueColor::slotApply() {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: this changes the cue colours of many tracks.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::EditTrackInfo)) {
+        mixxx::library::showProtectionMessage(this);
+        return;
+    }
+    // End of AI-generated text.
     m_bDatabaseChangeInProgress = false;
     slotUpdateWidgets();
 

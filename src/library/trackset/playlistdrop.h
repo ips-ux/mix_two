@@ -54,6 +54,8 @@ enum class RenameResult {
     Blank,
     Locked,
     NameTaken,
+    /// Library Protection is on.
+    Protected,
 };
 /// Renames a playlist or a folder. The new name is trimmed.
 RenameResult renameNode(PlaylistDAO& dao, const Node& node, const QString& newName);

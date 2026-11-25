@@ -2,6 +2,7 @@
 
 #include "library/dao/playlistdao.h"
 #include "library/dao/trackschema.h"
+#include "library/libraryprotection.h"
 #include "library/queryutil.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -370,6 +371,9 @@ void PlaylistTableModel::removeTrack(const QModelIndex& index) {
     if (isFolderView()) {
         return;
     }
+    if (isProtectedFromRemoval()) {
+        return;
+    }
     if (m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
         return;
     }
@@ -381,6 +385,9 @@ void PlaylistTableModel::removeTrack(const QModelIndex& index) {
 
 void PlaylistTableModel::removeTracks(const QModelIndexList& indices) {
     if (isFolderView()) {
+        return;
+    }
+    if (isProtectedFromRemoval()) {
         return;
     }
     if (m_pTrackCollectionManager->internalCollection()->getPlaylistDAO().isPlaylistLocked(m_iPlaylistId)) {
@@ -435,6 +442,19 @@ void PlaylistTableModel::moveTrack(const QModelIndex& sourceIndex,
         emit firstTrackChanged();
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// Library Protection keeps the tracks in a playlist. The Auto DJ queue is not
+// library data: the DJ and Auto DJ take tracks out of it in a set.
+bool PlaylistTableModel::isProtectedFromRemoval() const {
+    if (mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        return false;
+    }
+    return m_pTrackCollectionManager->internalCollection()
+                   ->getPlaylistDAO()
+                   .getHiddenType(m_iPlaylistId) != PlaylistDAO::PLHT_AUTO_DJ;
+}
+// End of AI-generated text.
 
 bool PlaylistTableModel::isLocked() {
     if (isFolderView()) {

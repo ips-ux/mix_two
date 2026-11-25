@@ -3,6 +3,7 @@
 #include <QtDebug>
 
 #include "library/dao/trackschema.h"
+#include "library/libraryprotection.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackset/crate/crate.h"
@@ -191,6 +192,12 @@ void CrateTableModel::removeTracks(const QModelIndexList& indices) {
     VERIFY_OR_DEBUG_ASSERT(m_selectedCrate.isValid()) {
         return;
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Library Protection: the tracks stay in the crate.
+    if (!mixxx::library::isActionAllowed(mixxx::library::ProtectedAction::RemoveTracks)) {
+        return;
+    }
+    // End of AI-generated text.
     if (indices.empty()) {
         return;
     }
