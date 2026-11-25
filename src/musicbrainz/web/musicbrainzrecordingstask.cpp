@@ -48,7 +48,9 @@ QUrlQuery createUrlQuery() {
     return query;
 }
 
-QNetworkRequest createNetworkRequest(
+} // anonymous namespace
+
+QNetworkRequest musicBrainzRecordingRequest(
         const QUuid& recordingId) {
     DEBUG_ASSERT(kBaseUrl.isValid());
     DEBUG_ASSERT(!recordingId.isNull());
@@ -64,8 +66,6 @@ QNetworkRequest createNetworkRequest(
             userAgentRawHeaderValue().toLatin1());
     return networkRequest;
 }
-
-} // anonymous namespace
 
 MusicBrainzRecordingsTask::MusicBrainzRecordingsTask(
         QNetworkAccessManager* networkAccessManager,
@@ -96,7 +96,7 @@ QNetworkReply* MusicBrainzRecordingsTask::doStartNetworkRequest(
     DEBUG_ASSERT(!recordingId.isNull());
 
     const QNetworkRequest networkRequest =
-            createNetworkRequest(recordingId);
+            musicBrainzRecordingRequest(recordingId);
 
     if (kLogger.traceEnabled()) {
         kLogger.trace()

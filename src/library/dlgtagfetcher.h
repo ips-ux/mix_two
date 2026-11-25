@@ -78,6 +78,8 @@ class DlgTagFetcher : public QDialog, public Ui::DlgTagFetcher {
     // Called on population or changed via buttons Next&Prev.
     void loadTrackInternal(const TrackPointer& pTrack);
     void getCoverArt(const QUuid& albumReleaseId, const QString& url);
+    // Starts the lookup when the user has accepted the notice.
+    bool startLookup();
     void loadCurrentTrackCover();
 
     void saveCheckBoxState();

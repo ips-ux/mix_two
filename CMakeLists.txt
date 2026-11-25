@@ -1590,6 +1590,7 @@ add_library(
   src/musicbrainz/chromaprinter.cpp
   src/musicbrainz/crc.cpp
   src/musicbrainz/gzip.cpp
+  src/musicbrainz/lookupnotice.cpp
   src/musicbrainz/musicbrainz.cpp
   src/musicbrainz/musicbrainzxml.cpp
   src/musicbrainz/tagfetcher.cpp
@@ -3090,6 +3091,7 @@ if(BUILD_TESTING)
     src/test/midiproductmatch_test.cpp
     src/test/mixxxtest.cpp
     src/test/mock_networkaccessmanager.cpp
+    src/test/lookupnotice_test.cpp
     src/test/musicbrainzrecordingstasktest.cpp
     src/test/nextcue_test.cpp
     src/test/performancetimer_test.cpp

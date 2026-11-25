@@ -29,7 +29,18 @@ const QLatin1String kContentTypeHeaderValue("application/x-www-form-urlencoded")
 const QByteArray kContentEncodingRawHeaderKey = "Content-Encoding";
 const QByteArray kContentEncodingRawHeaderValue = "gzip";
 
-QUrlQuery lookupUrlQuery(
+network::JsonWebRequest lookupRequest() {
+    return network::JsonWebRequest{
+            network::HttpRequestMethod::Post,
+            kRequestPath,
+            QUrlQuery(),     // custom query
+            QJsonDocument(), // custom body
+    };
+}
+
+} // anonymous namespace
+
+QUrlQuery acoustIdLookupUrlQuery(
         const QString& fingerprint,
         int duration) {
     DEBUG_ASSERT(!fingerprint.isEmpty());
@@ -54,17 +65,6 @@ QUrlQuery lookupUrlQuery(
     return urlQuery;
 }
 
-network::JsonWebRequest lookupRequest() {
-    return network::JsonWebRequest{
-            network::HttpRequestMethod::Post,
-            kRequestPath,
-            QUrlQuery(),     // custom query
-            QJsonDocument(), // custom body
-    };
-}
-
-} // anonymous namespace
-
 AcoustIdLookupTask::AcoustIdLookupTask(
         QNetworkAccessManager* networkAccessManager,
         const QString& fingerprint,
@@ -75,7 +75,7 @@ AcoustIdLookupTask::AcoustIdLookupTask(
                   kBaseUrl,
                   lookupRequest(),
                   parent),
-          m_urlQuery(lookupUrlQuery(fingerprint, duration)) {
+          m_urlQuery(acoustIdLookupUrlQuery(fingerprint, duration)) {
 }
 
 QNetworkReply* AcoustIdLookupTask::sendNetworkRequest(

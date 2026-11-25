@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QMap>
+#include <QNetworkRequest>
 #include <QSet>
 #include <QUrlQuery>
 #include <QUuid>
@@ -11,6 +12,11 @@
 #include "util/performancetimer.h"
 
 namespace mixxx {
+
+// The request that a MusicBrainz lookup sends for one recording. Public so
+// that the notice before the first online lookup can be checked against it.
+QNetworkRequest musicBrainzRecordingRequest(
+        const QUuid& recordingId);
 
 class MusicBrainzRecordingsTask : public network::WebTask {
     Q_OBJECT

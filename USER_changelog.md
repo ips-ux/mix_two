@@ -662,6 +662,16 @@ says where Consolidate puts a track in the library folder. The default is
 with no artist goes to the folder `Various-Uncategorized`. Consolidate keeps
 the file name. No menu starts Consolidate yet.
 
+### Online lookup of track tags
+
+Before the first online lookup of a track, Mix Two shows a notice. The notice
+lists the data that Mix Two sends. These are the audio fingerprint, the
+duration, the client key, the ID of each recording, and the name and version
+of Mix Two.
+Mix Two sends no data until you push **Accept**. Push **Cancel** to send
+nothing. Mix Two shows the notice again at the next lookup. After you push
+**Accept**, the notice does not show again.
+
 ### Track files on removable drives
 
 Mix Two does not move a track file to the trash when the file is on a removable

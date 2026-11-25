@@ -10,6 +10,7 @@
 #include "library/libraryprotection.h"
 #include "library/trackmodel.h"
 #include "moc_dlgtagfetcher.cpp"
+#include "musicbrainz/lookupnotice.h"
 #include "preferences/dialog/dlgpreflibrary.h"
 #include "track/track.h"
 #include "track/tracknumbers.h"
@@ -284,8 +285,26 @@ void DlgTagFetcher::loadTrack(const TrackPointer& pTrack) {
             &DlgTagFetcher::slotTrackChanged);
 
     loadCurrentTrackCover();
-    m_tagFetcher.startFetch(m_pTrack);
+    startLookup();
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// Every online request of this dialog starts here or at the cover art steps,
+// and all of them pass the check of the one-time notice. When the user
+// cancels the notice, no request leaves the computer.
+bool DlgTagFetcher::startLookup() {
+    if (!mixxx::musicbrainz::confirmOnlineLookup(m_pConfig, this)) {
+        loadingProgressBar->setVisible(false);
+        statusMessage->setText(
+                tr("No data was sent. Push Retry to see the notice again."));
+        statusMessage->setVisible(true);
+        btnRetry->setEnabled(true);
+        return false;
+    }
+    m_tagFetcher.startFetch(m_pTrack);
+    return true;
+}
+// End of AI-generated text.
 
 void DlgTagFetcher::loadTrack(const QModelIndex& index) {
     m_currentTrackIndex = index;
@@ -446,7 +465,7 @@ void DlgTagFetcher::retry() {
     checkBoxCover->setDisabled(true);
     loadingProgressBar->setValue(kMinimumValueOfQProgressBar);
     loadingProgressBar->setToolTip(QString());
-    m_tagFetcher.startFetch(m_pTrack);
+    startLookup();
 }
 
 void DlgTagFetcher::quit() {
@@ -603,6 +622,11 @@ void DlgTagFetcher::tagSelected() {
         return;
     }
 
+    // The notice must be accepted before any cover art request.
+    if (mixxx::musicbrainz::needsLookupNotice(m_pConfig)) {
+        return;
+    }
+
     statusMessage->setVisible(false);
 
     loadingProgressBar->setFormat(tr("Looking for cover art"));
@@ -689,6 +713,9 @@ void DlgTagFetcher::loadPixmapToLabel(const QPixmap& pixmap) {
 void DlgTagFetcher::getCoverArt(const QUuid& albumReleaseId, const QString& url) {
     loadingProgressBar->setFormat(tr("Cover art found, receiving image."));
     loadingProgressBar->setValue(kPercentForCoverArtImageTask);
+    if (mixxx::musicbrainz::needsLookupNotice(m_pConfig)) {
+        return;
+    }
     m_tagFetcher.startFetchCoverArtImage(albumReleaseId, url);
 }
 

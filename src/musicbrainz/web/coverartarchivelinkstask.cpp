@@ -28,7 +28,9 @@ network::JsonWebRequest lookupRequest() {
             QJsonDocument()};
 }
 
-QNetworkRequest createNetworkRequest(
+} // anonymous namespace
+
+QNetworkRequest coverArtArchiveReleaseRequest(
         const QUuid& releaseID) {
     DEBUG_ASSERT(kBaseUrl.isValid());
     DEBUG_ASSERT(!releaseID.isNull());
@@ -38,8 +40,6 @@ QNetworkRequest createNetworkRequest(
     QNetworkRequest networkRequest(url);
     return networkRequest;
 }
-
-} // anonymous namespace
 
 CoverArtArchiveLinksTask::CoverArtArchiveLinksTask(
         QNetworkAccessManager* pNetworkAccessManager,
@@ -64,7 +64,7 @@ QNetworkReply* CoverArtArchiveLinksTask::sendNetworkRequest(
     DEBUG_ASSERT(method == network::HttpRequestMethod::Get);
     pNetworkAccessManager->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
 
-    const QNetworkRequest networkRequest = createNetworkRequest(m_albumReleaseId);
+    const QNetworkRequest networkRequest = coverArtArchiveReleaseRequest(m_albumReleaseId);
 
     VERIFY_OR_DEBUG_ASSERT(url.isValid()) {
         kLogger.warning() << "Invalid URL" << url;

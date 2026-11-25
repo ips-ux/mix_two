@@ -1,12 +1,18 @@
 #pragma once
 
 #include <QList>
+#include <QNetworkRequest>
 #include <QString>
 #include <QUuid>
 
 #include "network/jsonwebtask.h"
 
 namespace mixxx {
+
+// The request that a cover art lookup sends for one release. Public so that
+// the notice before the first online lookup can be checked against it.
+QNetworkRequest coverArtArchiveReleaseRequest(
+        const QUuid& releaseID);
 
 class CoverArtArchiveLinksTask : public network::JsonWebTask {
     Q_OBJECT

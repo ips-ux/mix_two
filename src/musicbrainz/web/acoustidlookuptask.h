@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QUrlQuery>
 #include <QList>
 
 #include "network/jsonwebtask.h"
@@ -8,6 +9,12 @@
 class QUuid;
 
 namespace mixxx {
+
+// The query that an AcoustID lookup sends. Public so that the notice before
+// the first online lookup can be checked against the real request.
+QUrlQuery acoustIdLookupUrlQuery(
+        const QString& fingerprint,
+        int duration);
 
 class AcoustIdLookupTask : public network::JsonWebTask {
     Q_OBJECT
