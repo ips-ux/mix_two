@@ -59,6 +59,7 @@
 #include "util/clipboard.h"
 #include "util/db/dbconnectionpooled.h"
 #include "util/font.h"
+#include "util/linuxsystemcheck.h"
 #include "util/logger.h"
 #include "util/screensavermanager.h"
 #include "util/statsmanager.h"
@@ -127,6 +128,44 @@ bool isRekordboxRunning() {
     return false;
 #endif
 }
+
+#ifdef Q_OS_LINUX
+// AI-generated (Claude Code). Start of AI-generated text.
+/// On Linux: when a DDJ-800 is connected and the kernel is older than 6.4,
+/// shows one notice for each profile. The notice does not block the start:
+/// the window is not modal and the start goes on at once.
+void showOldKernelNoticeOnce(const UserSettingsPointer& pConfig) {
+    const ConfigKey shownKey(QStringLiteral("[Mixtwo]"), QStringLiteral("OldKernelNoticeShown"));
+    const bool alreadyShown = pConfig->getValue<bool>(shownKey, false);
+    if (alreadyShown) {
+        return;
+    }
+    const QString release = mixxx::currentKernelRelease();
+    const bool oldKernel = mixxx::kernelOlderThan(
+            release, mixxx::kDdj800KernelMajor, mixxx::kDdj800KernelMinor);
+    if (!oldKernel) {
+        return;
+    }
+    if (!mixxx::shouldShowNotice(mixxx::isDdj800Connected(), alreadyShown)) {
+        return;
+    }
+    pConfig->setValue(shownKey, true);
+    auto* pBox = new QMessageBox(QMessageBox::Information,
+            QObject::tr("Linux kernel is old"),
+            QObject::tr("The Linux kernel of this computer is %1. This is older "
+                        "than version %2.%3. The DDJ-800 can have audio problems "
+                        "with an old kernel. Update the Linux kernel to version "
+                        "%2.%3 or newer. This notice shows one time.")
+                    .arg(release)
+                    .arg(mixxx::kDdj800KernelMajor)
+                    .arg(mixxx::kDdj800KernelMinor),
+            QMessageBox::Ok);
+    pBox->setAttribute(Qt::WA_DeleteOnClose);
+    pBox->setWindowModality(Qt::NonModal);
+    pBox->show();
+}
+// End of AI-generated text.
+#endif // Q_OS_LINUX
 
 template<typename T>
 void clearHelper(std::shared_ptr<T>& ref_ptr, const char* name) {
@@ -585,6 +624,9 @@ void CoreServices::initialize(QApplication* pApp) {
     if (!qEnvironmentVariableIsSet("MIXXX_DISABLE_PORTAUDIO")) {
         askToCloseRekordbox();
     }
+#ifdef Q_OS_LINUX
+    showOldKernelNoticeOnce(pConfig);
+#endif
     // Although m_pSoundManager is created here, m_pSoundManager->setupDevices()
     // needs to be called after m_pPlayerManager registers sound IO for each EngineChannel.
     m_pSoundManager = std::make_shared<SoundManager>(pConfig, m_pEngine.get());

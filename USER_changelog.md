@@ -739,6 +739,16 @@ The deck keeps playing while Mix Two writes the file. When the file is ready,
 Mix Two adds it to the library. If an error occurs, a message shows and Mix
 Two leaves no half file.
 
+### Linux kernel notice for the DDJ-800
+
+On Linux, Mix Two checks the kernel version at the start. If a DDJ-800 is
+connected and the kernel is older than 6.4, a notice shows. The DDJ-800 can
+have audio problems with an old kernel. Update the Linux kernel to version
+6.4 or newer.
+
+The notice shows one time for each profile. It does not stop the start of Mix
+Two. Windows is not changed.
+
 ### Track files on removable drives
 
 Mix Two does not move a track file to the trash when the file is on a removable

@@ -1765,6 +1765,7 @@ add_library(
   src/util/rangelist.cpp
   src/util/readaheadsamplebuffer.cpp
   src/util/ringdelaybuffer.cpp
+  src/util/linuxsystemcheck.cpp
   src/util/removablevolume.cpp
   src/util/rotary.cpp
   src/util/runtimeloggingcategory.cpp
@@ -2051,6 +2052,7 @@ set(
   src/util/regex.h
   src/util/rescaler.h
   src/util/ringdelaybuffer.h
+  src/util/linuxsystemcheck.h
   src/util/removablevolume.h
   src/util/rotary.h
   src/util/runtimeloggingcategory.h
@@ -3060,6 +3062,7 @@ if(BUILD_TESTING)
     src/test/imageutils_test.cpp
     src/test/indexrange_test.cpp
     src/test/itunesxmlimportertest.cpp
+    src/test/linuxsystemcheck_test.cpp
     src/test/keyfactorytest.cpp
     src/test/keysync_test.cpp
     src/test/platter_test.cpp
