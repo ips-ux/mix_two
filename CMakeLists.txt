@@ -1866,6 +1866,7 @@ add_library(
   src/widget/weffectselector.cpp
   src/widget/wfindonwebmenu.cpp
   src/widget/whotcuebutton.cpp
+  src/widget/whotcuelist.cpp
   src/widget/wimagestore.cpp
   src/widget/wkey.cpp
   src/widget/wknob.cpp
@@ -1877,7 +1878,6 @@ add_library(
   src/widget/wlibrarytextbrowser.cpp
   src/widget/wloadprompt.cpp
   src/widget/wmainmenubar.cpp
-  src/widget/whotcuelist.cpp
   src/widget/wmemorycuelist.cpp
   src/widget/wmenucheckbox.cpp
   src/widget/wnumber.cpp

@@ -229,6 +229,14 @@ void WHotCueList::deleteHotCue(int row) {
     if (!pControl) {
         return;
     }
+    // With hidden pads the first clear of the engine only shows them and
+    // removes nothing. This list shows the cue, so show the pads first: one
+    // delete then removes the cue.
+    if (!m_loadControl) {
+        m_loadControl = std::make_unique<ControlProxy>(m_group, QStringLiteral("hotcues_load"), this);
+    }
+    m_loadControl->set(1.0);
+    m_loadControl->set(0.0);
     pControl->set(1.0);
     pControl->set(0.0);
 }

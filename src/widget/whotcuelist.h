@@ -87,6 +87,8 @@ class WHotCueList : public QTableWidget, public WBaseWidget {
     /// first used.
     std::vector<std::unique_ptr<ControlProxy>> m_gotoControls;
     std::vector<std::unique_ptr<ControlProxy>> m_clearControls;
+    /// hotcues_load, created when first used.
+    std::unique_ptr<ControlProxy> m_loadControl;
     /// True while the rows are rebuilt: item changes are not edits then.
     bool m_updating;
     /// True when cuesUpdated came while the comment editor was open.

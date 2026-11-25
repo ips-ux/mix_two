@@ -32,6 +32,15 @@ class HotCueListTest : public MixxxTest {
             m_clearControls.push_back(makeRecorder(
                     QStringLiteral("hotcue_%1_clear").arg(i), i, &m_cleared));
         }
+        m_loadControl = std::make_unique<ControlPushButton>(
+                ConfigKey(kGroup, QStringLiteral("hotcues_load")));
+        QObject::connect(m_loadControl.get(),
+                &ControlObject::valueChanged,
+                [this](double value) {
+                    if (value > 0) {
+                        m_events.push_back(QStringLiteral("load"));
+                    }
+                });
         m_pTrack = Track::newTemporary();
         m_pTrack->setAudioProperties(mixxx::audio::ChannelCount(2),
                 mixxx::audio::SampleRate(44100),
@@ -44,9 +53,12 @@ class HotCueListTest : public MixxxTest {
         auto pControl = std::make_unique<ControlPushButton>(ConfigKey(kGroup, item));
         QObject::connect(pControl.get(),
                 &ControlObject::valueChanged,
-                [number, pLog](double value) {
+                [this, item, number, pLog](double value) {
                     if (value > 0) {
                         pLog->push_back(number);
+                        if (item.endsWith(QStringLiteral("_clear"))) {
+                            m_events.push_back(QStringLiteral("clear%1").arg(number));
+                        }
                     }
                 });
         return pControl;
@@ -97,6 +109,9 @@ class HotCueListTest : public MixxxTest {
 
     std::vector<std::unique_ptr<ControlPushButton>> m_gotoControls;
     std::vector<std::unique_ptr<ControlPushButton>> m_clearControls;
+    std::unique_ptr<ControlPushButton> m_loadControl;
+    /// The writes of hotcues_load and of the clear controls, in order.
+    std::vector<QString> m_events;
     std::vector<int> m_gone;
     std::vector<int> m_cleared;
     TrackPointer m_pTrack;
@@ -182,6 +197,35 @@ TEST_F(HotCueListTest, DeleteClearsTheHotCueOfTheRow) {
     EXPECT_EQ((std::vector<int>{5}), m_cleared);
     // The deck does not go to the hot cue.
     EXPECT_TRUE(m_gone.empty());
+}
+
+TEST_F(HotCueListTest, DeleteShowsTheHiddenPadsBeforeTheClear) {
+    addHotCue(0, 5.0);
+    addHotCue(4, 20.0);
+    WHotCueList list(kGroup);
+    list.slotTrackLoaded(m_pTrack);
+
+    // With hidden pads the first clear of the engine only shows them, so
+    // hotcues_load must come first for one delete to remove the cue.
+    list.deleteHotCue(1);
+    EXPECT_EQ((std::vector<QString>{QStringLiteral("load"), QStringLiteral("clear5")}),
+            m_events);
+}
+
+TEST_F(HotCueListTest, CueChangeOfTheOldTrackIsIgnored) {
+    addHotCue(0, 5.0);
+    WHotCueList list(kGroup);
+    list.slotTrackLoaded(m_pTrack);
+    ASSERT_EQ(1, list.rowCount());
+
+    TrackPointer pOld = m_pTrack;
+    list.slotLoadingTrack(TrackPointer(), pOld);
+    ASSERT_EQ(0, list.rowCount());
+
+    // A cue change on the old track must not bring its rows back.
+    addHotCue(1, 10.0);
+    processEvents();
+    EXPECT_EQ(0, list.rowCount());
 }
 
 TEST_F(HotCueListTest, RightClickClearsTheClickedRow) {
