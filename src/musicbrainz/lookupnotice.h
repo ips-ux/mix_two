@@ -23,6 +23,9 @@ bool needsLookupNotice(const UserSettingsPointer& pConfig);
 // Remembers that the user accepted the notice.
 void acceptLookupNotice(const UserSettingsPointer& pConfig);
 
+// Withdraws the consent: the notice shows again at the next lookup.
+void withdrawLookupNotice(const UserSettingsPointer& pConfig);
+
 // The query items of the AcoustID request that the notice names as sent data.
 QStringList lookupNoticeNamedQueryKeys();
 

@@ -666,11 +666,15 @@ the file name. No menu starts Consolidate yet.
 
 Before the first online lookup of a track, Mix Two shows a notice. The notice
 lists the data that Mix Two sends. These are the audio fingerprint, the
-duration, the client key, the ID of each recording, and the name and version
-of Mix Two.
+duration, the client key and two fixed request options for AcoustID. For
+MusicBrainz, they are the ID of each recording and the program identifier. The
+program identifier is the program name as it is sent (Mixxx), the version and
+the web address. For Cover Art Archive, it is the ID of the release.
+
 Mix Two sends no data until you push **Accept**. Push **Cancel** to send
 nothing. Mix Two shows the notice again at the next lookup. After you push
-**Accept**, the notice does not show again.
+**Accept**, the notice does not show again. To see the notice again, go to
+Preferences > Library, then push **Show the online lookup notice again**.
 
 ### Click on the waveform for PLAY and CUE
 
@@ -684,7 +688,8 @@ These mouse actions change when the setting is on. A left mouse push no longer
 starts a scratch at once. The scratch starts when you drag the mouse more
 than 4 pixels. A right drag no longer bends the pitch. A right click on a hot
 cue marker of a stopped deck still opens the cue menu. The mouse wheel zoom
-does not change.
+does not change. Mix Two releases a held CUE when the waveform hides or the
+window loses focus.
 
 ### Track files on removable drives
 

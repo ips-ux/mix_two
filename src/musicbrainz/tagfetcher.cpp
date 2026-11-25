@@ -4,6 +4,7 @@
 #include <QtConcurrentRun>
 
 #include "moc_tagfetcher.cpp"
+#include "musicbrainz/lookupnotice.h"
 #include "musicbrainz/chromaprinter.h"
 #include "track/track.h"
 #include "util/thread_affinity.h"
@@ -24,15 +25,33 @@ constexpr int kCoverArtArchiveImageTimeoutMilis = 60000; // msec
 
 } // anonymous namespace
 
-TagFetcher::TagFetcher(QObject* parent)
+TagFetcher::TagFetcher(UserSettingsPointer pConfig, QObject* parent)
         : QObject(parent),
+          m_pConfig(std::move(pConfig)),
           m_fingerprintWatcher(this) {
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+bool TagFetcher::isLookupAllowed() const {
+    return !mixxx::musicbrainz::needsLookupNotice(m_pConfig);
+}
+// End of AI-generated text.
 
 void TagFetcher::startFetch(
         TrackPointer pTrack) {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
     terminate();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // No fingerprint and no request before the user accepts the notice.
+    if (!isLookupAllowed()) {
+        emit resultAvailable(
+                pTrack,
+                {},
+                tr("Mix Two sends no data until you accept the online lookup notice."));
+        return;
+    }
+    // End of AI-generated text.
 
     m_pTrack = pTrack;
 
@@ -120,6 +139,19 @@ void TagFetcher::slotFingerprintReady() {
                 tr("Reading track for fingerprinting failed."));
         return;
     }
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The user can withdraw the consent while the fingerprint runs.
+    if (!isLookupAllowed()) {
+        auto pTrack = std::move(m_pTrack);
+        terminate();
+        emit resultAvailable(
+                std::move(pTrack),
+                {},
+                tr("Mix Two sends no data until you accept the online lookup notice."));
+        return;
+    }
+    // End of AI-generated text.
 
     emit fetchProgress(tr("Identifying track through AcoustID"));
     DEBUG_ASSERT(!m_pAcoustIdTask);
@@ -321,6 +353,13 @@ void TagFetcher::startFetchCoverArtLinks(
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
     terminate();
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (!isLookupAllowed()) {
+        emit coverArtLinkNotFound();
+        return;
+    }
+    // End of AI-generated text.
+
     m_pCoverArtArchiveLinksTask = make_parented<mixxx::CoverArtArchiveLinksTask>(
             &m_network,
             std::move(albumReleaseId),
@@ -409,6 +448,11 @@ void TagFetcher::slotCoverArtArchiveLinksTaskSucceeded(const QUuid& albumRelease
 
 void TagFetcher::startFetchCoverArtImage(const QUuid& albumReleaseId,
         const QString& coverArtUrl) {
+    // AI-generated (Claude Code). Start of AI-generated text.
+    if (!isLookupAllowed()) {
+        return;
+    }
+    // End of AI-generated text.
     m_pCoverArtArchiveImageTask = make_parented<mixxx::CoverArtArchiveImageTask>(
             &m_network,
             coverArtUrl,

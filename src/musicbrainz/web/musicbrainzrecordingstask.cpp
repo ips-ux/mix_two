@@ -28,16 +28,6 @@ const QByteArray kUserAgentRawHeaderKey = "User-Agent";
 // See: <https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting>
 constexpr Duration kMinDurationBetweenRequests = Duration::fromMillis(1000);
 
-QString userAgentRawHeaderValue() {
-    return VersionStore::applicationName() +
-            QStringLiteral("/") +
-            VersionStore::version() +
-            QStringLiteral(" ( ") +
-            // QStringLiteral(MIXXX_WEBSITE_URL) fails to compile on Fedora 36 with GCC 12.0.x
-            MIXXX_WEBSITE_URL +
-            QStringLiteral(" )");
-}
-
 QUrlQuery createUrlQuery() {
     typedef QPair<QString, QString> Param;
     QList<Param> params;
@@ -49,6 +39,16 @@ QUrlQuery createUrlQuery() {
 }
 
 } // anonymous namespace
+
+QString musicBrainzUserAgent() {
+    return VersionStore::applicationName() +
+            QStringLiteral("/") +
+            VersionStore::version() +
+            QStringLiteral(" ( ") +
+            // QStringLiteral(MIXXX_WEBSITE_URL) fails to compile on Fedora 36 with GCC 12.0.x
+            MIXXX_WEBSITE_URL +
+            QStringLiteral(" )");
+}
 
 QNetworkRequest musicBrainzRecordingRequest(
         const QUuid& recordingId) {
@@ -63,7 +63,7 @@ QNetworkRequest musicBrainzRecordingRequest(
     // HTTP request headers must be latin1.
     networkRequest.setRawHeader(
             kUserAgentRawHeaderKey,
-            userAgentRawHeaderValue().toLatin1());
+            musicBrainzUserAgent().toLatin1());
     return networkRequest;
 }
 

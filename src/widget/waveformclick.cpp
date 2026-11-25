@@ -31,6 +31,16 @@ Action actionForButton(Qt::MouseButton button) {
     }
 }
 
+bool mustReleaseCueNow(bool cueHeld, CueReleaseEvent event, bool settingOn) {
+    if (!cueHeld) {
+        return false;
+    }
+    if (event == CueReleaseEvent::Moved) {
+        return !settingOn;
+    }
+    return true;
+}
+
 } // namespace waveformclick
 
 // End of AI-generated text.

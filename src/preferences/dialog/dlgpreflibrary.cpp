@@ -24,6 +24,7 @@
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "moc_dlgpreflibrary.cpp"
+#include "musicbrainz/lookupnotice.h"
 #include "util/desktophelper.h"
 #include "library/libraryprotection.h"
 #include "widget/holdtomenu.h"
@@ -158,6 +159,14 @@ DlgPrefLibrary::DlgPrefLibrary(
             &QAbstractButton::clicked,
             this,
             &DlgPrefLibrary::slotResetPlayedClicked);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    connect(pushButton_reset_lookup_notice,
+            &QAbstractButton::clicked,
+            this,
+            [this]() {
+                mixxx::musicbrainz::withdrawLookupNotice(m_pConfig);
+            });
+    // End of AI-generated text.
 
     // TODO(XXX) this string should be extracted from the soundsources
     QString builtInFormatsStr = "Ogg Vorbis, FLAC, WAVE, AIFF";
@@ -334,6 +343,7 @@ void DlgPrefLibrary::slotResetToDefaults() {
     checkBox_reset_played_on_exit->setChecked(kResetPlayedOnExitDefault);
     lineEdit_consolidate_folder_pattern->setText(mixxx::library::defaultFolderPattern());
     setAutoRelocateFolders({});
+    mixxx::musicbrainz::withdrawLookupNotice(m_pConfig);
     // End of AI-generated text.
 
     checkBox_show_rhythmbox->setChecked(true);

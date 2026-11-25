@@ -148,7 +148,7 @@ DlgTagFetcher::DlgTagFetcher(UserSettingsPointer pConfig, const TrackModel* pTra
         : QDialog(nullptr),
           m_pConfig(pConfig),
           m_pTrackModel(pTrackModel),
-          m_tagFetcher(this),
+          m_tagFetcher(pConfig, this),
           m_isCoverArtCopyWorkerRunning(false),
           m_pWCurrentCoverArtLabel(make_parented<WCoverArtLabel>(this)),
           m_pWFetchedCoverArtLabel(make_parented<WCoverArtLabel>(this)) {
@@ -296,11 +296,14 @@ bool DlgTagFetcher::startLookup() {
     if (!mixxx::musicbrainz::confirmOnlineLookup(m_pConfig, this)) {
         loadingProgressBar->setVisible(false);
         statusMessage->setText(
-                tr("No data was sent. Push Retry to see the notice again."));
+                tr("Mix Two sends no data. Push Retry to see the notice again."));
         statusMessage->setVisible(true);
         btnRetry->setEnabled(true);
         return false;
     }
+    // After a cancel and a retry, show the progress again and hide the old line.
+    statusMessage->setVisible(false);
+    loadingProgressBar->setVisible(true);
     m_tagFetcher.startFetch(m_pTrack);
     return true;
 }
@@ -622,10 +625,13 @@ void DlgTagFetcher::tagSelected() {
         return;
     }
 
-    // The notice must be accepted before any cover art request.
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The notice must be accepted before any cover art request. TagFetcher
+    // enforces this too; this return only keeps the progress bar still.
     if (mixxx::musicbrainz::needsLookupNotice(m_pConfig)) {
         return;
     }
+    // End of AI-generated text.
 
     statusMessage->setVisible(false);
 
@@ -713,9 +719,11 @@ void DlgTagFetcher::loadPixmapToLabel(const QPixmap& pixmap) {
 void DlgTagFetcher::getCoverArt(const QUuid& albumReleaseId, const QString& url) {
     loadingProgressBar->setFormat(tr("Cover art found, receiving image."));
     loadingProgressBar->setValue(kPercentForCoverArtImageTask);
+    // AI-generated (Claude Code). Start of AI-generated text.
     if (mixxx::musicbrainz::needsLookupNotice(m_pConfig)) {
         return;
     }
+    // End of AI-generated text.
     m_tagFetcher.startFetchCoverArtImage(albumReleaseId, url);
 }
 

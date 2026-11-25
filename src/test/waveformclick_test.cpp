@@ -53,4 +53,35 @@ TEST_F(WaveformClickTest, ButtonsMapToControls) {
             waveformclick::actionForButton(Qt::NoButton));
 }
 
+TEST_F(WaveformClickTest, HeldCueGoesUpOnEveryLossEvent) {
+    using E = waveformclick::CueReleaseEvent;
+    for (E e : {E::RightButtonReleased,
+                 E::Hidden,
+                 E::Destroyed,
+                 E::WindowDeactivated,
+                 E::MouseGrabLost}) {
+        EXPECT_TRUE(waveformclick::mustReleaseCueNow(true, e, true));
+        EXPECT_TRUE(waveformclick::mustReleaseCueNow(true, e, false));
+    }
+}
+
+TEST_F(WaveformClickTest, HeldCueGoesUpWhenSettingSwitchedOff) {
+    using E = waveformclick::CueReleaseEvent;
+    EXPECT_TRUE(waveformclick::mustReleaseCueNow(true, E::Moved, false));
+    EXPECT_FALSE(waveformclick::mustReleaseCueNow(true, E::Moved, true));
+}
+
+TEST_F(WaveformClickTest, NoHeldCueNeedsNoRelease) {
+    using E = waveformclick::CueReleaseEvent;
+    for (E e : {E::RightButtonReleased,
+                 E::Hidden,
+                 E::Destroyed,
+                 E::WindowDeactivated,
+                 E::MouseGrabLost,
+                 E::Moved}) {
+        EXPECT_FALSE(waveformclick::mustReleaseCueNow(false, e, false));
+        EXPECT_FALSE(waveformclick::mustReleaseCueNow(false, e, true));
+    }
+}
+
 // End of AI-generated text.

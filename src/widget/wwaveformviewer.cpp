@@ -46,6 +46,7 @@ WWaveformViewer::WWaveformViewer(
 }
 
 WWaveformViewer::~WWaveformViewer() {
+    releaseHeldCue(waveformclick::CueReleaseEvent::Destroyed);
     //qDebug() << "~WWaveformViewer";
 }
 
@@ -66,6 +67,44 @@ void WWaveformViewer::resizeEvent(QResizeEvent* event) {
         m_waveformWidget->resize(width(), height());
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// A held CUE button must never stay down: if the release cannot reach this
+// widget, the CUE goes up here.
+void WWaveformViewer::releaseHeldCue(waveformclick::CueReleaseEvent releaseEvent) {
+    if (!m_bCueHeld) {
+        return;
+    }
+    if (waveformclick::mustReleaseCueNow(
+                m_bCueHeld,
+                releaseEvent,
+                waveformclick::isClickPlayCueEnabled(m_pConfig))) {
+        m_bCueHeld = false;
+        m_pCueDefault->set(0.0);
+    }
+}
+
+void WWaveformViewer::hideEvent(QHideEvent* event) {
+    m_bClickPending = false;
+    releaseHeldCue(waveformclick::CueReleaseEvent::Hidden);
+    WWidget::hideEvent(event);
+}
+
+bool WWaveformViewer::event(QEvent* pEvent) {
+    switch (pEvent->type()) {
+    case QEvent::WindowDeactivate:
+        m_bClickPending = false;
+        releaseHeldCue(waveformclick::CueReleaseEvent::WindowDeactivated);
+        break;
+    case QEvent::UngrabMouse:
+        releaseHeldCue(waveformclick::CueReleaseEvent::MouseGrabLost);
+        break;
+    default:
+        break;
+    }
+    return WWidget::event(pEvent);
+}
+// End of AI-generated text.
 
 void WWaveformViewer::showEvent(QShowEvent* event) {
     Q_UNUSED(event);
@@ -177,6 +216,8 @@ void WWaveformViewer::mouseMoveEvent(QMouseEvent* event) {
     }
 
     // AI-generated (Claude Code). Start of AI-generated text.
+    // The setting may have been switched off during a hold.
+    releaseHeldCue(waveformclick::CueReleaseEvent::Moved);
     // Click mode: a left press becomes a scratch when the mouse moves beyond
     // the click distance. The scratch starts at the press position.
     if (m_bClickPending && waveformclick::isDrag(m_mouseAnchor, event->pos())) {
@@ -246,9 +287,8 @@ void WWaveformViewer::mouseReleaseEvent(QMouseEvent* event) {
             m_pPlayEnabled->set(isPlaying() ? 0.0 : 1.0);
         }
     }
-    if (m_bCueHeld && event->button() == Qt::RightButton) {
-        m_bCueHeld = false;
-        m_pCueDefault->set(0.0);
+    if (event->button() == Qt::RightButton) {
+        releaseHeldCue(waveformclick::CueReleaseEvent::RightButtonReleased);
     }
     // End of AI-generated text.
     if (m_bScratching) {

@@ -40,6 +40,21 @@ enum class Action {
 // Which control a mouse button drives when the preference is on.
 Action actionForButton(Qt::MouseButton button);
 
+// Events after which a held CUE button must go up.
+enum class CueReleaseEvent {
+    RightButtonReleased,
+    Hidden,
+    Destroyed,
+    WindowDeactivated,
+    MouseGrabLost,
+    // The mouse moved while the button is held: the setting may have changed.
+    Moved,
+};
+
+// True when a held CUE must go up now. Without a held CUE, it is false. A
+// moved mouse releases the CUE only when the setting is off.
+bool mustReleaseCueNow(bool cueHeld, CueReleaseEvent event, bool settingOn);
+
 } // namespace waveformclick
 
 // End of AI-generated text.

@@ -78,8 +78,10 @@ class DlgTagFetcher : public QDialog, public Ui::DlgTagFetcher {
     // Called on population or changed via buttons Next&Prev.
     void loadTrackInternal(const TrackPointer& pTrack);
     void getCoverArt(const QUuid& albumReleaseId, const QString& url);
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Starts the lookup when the user has accepted the notice.
     bool startLookup();
+    // End of AI-generated text.
     void loadCurrentTrackCover();
 
     void saveCheckBoxState();

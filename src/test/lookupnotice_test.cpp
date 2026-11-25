@@ -3,10 +3,13 @@
 
 #include <gtest/gtest.h>
 
+#include <QRegularExpression>
 #include <QSet>
+#include <QSignalSpy>
 #include <QUrlQuery>
 #include <QUuid>
 
+#include "musicbrainz/tagfetcher.h"
 #include "musicbrainz/web/acoustidlookuptask.h"
 #include "musicbrainz/web/coverartarchivelinkstask.h"
 #include "musicbrainz/web/musicbrainzrecordingstask.h"
@@ -113,6 +116,65 @@ TEST_F(LookupNoticeTest, NoticeNamesTheHostsAndFields) {
     EXPECT_TRUE(text.contains(QStringLiteral("fingerprint")));
     EXPECT_TRUE(text.contains(QStringLiteral("duration")));
     EXPECT_TRUE(text.contains(QStringLiteral("client key")));
+}
+
+TEST_F(LookupNoticeTest, NoticeNamesTheRealUserAgent) {
+    const QUuid id = QUuid::fromString(
+            QLatin1String("416a273e-51b8-4b1c-8873-4c9b4ed54a0f"));
+    const QNetworkRequest mb = mixxx::musicBrainzRecordingRequest(id);
+    const QByteArray sent = mb.rawHeader("User-Agent");
+    ASSERT_FALSE(sent.isEmpty());
+    EXPECT_EQ(mixxx::musicBrainzUserAgent().toLatin1(), sent);
+    // The notice holds the header value exactly as the request sends it.
+    EXPECT_TRUE(lookupNoticeText().contains(QString::fromLatin1(sent)));
+}
+
+TEST_F(LookupNoticeTest, NoSentenceIsLongerThan25Words) {
+    const QStringList sentences = lookupNoticeText().split(
+            QRegularExpression(QStringLiteral("(?<=[.!?:])\\s+")),
+            Qt::SkipEmptyParts);
+    EXPECT_GT(sentences.size(), 5);
+    for (const QString& sentence : sentences) {
+        const int words = sentence.split(QRegularExpression(QStringLiteral("\\s+")),
+                                          Qt::SkipEmptyParts)
+                                  .size();
+        EXPECT_LE(words, 25) << sentence.toStdString();
+    }
+}
+
+TEST_F(LookupNoticeTest, WithdrawBringsTheNoticeBack) {
+    acceptLookupNotice(config());
+    ASSERT_FALSE(needsLookupNotice(config()));
+    withdrawLookupNotice(config());
+    EXPECT_TRUE(needsLookupNotice(config()));
+}
+
+// A caller of TagFetcher cannot skip the notice: without consent the fetcher
+// sends no request and starts no fingerprint.
+TEST_F(LookupNoticeTest, TagFetcherRefusesWithoutConsent) {
+    TagFetcher fetcher(config());
+    EXPECT_FALSE(fetcher.isLookupAllowed());
+    QSignalSpy result(&fetcher, &TagFetcher::resultAvailable);
+    QSignalSpy progress(&fetcher, &TagFetcher::fetchProgress);
+    QSignalSpy noCover(&fetcher, &TagFetcher::coverArtLinkNotFound);
+    fetcher.startFetch(TrackPointer());
+    EXPECT_EQ(1, result.count());
+    EXPECT_EQ(0, progress.count());
+    fetcher.startFetchCoverArtLinks(QUuid::createUuid());
+    EXPECT_EQ(1, noCover.count());
+    fetcher.startFetchCoverArtImage(QUuid::createUuid(),
+            QStringLiteral("https://example.invalid/a.jpg"));
+}
+
+TEST_F(LookupNoticeTest, TagFetcherWithoutConfigRefuses) {
+    TagFetcher fetcher((UserSettingsPointer()));
+    EXPECT_FALSE(fetcher.isLookupAllowed());
+}
+
+TEST_F(LookupNoticeTest, TagFetcherAllowedAfterAccept) {
+    acceptLookupNotice(config());
+    TagFetcher fetcher(config());
+    EXPECT_TRUE(fetcher.isLookupAllowed());
 }
 
 // End of AI-generated text.

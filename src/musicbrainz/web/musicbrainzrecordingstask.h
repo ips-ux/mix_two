@@ -4,6 +4,7 @@
 #include <QMap>
 #include <QNetworkRequest>
 #include <QSet>
+#include <QString>
 #include <QUrlQuery>
 #include <QUuid>
 
@@ -15,6 +16,10 @@ namespace mixxx {
 
 // The request that a MusicBrainz lookup sends for one recording. Public so
 // that the notice before the first online lookup can be checked against it.
+// The value of the User-Agent header of that request: the program name, the
+// version and the web address.
+QString musicBrainzUserAgent();
+
 QNetworkRequest musicBrainzRecordingRequest(
         const QUuid& recordingId);
 

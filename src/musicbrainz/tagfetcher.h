@@ -7,6 +7,7 @@
 #include "musicbrainz/web/coverartarchiveimagetask.h"
 #include "musicbrainz/web/coverartarchivelinkstask.h"
 #include "musicbrainz/web/musicbrainzrecordingstask.h"
+#include "preferences/usersettings.h"
 #include "track/track_decl.h"
 #include "util/parented_ptr.h"
 
@@ -19,7 +20,12 @@ class TagFetcher : public QObject {
     //   3. MusicBrainz -> MusicBrainz track releases
 
   public:
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The fetcher sends no request before the user accepts the notice of the
+    // online lookup. Without the configuration it never sends one.
+    // End of AI-generated text.
     explicit TagFetcher(
+            UserSettingsPointer pConfig,
             QObject* parent = nullptr);
     ~TagFetcher() override = default;
 
@@ -40,6 +46,9 @@ class TagFetcher : public QObject {
     // If user presses apply, cover art downloaded and applied to the song.
     void startFetchCoverArtImage(const QUuid& albumReleaseId,
             const QString& coverArtUrl);
+
+    // True when the user accepted the notice, so that requests may go out.
+    bool isLookupAllowed() const;
 
   public slots:
     void cancel();
@@ -114,6 +123,8 @@ class TagFetcher : public QObject {
 
   private:
     void terminate();
+
+    UserSettingsPointer m_pConfig;
 
     QNetworkAccessManager m_network;
 

@@ -2,9 +2,12 @@
 #include "musicbrainz/lookupnotice.h"
 
 #include <QCoreApplication>
+#include <QObject>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QWidget>
+
+#include "musicbrainz/web/musicbrainzrecordingstask.h"
 
 namespace mixxx {
 namespace musicbrainz {
@@ -15,8 +18,12 @@ const ConfigKey kNoticeAcceptedKey(
         QStringLiteral("[Library]"),
         QStringLiteral("OnlineLookupNoticeAccepted"));
 
+// A class with tr() so that the translation tools find the strings.
+struct LookupNoticeTr {
+    Q_DECLARE_TR_FUNCTIONS(LookupNotice)
+};
 QString tr(const char* text) {
-    return QCoreApplication::translate("mixxx::musicbrainz::LookupNotice", text);
+    return LookupNoticeTr::tr(text);
 }
 
 } // namespace
@@ -31,6 +38,12 @@ bool needsLookupNotice(const UserSettingsPointer& pConfig) {
 void acceptLookupNotice(const UserSettingsPointer& pConfig) {
     if (pConfig) {
         pConfig->setValue(kNoticeAcceptedKey, true);
+    }
+}
+
+void withdrawLookupNotice(const UserSettingsPointer& pConfig) {
+    if (pConfig) {
+        pConfig->setValue(kNoticeAcceptedKey, false);
     }
 }
 
@@ -49,26 +62,34 @@ QStringList lookupNoticeOptionQueryKeys() {
 }
 
 QString lookupNoticeText() {
+    const QString para = QStringLiteral("\n\n");
     return tr("Mix Two can find tag data for a track on the Internet. "
-              "For this, Mix Two sends data to these services:") +
-            QStringLiteral("\n\n") +
-            tr("AcoustID (api.acoustid.org): the audio fingerprint of the "
-               "track, the duration of the track in seconds, the client key of "
-               "Mix Two, and two fixed request options (answer format and kind "
-               "of data). The fingerprint is a short code that Mix Two "
-               "calculates from the audio. The audio file does not leave your "
-               "computer.") +
-            QStringLiteral("\n\n") +
-            tr("MusicBrainz (musicbrainz.org): the ID of each recording that "
-               "AcoustID returns, and the name and version of Mix Two.") +
-            QStringLiteral("\n\n") +
-            tr("Cover Art Archive (coverartarchive.org): the ID of the release "
-               "that you select, when you ask for cover art. Mix Two then "
-               "downloads the image from the address that the service gives.") +
-            QStringLiteral("\n\n") +
+              "For this, Mix Two sends data to these services.") +
+            para +
+            tr("AcoustID (api.acoustid.org) gets the audio fingerprint of the "
+               "track. It also gets the duration of the track in seconds and "
+               "the client key of Mix Two. It gets two fixed request options: "
+               "the answer format and the kind of data.") +
+            QStringLiteral(" ") +
+            tr("The fingerprint is a short code that Mix Two calculates from "
+               "the audio. The audio file does not leave your computer.") +
+            para +
+            tr("MusicBrainz (musicbrainz.org) gets the ID of each recording "
+               "that AcoustID returns. It also gets one fixed request option "
+               "and the program identifier.") +
+            QStringLiteral(" ") +
+            tr("The program identifier is \"%1\". It holds the program name, "
+               "the version and the web address.")
+                    .arg(mixxx::musicBrainzUserAgent()) +
+            para +
+            tr("Cover Art Archive (coverartarchive.org) gets the ID of the "
+               "release that you select, when you ask for cover art. Mix Two "
+               "then downloads the image from the address that the service "
+               "gives.") +
+            para +
             tr("Each service also sees the Internet address of your computer. "
                "Mix Two does not send file names, tags or other library data.") +
-            QStringLiteral("\n\n") +
+            para +
             tr("Push Accept to allow online lookups. Push Cancel to send "
                "nothing. Mix Two shows this notice again at the next lookup.");
 }

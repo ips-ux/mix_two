@@ -429,6 +429,17 @@
        </widget>
       </item>
 
+      <item row="18" column="0" colspan="4">
+       <widget class="QPushButton" name="pushButton_reset_lookup_notice">
+        <property name="toolTip">
+         <string>Withdraw your consent to the online lookup of track tags. Mix Two shows the notice again at the next lookup.</string>
+        </property>
+        <property name="text">
+         <string>Show the online lookup notice again</string>
+        </property>
+       </widget>
+      </item>
+
      </layout>
     </widget>
    </item><!-- Track Table View -->

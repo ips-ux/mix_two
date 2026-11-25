@@ -3,6 +3,7 @@
 #include "track/track_decl.h"
 #include "util/parented_ptr.h"
 #include "waveform/renderers/waveformmark.h"
+#include "widget/waveformclick.h"
 #include "widget/trackdroptarget.h"
 #include "widget/wwidget.h"
 
@@ -51,6 +52,8 @@ class WWaveformViewer : public WWidget, public TrackDropTarget {
 
   protected:
     void showEvent(QShowEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
+    bool event(QEvent* pEvent) override;
     void resizeEvent(QResizeEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
 
@@ -80,8 +83,10 @@ class WWaveformViewer : public WWidget, public TrackDropTarget {
     parented_ptr<ControlProxy> m_pPassthroughEnabled;
     bool m_bScratching;
     bool m_bBending;
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Click on the waveform for PLAY and CUE: a left press waits for the
     // release or a drag, a right press holds the CUE button.
+    // End of AI-generated text.
     bool m_bClickPending = false;
     bool m_bCueHeld = false;
     QPoint m_mouseAnchor;
@@ -98,4 +103,7 @@ class WWaveformViewer : public WWidget, public TrackDropTarget {
     void highlightMark(WaveformMarkPointer pMark);
     void unhighlightMark(WaveformMarkPointer pMark);
     bool isPlaying() const;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void releaseHeldCue(waveformclick::CueReleaseEvent releaseEvent);
+    // End of AI-generated text.
 };

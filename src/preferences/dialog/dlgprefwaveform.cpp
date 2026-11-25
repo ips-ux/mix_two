@@ -534,7 +534,9 @@ void DlgPrefWaveform::slotResetToDefaults() {
 
     synchronizeZoomCheckBox->setChecked(true);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
     // Click on the waveform for PLAY and CUE is off.
+    // End of AI-generated text.
     clickPlayCueCheckBox->setChecked(false);
 
     // RGB overview.
