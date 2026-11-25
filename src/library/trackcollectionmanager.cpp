@@ -2,6 +2,7 @@
 
 #include <QDirIterator>
 #include <QFileInfo>
+#include <QSqlQuery>
 #include <algorithm>
 #include <utility>
 
@@ -341,8 +342,17 @@ ExportTrackMetadataResult TrackCollectionManager::exportTrackMetadataBeforeSavin
     // a timestamp is used to keep track of when metadata has been
     // last synchronized. Exporting metadata will update this time
     // stamp on the track object!
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The first save with changes of a track that an import added never
+    // exports the tags (see m_importedUnsaved).
+    bool firstSaveAfterImport = false;
+    if (pTrack->isDirty()) {
+        std::lock_guard lock(m_importedUnsavedMutex);
+        firstSaveAfterImport = m_importedUnsaved.remove(pTrack->getLocation());
+    }
+    // End of AI-generated text.
     if (pTrack->isMarkedForMetadataExport() ||
-            (pTrack->isDirty() &&
+            (!firstSaveAfterImport && pTrack->isDirty() &&
                     m_pConfig &&
                     m_pConfig->getValueString(
                                      kSyncTrackMetadataConfigKey)
@@ -567,26 +577,104 @@ QStringList soundFilesInFolder(const QString& folder) {
     return files;
 }
 
-QList<QStringList> splitImportList(const QStringList& files, int chunkSize) {
-    QList<QStringList> chunks;
-    const int size = std::max(1, chunkSize);
-    for (int pos = 0; pos < files.size(); pos += size) {
-        chunks.append(files.mid(pos, size));
+QString canonicalImportPath(const QString& path) {
+    const QFileInfo fileInfo(path);
+    const QString canonical = fileInfo.canonicalFilePath();
+    return canonical.isEmpty() ? fileInfo.absoluteFilePath() : canonical;
+}
+
+bool isSameImportPath(const QString& a, const QString& b) {
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+    return a.compare(b, Qt::CaseInsensitive) == 0;
+#else
+    return a == b;
+#endif
+}
+
+void ImportIndex::add(const QString& location, TrackId trackId, bool hidden) {
+    m_entriesByName[QFileInfo(location).fileName().toLower()].append(
+            Entry{location, trackId, hidden});
+}
+
+ImportIndex::Entry* ImportIndex::find(const QString& location) {
+    const QString resolved = m_resolver(location);
+    // The name of a link can differ from the name of its target.
+    const QStringList names = {
+            QFileInfo(location).fileName().toLower(),
+            QFileInfo(resolved).fileName().toLower()};
+    for (const QString& name : names) {
+        const auto it = m_entriesByName.find(name);
+        if (it == m_entriesByName.end()) {
+            continue;
+        }
+        for (Entry& entry : it.value()) {
+            if (isSameImportPath(entry.location, location) ||
+                    isSameImportPath(m_resolver(entry.location), resolved)) {
+                return &entry;
+            }
+        }
     }
-    return chunks;
+    return nullptr;
 }
 
 } // namespace mixxx::library
 
-mixxx::library::ImportFilesResult TrackCollectionManager::importFiles(
-        const QStringList& locations) const {
+mixxx::library::ImportIndex TrackCollectionManager::makeImportIndex(
+        mixxx::library::ImportIndex::PathResolver resolver) const {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+    mixxx::library::ImportIndex index(std::move(resolver));
+    QSqlQuery query(m_pInternalCollection->database());
+    if (!query.exec(QStringLiteral(
+                "SELECT track_locations.location, library.id, library.mixxx_deleted "
+                "FROM library INNER JOIN track_locations "
+                "ON library.location = track_locations.id"))) {
+        kLogger.warning() << "Cannot read the track locations for an import";
+        return index;
+    }
+    while (query.next()) {
+        index.add(query.value(0).toString(), TrackId(query.value(1)), query.value(2).toBool());
+    }
+    return index;
+}
+
+mixxx::library::ImportFilesResult TrackCollectionManager::importFiles(
+        const QStringList& locations,
+        mixxx::library::ImportIndex* pIndex,
+        std::optional<std::chrono::milliseconds> budget,
+        int* pProcessed) const {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+    std::optional<mixxx::library::ImportIndex> ownIndex;
+    if (!pIndex) {
+        ownIndex.emplace(makeImportIndex());
+        pIndex = &*ownIndex;
+    }
+    const auto start = std::chrono::steady_clock::now();
+    int processed = 0;
     mixxx::library::ImportFilesResult result;
     for (const QString& location : locations) {
+        if (budget && processed > 0 &&
+                std::chrono::steady_clock::now() - start >= *budget) {
+            break;
+        }
+        ++processed;
         const QFileInfo fileInfo(location);
         if (!fileInfo.isFile() ||
                 !SoundSourceProxy::isFileSupported(mixxx::FileInfo(fileInfo))) {
             ++result.skipped;
+            continue;
+        }
+        if (auto* pEntry = pIndex->find(location)) {
+            if (pEntry->hidden) {
+                // Keep the data of the track and show it again.
+                if (unhideTracks({pEntry->trackId})) {
+                    pEntry->hidden = false;
+                    ++result.shownAgain;
+                } else {
+                    ++result.skipped;
+                }
+            } else {
+                ++result.alreadyInLibrary;
+            }
             continue;
         }
         bool alreadyInLibrary = false;
@@ -594,11 +682,19 @@ mixxx::library::ImportFilesResult TrackCollectionManager::importFiles(
                 getOrAddTrack(TrackRef::fromFilePath(location), &alreadyInLibrary);
         if (!pTrack) {
             ++result.skipped;
-        } else if (alreadyInLibrary) {
+            continue;
+        }
+        pIndex->add(location, pTrack->getId(), false);
+        if (alreadyInLibrary) {
             ++result.alreadyInLibrary;
         } else {
             ++result.added;
+            std::lock_guard lock(m_importedUnsavedMutex);
+            m_importedUnsaved.insert(pTrack->getLocation());
         }
+    }
+    if (pProcessed) {
+        *pProcessed = processed;
     }
     return result;
 }

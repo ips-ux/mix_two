@@ -237,11 +237,15 @@ void MixxxMainWindow::initialize() {
     connect(m_pCoreServices->getLibrary().get(),
             &Library::importFinished,
             this,
-            [this](int added, int alreadyInLibrary, int skipped) {
+            [this](int added, int alreadyInLibrary, int shownAgain, int skipped) {
                 QString text = tr("Tracks added to the library: %1.").arg(added);
                 if (alreadyInLibrary > 0) {
                     text += QLatin1Char('\n') +
                             tr("Tracks that the library already had: %1.").arg(alreadyInLibrary);
+                }
+                if (shownAgain > 0) {
+                    text += QLatin1Char('\n') +
+                            tr("Tracks shown again: %1.").arg(shownAgain);
                 }
                 if (skipped > 0) {
                     text += QLatin1Char('\n') +

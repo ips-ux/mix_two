@@ -9,10 +9,12 @@
 #include <QSqlQuery>
 #include <QTemporaryDir>
 
+#include "library/library_prefs.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "test/librarytest.h"
 #include "track/globaltrackcache.h"
+#include "track/track.h"
 
 namespace {
 
@@ -137,18 +139,111 @@ TEST_F(ImportFilesTest, FolderListOfMissingFolderIsEmpty) {
     EXPECT_TRUE(mixxx::library::soundFilesInFolder(m_dir.filePath("nothing")).isEmpty());
 }
 
-TEST_F(ImportFilesTest, ChunkedImportGivesTheSameResultAsOneCall) {
+TEST_F(ImportFilesTest, ImportWithTimeBudgetHandlesFilesOneStepAtATime) {
     QStringList files;
     for (int i = 0; i < 5; ++i) {
         files << makeSoundFile(QStringLiteral("t%1.mp3").arg(i), i % 2 ? kSound1 : kSound2);
     }
+    auto index = trackCollectionManager()->makeImportIndex();
     mixxx::library::ImportFilesResult total;
+    int pos = 0;
     int steps = 0;
-    for (const QStringList& chunk : mixxx::library::splitImportList(files, 2)) {
-        total += trackCollectionManager()->importFiles(chunk);
+    while (pos < files.size()) {
+        int processed = 0;
+        // A budget of zero still handles one file, so a step always advances.
+        total += trackCollectionManager()->importFiles(
+                files.mid(pos), &index, std::chrono::milliseconds(0), &processed);
+        ASSERT_EQ(1, processed);
+        pos += processed;
         ++steps;
     }
-    EXPECT_EQ(3, steps);
-    EXPECT_EQ(5, total.added + total.alreadyInLibrary);
+    EXPECT_EQ(5, steps);
+    EXPECT_EQ(5, total.added);
+    EXPECT_EQ(0, total.alreadyInLibrary);
+}
+
+TEST_F(ImportFilesTest, HiddenTrackIsShownAgainWithItsData) {
+    const QString a = makeSoundFile("a.mp3", kSound1);
+    ASSERT_EQ(1, trackCollectionManager()->importFiles({a}).added);
+    const QList<TrackId> ids = trackCollectionManager()->resolveTrackIdsFromLocations({a});
+    ASSERT_EQ(1, ids.size());
+    ASSERT_TRUE(trackCollectionManager()->hideTracks(ids));
+    EXPECT_EQ(1, count("library WHERE mixxx_deleted=1"));
+    const int tracksBefore = count("library");
+
+    const auto result = trackCollectionManager()->importFiles({a});
+
+    EXPECT_EQ(0, result.added);
+    EXPECT_EQ(0, result.alreadyInLibrary);
+    EXPECT_EQ(1, result.shownAgain);
+    EXPECT_EQ(0, count("library WHERE mixxx_deleted=1"));
+    // The same row: the id and the data stay.
+    EXPECT_EQ(tracksBefore, count("library"));
+    EXPECT_EQ(ids, trackCollectionManager()->resolveTrackIdsFromLocations({a}));
+}
+
+TEST_F(ImportFilesTest, SameFileUnderAnotherPathIsNotAddedTwice) {
+    const QString a = makeSoundFile("a.mp3", kSound1);
+    // A second real file stands for a second spelling of the path (another
+    // letter case, a link): the injected resolver says that both are one file.
+    const QString alias = makeSoundFile("alias_of_a.mp3", kSound1);
+    const auto resolver = [a, alias](const QString& path) {
+        return path == alias ? a : path;
+    };
+    auto index = trackCollectionManager()->makeImportIndex(resolver);
+
+    EXPECT_EQ(1, trackCollectionManager()->importFiles({a}, &index).added);
+    const int tracksAfterFirst = count("library");
+    const auto second = trackCollectionManager()->importFiles({alias}, &index);
+
+    EXPECT_EQ(0, second.added);
+    EXPECT_EQ(1, second.alreadyInLibrary);
+    EXPECT_EQ(tracksAfterFirst, count("library"));
+}
+
+TEST_F(ImportFilesTest, IndexFromTheLibraryFindsTheTrackUnderAnotherPath) {
+    // The track is in the database and not loaded in the track cache.
+    const QString a = makeSoundFile("a.mp3", kSound1);
+    ASSERT_EQ(1, trackCollectionManager()->importFiles({a}).added);
+    const QString alias = makeSoundFile("alias_of_a.mp3", kSound1);
+    const auto resolver = [a, alias](const QString& path) {
+        return path == alias ? a : path;
+    };
+    auto index = trackCollectionManager()->makeImportIndex(resolver);
+
+    EXPECT_EQ(1, trackCollectionManager()->importFiles({alias}, &index).alreadyInLibrary);
+    EXPECT_EQ(1, count("library"));
+}
+
+#ifdef Q_OS_WIN
+TEST_F(ImportFilesTest, DifferentLetterCaseIsTheSameFileOnWindows) {
+    const QString a = makeSoundFile("Mixed.mp3", kSound1);
+    EXPECT_TRUE(mixxx::library::isSameImportPath(
+            mixxx::library::canonicalImportPath(a),
+            mixxx::library::canonicalImportPath(a.toUpper())));
+    ASSERT_EQ(1, trackCollectionManager()->importFiles({a}).added);
+    const auto result = trackCollectionManager()->importFiles({a.toUpper()});
+    EXPECT_EQ(0, result.added);
+    EXPECT_EQ(1, result.alreadyInLibrary);
+    EXPECT_EQ(1, count("library"));
+}
+#endif
+
+TEST_F(ImportFilesTest, ImportAloneNeverWritesTheFileEvenWithTagWritingOn) {
+    config()->setValue(mixxx::library::prefs::kSyncTrackMetadataConfigKey, 1);
+    const QString a = makeSoundFile("a.mp3", kSound1);
+    const QByteArray before = readAll(a);
+    ASSERT_EQ(1, trackCollectionManager()->importFiles({a}).added);
+    {
+        TrackPointer pTrack = getOrAddTrackByLocation(a);
+        ASSERT_TRUE(pTrack);
+        // The background cover guess marks a new track as changed, as this
+        // change does.
+        pTrack->setColor(mixxx::RgbColor::optional(0x112233));
+        EXPECT_TRUE(pTrack->isDirty());
+        trackCollectionManager()->saveTrack(pTrack);
+    }
+    // The track left the cache; a deferred tag export would have happened now.
+    EXPECT_EQ(before, readAll(a));
 }
 // End of AI-generated text.

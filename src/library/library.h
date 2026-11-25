@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QFont>
+#include <chrono>
+#include <memory>
 #include <QList>
 #include <QObject>
 #include <QPointer>
@@ -36,6 +38,9 @@ class WLibrary;
 class QAbstractItemModel;
 
 namespace mixxx {
+namespace library {
+class ImportIndex;
+} // namespace library
 class DeviceExporter;
 } // namespace mixxx
 
@@ -115,9 +120,9 @@ class Library: public QObject {
     static const QString kAutoDJViewName;
 
     // AI-generated (Claude Code). Start of AI-generated text.
-    /// Mix Two: how many files one step of an import handles. Between two
-    /// steps the event loop runs, so the window stays responsive.
-    static constexpr int kImportChunkSize = 20;
+    /// Mix Two: how long one step of an import may run. Between two steps the
+    /// event loop runs, so the window stays responsive.
+    static constexpr std::chrono::milliseconds kImportStepBudget{50};
     // End of AI-generated text.
 
     bool requestAddDir(const QString& directory);
@@ -198,7 +203,7 @@ class Library: public QObject {
     void exportTracksToDevice(const QList<TrackId>& trackIds);
     // AI-generated (Claude Code). Start of AI-generated text.
     /// An import is done. All files of the import are counted.
-    void importFinished(int added, int alreadyInLibrary, int skipped);
+    void importFinished(int added, int alreadyInLibrary, int shownAgain, int skipped);
     // End of AI-generated text.
     void saveModelState();
     void restoreModelState();
@@ -231,6 +236,8 @@ class Library: public QObject {
     int m_importPos = 0;
     int m_importAdded = 0;
     int m_importAlreadyInLibrary = 0;
+    int m_importShownAgain = 0;
+    std::unique_ptr<mixxx::library::ImportIndex> m_pImportIndex;
     int m_importSkipped = 0;
     bool m_importRunning = false;
     // End of AI-generated text.

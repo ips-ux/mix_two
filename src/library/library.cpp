@@ -4,6 +4,7 @@
 #include <QFutureWatcher>
 #include <QTimer>
 #include <QtConcurrent>
+#include <algorithm>
 #include <QDir>
 #include <QMessageBox>
 
@@ -694,21 +695,35 @@ void Library::slotImportNextChunk() {
     if (!m_pTrackCollectionManager || m_importPos >= m_importQueue.size()) {
         const int added = m_importAdded;
         const int already = m_importAlreadyInLibrary;
+        const int shownAgain = m_importShownAgain;
         const int skipped = m_importSkipped;
         m_importQueue.clear();
         m_importPos = 0;
         m_importAdded = 0;
         m_importAlreadyInLibrary = 0;
+        m_importShownAgain = 0;
         m_importSkipped = 0;
         m_importRunning = false;
-        emit importFinished(added, already, skipped);
+        m_pImportIndex.reset();
+        emit importFinished(added, already, shownAgain, skipped);
         return;
     }
-    const QStringList chunk = m_importQueue.mid(m_importPos, kImportChunkSize);
-    m_importPos += chunk.size();
-    const auto result = m_pTrackCollectionManager->importFiles(chunk);
+    if (!m_pImportIndex) {
+        m_pImportIndex = std::make_unique<mixxx::library::ImportIndex>(
+                m_pTrackCollectionManager->makeImportIndex());
+    }
+    // Choice: a step is limited by time, not by a number of files, because
+    // the time for one file depends on the drive and the file format.
+    int processed = 0;
+    const auto result = m_pTrackCollectionManager->importFiles(
+            m_importQueue.mid(m_importPos),
+            m_pImportIndex.get(),
+            kImportStepBudget,
+            &processed);
+    m_importPos += std::max(1, processed);
     m_importAdded += result.added;
     m_importAlreadyInLibrary += result.alreadyInLibrary;
+    m_importShownAgain += result.shownAgain;
     m_importSkipped += result.skipped;
     QTimer::singleShot(0, this, &Library::slotImportNextChunk);
 }
