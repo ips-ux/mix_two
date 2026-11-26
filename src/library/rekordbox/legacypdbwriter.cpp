@@ -202,7 +202,7 @@ class PdbWriter {
             put32(m_bytes, directory + 4, empty);
             put32(m_bytes, directory + 8, first);
             put32(m_bytes, directory + 12, last);
-            indexPage(first, hasRows ? first + 1 : empty);
+            indexPage(first, hasRows ? first + 1 : empty, hasRows);
             if (hasRows) {
                 put32(m_bytes, pageOffset(last) + 12, empty);
             }
@@ -241,7 +241,7 @@ class PdbWriter {
         m_bytes[page + 27] = flags;
     }
 
-    void indexPage(quint32 index, quint32 next) {
+    void indexPage(quint32 index, quint32 next, bool hasRows) {
         constexpr quint32 kNoPage = 0x03ffffff;
         pageHeader(index, 0x64, 1);
         const auto page = pageOffset(index);
@@ -250,7 +250,11 @@ class PdbWriter {
         put16(m_bytes, page + 34, 0x1fff);
         put16(m_bytes, page + 36, 0x03ec);
         put32(m_bytes, page + 40, index);
-        put32(m_bytes, page + 44, next);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // As rekordbox does: copy the next-page link for a populated table, and
+        // write the no-page sentinel for an empty table.
+        // End of AI-generated text.
+        put32(m_bytes, page + 44, hasRows ? next : kNoPage);
         put32(m_bytes, page + 48, kNoPage);
         put16(m_bytes, page + 58, 0x1fff);
         for (int i = 60; i < kPageSize - 20; i += 4) {

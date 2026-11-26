@@ -73,8 +73,11 @@ class ParsedPdb {
             } else {
                 EXPECT_EQ(ref->index(), table->first_page()->index());
                 EXPECT_EQ(sequence, 1u);
+                // rekordbox copies the next-page link here for populated tables and
+                // writes the no-page sentinel for empty tables.
+                const bool empty = table->first_page()->index() == table->last_page()->index();
                 EXPECT_EQ(qFromLittleEndian<quint32>(rawPage + 0x2c),
-                        qFromLittleEndian<quint32>(rawPage + 0x0c));
+                        empty ? 0x03ffffffu : qFromLittleEndian<quint32>(rawPage + 0x0c));
             }
             if (ref->index() == table->last_page()->index()) {
                 EXPECT_EQ(page->next_page()->index(), table->empty_candidate());
@@ -115,7 +118,7 @@ class ParsedPdb {
     Pdb db;
 
   private:
-    const QByteArray& m_bytes;
+    const QByteArray m_bytes;
 };
 
 QString text(Pdb::device_sql_string_t* string) {
@@ -413,6 +416,8 @@ TEST(LegacyPdb, RoundTripsFarAlbumNames) {
     ASSERT_EQ(albums.size(), library.albums.size());
     for (qsizetype i = 0; i < albums.size(); ++i) {
         EXPECT_EQ(albums[i]->id(), library.albums[i].id);
+        // Subtype 0x84 selects the two-byte far name offset.
+        EXPECT_EQ(albums[i]->subtype(), 0x84);
         // Check the marker before decoding so a bad offset does not hide the mismatch.
         const auto marker = i == 0 ? 0x40 : 0x90;
         auto* name = albums[i]->name();
