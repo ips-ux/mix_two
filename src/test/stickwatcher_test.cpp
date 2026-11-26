@@ -327,6 +327,22 @@ TEST_F(StickWatcherFeature, ReprobesWindowsRootAfterAnExhaustedProbe) {
     watcher->volumeArrived(root.path());
     EXPECT_FALSE(probePending(feature, root.path()));
 }
+
+TEST_F(StickWatcherFeature, ProbesAnEmptyRootFromTheStartupScanOnce) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QDir root(stick.path());
+    auto* feature = this->feature();
+    ASSERT_NE(feature, nullptr);
+    auto* watcher = feature->findChild<StickWatcher*>();
+    ASSERT_NE(watcher, nullptr);
+    watcher->applySnapshot({{root.path(), {}}}, false);
+    ASSERT_TRUE(probePending(feature, root.path()));
+    deliverProbeOnly(feature, root.path());
+    // A retry keeps the probe pending while its timer waits.
+    EXPECT_FALSE(probePending(feature, root.path()));
+    EXPECT_FALSE(deviceIndex(feature, root).isValid());
+}
 #endif
 
 } // namespace mixxx::rekordbox

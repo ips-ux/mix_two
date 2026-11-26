@@ -246,7 +246,7 @@ void StickWatcher::applySnapshot(const QHash<QString, QString>& mounts, bool rec
     for (auto it = mounts.cbegin(); it != mounts.cend(); ++it) {
         if (!m_mounts.contains(it.key())) {
             m_mounts.insert(it.key(), it.value());
-            emit volumeAdded(it.key());
+            emit volumeAdded(it.key(), false);
         } else if (recheck) {
             emit volumeRecheckRequested(it.key());
         }
@@ -256,7 +256,7 @@ void StickWatcher::applySnapshot(const QHash<QString, QString>& mounts, bool rec
 void StickWatcher::volumeArrived(const QString& root) {
     if (!root.isEmpty() && !m_mounts.contains(root)) {
         m_mounts.insert(root, {});
-        emit volumeAdded(root);
+        emit volumeAdded(root, true);
     }
 }
 

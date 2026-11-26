@@ -50,8 +50,8 @@
 namespace {
 
 // AI-generated (Claude Code). Start of AI-generated text.
-// A Windows drive letter can arrive before its filesystem is ready: try for
-// about three seconds.
+// A Windows drive letter can arrive before its filesystem is ready: after an
+// arrival event, try for about three seconds.
 #if defined(Q_OS_WIN)
 constexpr int kVolumeReadinessRetries = 6;
 #else
@@ -1292,8 +1292,17 @@ RekordboxFeature::RekordboxFeature(
     transaction.commit();
 
     m_pSidebarModel->setRootItem(TreeItem::newRoot(this));
-    connect(&m_stickWatcher, &mixxx::rekordbox::StickWatcher::volumeAdded,
-            this, [this](const QString& root) { probeVolume(root, kVolumeReadinessRetries); });
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Only an arrival event retries. The startup scan and a refresh probe each
+    // drive letter once, so fixed, network and optical drives do not occupy
+    // the thread pool for seconds.
+    connect(&m_stickWatcher,
+            &mixxx::rekordbox::StickWatcher::volumeAdded,
+            this,
+            [this](const QString& root, bool arrivalEvent) {
+                probeVolume(root, arrivalEvent ? kVolumeReadinessRetries : 0);
+            });
+    // End of AI-generated text.
     connect(&m_stickWatcher, &mixxx::rekordbox::StickWatcher::volumeRecheckRequested,
             this, [this](const QString& root) { probeVolume(root, 0); });
     connect(&m_stickWatcher, &mixxx::rekordbox::StickWatcher::volumeRemoved,

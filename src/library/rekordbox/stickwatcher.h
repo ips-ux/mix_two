@@ -35,7 +35,9 @@ class StickWatcher : public QObject {
     void forgetVolume(const QString& root);
 
   signals:
-    void volumeAdded(const QString& root);
+    // An arrival event comes from the system (a stick is plugged in). The
+    // startup scan, a refresh and a Linux mount table change report false.
+    void volumeAdded(const QString& root, bool arrivalEvent);
     void volumeRemoved(const QString& root);
     void volumeRecheckRequested(const QString& root);
 
