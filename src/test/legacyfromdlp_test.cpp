@@ -63,6 +63,42 @@ TEST_F(LegacyFromDlpTest, ClampsTrackValuesToLegacyFieldWidths) {
     EXPECT_EQ(65535u, model->tracks[2].duration);
 }
 
+TEST_F(LegacyFromDlpTest, ResetsColorsTheDeviceLibraryDoesNotHave) {
+    ASSERT_NO_FATAL_FAILURE(addRows(R"sql(
+        INSERT INTO color(color_id, name) VALUES (9, 'Extra');
+        INSERT INTO content(content_id, title, masterDbId, masterContentId, path, fileName,
+            color_id)
+        VALUES (1, 'extra', 42, 1, '/Contents/extra.wav', 'extra.wav', 9),
+            (2, 'red', 42, 2, '/Contents/red.wav', 'red.wav', 1);
+    )sql"));
+    QString error;
+    int clampedTracks = 0;
+    const auto model = legacyFromDlp(*m_pDb, &error, &clampedTracks);
+    ASSERT_TRUE(model) << qPrintable(error);
+    ASSERT_EQ(2, model->tracks.size());
+    EXPECT_EQ(1, clampedTracks);
+    EXPECT_EQ(0u, model->tracks[0].colorId);
+    EXPECT_EQ(1u, model->tracks[1].colorId);
+}
+
+TEST_F(LegacyFromDlpTest, RemovesAnIsrcTheDeviceLibraryCannotStore) {
+    ASSERT_NO_FATAL_FAILURE(addRows(R"sql(
+        INSERT INTO content(content_id, title, masterDbId, masterContentId, path, fileName, isrc)
+        VALUES (1, 'good', 42, 1, '/Contents/good.wav', 'good.wav', 'USABC2600001'),
+            (2, 'not ascii', 42, 2, '/Contents/b.wav', 'b.wav', 'US' || char(228) || 'BC2600001'),
+            (3, 'long', 42, 3, '/Contents/d.wav', 'd.wav', replace(hex(zeroblob(128)), '0', 'A'));
+    )sql"));
+    QString error;
+    int clampedTracks = 0;
+    const auto model = legacyFromDlp(*m_pDb, &error, &clampedTracks);
+    ASSERT_TRUE(model) << qPrintable(error);
+    ASSERT_EQ(3, model->tracks.size());
+    EXPECT_EQ(2, clampedTracks);
+    EXPECT_EQ(QStringLiteral("USABC2600001"), model->tracks[0].isrc);
+    EXPECT_TRUE(model->tracks[1].isrc.isEmpty());
+    EXPECT_TRUE(model->tracks[2].isrc.isEmpty());
+}
+
 TEST_F(LegacyFromDlpTest, MapsTracksAndMetadataFromBothWriters) {
     ASSERT_NO_FATAL_FAILURE(addRows(R"sql(
         INSERT INTO artist(artist_id, name) VALUES (4294967297, 'Artist'),

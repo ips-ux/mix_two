@@ -271,28 +271,10 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
                     pProgressGuard->reset();
                     pProgressGuard->hide();
                 }
-                QString text = tr("%1 tracks and %2 playlists are on the stick. "
-                                  "Eject the stick before you remove it.")
-                                       .arg(summary.tracksExported)
-                                       .arg(summary.playlistsExported);
-                if (!summary.legacyLibraryError.isEmpty()) {
-                    text += QStringLiteral("\n\n") +
-                            tr("Mix Two did not write the Device Library. Reason: %1")
-                                    .arg(summary.legacyLibraryError);
-                }
-                if (summary.keptReplacedFiles) {
-                    text += QStringLiteral("\n\n") + tr("Mix Two keeps the replaced files on the stick.");
-                }
-                if (summary.legacyLibraryError.isEmpty() && summary.legacyClampedTracks > 0) {
-                    text += QStringLiteral("\n\n") +
-                            tr("Mix Two adjusts values for %n tracks to fit the Device Library.",
-                                    nullptr,
-                                    summary.legacyClampedTracks);
-                }
-                if (!summary.skipped.isEmpty()) {
-                    text += QStringLiteral("\n\n") +
-                            tr("Mix Two did not export %n tracks.", nullptr, summary.skipped.size());
-                }
+                // AI-generated (Claude Code). Start of AI-generated text.
+                // The text has its own function, so that a test can check it.
+                const QString text = mixxx::deviceLibraryPlusCompletionText(summary);
+                // End of AI-generated text.
                 QMessageBox box(QMessageBox::Information,
                         tr("Export completed"),
                         text,

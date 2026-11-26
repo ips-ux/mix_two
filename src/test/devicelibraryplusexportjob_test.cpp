@@ -510,7 +510,18 @@ TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToTheExistingFolder) 
     ASSERT_TRUE(file.open(QIODevice::ReadOnly));
     EXPECT_EQ(bytes, file.readAll());
     EXPECT_EQ(1, outcome.summary.legacyClampedTracks);
-    EXPECT_FALSE(root.entryList(QDir::Dirs).contains(QStringLiteral("PIONEER")));
+    // A disk that keeps the letter case gets a /PIONEER folder for the
+    // analysis files. The libraries stay in the folder that they had.
+    QFile probe(root.filePath(QStringLiteral("case-probe")));
+    ASSERT_TRUE(probe.open(QIODevice::WriteOnly));
+    probe.close();
+    const bool caseSensitive = !QFileInfo::exists(root.filePath(QStringLiteral("CASE-PROBE")));
+    ASSERT_TRUE(probe.remove());
+    if (caseSensitive) {
+        EXPECT_FALSE(QFileInfo::exists(root.filePath(QStringLiteral("PIONEER/rekordbox"))));
+    } else {
+        EXPECT_FALSE(root.entryList(QDir::Dirs).contains(QStringLiteral("PIONEER")));
+    }
     EXPECT_EQ((QStringList{QStringLiteral("ExPoRt.PdB"), QStringLiteral("ExPoRtLiBrArY.Db")}),
             QFileInfo(mixedPlus).dir().entryList(QDir::Files, QDir::Name));
     pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
@@ -528,6 +539,65 @@ TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToANewStick) {
     QFile file(m_stick.filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
     ASSERT_TRUE(file.open(QIODevice::ReadOnly));
     EXPECT_EQ(QByteArray("new library"), file.readAll());
+}
+
+TEST_F(DeviceLibraryPlusExportJobTest, KeepsNoFilesWhenTheExportReplacedNone) {
+    const QDir root(m_stick.path());
+    ASSERT_TRUE(root.mkpath(QStringLiteral("PIONEER/rekordbox")));
+    QFile file(root.filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    ASSERT_EQ(3, file.write("old"));
+    file.close();
+
+    // The legacy write fails, but the export replaced no file.
+    auto jobRequest = request();
+    jobRequest.writeLegacyLibrary = true;
+    const Outcome failedLegacy = runJob(jobRequest, false,
+            [](const rekordbox::LegacyLibrary&, QString* pError) {
+                *pError = QStringLiteral("Test writer cannot write the data.");
+                return QByteArray();
+            });
+    ASSERT_EQ(1, failedLegacy.completedCount) << qPrintable(failedLegacy.failure);
+    EXPECT_FALSE(failedLegacy.summary.legacyLibraryError.isEmpty());
+    EXPECT_FALSE(failedLegacy.summary.keptReplacedFiles);
+
+    // A Plus export of a new track to a stick that has a Device Library.
+    const auto pTrack = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
+    ASSERT_TRUE(pTrack);
+    storeWaveform(pTrack);
+    jobRequest.writeLegacyLibrary = false;
+    const Outcome plusOnly = runJob(jobRequest);
+    ASSERT_EQ(1, plusOnly.completedCount) << qPrintable(plusOnly.failure);
+    EXPECT_EQ(1, plusOnly.summary.tracksExported);
+    EXPECT_FALSE(plusOnly.summary.keptReplacedFiles);
+}
+
+TEST(DeviceLibraryPlusCompletionTextTest, ShowsOnlyTheLinesThatApply) {
+    DeviceLibraryPlusExportSummary summary;
+    summary.tracksExported = 3;
+    summary.playlistsExported = 2;
+    const QString first = QStringLiteral(
+            "3 tracks and 2 playlists are on the stick. "
+            "Eject the stick before you remove it.");
+    EXPECT_EQ(first, deviceLibraryPlusCompletionText(summary));
+
+    summary.legacyClampedTracks = 2;
+    EXPECT_EQ(first +
+                    QStringLiteral("\n\nMix Two adjusts values for 2 tracks "
+                                   "to fit the Device Library."),
+            deviceLibraryPlusCompletionText(summary));
+
+    // No adjusted values when the Device Library was not written.
+    summary.legacyLibraryError = QStringLiteral("The disk is full.");
+    summary.keptReplacedFiles = true;
+    summary.skipped = QStringList{QStringLiteral("a"), QStringLiteral("b")};
+    EXPECT_EQ(first +
+                    QStringLiteral(
+                            "\n\nMix Two did not write the Device Library. "
+                            "Reason: The disk is full."
+                            "\n\nMix Two keeps the replaced files on the stick."
+                            "\n\nMix Two did not export 2 tracks."),
+            deviceLibraryPlusCompletionText(summary));
 }
 
 TEST_F(DeviceLibraryPlusExportJobTest, UsesTheDefaultLegacyWriter) {

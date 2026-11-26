@@ -78,12 +78,6 @@ QString existingPathOrDefault(const QString& folder, const QString& name) {
     return existing.isEmpty() ? QDir(folder).filePath(name) : existing;
 }
 
-QString legacyPathForStick(const QString& root) {
-    const QString pioneer = existingPathOrDefault(root, QStringLiteral("PIONEER"));
-    const QString rekordbox = existingPathOrDefault(pioneer, QStringLiteral("rekordbox"));
-    return existingPathOrDefault(rekordbox, QStringLiteral("export.pdb"));
-}
-
 bool makeLegacyFolder(const QDir& parent, const QString& name) {
     const QFileInfo folder(parent.filePath(name));
     return !folder.isSymLink() && (folder.isDir() || parent.mkdir(name));
@@ -587,7 +581,14 @@ void DeviceLibraryPlusExportJob::run() {
         emit failed(rekordbox::dlpMessageNoTrackExported());
         return;
     }
-    const QString legacyPath = legacyPathForStick(m_request.stickRoot);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The legacy library goes next to the Plus library. The track export can
+    // have made a folder with other letter case since the library was opened.
+    const QString legacyPath = existingPathOrDefault(
+            QFileInfo(pDb->stickFilePath()).absolutePath(), QStringLiteral("export.pdb"));
+    // Only files that this export replaced can be kept.
+    const bool replacedFiles = exporter.replacedFileCount() > 0;
+    // End of AI-generated text.
     if (!exporter.finish(&error, [&] {
             emit jobProgress(++progress);
             if (m_request.writeLegacyLibrary) {
@@ -597,9 +598,10 @@ void DeviceLibraryPlusExportJob::run() {
                         m_legacyWriter,
                         &summary.legacyClampedTracks);
                 emit jobProgress(++progress);
-                summary.keptReplacedFiles = !summary.legacyLibraryError.isEmpty();
+                summary.keptReplacedFiles =
+                        replacedFiles && !summary.legacyLibraryError.isEmpty();
             } else {
-                summary.keptReplacedFiles = QFileInfo(legacyPath).isFile();
+                summary.keptReplacedFiles = replacedFiles && QFileInfo(legacyPath).isFile();
             }
             return !summary.keptReplacedFiles;
         })) {
@@ -613,5 +615,41 @@ void DeviceLibraryPlusExportJob::run() {
             << "skipped";
     emit completed(summary);
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+QString deviceLibraryPlusCompletionText(const DeviceLibraryPlusExportSummary& summary) {
+    QString text = QCoreApplication::translate("DeviceExporter",
+            "%1 tracks and %2 playlists are on the stick. "
+            "Eject the stick before you remove it.")
+                           .arg(summary.tracksExported)
+                           .arg(summary.playlistsExported);
+    if (!summary.legacyLibraryError.isEmpty()) {
+        text += QStringLiteral("\n\n") +
+                QCoreApplication::translate("DeviceExporter",
+                        "Mix Two did not write the Device Library. Reason: %1")
+                        .arg(summary.legacyLibraryError);
+    }
+    if (summary.keptReplacedFiles) {
+        text += QStringLiteral("\n\n") +
+                QCoreApplication::translate(
+                        "DeviceExporter", "Mix Two keeps the replaced files on the stick.");
+    }
+    if (summary.legacyLibraryError.isEmpty() && summary.legacyClampedTracks > 0) {
+        text += QStringLiteral("\n\n") +
+                QCoreApplication::translate("DeviceExporter",
+                        "Mix Two adjusts values for %n tracks to fit the Device Library.",
+                        nullptr,
+                        summary.legacyClampedTracks);
+    }
+    if (!summary.skipped.isEmpty()) {
+        text += QStringLiteral("\n\n") +
+                QCoreApplication::translate("DeviceExporter",
+                        "Mix Two did not export %n tracks.",
+                        nullptr,
+                        static_cast<int>(summary.skipped.size()));
+    }
+    return text;
+}
+// End of AI-generated text.
 
 } // namespace mixxx

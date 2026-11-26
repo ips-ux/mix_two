@@ -40,6 +40,24 @@ quint32 number(const NamedStatement& query,
     return static_cast<quint32>(bounded);
 }
 
+/// An ISRC has 12 characters. The limit leaves space for other spellings and
+/// is much smaller than a row of the Device Library.
+constexpr int kMaxIsrcLength = 255;
+
+/// True if the Device Library can store the ISRC: ASCII text without a NUL,
+/// not longer than kMaxIsrcLength.
+bool isUsableIsrc(const QString& isrc) {
+    if (isrc.size() > kMaxIsrcLength) {
+        return false;
+    }
+    for (const QChar character : isrc) {
+        if (character.unicode() == 0 || character.unicode() > 0x7f) {
+            return false;
+        }
+    }
+    return true;
+}
+
 class LibraryReader {
   public:
     LibraryReader(sqlite3* pDb, QString* pError)
@@ -190,6 +208,13 @@ std::optional<LegacyLibrary> legacyFromDlp(
                     track.sampleDepth = number(query, 21, &clamped, kMax16);
                     track.fileSize = number(query, 22, &clamped);
                     track.fileType = number(query, 23, &clamped, kMax16);
+                    track.isrc = query.columnText(32);
+                    // The Device Library refuses an ISRC that is not short
+                    // ASCII text. A bad ISRC is removed, not the library.
+                    if (!isUsableIsrc(track.isrc)) {
+                        track.isrc.clear();
+                        clamped = true;
+                    }
                     if (clamped) {
                         ++clampedTracks;
                     }
@@ -201,7 +226,6 @@ std::optional<LegacyLibrary> legacyFromDlp(
                     track.releaseDate = query.columnText(29);
                     track.mixName = query.columnText(30);
                     track.comment = query.columnText(31);
-                    track.isrc = query.columnText(32);
                     track.message = query.columnText(33);
                     track.autoLoadHotCues = query.columnIsNull(34) || query.columnInt(34) != 0;
                     library.tracks.append(std::move(track));

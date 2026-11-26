@@ -2054,5 +2054,42 @@ TEST_F(DeviceLibraryPlusDbTest, ReferenceStickOpens) {
     EXPECT_EQ(treeBefore, treeOf(libraryFolder));
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusDbTest, SaveWritesTheFileThatOpenRead) {
+    QString error;
+    QTemporaryDir seed;
+    ASSERT_TRUE(seed.isValid());
+    {
+        auto pSeed = DeviceLibraryPlusDb::create(seed.path(), kDeviceName, 1234, &error);
+        ASSERT_TRUE(pSeed) << qPrintable(error);
+        ASSERT_TRUE(pSeed->save(&error)) << qPrintable(error);
+    }
+    const QDir rootDir(root());
+    ASSERT_TRUE(rootDir.mkpath(QStringLiteral("pioneer/rekordbox")));
+    const QString lowerCase = rootDir.filePath(QStringLiteral("pioneer/rekordbox/exportLibrary.db"));
+    ASSERT_TRUE(QFile::copy(seed.filePath(DeviceLibraryPlusDb::kRelativePath), lowerCase));
+    const QByteArray before = readFile(lowerCase);
+
+    auto pDb = DeviceLibraryPlusDb::open(root(), &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    EXPECT_EQ(lowerCase, pDb->stickFilePath());
+    // The export makes the analysis folders with a fixed letter case. On a
+    // disk that keeps the letter case, this is a second folder.
+    ASSERT_TRUE(rootDir.mkpath(QStringLiteral("PIONEER/USBANLZ")));
+    DlpContent content;
+    content.title = QStringLiteral("Track");
+    content.path = QStringLiteral("/Contents/track.mp3");
+    content.masterDbId = 1234;
+    content.masterContentId = 1;
+    ASSERT_GT(pDb->addContent(content), 0);
+    ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
+
+    // The file that open() read has the changes.
+    EXPECT_NE(before, readFile(lowerCase));
+    EXPECT_EQ(QStringList{QStringLiteral("exportLibrary.db")},
+            QFileInfo(lowerCase).dir().entryList(QDir::Files));
+}
+// End of AI-generated text.
+
 } // namespace rekordbox
 } // namespace mixxx

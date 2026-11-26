@@ -401,6 +401,7 @@ std::unique_ptr<DeviceLibraryPlusDb> DeviceLibraryPlusDb::create(const QString& 
         return nullptr;
     }
     std::unique_ptr<DeviceLibraryPlusDb> pDb(new DeviceLibraryPlusDb(stickRoot));
+    pDb->m_stickPath = stickPath;
     QString error;
     if (!pDb->prepareWorkingFile(&error) || !pDb->openWorkingFile(&error) ||
             !pDb->buildNewLibrary(deviceName, masterDbId, &error)) {
@@ -433,6 +434,7 @@ std::unique_ptr<DeviceLibraryPlusDb> DeviceLibraryPlusDb::open(
     }
 
     std::unique_ptr<DeviceLibraryPlusDb> pDb(new DeviceLibraryPlusDb(stickRoot));
+    pDb->m_stickPath = stickPath;
     QFile stickFile(stickPath);
     if (!stickFile.open(QIODevice::ReadOnly)) {
         setError(pErrorMessage, readError(stickFile.errorString()));
@@ -520,7 +522,11 @@ bool DeviceLibraryPlusDb::save(QString* pErrorMessage) {
 
     // The encryption takes time, so the stick is checked again here, just
     // before the write.
-    const QString stickPath = stickPathOf(m_stickRoot);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The file that open() read is the file that is written: the path is not
+    // found again.
+    const QString stickPath = m_stickPath;
+    // End of AI-generated text.
     if (!checkStickBeforeWrite(stickPath, pErrorMessage)) {
         return false;
     }

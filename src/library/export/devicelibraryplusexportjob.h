@@ -17,6 +17,11 @@ class TrackCollectionManager;
 
 namespace mixxx {
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// The text that the user sees when the export is completed.
+QString deviceLibraryPlusCompletionText(const DeviceLibraryPlusExportSummary& summary);
+// End of AI-generated text.
+
 /// Mix Two: exports Mix Two tracks, crates and playlists to the Device
 /// Library Plus of a stick, as described by the request.
 ///

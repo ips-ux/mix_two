@@ -283,7 +283,9 @@ QString dlpBackupLibrary(const QString& stickRoot,
                                     "The time of the backup is not valid."),
                 pErrorMessage);
     }
+    // AI-generated (Claude Code). Start of AI-generated text.
     // The names on the stick can have any letter case.
+    // End of AI-generated text.
     const QString source = dlpStickPathNoCase(stickRoot, DeviceLibraryPlusDb::kRelativePath);
     const QFileInfo sourceInfo(source);
     if (!sourceInfo.isFile()) {
@@ -423,7 +425,8 @@ DlpRestoreResult dlpRestoreLibrary(const DlpStickInfo& info,
     }
     result.ok = true;
     result.restoredFrom = backupFolder;
-    result.restoredFiles.append(stickPath);
+    // The name with the letter case of the stick.
+    result.restoredFiles.append(QStringLiteral("/") + QDir(info.root).relativeFilePath(target));
     return result;
 }
 // End of AI-generated text.

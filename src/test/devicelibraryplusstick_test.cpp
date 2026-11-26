@@ -624,6 +624,8 @@ TEST_F(DeviceLibraryPlusStickTest, BackupAndRestoreUseLetterCaseOfTheStick) {
             stick.path(), backups.path(), "Stick", QDateTime(QDate(2026, 11, 3), QTime(9, 0, 0)));
     ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
     EXPECT_EQ(original, readFileBytes(library));
+    EXPECT_EQ(QStringList{QStringLiteral("/pioneer/ReKordBox/EXPORTLIBRARY.DB")},
+            result.restoredFiles);
 
     // The leftover in the folder with the case of the stick is found.
     EXPECT_EQ(1,

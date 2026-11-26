@@ -161,6 +161,13 @@ class DeviceLibraryPlusExporter {
     /// If supplied, allowCleanup runs after a good save and before removal.
     /// Returning false keeps the replaced files without failing finish().
     bool finish(QString* pErrorMessage, const std::function<bool()>& allowCleanup = {});
+
+    /// The number of old files that this export replaced. finish() removes
+    /// them only when allowCleanup allows it.
+    int replacedFileCount() const {
+        return static_cast<int>(m_replaced.anlzFolders.size() +
+                m_replaced.imagePaths.size() + m_replaced.audioPaths.size());
+    }
     // End of AI-generated text.
 
     /// The number of playlists that exportPlaylists() wrote, crates included

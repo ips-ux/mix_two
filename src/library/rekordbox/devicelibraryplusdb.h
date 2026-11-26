@@ -152,6 +152,14 @@ class DeviceLibraryPlusDb {
     /// library with an error is not complete, so save() refuses it.
     QString lastErrorMessage() const;
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The library file on the stick that open() or create() found, with the
+    /// letter case of the disk. save() writes to this file.
+    const QString& stickFilePath() const {
+        return m_stickPath;
+    }
+    // End of AI-generated text.
+
     /// Starts one transaction for many changes. While the batch is open, the
     /// typed methods below do not commit on their own, and save() refuses.
     /// Returns false and sets lastErrorMessage() if a batch is open already or
@@ -319,6 +327,11 @@ class DeviceLibraryPlusDb {
     };
 
     const QString m_stickRoot;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Found once in open() or create(). Other folders that the export makes
+    /// later (for example /PIONEER/USBANLZ) do not change it.
+    QString m_stickPath;
+    // End of AI-generated text.
     QTemporaryDir m_workDir;
     QString m_workingFilePath;
     sqlite3* m_pDb;
