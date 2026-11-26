@@ -38,6 +38,9 @@
 
 class TrackCollectionManager;
 class BaseExternalPlaylistModel;
+namespace mixxx::rekordbox {
+class StickWatcherFeature;
+}
 
 class RekordboxPlaylistModel : public BaseExternalPlaylistModel {
     Q_OBJECT
@@ -75,6 +78,8 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     void htmlLinkClicked(const QUrl& link);
 
   private:
+    friend class mixxx::rekordbox::StickWatcherFeature;
+
     QString formatRootViewHtml() const;
     std::unique_ptr<BaseSqlTableModel> createPlaylistModelForPlaylist(
             const QVariant& data) override;
@@ -82,7 +87,7 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     parented_ptr<TreeItemModel> m_pSidebarModel;
     parented_ptr<RekordboxPlaylistModel> m_pRekordboxPlaylistModel;
 
-    void probeVolume(const QString& root, bool retry);
+    void probeVolume(const QString& root, int retriesLeft);
     void removeVolume(const QString& root);
     QModelIndex deviceIndex(const QString& root) const;
     void removeDevice(const QString& root);

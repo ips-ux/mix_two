@@ -89,8 +89,8 @@ class VolumeEventFilter final : public QAbstractNativeEventFilter {
 constexpr auto kMountFile = "/proc/self/mounts";
 #endif
 
-std::optional<QSet<QString>> mountedRoots() {
-    QSet<QString> roots;
+std::optional<QHash<QString, QString>> mountedVolumes() {
+    QHash<QString, QString> mountsByRoot;
 #if defined(Q_OS_LINUX)
     // Read the mount table without asking any mounted filesystem for metadata.
     auto* mounts = setmntent(kMountFile, "r");
@@ -101,18 +101,19 @@ std::optional<QSet<QString>> mountedRoots() {
     char buffer[16384];
     while (getmntent_r(mounts, &entry, buffer, sizeof(buffer))) {
         if (QByteArray(entry.mnt_fsname).startsWith("/dev/")) {
-            roots.insert(QFile::decodeName(entry.mnt_dir));
+            mountsByRoot.insert(QFile::decodeName(entry.mnt_dir),
+                    QFile::decodeName(entry.mnt_fsname));
         }
     }
     endmntent(mounts);
 #else
     for (const auto& volume : QStorageInfo::mountedVolumes()) {
         if (volume.isValid() && volume.isReady()) {
-            roots.insert(volume.rootPath());
+            mountsByRoot.insert(volume.rootPath(), {});
         }
     }
 #endif
-    return roots;
+    return mountsByRoot;
 }
 #endif
 
@@ -205,7 +206,11 @@ void StickWatcher::scanMounts(bool recheck) {
     const DWORD mask = GetLogicalDrives();
     if (mask) {
         const auto roots = driveRootsFromMask(mask);
-        applySnapshot(QSet<QString>(roots.begin(), roots.end()), recheck);
+        QHash<QString, QString> mounts;
+        for (const auto& root : roots) {
+            mounts.insert(root, {});
+        }
+        applySnapshot(mounts, recheck);
     }
 #else
     if (m_snapshotPending) {
@@ -214,47 +219,55 @@ void StickWatcher::scanMounts(bool recheck) {
         return;
     }
     m_snapshotPending = true;
-    auto* job = new QFutureWatcher<std::optional<QSet<QString>>>(this);
+    auto* job = new QFutureWatcher<std::optional<QHash<QString, QString>>>(this);
     connect(job, &QFutureWatcherBase::finished, this, [this, job, recheck] {
-        const auto roots = job->result();
+        const auto mounts = job->result();
         job->deleteLater();
-        if (roots) {
-            applySnapshot(*roots, recheck);
+        if (mounts) {
+            applySnapshot(*mounts, recheck);
         }
         m_snapshotPending = false;
         if (std::exchange(m_rescanPending, false)) {
             scanMounts(std::exchange(m_recheckPending, false));
         }
     });
-    job->setFuture(QtConcurrent::run(mountedRoots));
+    job->setFuture(QtConcurrent::run(mountedVolumes));
 #endif
 }
 
-void StickWatcher::applySnapshot(const QSet<QString>& roots, bool recheck) {
-    const auto previous = m_roots;
-    for (const auto& root : previous - roots) {
-        volumeDeparted(root);
+void StickWatcher::applySnapshot(const QHash<QString, QString>& mounts, bool recheck) {
+    const auto previous = m_mounts;
+    for (auto it = previous.cbegin(); it != previous.cend(); ++it) {
+        const auto current = mounts.constFind(it.key());
+        if (current == mounts.cend() || current.value() != it.value()) {
+            volumeDeparted(it.key());
+        }
     }
-    for (const auto& root : roots) {
-        if (!previous.contains(root)) {
-            volumeArrived(root);
+    for (auto it = mounts.cbegin(); it != mounts.cend(); ++it) {
+        if (!m_mounts.contains(it.key())) {
+            m_mounts.insert(it.key(), it.value());
+            emit volumeAdded(it.key());
         } else if (recheck) {
-            emit volumeRecheckRequested(root);
+            emit volumeRecheckRequested(it.key());
         }
     }
 }
 
 void StickWatcher::volumeArrived(const QString& root) {
-    if (!root.isEmpty() && !m_roots.contains(root)) {
-        m_roots.insert(root);
+    if (!root.isEmpty() && !m_mounts.contains(root)) {
+        m_mounts.insert(root, {});
         emit volumeAdded(root);
     }
 }
 
 void StickWatcher::volumeDeparted(const QString& root) {
-    if (m_roots.remove(root)) {
+    if (m_mounts.remove(root)) {
         emit volumeRemoved(root);
     }
+}
+
+void StickWatcher::forgetVolume(const QString& root) {
+    m_mounts.remove(root);
 }
 
 } // namespace mixxx::rekordbox

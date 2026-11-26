@@ -8,6 +8,7 @@
 #include <QTemporaryDir>
 #include <QThread>
 #include <QTimer>
+#include <QtEndian>
 #include <tuple>
 
 #include "coreservices.h"
@@ -77,6 +78,59 @@ TEST(StickWatcher, DecodesDriveLetterMask) {
     EXPECT_EQ(driveRootsFromMask(0x82000005u), (QStringList{"A:/", "C:/", "Z:/"}));
 }
 
+TEST(StickWatcher, ReplacesDeviceAtSameMountPoint) {
+    StickWatcher watcher;
+    QStringList events;
+    QObject::connect(&watcher, &StickWatcher::volumeAdded, &watcher,
+            [&](const QString& root) { events.append("+" + root); });
+    QObject::connect(&watcher, &StickWatcher::volumeRemoved, &watcher,
+            [&](const QString& root) { events.append("-" + root); });
+    watcher.applySnapshot({{"/mnt/usb", "/dev/sdb1"}, {"/mnt/other", "/dev/sdb1"}}, false);
+    events.clear();
+    watcher.applySnapshot({{"/mnt/usb", "/dev/sdc1"}, {"/mnt/other", "/dev/sdb1"}}, false);
+    watcher.applySnapshot({{"/mnt/usb", "/dev/sdc1"}, {"/mnt/other", "/dev/sdb1"}}, false);
+    EXPECT_EQ(events, (QStringList{"-/mnt/usb", "+/mnt/usb"}));
+}
+
+bool writeOneTrackPdb(const QDir& root, const QByteArray& title) {
+    constexpr int kPageSize = 4096;
+    constexpr int kTrack = kPageSize + 40;
+    constexpr quint16 kStrings = 136;
+    QByteArray bytes(2 * kPageSize, '\0');
+    const auto put16 = [&bytes](int offset, quint16 value) {
+        qToLittleEndian(value, bytes.data() + offset);
+    };
+    const auto put32 = [&bytes](int offset, quint32 value) {
+        qToLittleEndian(value, bytes.data() + offset);
+    };
+    put32(4, kPageSize);
+    put32(8, 1); // One table: tracks (type zero), on page one.
+    put32(36, 1);
+    put32(40, 1);
+    put32(kPageSize + 4, 1);
+    put32(kPageSize + 24, 1 | (1 << 13)); // One row, one valid row.
+    put16(2 * kPageSize - 4, 1); // First row present, at heap offset zero.
+    put32(kTrack + 72, 1); // Track ID.
+    for (int i = 0; i < 21; ++i) {
+        put16(kTrack + 94 + 2 * i, kStrings);
+    }
+    const auto putString = [&bytes, kTrack](int offset, const QByteArray& text) {
+        bytes[kTrack + offset] = static_cast<char>(2 * (text.size() + 1) + 1);
+        bytes.replace(kTrack + offset + 1, text.size(), text);
+    };
+    putString(kStrings, {});
+    put16(kTrack + 94 + 2 * 17, kStrings + 1);
+    putString(kStrings + 1, title);
+    const auto pathOffset = static_cast<quint16>(kStrings + 2 + title.size());
+    put16(kTrack + 94 + 2 * 20, pathOffset);
+    putString(pathOffset, "/track.wav");
+    QFile pdb(root.filePath("PIONEER/rekordbox/export.pdb"));
+    return root.mkpath("PIONEER/rekordbox") && pdb.open(QIODevice::WriteOnly) &&
+            pdb.write(bytes) == bytes.size();
+}
+
+} // namespace
+
 class StickWatcherFeature : public MixxxTest {
   protected:
     void SetUp() override {
@@ -117,6 +171,36 @@ class StickWatcherFeature : public MixxxTest {
         return ready();
     }
 
+    RekordboxFeature* feature() const {
+        return m_services->getLibrary()->findChild<RekordboxFeature*>();
+    }
+
+    static QModelIndex deviceIndex(RekordboxFeature* feature, const QDir& root) {
+        auto* sidebar = feature->sidebarModel();
+        for (int row = 0; row < sidebar->rowCount(); ++row) {
+            const auto index = sidebar->index(row, 0);
+            if (index.data().toString() == root.dirName()) {
+                return index;
+            }
+        }
+        return {};
+    }
+
+    static bool probePending(RekordboxFeature* feature, const QString& root) {
+        return feature->m_probes.contains(root);
+    }
+
+    static void deliverProbeOnly(RekordboxFeature* feature, const QString& root) {
+        auto* probe = feature->m_probes.value(root);
+        ASSERT_NE(probe, nullptr);
+        probe->waitForFinished();
+        QCoreApplication::sendPostedEvents(probe, QEvent::FutureCallOut);
+    }
+
+    static bool databaseJobPending(RekordboxFeature* feature) {
+        return feature->m_databaseBusy;
+    }
+
     std::shared_ptr<CoreServices> m_services;
 
   private:
@@ -138,14 +222,9 @@ TEST_F(StickWatcherFeature, RemovingOpenStickClearsPlaylistModel) {
     QTemporaryDir stick;
     ASSERT_TRUE(stick.isValid());
     QDir root(stick.path());
-    ASSERT_TRUE(root.mkpath("PIONEER/rekordbox"));
-    QFile pdb(root.filePath("PIONEER/rekordbox/export.pdb"));
-    ASSERT_TRUE(pdb.open(QIODevice::WriteOnly));
-    // A PDB header with zero tables produces an empty device playlist.
-    ASSERT_EQ(pdb.write(QByteArray(28, '\0')), 28);
-    pdb.close();
+    ASSERT_TRUE(writeOneTrackPdb(root, "One track"));
 
-    auto* feature = m_services->getLibrary()->findChild<RekordboxFeature*>();
+    auto* feature = this->feature();
     ASSERT_NE(feature, nullptr);
     auto* watcher = feature->findChild<StickWatcher*>();
     ASSERT_NE(watcher, nullptr);
@@ -153,32 +232,102 @@ TEST_F(StickWatcherFeature, RemovingOpenStickClearsPlaylistModel) {
     RekordboxPlaylistModel* shown = nullptr;
     QString view;
     QObject::connect(feature, &LibraryFeature::showTrackModel, &context,
-            [&](QAbstractItemModel* model) { shown = qobject_cast<RekordboxPlaylistModel*>(model); });
+            [&](QAbstractItemModel* model) {
+                shown = qobject_cast<RekordboxPlaylistModel*>(model);
+                if (shown) {
+                    shown->select();
+                }
+            });
     QObject::connect(feature, &LibraryFeature::switchToView, &context,
             [&](const QString& name) { view = name; });
 
-    auto* sidebar = feature->sidebarModel();
-    const auto deviceIndex = [&] {
-        for (int row = 0; row < sidebar->rowCount(); ++row) {
-            const auto index = sidebar->index(row, 0);
-            if (index.data().toString() == root.dirName()) {
-                return index;
-            }
-        }
-        return QModelIndex{};
-    };
+    const auto findDevice = [&] { return deviceIndex(feature, root); };
     watcher->volumeArrived(stick.path());
-    ASSERT_TRUE(waitUntil([&] { return deviceIndex().isValid(); }));
-    feature->activateChild(deviceIndex());
+    ASSERT_TRUE(waitUntil([&] { return findDevice().isValid(); }));
+    feature->activateChild(findDevice());
     ASSERT_TRUE(waitUntil([&] { return shown != nullptr; }));
+    ASSERT_EQ(shown->rowCount(), 1);
     const QString playlistKey = shown->modelKey(false);
 
     watcher->volumeDeparted(stick.path());
-    EXPECT_FALSE(deviceIndex().isValid());
+    EXPECT_FALSE(findDevice().isValid());
     EXPECT_EQ(view, QStringLiteral("REKORDBOXHOME"));
+    EXPECT_EQ(shown->rowCount(), 0);
     EXPECT_NE(shown->modelKey(false), playlistKey);
 }
 
-} // namespace
+TEST_F(StickWatcherFeature, OpensReplacementRequestedBeforeCanceledImportCompletes) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QDir root(stick.path());
+    ASSERT_TRUE(writeOneTrackPdb(root, "First stick"));
+    auto* feature = this->feature();
+    ASSERT_NE(feature, nullptr);
+    auto* watcher = feature->findChild<StickWatcher*>();
+    ASSERT_NE(watcher, nullptr);
+    QObject context;
+    RekordboxPlaylistModel* shown = nullptr;
+    QObject::connect(feature, &LibraryFeature::showTrackModel, &context,
+            [&](QAbstractItemModel* model) {
+                shown = qobject_cast<RekordboxPlaylistModel*>(model);
+                if (shown) {
+                    shown->select();
+                }
+            });
+
+    watcher->volumeArrived(root.path());
+    ASSERT_TRUE(waitUntil([&] { return deviceIndex(feature, root).isValid(); }));
+    feature->activateChild(deviceIndex(feature, root));
+    ASSERT_TRUE(databaseJobPending(feature));
+    watcher->volumeDeparted(root.path());
+    watcher->volumeArrived(root.path());
+    // Deliver the new probe without delivering the canceled import's completion.
+    ASSERT_NO_FATAL_FAILURE(deliverProbeOnly(feature, root.path()));
+    ASSERT_TRUE(deviceIndex(feature, root).isValid());
+    feature->activateChild(deviceIndex(feature, root));
+    ASSERT_EQ(shown, nullptr);
+    ASSERT_TRUE(waitUntil([&] { return !databaseJobPending(feature); }));
+    ASSERT_NE(shown, nullptr);
+    EXPECT_EQ(shown->rowCount(), 1);
+}
+
+#if defined(Q_OS_WIN)
+TEST_F(StickWatcherFeature, DetectsAnExportAfterSlowWindowsMount) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QDir root(stick.path());
+    auto* feature = this->feature();
+    ASSERT_NE(feature, nullptr);
+    auto* watcher = feature->findChild<StickWatcher*>();
+    ASSERT_NE(watcher, nullptr);
+    QTimer readiness;
+    readiness.setSingleShot(true);
+    QObject::connect(&readiness, &QTimer::timeout, &readiness,
+            [&] { EXPECT_TRUE(writeOneTrackPdb(root, "Slow mount")); });
+    watcher->volumeArrived(root.path());
+    readiness.start(1500);
+    ASSERT_TRUE(waitUntil([&] { return deviceIndex(feature, root).isValid(); }));
+}
+
+TEST_F(StickWatcherFeature, ReprobesWindowsRootAfterAnExhaustedProbe) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QDir root(stick.path());
+    auto* feature = this->feature();
+    ASSERT_NE(feature, nullptr);
+    auto* watcher = feature->findChild<StickWatcher*>();
+    ASSERT_NE(watcher, nullptr);
+    watcher->volumeArrived(root.path());
+    ASSERT_TRUE(probePending(feature, root.path()));
+    ASSERT_TRUE(waitUntil([&] { return !probePending(feature, root.path()); }));
+    ASSERT_FALSE(deviceIndex(feature, root).isValid());
+    ASSERT_TRUE(writeOneTrackPdb(root, "Late mount"));
+    watcher->volumeArrived(root.path());
+    ASSERT_TRUE(waitUntil([&] { return deviceIndex(feature, root).isValid(); }));
+    watcher->volumeArrived(root.path());
+    EXPECT_FALSE(probePending(feature, root.path()));
+}
+#endif
+
 } // namespace mixxx::rekordbox
 // End of AI-generated text.

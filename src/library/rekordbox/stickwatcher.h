@@ -1,8 +1,8 @@
 #pragma once
 // AI-generated (Claude Code). Start of AI-generated text.
 
+#include <QHash>
 #include <QObject>
-#include <QSet>
 #include <QStringList>
 #include <memory>
 
@@ -31,6 +31,8 @@ class StickWatcher : public QObject {
     void refresh();
     void volumeArrived(const QString& root);
     void volumeDeparted(const QString& root);
+    void applySnapshot(const QHash<QString, QString>& mounts, bool recheck);
+    void forgetVolume(const QString& root);
 
   signals:
     void volumeAdded(const QString& root);
@@ -39,9 +41,8 @@ class StickWatcher : public QObject {
 
   private:
     void scanMounts(bool recheck);
-    void applySnapshot(const QSet<QString>& roots, bool recheck);
 
-    QSet<QString> m_roots;
+    QHash<QString, QString> m_mounts;
     std::unique_ptr<QAbstractNativeEventFilter> m_nativeFilter;
     std::unique_ptr<QThread> m_mountMonitor;
     bool m_snapshotPending = false;

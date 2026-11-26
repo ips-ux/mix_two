@@ -11,8 +11,11 @@
 #include <QString>
 #include <QStringList>
 #include <QTextCodec>
+#include <QThread>
+#include <QTimer>
 #include <QtConcurrentRun>
 #include <QtDebug>
+#include <chrono>
 #include <fstream>
 #include <utility>
 
@@ -45,6 +48,18 @@
 #define IS_NOT_RECORDBOX_DEVICE "::isNotRecordboxDevice::"
 
 namespace {
+
+// AI-generated (Claude Code). Start of AI-generated text.
+// A Windows drive letter can arrive before its filesystem is ready: try for
+// about three seconds.
+#if defined(Q_OS_WIN)
+constexpr int kVolumeReadinessRetries = 6;
+#else
+constexpr int kVolumeReadinessRetries = 0;
+#endif
+constexpr auto kVolumeReadinessRetryDelay = std::chrono::milliseconds(500);
+constexpr int kEmptyPlaylistId = 0;
+// End of AI-generated text.
 
 const QString kRekordboxLibraryTable = QStringLiteral("rekordbox_library");
 const QString kRekordboxPlaylistsTable = QStringLiteral("rekordbox_playlists");
@@ -1278,9 +1293,9 @@ RekordboxFeature::RekordboxFeature(
 
     m_pSidebarModel->setRootItem(TreeItem::newRoot(this));
     connect(&m_stickWatcher, &mixxx::rekordbox::StickWatcher::volumeAdded,
-            this, [this](const QString& root) { probeVolume(root, true); });
+            this, [this](const QString& root) { probeVolume(root, kVolumeReadinessRetries); });
     connect(&m_stickWatcher, &mixxx::rekordbox::StickWatcher::volumeRecheckRequested,
-            this, [this](const QString& root) { probeVolume(root, false); });
+            this, [this](const QString& root) { probeVolume(root, 0); });
     connect(&m_stickWatcher, &mixxx::rekordbox::StickWatcher::volumeRemoved,
             this, &RekordboxFeature::removeVolume);
     connect(&m_databaseJob, &QFutureWatcherBase::finished,
@@ -1438,19 +1453,40 @@ void RekordboxFeature::activateChild(const QModelIndex& index) {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
-void RekordboxFeature::probeVolume(const QString& root, bool retry) {
+void RekordboxFeature::probeVolume(const QString& root, int retriesLeft) {
     if (m_probes.contains(root)) {
         return;
     }
     auto* job = new QFutureWatcher<mixxx::rekordbox::StickFormats>(this);
     m_probes.insert(root, job);
-    connect(job, &QFutureWatcherBase::finished, this, [this, job, root] {
-        job->deleteLater();
+    connect(job, &QFutureWatcherBase::finished, this, [this, job, root, retriesLeft] {
         if (m_probes.value(root) != job) {
+            job->deleteLater();
+            return;
+        }
+        const auto formats = job->result();
+        if (!formats.hasLegacy() && !formats.hasDeviceLibraryPlus() && retriesLeft > 0) {
+            // A drive letter can arrive before its filesystem is ready. Do not
+            // occupy a worker between attempts. Removal deletes the timer context.
+            QTimer::singleShot(kVolumeReadinessRetryDelay, job, [this, job, root, retriesLeft] {
+                if (m_probes.value(root) == job) {
+                    m_probes.remove(root);
+                    probeVolume(root, retriesLeft - 1);
+                }
+                job->deleteLater();
+            });
             return;
         }
         m_probes.remove(root);
-        const auto formats = job->result();
+        job->deleteLater();
+#if defined(Q_OS_WIN)
+        if (!formats.hasLegacy() && !formats.hasDeviceLibraryPlus()) {
+            m_stickWatcher.forgetVolume(root);
+            m_formats.remove(root);
+            removeDevice(root);
+            return;
+        }
+#endif
         m_formats.insert(root, formats);
         if (!formats.hasLegacy()) {
             removeDevice(root);
@@ -1468,19 +1504,8 @@ void RekordboxFeature::probeVolume(const QString& root, bool retry) {
                 QVariant(QList<QString>{root, IS_RECORDBOX_DEVICE})));
         m_pSidebarModel->insertTreeItemRows(std::move(rows), m_pSidebarModel->rowCount());
     });
-    job->setFuture(QtConcurrent::run([root, retry] {
-        auto formats = mixxx::rekordbox::detectStickFormats(root);
-#if defined(Q_OS_WIN)
-        // A drive letter can arrive before its filesystem is ready.
-        for (int attempt = 0; retry && attempt < 2 && !formats.hasLegacy() &&
-                !formats.hasDeviceLibraryPlus(); ++attempt) {
-            QThread::msleep(attempt == 0 ? 250 : 500);
-            formats = mixxx::rekordbox::detectStickFormats(root);
-        }
-#else
-        Q_UNUSED(retry);
-#endif
-        return formats;
+    job->setFuture(QtConcurrent::run([root] {
+        return mixxx::rekordbox::detectStickFormats(root);
     }));
 }
 
@@ -1495,7 +1520,9 @@ QModelIndex RekordboxFeature::deviceIndex(const QString& root) const {
 }
 
 void RekordboxFeature::removeVolume(const QString& root) {
-    m_probes.remove(root);
+    if (auto* job = m_probes.take(root)) {
+        job->deleteLater();
+    }
     m_formats.remove(root);
     removeDevice(root);
 }
@@ -1510,7 +1537,10 @@ void RekordboxFeature::removeDevice(const QString& root) {
     }
     if (m_modelRoot == root) {
         m_modelRoot.clear();
-        m_pRekordboxPlaylistModel->setPlaylistById(kInvalidPlaylistId);
+        // Playlist IDs start at one, so this playlist is always empty. The
+        // invalid ID gives a view name that the select cannot parse.
+        m_pRekordboxPlaylistModel->setPlaylistById(kEmptyPlaylistId);
+        m_pRekordboxPlaylistModel->select();
         if (m_modelVisible) {
             m_modelVisible = false;
             emit enableCoverArtDisplay(true);
@@ -1576,7 +1606,8 @@ void RekordboxFeature::startNextDatabaseJob() {
 void RekordboxFeature::onDatabaseJobFinished() {
     const auto root = std::exchange(m_importRoot, {});
     const auto result = m_databaseJob.result();
-    if (result && !m_importCanceled->load()) {
+    const bool canceled = m_importCanceled && m_importCanceled->load();
+    if (result && !canceled) {
         const auto index = deviceIndex(root);
         if (index.isValid()) {
             auto* item = m_pSidebarModel->getItem(index);
@@ -1592,7 +1623,8 @@ void RekordboxFeature::onDatabaseJobFinished() {
             }
         }
     }
-    if (m_pendingOpen == root) {
+    // A new device at this root may already have a pending open.
+    if (!canceled && m_pendingOpen == root) {
         m_pendingOpen.clear();
     }
     m_importCanceled.reset();
