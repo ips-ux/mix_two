@@ -223,6 +223,17 @@ QString dlpFindPathNoCase(const QString& root, const QString& relativePath) {
     }
     return current;
 }
+
+QString dlpStickPathNoCase(const QString& root, const QString& relativePath) {
+    QString path = root;
+    QStringList names = relativePath.split(QLatin1Char('/'));
+    names.removeAll(QString());
+    for (const QString& name : std::as_const(names)) {
+        const QString match = dlpFindPathNoCase(path, name);
+        path = match.isEmpty() ? QDir(path).filePath(name) : match;
+    }
+    return path;
+}
 // End of AI-generated text.
 
 DlpStickInfo dlpStickInfo(const QString& root) {
@@ -272,7 +283,8 @@ QString dlpBackupLibrary(const QString& stickRoot,
                                     "The time of the backup is not valid."),
                 pErrorMessage);
     }
-    const QString source = QDir(stickRoot).filePath(DeviceLibraryPlusDb::kRelativePath);
+    // The names on the stick can have any letter case.
+    const QString source = dlpStickPathNoCase(stickRoot, DeviceLibraryPlusDb::kRelativePath);
     const QFileInfo sourceInfo(source);
     if (!sourceInfo.isFile()) {
         return backupFailed(QCoreApplication::translate("DeviceLibraryPlus",
@@ -353,7 +365,8 @@ DlpRestoreResult dlpRestoreLibrary(const DlpStickInfo& info,
     }
     const QString backupFolder = deviceDir.filePath(stamp);
     const QString source = QDir(backupFolder).filePath(kLibraryFileName);
-    const QString target = QDir(info.root).filePath(DeviceLibraryPlusDb::kRelativePath);
+    // Replace the library with the letter case that it has on the stick.
+    const QString target = dlpStickPathNoCase(info.root, DeviceLibraryPlusDb::kRelativePath);
     const QString stickPath = QStringLiteral("/") + DeviceLibraryPlusDb::kRelativePath;
 
     // Step 2: copy the backup to a temporary file next to the library. The
@@ -424,7 +437,8 @@ int dlpMoveLeftoverFiles(const QString& stickRoot,
     if (isBlank(stickRoot) || isBlank(backupBaseDir) || !now.isValid()) {
         return 0;
     }
-    const QDir folder(QFileInfo(QDir(stickRoot).filePath(DeviceLibraryPlusDb::kRelativePath))
+    const QDir folder(
+            QFileInfo(dlpStickPathNoCase(stickRoot, DeviceLibraryPlusDb::kRelativePath))
                     .absolutePath());
     const QRegularExpression pattern = anchored(
             QStringLiteral("exportLibrary\\.db\\.[A-Za-z0-9]{6}|exportLibrary\\.db\\.tmp"));

@@ -33,6 +33,7 @@ using mixxx::rekordbox::dlpMoveLeftoverFiles;
 // AI-generated (Claude Code). Start of AI-generated text.
 using mixxx::rekordbox::DlpRestoreResult;
 using mixxx::rekordbox::dlpRestoreLibrary;
+using mixxx::rekordbox::dlpStickPathNoCase;
 using mixxx::rekordbox::DlpStickInfo;
 // End of AI-generated text.
 using mixxx::rekordbox::dlpRemoveAnlzLeftovers;
@@ -579,6 +580,63 @@ TEST_F(DeviceLibraryPlusStickTest, RestoreCopiesBackupBack) {
     EXPECT_EQ(QStringList{QStringLiteral("exportLibrary.db")},
             QDir(rekordboxFolder(stick.path())).entryList(QDir::Files | QDir::Hidden));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusStickTest, StickPathKeepsLetterCaseOfTheDisk) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QDir root(stick.path());
+    // Nothing on the disk: the names of the relative path.
+    EXPECT_EQ(root.filePath(DeviceLibraryPlusDb::kRelativePath),
+            dlpStickPathNoCase(stick.path(), DeviceLibraryPlusDb::kRelativePath));
+    // Only the first folder: its case from the disk, the other names as given.
+    ASSERT_TRUE(QDir().mkpath(root.filePath(QStringLiteral("pioneer"))));
+    EXPECT_EQ(root.filePath(QStringLiteral("pioneer/rekordbox/exportLibrary.db")),
+            dlpStickPathNoCase(stick.path(), DeviceLibraryPlusDb::kRelativePath));
+    // All names on the disk.
+    ASSERT_TRUE(writeFile(root.filePath(QStringLiteral("pioneer/ReKordBox/EXPORTLIBRARY.DB")),
+            "plus"));
+    EXPECT_EQ(root.filePath(QStringLiteral("pioneer/ReKordBox/EXPORTLIBRARY.DB")),
+            dlpStickPathNoCase(stick.path(), DeviceLibraryPlusDb::kRelativePath));
+}
+
+TEST_F(DeviceLibraryPlusStickTest, BackupAndRestoreUseLetterCaseOfTheStick) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    const QString folder = QDir(stick.path()).filePath(QStringLiteral("pioneer/ReKordBox"));
+    const QString library = QDir(folder).filePath(QStringLiteral("EXPORTLIBRARY.DB"));
+    const QByteArray original(3000, 'a');
+    ASSERT_TRUE(writeFile(library, original));
+    ASSERT_TRUE(writeFile(QDir(folder).filePath(QStringLiteral("exportLibrary.db.tmp")), "d"));
+
+    QString error;
+    const QDateTime backupTime(QDate(2026, 11, 2), QTime(13, 5, 9));
+    const QString copy =
+            dlpBackupLibrary(stick.path(), backups.path(), "Stick", backupTime, &error);
+    ASSERT_FALSE(copy.isEmpty()) << error.toStdString();
+    EXPECT_EQ(original, readFileBytes(copy));
+
+    // The DJ changes the library on the stick.
+    ASSERT_TRUE(writeFile(library, QByteArray(4000, 'b')));
+    const DlpRestoreResult result = dlpRestoreLibrary(
+            stick.path(), backups.path(), "Stick", QDateTime(QDate(2026, 11, 3), QTime(9, 0, 0)));
+    ASSERT_TRUE(result.ok) << result.errorMessage.toStdString();
+    EXPECT_EQ(original, readFileBytes(library));
+
+    // The leftover in the folder with the case of the stick is found.
+    EXPECT_EQ(1,
+            dlpMoveLeftoverFiles(stick.path(),
+                    backups.path(),
+                    "Stick",
+                    QDateTime(QDate(2026, 11, 3), QTime(9, 1, 0))));
+    // One library, with its name as it was: no second file in another case.
+    EXPECT_EQ(QStringList{QStringLiteral("EXPORTLIBRARY.DB")},
+            QDir(folder).entryList(QDir::Files | QDir::Hidden));
+    EXPECT_EQ(QStringList{QStringLiteral("pioneer")}, folderNames(stick.path()));
+}
+// End of AI-generated text.
 
 TEST_F(DeviceLibraryPlusStickTest, RestoreMakesBackupOfPresentLibrary) {
     QTemporaryDir stick;

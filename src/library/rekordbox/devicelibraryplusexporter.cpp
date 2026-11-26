@@ -516,7 +516,8 @@ bool DeviceLibraryPlusExporter::exportPlaylists(const QList<DlpExportPlaylist>& 
     return true;
 }
 
-bool DeviceLibraryPlusExporter::finish(QString* pErrorMessage) {
+bool DeviceLibraryPlusExporter::finish(
+        QString* pErrorMessage, const std::function<bool()>& allowCleanup) {
     if (m_offeredTrackCount > 0 && m_exportedContentIds.isEmpty()) {
         // Ruling R20: every track was skipped, and the stick has no row of
         // any of them. The library on the stick does not change.
@@ -534,6 +535,9 @@ bool DeviceLibraryPlusExporter::finish(QString* pErrorMessage) {
     if (!m_pDb->save(pErrorMessage)) {
         // Nothing is removed: the library on the stick uses the old files.
         return false;
+    }
+    if (allowCleanup && !allowCleanup()) {
+        return true;
     }
     // Rulings R17 and R18: the new library is on the stick. Remove the
     // replaced files that no row uses now. This never fails the export.

@@ -28,9 +28,16 @@ quint32 reference(const NamedStatement& query, int column, const IdMap& ids) {
     return query.columnIsNull(column) ? 0 : ids.value(query.columnInt(column));
 }
 
-quint32 number(const NamedStatement& query, int column) {
-    return static_cast<quint32>(std::clamp<qint64>(
-            query.columnInt(column), 0, std::numeric_limits<quint32>::max()));
+quint32 number(const NamedStatement& query,
+        int column,
+        bool* pClamped = nullptr,
+        quint32 max = std::numeric_limits<quint32>::max()) {
+    const qint64 value = query.columnInt(column);
+    const qint64 bounded = std::clamp<qint64>(value, 0, max);
+    if (pClamped && value != bounded) {
+        *pClamped = true;
+    }
+    return static_cast<quint32>(bounded);
 }
 
 class LibraryReader {
@@ -107,12 +114,15 @@ class LibraryReader {
 
 } // namespace
 
-std::optional<LegacyLibrary> legacyFromDlp(const DeviceLibraryPlusDb& db, QString* pError) {
+std::optional<LegacyLibrary> legacyFromDlp(
+        const DeviceLibraryPlusDb& db, QString* pError, int* pClampedTracks) {
     if (pError) {
         pError->clear();
     }
     const LibraryReader reader(db.handle(), pError);
     LegacyLibrary library;
+    int clampedTracks = 0;
+    constexpr quint32 kMax16 = std::numeric_limits<quint16>::max();
     IdMap artists, albums, genres, keys, labels, colors, artwork, tracks, playlists, histories;
 
     if (!reader.readNamed("SELECT artist_id, name FROM artist ORDER BY artist_id",
@@ -164,18 +174,25 @@ std::optional<LegacyLibrary> legacyFromDlp(const DeviceLibraryPlusDb& db, QStrin
                     track.keyId = reference(query, 9, keys);
                     track.colorId = reference(query, 10, colors);
                     track.artworkId = reference(query, 11, artwork);
-                    track.tempo = number(query, 12);
-                    track.duration = number(query, 13);
-                    track.rating = std::min(number(query, 14), 5u);
-                    track.year = number(query, 15);
-                    track.trackNumber = number(query, 16);
-                    track.discNumber = number(query, 17);
-                    track.playCount = number(query, 18);
-                    track.bitrate = number(query, 19);
-                    track.sampleRate = number(query, 20);
-                    track.sampleDepth = number(query, 21);
-                    track.fileSize = number(query, 22);
-                    track.fileType = number(query, 23);
+                    bool clamped = track.colorId > 8;
+                    if (clamped) {
+                        track.colorId = 0;
+                    }
+                    track.tempo = number(query, 12, &clamped);
+                    track.duration = number(query, 13, &clamped, kMax16);
+                    track.rating = number(query, 14, &clamped, 5);
+                    track.year = number(query, 15, &clamped, kMax16);
+                    track.trackNumber = number(query, 16, &clamped);
+                    track.discNumber = number(query, 17, &clamped, kMax16);
+                    track.playCount = number(query, 18, &clamped, kMax16);
+                    track.bitrate = number(query, 19, &clamped);
+                    track.sampleRate = number(query, 20, &clamped);
+                    track.sampleDepth = number(query, 21, &clamped, kMax16);
+                    track.fileSize = number(query, 22, &clamped);
+                    track.fileType = number(query, 23, &clamped, kMax16);
+                    if (clamped) {
+                        ++clampedTracks;
+                    }
                     track.filePath = query.columnText(24);
                     track.fileName = query.columnText(25);
                     track.analyzePath = query.columnText(26);
@@ -239,6 +256,9 @@ std::optional<LegacyLibrary> legacyFromDlp(const DeviceLibraryPlusDb& db, QStrin
                     tracks,
                     library.historyEntries)) {
         return std::nullopt;
+    }
+    if (pClampedTracks) {
+        *pClampedTracks = clampedTracks;
     }
     return library;
 }

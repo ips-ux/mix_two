@@ -67,6 +67,8 @@ struct DeviceLibraryPlusExportSummary {
     // AI-generated (Claude Code). Start of AI-generated text.
     /// Empty unless Device Library Plus succeeds and Device Library fails.
     QString legacyLibraryError;
+    int legacyClampedTracks = 0;
+    bool keptReplacedFiles = false;
     // End of AI-generated text.
 };
 

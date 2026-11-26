@@ -29,6 +29,40 @@ class LegacyFromDlpTest : public testing::Test {
     std::unique_ptr<DeviceLibraryPlusDb> m_pDb;
 };
 
+TEST_F(LegacyFromDlpTest, ClampsTrackValuesToLegacyFieldWidths) {
+    ASSERT_NO_FATAL_FAILURE(addRows(R"sql(
+        INSERT INTO content(content_id, title, masterDbId, masterContentId, path, fileName,
+            length, rating, releaseYear, trackNo, discNo, djPlayCount, bitrate,
+            samplingRate, bitDepth, fileSize, fileType)
+        VALUES (1, 'wide', 42, 1, '/Contents/wide.wav', 'wide.wav',
+            65536, 6, 65537, 65538, 65539, 65540, 65541, 65542, 65543, 4294967296, 65544),
+            (2, 'negative', 42, 2, '/Contents/negative.wav', 'negative.wav',
+            -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+            (3, 'in range', 42, 3, '/Contents/normal.wav', 'normal.wav',
+            65535, 5, 2026, 1, 2, 3, 4, 44100, 24, 100, 11);
+    )sql"));
+    QString error;
+    int clampedTracks = 0;
+    const auto model = legacyFromDlp(*m_pDb, &error, &clampedTracks);
+    ASSERT_TRUE(model) << qPrintable(error);
+    ASSERT_EQ(3, model->tracks.size());
+    EXPECT_EQ(2, clampedTracks);
+    const auto& track = model->tracks.first();
+    EXPECT_EQ(65535u, track.duration);
+    EXPECT_EQ(5u, track.rating);
+    EXPECT_EQ(65535u, track.year);
+    EXPECT_EQ(65538u, track.trackNumber);
+    EXPECT_EQ(65535u, track.discNumber);
+    EXPECT_EQ(65535u, track.playCount);
+    EXPECT_EQ(65541u, track.bitrate);
+    EXPECT_EQ(65542u, track.sampleRate);
+    EXPECT_EQ(65535u, track.sampleDepth);
+    EXPECT_EQ(4294967295u, track.fileSize);
+    EXPECT_EQ(65535u, track.fileType);
+    EXPECT_EQ(0u, model->tracks[1].duration);
+    EXPECT_EQ(65535u, model->tracks[2].duration);
+}
+
 TEST_F(LegacyFromDlpTest, MapsTracksAndMetadataFromBothWriters) {
     ASSERT_NO_FATAL_FAILURE(addRows(R"sql(
         INSERT INTO artist(artist_id, name) VALUES (4294967297, 'Artist'),

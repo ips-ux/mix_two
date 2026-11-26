@@ -415,6 +415,55 @@ TEST_F(DeviceLibraryPlusExportJobTest, LegacyFailureKeepsThePreviousFileAndPlusE
             folder.entryList(QDir::Files | QDir::Hidden, QDir::Name));
 }
 
+class LegacyReplacementTest : public DeviceLibraryPlusExportJobTest,
+                              public testing::WithParamInterface<int> {};
+
+TEST_P(LegacyReplacementTest, RemovesOldAnalysisOnlyAfterLegacyReplacement) {
+    auto pTrack = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
+    ASSERT_TRUE(pTrack);
+    storeWaveform(pTrack);
+    auto jobRequest = request();
+    jobRequest.writeLegacyLibrary = true;
+    const auto initial = runJob(jobRequest, false,
+            [](const rekordbox::LegacyLibrary&, QString*) { return QByteArray("old library"); });
+    ASSERT_EQ(1, initial.completedCount) << qPrintable(initial.failure);
+    ASSERT_TRUE(initial.summary.legacyLibraryError.isEmpty());
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    const auto before = pDb->listContents();
+    ASSERT_EQ(1, before.size());
+    pDb.reset();
+    const QString oldAnalysis = m_stick.path() + before.first().analysisDataFilePath;
+    ASSERT_TRUE(QFile::exists(oldAnalysis));
+
+    const bool legacySucceeds = GetParam() == 0;
+    jobRequest.writeLegacyLibrary = GetParam() != 2;
+    const auto outcome = runJob(jobRequest, false,
+            [&](const rekordbox::LegacyLibrary&, QString* pError) {
+                EXPECT_TRUE(QFile::exists(oldAnalysis));
+                if (legacySucceeds) {
+                    return QByteArray("new library");
+                }
+                *pError = QStringLiteral("Test writer cannot write the data.");
+                return QByteArray();
+            });
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_EQ(!legacySucceeds, QFile::exists(oldAnalysis));
+    EXPECT_EQ(!legacySucceeds, outcome.summary.keptReplacedFiles);
+    pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    const auto after = pDb->listContents();
+    ASSERT_EQ(1, after.size());
+    EXPECT_NE(before.first().analysisDataFilePath, after.first().analysisDataFilePath);
+    EXPECT_TRUE(QFile::exists(m_stick.path() + after.first().analysisDataFilePath));
+    QFile legacy(m_stick.filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
+    ASSERT_TRUE(legacy.open(QIODevice::ReadOnly));
+    EXPECT_EQ(QByteArray(legacySucceeds ? "new library" : "old library"), legacy.readAll());
+}
+
+INSTANTIATE_TEST_SUITE_P(DeviceLibraryPlus, LegacyReplacementTest, testing::Values(0, 1, 2));
+
 TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToTheExistingFolder) {
     const QDir root(m_stick.path());
     ASSERT_TRUE(root.mkpath(QStringLiteral("pIoNeEr/ReKoRdBoX")));
@@ -422,15 +471,37 @@ TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToTheExistingFolder) 
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     ASSERT_EQ(3, file.write("old"));
     file.close();
+
+    QString error;
+    QTemporaryDir seed;
+    ASSERT_TRUE(seed.isValid());
+    auto pDb = DeviceLibraryPlusDb::create(seed.path(), kDeviceName, kMasterDbId, &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    rekordbox::DlpContent previous;
+    previous.title = QStringLiteral("Previous track");
+    previous.path = QStringLiteral("/Contents/previous.mp3");
+    previous.playCount = 65536;
+    previous.masterDbId = kMasterDbId + 1;
+    previous.masterContentId = 1;
+    ASSERT_GT(pDb->addContent(previous), 0);
+    ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
+    pDb.reset();
+    const QString mixedPlus = root.filePath(QStringLiteral("pIoNeEr/ReKoRdBoX/ExPoRtLiBrArY.Db"));
+    ASSERT_TRUE(QFile::copy(seed.filePath(DeviceLibraryPlusDb::kRelativePath), mixedPlus));
+
     auto jobRequest = request();
     jobRequest.writeLegacyLibrary = true;
     const auto pTrack = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
     ASSERT_TRUE(pTrack);
     storeWaveform(pTrack);
-    const QByteArray bytes("legacy data", 11);
+    const QByteArray bytes("legacy\0" "data", 11);
     const Outcome outcome = runJob(jobRequest, false,
             [&bytes](const rekordbox::LegacyLibrary& library, QString*) {
-                EXPECT_EQ(1, library.tracks.size());
+                EXPECT_EQ(2, library.tracks.size());
+                if (!library.tracks.isEmpty()) {
+                    EXPECT_EQ(QStringLiteral("Previous track"), library.tracks.first().title);
+                    EXPECT_EQ(65535u, library.tracks.first().playCount);
+                }
                 EXPECT_NE(QThread::currentThread(), QCoreApplication::instance()->thread());
                 return bytes;
             });
@@ -438,6 +509,13 @@ TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToTheExistingFolder) 
     EXPECT_TRUE(outcome.summary.legacyLibraryError.isEmpty());
     ASSERT_TRUE(file.open(QIODevice::ReadOnly));
     EXPECT_EQ(bytes, file.readAll());
+    EXPECT_EQ(1, outcome.summary.legacyClampedTracks);
+    EXPECT_FALSE(root.entryList(QDir::Dirs).contains(QStringLiteral("PIONEER")));
+    EXPECT_EQ((QStringList{QStringLiteral("ExPoRt.PdB"), QStringLiteral("ExPoRtLiBrArY.Db")}),
+            QFileInfo(mixedPlus).dir().entryList(QDir::Files, QDir::Name));
+    pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    EXPECT_EQ(2, pDb->listContents().size());
 }
 
 TEST_F(DeviceLibraryPlusExportJobTest, WritesTheLegacyBytesToANewStick) {

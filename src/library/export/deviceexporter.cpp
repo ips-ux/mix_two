@@ -280,6 +280,15 @@ void DeviceExporter::beginExport(QSharedPointer<DeviceLibraryPlusExportRequest> 
                             tr("Mix Two did not write the Device Library. Reason: %1")
                                     .arg(summary.legacyLibraryError);
                 }
+                if (summary.keptReplacedFiles) {
+                    text += QStringLiteral("\n\n") + tr("Mix Two keeps the replaced files on the stick.");
+                }
+                if (summary.legacyLibraryError.isEmpty() && summary.legacyClampedTracks > 0) {
+                    text += QStringLiteral("\n\n") +
+                            tr("Mix Two adjusts values for %n tracks to fit the Device Library.",
+                                    nullptr,
+                                    summary.legacyClampedTracks);
+                }
                 if (!summary.skipped.isEmpty()) {
                     text += QStringLiteral("\n\n") +
                             tr("Mix Two did not export %n tracks.", nullptr, summary.skipped.size());

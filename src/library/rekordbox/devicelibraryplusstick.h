@@ -28,6 +28,15 @@ constexpr qint64 kFat32MaxFileSize = 4294967295;
 QString dlpFindPathNoCase(const QString& root, const QString& relativePath);
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// The path of `relativePath` below `root` for a read or a write: each name
+/// that is on the disk with a different letter case gets the case of the
+/// disk, and each name that is not on the disk keeps the case of
+/// `relativePath`. Thus a write replaces `pioneer/RekordBox/exportlibrary.db`
+/// and does not make a second file next to it on a case-sensitive stick.
+QString dlpStickPathNoCase(const QString& root, const QString& relativePath);
+// End of AI-generated text.
+
 /// The file system of a stick, as far as the players are concerned.
 enum class DlpFileSystem {
     Fat32,

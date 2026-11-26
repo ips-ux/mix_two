@@ -7,6 +7,7 @@
 #include <QString>
 #include <QStringList>
 #include <QtGlobal>
+#include <functional>
 #include <limits>
 #include <optional>
 
@@ -156,7 +157,11 @@ class DeviceLibraryPlusExporter {
     /// has an error, when save() fails, or when exportTrack() had tracks and
     /// none of them has a row (usableTrackCount() is 0; Ruling R20): then the
     /// library on the stick does not change.
-    bool finish(QString* pErrorMessage);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// If supplied, allowCleanup runs after a good save and before removal.
+    /// Returning false keeps the replaced files without failing finish().
+    bool finish(QString* pErrorMessage, const std::function<bool()>& allowCleanup = {});
+    // End of AI-generated text.
 
     /// The number of playlists that exportPlaylists() wrote, crates included
     /// (the folder `Crates` is not counted).

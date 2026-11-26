@@ -92,9 +92,10 @@ bool makeLegacyFolder(const QDir& parent, const QString& name) {
 QString writeLegacyLibrary(const DeviceLibraryPlusDb& db,
         const QString& root,
         const QString& path,
-        const DeviceLibraryPlusExportJob::LegacyWriter& writer) {
+        const DeviceLibraryPlusExportJob::LegacyWriter& writer,
+        int* pClampedTracks) {
     QString error;
-    const auto library = rekordbox::legacyFromDlp(db, &error);
+    const auto library = rekordbox::legacyFromDlp(db, &error, pClampedTracks);
     if (!library) {
         return error;
     }
@@ -387,8 +388,10 @@ void DeviceLibraryPlusExportJob::run() {
     const int trackCount = static_cast<int>(m_trackEntries.size());
     const int crateCount = static_cast<int>(m_crateIds.size());
     const int playlistCount = static_cast<int>(m_playlistIdsAndNames.size());
+    // AI-generated (Claude Code). Start of AI-generated text.
     // One count for each track, playlist and crate, and one each for the
     // checks, the opening of the library and the writing of each format.
+    // End of AI-generated text.
     emit jobMaximum(trackCount + crateCount + playlistCount + 3 +
             (m_request.writeLegacyLibrary ? 1 : 0));
     int progress = 0;
@@ -584,19 +587,24 @@ void DeviceLibraryPlusExportJob::run() {
         emit failed(rekordbox::dlpMessageNoTrackExported());
         return;
     }
-    const QString legacyPath = m_request.writeLegacyLibrary
-            ? legacyPathForStick(m_request.stickRoot)
-            : QString();
-    if (!exporter.finish(&error)) {
+    const QString legacyPath = legacyPathForStick(m_request.stickRoot);
+    if (!exporter.finish(&error, [&] {
+            emit jobProgress(++progress);
+            if (m_request.writeLegacyLibrary) {
+                summary.legacyLibraryError = writeLegacyLibrary(*pDb,
+                        m_request.stickRoot,
+                        legacyPath,
+                        m_legacyWriter,
+                        &summary.legacyClampedTracks);
+                emit jobProgress(++progress);
+                summary.keptReplacedFiles = !summary.legacyLibraryError.isEmpty();
+            } else {
+                summary.keptReplacedFiles = QFileInfo(legacyPath).isFile();
+            }
+            return !summary.keptReplacedFiles;
+        })) {
         emit failed(messageOrDefault(error));
         return;
-    }
-    emit jobProgress(++progress);
-
-    if (m_request.writeLegacyLibrary) {
-        summary.legacyLibraryError = writeLegacyLibrary(
-                *pDb, m_request.stickRoot, legacyPath, m_legacyWriter);
-        emit jobProgress(++progress);
     }
 
     summary.playlistsExported = exporter.playlistCount();

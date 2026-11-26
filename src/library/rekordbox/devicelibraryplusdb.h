@@ -277,7 +277,7 @@ class DeviceLibraryPlusDb {
   private:
     friend class DeviceLibraryPlusDbTest;
     friend class LegacyFromDlpTest;
-    friend std::optional<LegacyLibrary> legacyFromDlp(const DeviceLibraryPlusDb&, QString*);
+    friend std::optional<LegacyLibrary> legacyFromDlp(const DeviceLibraryPlusDb&, QString*, int*);
 
     explicit DeviceLibraryPlusDb(const QString& stickRoot);
 
@@ -286,7 +286,7 @@ class DeviceLibraryPlusDb {
     bool buildNewLibrary(const QString& deviceName, qint64 masterDbId, QString* pErrorMessage);
     bool checkExistingLibrary(QString* pErrorMessage);
     /// Checks the stick just before save() writes to it.
-    bool checkStickBeforeWrite(QString* pErrorMessage) const;
+    bool checkStickBeforeWrite(const QString& stickPath, QString* pErrorMessage) const;
 
     /// The IDs of the rows of a table that has a name: filled from the table
     /// at the first use. Only the first row for a name is in the cache.

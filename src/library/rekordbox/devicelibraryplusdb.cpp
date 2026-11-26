@@ -16,6 +16,7 @@
 #include "library/rekordbox/devicelibrarypluskey.h"
 #include "library/rekordbox/devicelibraryplusdbsql.h"
 #include "library/rekordbox/devicelibraryplusschema.h"
+#include "library/rekordbox/devicelibraryplusstick.h"
 #include "library/rekordbox/sqlciphercodec.h"
 
 namespace mixxx {
@@ -33,7 +34,7 @@ const QString kDbVersion = QStringLiteral("1000");
 
 /// The place of the library file on a stick.
 QString stickPathOf(const QString& stickRoot) {
-    return QDir(stickRoot).filePath(DeviceLibraryPlusDb::kRelativePath);
+    return dlpStickPathNoCase(stickRoot, DeviceLibraryPlusDb::kRelativePath);
 }
 
 /// True if the path is absolute. On Windows, "E:" and "E:folder" are relative
@@ -71,10 +72,9 @@ QByteArray sha256Of(const QByteArray& data) {
 
 /// Makes the folders of the library file below the stick folder, which must
 /// exist. It never makes the stick folder: QDir::mkdir() does not make parents.
-bool makeLibraryFolders(const QString& stickRoot) {
-    const QStringList names =
-            QFileInfo(DeviceLibraryPlusDb::kRelativePath).path().split(QLatin1Char('/'));
+bool makeLibraryFolders(const QString& stickRoot, const QString& folder) {
     QDir dir(stickRoot);
+    const QStringList names = dir.relativeFilePath(folder).split(QLatin1Char('/'));
     for (const QString& name : names) {
         const QString path = dir.filePath(name);
         // Another program can make the folder at the same time.
@@ -520,12 +520,12 @@ bool DeviceLibraryPlusDb::save(QString* pErrorMessage) {
 
     // The encryption takes time, so the stick is checked again here, just
     // before the write.
-    if (!checkStickBeforeWrite(pErrorMessage)) {
+    const QString stickPath = stickPathOf(m_stickRoot);
+    if (!checkStickBeforeWrite(stickPath, pErrorMessage)) {
         return false;
     }
-    const QString stickPath = stickPathOf(m_stickRoot);
     const QString folder = QFileInfo(stickPath).absolutePath();
-    if (!makeLibraryFolders(m_stickRoot)) {
+    if (!makeLibraryFolders(m_stickRoot, folder)) {
         setError(pErrorMessage, writeError(folderError(folder)));
         return false;
     }
@@ -552,13 +552,13 @@ bool DeviceLibraryPlusDb::save(QString* pErrorMessage) {
     return true;
 }
 
-bool DeviceLibraryPlusDb::checkStickBeforeWrite(QString* pErrorMessage) const {
+bool DeviceLibraryPlusDb::checkStickBeforeWrite(
+        const QString& stickPath, QString* pErrorMessage) const {
     // A removed stick must not come back as a folder on the disk of the computer.
     if (!isStickRootAvailable(m_stickRoot)) {
         setError(pErrorMessage, stickRootError(m_stickRoot));
         return false;
     }
-    const QString stickPath = stickPathOf(m_stickRoot);
     if (hasPendingWal(stickPath)) {
         setError(pErrorMessage, incompleteError());
         return false;
