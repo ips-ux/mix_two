@@ -1,6 +1,7 @@
 #include "library/export/devicelibraryplusexportjob.h"
 
 #include <gtest/gtest.h>
+#include <rekordbox_pdb.h>
 
 #include <QCheckBox>
 #include <QCoreApplication>
@@ -8,10 +9,14 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QMap>
 #include <QSharedPointer>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QtEndian>
+#include <cstdio>
+#include <sstream>
 #include <utility>
 
 #include "library/dao/analysisdao.h"
@@ -640,6 +645,248 @@ TEST_F(DeviceLibraryPlusExportJobTest, DialogSelectsBothFormatsByDefault) {
     EXPECT_TRUE(dialog.makeRequest(m_stick.path())->writeLegacyLibrary);
     pLegacy->setChecked(false);
     EXPECT_FALSE(dialog.makeRequest(m_stick.path())->writeLegacyLibrary);
+}
+
+namespace {
+
+using Pdb = rekordbox_pdb_t;
+
+QString pdbText(Pdb::device_sql_string_t* pString) {
+    switch (pString->length_and_kind()) {
+    case 0x40:
+        return QString::fromStdString(
+                static_cast<Pdb::device_sql_long_ascii_t*>(pString->body())->text());
+    case 0x90: {
+        // Kaitai gives the UTF-16LE bytes without conversion.
+        const std::string payload =
+                static_cast<Pdb::device_sql_long_utf16le_t*>(pString->body())->text();
+        QString result;
+        for (size_t i = 0; i + 1 < payload.size(); i += 2) {
+            result.append(QChar(qFromLittleEndian<quint16>(payload.data() + i)));
+        }
+        return result;
+    }
+    default:
+        return QString::fromStdString(
+                static_cast<Pdb::device_sql_short_ascii_t*>(pString->body())->text());
+    }
+}
+
+/// Calls the visitor for each present row of a table of the Kaitai model,
+/// along the page chain from the first page to the last page.
+template<typename Visitor>
+bool visitPdbRows(Pdb& db, unsigned type, qint64 fileSize, Visitor visitor) {
+    Pdb::table_t* pTable = db.tables()->at(type);
+    Pdb::page_ref_t* pRef = pTable->first_page();
+    const qint64 pageCount = fileSize / db.len_page();
+    for (qint64 steps = 0; steps < pageCount; ++steps) {
+        if (pRef->index() == 0 || pRef->index() >= pageCount) {
+            return false;
+        }
+        Pdb::page_t* pPage = pRef->body();
+        if (pPage->is_data_page()) {
+            for (auto* pGroup : *pPage->row_groups()) {
+                for (auto* pRow : *pGroup->rows()) {
+                    if (pRow->present()) {
+                        visitor(pRow);
+                    }
+                }
+            }
+        }
+        if (pRef->index() == pTable->last_page()->index()) {
+            return true;
+        }
+        pRef = pPage->next_page();
+    }
+    return false;
+}
+
+} // namespace
+
+TEST_F(DeviceLibraryPlusExportJobTest, WritesBothFormatsToSampleStick) {
+    // For the independent readers of both libraries:
+    //   MIXTWO_DLP_EXPORT_SAMPLE_DIR=<empty folder> mixxx-test
+    //       --gtest_filter=DeviceLibraryPlusExportJobTest.WritesBothFormatsToSampleStick
+    // The folder must be empty or missing. The job writes the stick with the
+    // request that the export dialog makes by default.
+    const QString sampleDir = qEnvironmentVariable("MIXTWO_DLP_EXPORT_SAMPLE_DIR");
+    if (sampleDir.isEmpty()) {
+        GTEST_SKIP() << "MIXTWO_DLP_EXPORT_SAMPLE_DIR is not set.";
+    }
+    ASSERT_TRUE(QDir().mkpath(sampleDir));
+    if (!QDir(sampleDir).isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden)) {
+        FAIL() << "MIXTWO_DLP_EXPORT_SAMPLE_DIR is not empty. Use an empty folder.";
+    }
+
+    const QList<QPair<QString, QString>> files = {
+            {QStringLiteral("artist.mp3"), QStringLiteral("Sample One")},
+            {QStringLiteral("all.mp3"), QStringLiteral("Sample Two")},
+            {QString::fromUtf8("cover-test-\xc3\xb8\xc3\xa9~\xc5\x82\xe2\x82\xac\xcb\x9a.flac"),
+                    QString::fromUtf8("Sample Three \xe6\x97\xa5")},
+            {QString::fromUtf8(
+                     "cover-test-\xc3\xb8\xc3\xa9~\xc5\x82\xe2\x82\xac\xcb\x9a-jpg.mp3"),
+                    QStringLiteral("Sample Four")},
+    };
+    QList<TrackPointer> tracks;
+    for (int i = 0; i < files.size(); ++i) {
+        TrackPointer pTrack = addTrack(files[i].first, QStringLiteral("f%1").arg(i));
+        ASSERT_TRUE(pTrack);
+        pTrack->setTitle(files[i].second);
+        pTrack->setArtist(QStringLiteral("Sample Artist"));
+        storeWaveform(pTrack);
+        tracks.append(pTrack);
+    }
+    PlaylistDAO& playlists = internalCollection()->getPlaylistDAO();
+    const int playlistId = playlists.createPlaylist(QStringLiteral("Sample Playlist"));
+    ASSERT_GE(playlistId, 0);
+    ASSERT_TRUE(playlists.appendTracksToPlaylist(
+            {tracks[3]->getId(), tracks[0]->getId(), tracks[2]->getId()}, playlistId));
+    Crate crate;
+    crate.setName(QStringLiteral("Sample Crate"));
+    CrateId crateId;
+    ASSERT_TRUE(internalCollection()->insertCrate(crate, &crateId));
+    ASSERT_TRUE(internalCollection()->addCrateTracks(
+            crateId, {tracks[1]->getId(), tracks[2]->getId()}));
+
+    // The request of the dialog with its default choices, completed as the
+    // device exporter does.
+    DlgDeviceExport dialog(nullptr, config(), trackCollectionManager());
+    const auto pRequest = dialog.makeRequest(sampleDir);
+    ASSERT_TRUE(pRequest->writeLegacyLibrary);
+    pRequest->deviceName = kDeviceName;
+    pRequest->backupBaseDir = m_backups.path();
+    pRequest->masterDbId = kMasterDbId;
+    DeviceLibraryPlusExportJob job(nullptr, trackCollectionManager(), *pRequest);
+    const Outcome outcome = runJob(job);
+    ASSERT_TRUE(outcome.finished);
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_TRUE(outcome.summary.legacyLibraryError.isEmpty())
+            << qPrintable(outcome.summary.legacyLibraryError);
+    EXPECT_EQ(4, outcome.summary.tracksExported)
+            << qPrintable(outcome.summary.skipped.join('\n'));
+    std::printf("job: %d tracks, %d playlists, %d skipped\n",
+            outcome.summary.tracksExported,
+            outcome.summary.playlistsExported,
+            static_cast<int>(outcome.summary.skipped.size()));
+
+    // Device Library Plus, through Mix Two's SQLCipher reader.
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::open(sampleDir, &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    // The two libraries are compared by track ID and file path on the stick.
+    QMap<qint64, QString> plusPaths;
+    for (const DlpContentRef& row : pDb->listContents()) {
+        plusPaths.insert(row.id, row.path);
+    }
+    QMap<QString, QStringList> plusPlaylists;
+    QStringList plusFolders;
+    for (const auto& playlist : pDb->listPlaylists()) {
+        if (playlist.isFolder) {
+            plusFolders.append(playlist.name);
+            continue;
+        }
+        QStringList titles;
+        for (const qint64 contentId : pDb->listPlaylistContentIds(playlist.id)) {
+            titles.append(plusPaths.value(contentId, QStringLiteral("?")));
+        }
+        plusPlaylists.insert(playlist.name, titles);
+    }
+    pDb.reset();
+
+    // Device Library, through the bundled Kaitai reader.
+    QFile pdbFile(QDir(sampleDir).filePath(QStringLiteral("PIONEER/rekordbox/export.pdb")));
+    ASSERT_TRUE(pdbFile.open(QIODevice::ReadOnly));
+    const QByteArray bytes = pdbFile.readAll();
+    std::istringstream input(bytes.toStdString());
+    kaitai::kstream stream(&input);
+    Pdb pdb(&stream);
+    QMap<qint64, QString> legacyPaths;
+    QMap<QString, QString> titleOfPath;
+    ASSERT_TRUE(visitPdbRows(pdb, Pdb::PAGE_TYPE_TRACKS, bytes.size(), [&](Pdb::row_ref_t* pRow) {
+        auto* pTrack = static_cast<Pdb::track_row_t*>(pRow->body());
+        const QString path = pdbText(pTrack->file_path());
+        legacyPaths.insert(pTrack->id(), path);
+        titleOfPath.insert(path, pdbText(pTrack->title()));
+        std::printf("legacy title %u: %s\n",
+                pTrack->id(),
+                pdbText(pTrack->title()).toUtf8().constData());
+    }));
+    QMap<qint64, QString> legacyNames;
+    QStringList legacyFolders;
+    ASSERT_TRUE(visitPdbRows(pdb,
+            Pdb::PAGE_TYPE_PLAYLIST_TREE,
+            bytes.size(),
+            [&](Pdb::row_ref_t* pRow) {
+                auto* pNode = static_cast<Pdb::playlist_tree_row_t*>(pRow->body());
+                if (pNode->is_folder()) {
+                    legacyFolders.append(pdbText(pNode->name()));
+                } else {
+                    legacyNames.insert(pNode->id(), pdbText(pNode->name()));
+                }
+            }));
+    QMap<qint64, QMap<quint32, qint64>> legacyEntries;
+    ASSERT_TRUE(visitPdbRows(pdb,
+            Pdb::PAGE_TYPE_PLAYLIST_ENTRIES,
+            bytes.size(),
+            [&](Pdb::row_ref_t* pRow) {
+                auto* pEntry = static_cast<Pdb::playlist_entry_row_t*>(pRow->body());
+                legacyEntries[pEntry->playlist_id()].insert(
+                        pEntry->entry_index(), pEntry->track_id());
+            }));
+    QMap<QString, QStringList> legacyPlaylists;
+    for (auto it = legacyNames.cbegin(); it != legacyNames.cend(); ++it) {
+        QStringList titles;
+        for (const qint64 trackId : legacyEntries.value(it.key())) {
+            titles.append(legacyPaths.value(trackId, QStringLiteral("?")));
+        }
+        legacyPlaylists.insert(it.value(), titles);
+    }
+
+    for (auto it = plusPaths.cbegin(); it != plusPaths.cend(); ++it) {
+        std::printf("plus track %lld: %s\n",
+                static_cast<long long>(it.key()),
+                it.value().toUtf8().constData());
+    }
+    for (auto it = legacyPaths.cbegin(); it != legacyPaths.cend(); ++it) {
+        std::printf("legacy track %lld: %s\n",
+                static_cast<long long>(it.key()),
+                it.value().toUtf8().constData());
+    }
+    std::printf("plus folders: %s\nlegacy folders: %s\n",
+            plusFolders.join(", ").toUtf8().constData(),
+            legacyFolders.join(", ").toUtf8().constData());
+    for (auto it = plusPlaylists.cbegin(); it != plusPlaylists.cend(); ++it) {
+        std::printf("plus playlist %s: %s\n",
+                it.key().toUtf8().constData(),
+                it.value().join(" | ").toUtf8().constData());
+    }
+    for (auto it = legacyPlaylists.cbegin(); it != legacyPlaylists.cend(); ++it) {
+        std::printf("legacy playlist %s: %s\n",
+                it.key().toUtf8().constData(),
+                it.value().join(" | ").toUtf8().constData());
+    }
+    std::fflush(stdout);
+
+    EXPECT_EQ(4, plusPaths.size());
+    EXPECT_EQ(plusPaths, legacyPaths);
+    plusFolders.sort();
+    legacyFolders.sort();
+    EXPECT_EQ(plusFolders, legacyFolders);
+    EXPECT_EQ(plusPlaylists, legacyPlaylists);
+    const auto titles = [&titleOfPath](const QStringList& paths) {
+        QStringList result;
+        for (const QString& path : paths) {
+            result.append(titleOfPath.value(path));
+        }
+        return result;
+    };
+    EXPECT_EQ((QStringList{QStringLiteral("Sample Four"),
+                      QStringLiteral("Sample One"),
+                      QString::fromUtf8("Sample Three \xe6\x97\xa5")}),
+            titles(plusPlaylists.value(QStringLiteral("Sample Playlist"))));
+    EXPECT_EQ((QStringList{QStringLiteral("Sample Two"),
+                      QString::fromUtf8("Sample Three \xe6\x97\xa5")}),
+            titles(plusPlaylists.value(QStringLiteral("Sample Crate"))));
 }
 // End of AI-generated text.
 
