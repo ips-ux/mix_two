@@ -1479,6 +1479,7 @@ add_library(
   src/library/export/devicelibraryplusexportjob.cpp
   src/library/export/dlgdeviceexport.cpp
   src/library/export/legacystickflow.cpp
+  src/library/export/legacystickdialogs.cpp
   src/library/export/dlgtrackexport.ui
   src/library/export/trackexportdlg.cpp
   src/library/export/trackexportwizard.cpp

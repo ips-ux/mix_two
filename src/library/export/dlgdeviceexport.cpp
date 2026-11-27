@@ -19,6 +19,7 @@
 #include <QVBoxLayout>
 
 #include "library/export/devicelibraryplusexportrequest.h"
+#include "library/export/legacystickdialogs.h"
 #include "library/export/trackselectionlists.h"
 #include "library/rekordbox/devicelibraryplusstick.h"
 #include "library/trackcollection.h"
@@ -344,8 +345,10 @@ void DlgDeviceExport::updateStickInfo() {
     m_pStickWarningIcon->setVisible(!fileSystemText.isEmpty());
     if (info.hasLegacyLibrary) {
         if (m_pLegacyCheckBox->isChecked() && !info.hasPlusLibrary) {
-            lines << tr("This stick has only a Device Library. The new Device Library does not "
-                        "contain tracks from the old one.");
+            // AI-generated (Claude Code). Start of AI-generated text.
+            lines << tr("This stick has only the older device library. When you push Export, "
+                        "Mix Two can update the stick with the same tracks and playlists.");
+            // End of AI-generated text.
         } else if (m_pLegacyCheckBox->isChecked()) {
             lines << tr("Mix Two uses Device Library Plus to replace the Device Library.");
         } else {
@@ -385,11 +388,21 @@ void DlgDeviceExport::exportRequested() {
     }
 
     // Read the stick again: it can be different from the time of the choice.
-    const rekordbox::DlpStickInfo info = rekordbox::dlpStickInfo(root);
+    rekordbox::DlpStickInfo info = rekordbox::dlpStickInfo(root);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // A stick with only the older library: offer the update first, so that
+    // the export adds to a library with the tracks of the stick.
+    bool updatedNow = false;
+    if (isLegacyOnlyStick(info.hasLegacyLibrary, info.hasPlusLibrary)) {
+        const LegacyStickFlowOutcome outcome = runLegacyStickUpdate(this, m_pConfig, root);
+        updatedNow = outcome.choices.update;
+        info = rekordbox::dlpStickInfo(root);
+    }
+    // End of AI-generated text.
     const QString fileSystemText = fileSystemWarning(info);
     const bool replacesLegacyOnly =
             info.hasLegacyLibrary && !info.hasPlusLibrary && m_pLegacyCheckBox->isChecked();
-    if (info.hasPlusLibrary || replacesLegacyOnly || !fileSystemText.isEmpty()) {
+    if ((info.hasPlusLibrary && !updatedNow) || replacesLegacyOnly || !fileSystemText.isEmpty()) {
         QString question;
         if (!fileSystemText.isEmpty()) {
             question = fileSystemText + QStringLiteral("\n\n");

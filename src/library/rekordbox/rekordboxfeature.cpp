@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QMap>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QString>
 #include <QStringList>
@@ -28,6 +29,7 @@
 #include "library/dao/trackschema.h"
 #include "library/library.h"
 #include "library/queryutil.h"
+#include "library/export/legacystickdialogs.h"
 #include "library/rekordbox/devicelibraryplusdb.h"
 #include "library/rekordbox/devicelibraryplusmapping.h"
 #include "library/rekordbox/devicelibraryplusstick.h"
@@ -1719,6 +1721,11 @@ void RekordboxFeature::probeVolume(const QString& root, int retriesLeft) {
             removeDevice(root);
             return;
         }
+        // AI-generated (Claude Code). Start of AI-generated text.
+        if (mixxx::isLegacyOnlyStick(formats.hasLegacy(), formats.hasDeviceLibraryPlus())) {
+            offerLegacyStickUpdate(root);
+        }
+        // End of AI-generated text.
         if (deviceIndex(root).isValid()) {
             return;
         }
@@ -1752,6 +1759,9 @@ void RekordboxFeature::removeVolume(const QString& root) {
     }
     m_formats.remove(root);
     m_plusReadErrors.remove(root);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_legacyUpdateOffers.remove(root);
+    // End of AI-generated text.
     removeDevice(root);
 }
 
@@ -2209,5 +2219,68 @@ void RekordboxFeature::showPlusReadError(const QString& root, const QString& rea
     pBox->setAttribute(Qt::WA_DeleteOnClose);
     pBox->setModal(false);
     pBox->show();
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void RekordboxFeature::offerLegacyStickUpdate(const QString& root) {
+    // One notice for each stick while it stays connected.
+    if (m_legacyUpdateOffers.contains(root) || !m_pLibraryWidget) {
+        return;
+    }
+    m_legacyUpdateOffers.insert(root);
+    if (mixxx::legacyStickUpdateStopAsking(m_pConfig)) {
+        // Later: the event loop is free again, and the probe job is gone.
+        QTimer::singleShot(0, this, [this, root] { updateLegacyStick(root); });
+        return;
+    }
+    // Not modal: the tracks of the stick stay usable.
+    auto* pBox = new QMessageBox(QMessageBox::Information,
+            tr("Rekordbox"),
+            tr("The stick %1 has only the older device library (export.pdb). Mix Two can "
+               "update the stick to Device Library Plus with the same tracks and playlists.")
+                    .arg(root),
+            QMessageBox::Close,
+            m_pLibraryWidget);
+    QPushButton* pUpdate = pBox->addButton(tr("Update stick..."), QMessageBox::ActionRole);
+    pBox->setAttribute(Qt::WA_DeleteOnClose);
+    pBox->setModal(false);
+    connect(pUpdate, &QPushButton::clicked, this, [this, root] {
+        // Start after the notice closed.
+        QTimer::singleShot(0, this, [this, root] { updateLegacyStick(root); });
+    });
+    pBox->show();
+}
+
+void RekordboxFeature::updateLegacyStick(const QString& root) {
+    // The stick can be gone, or another program can have changed it.
+    if (!m_formats.contains(root)) {
+        return;
+    }
+    const auto formats = mixxx::rekordbox::detectStickFormats(root);
+    if (!mixxx::isLegacyOnlyStick(formats.hasLegacy(), formats.hasDeviceLibraryPlus())) {
+        return;
+    }
+    const mixxx::LegacyStickFlowOutcome outcome =
+            mixxx::runLegacyStickUpdate(m_pLibraryWidget, m_pConfig, root);
+    if (outcome.applyCount == 0) {
+        return;
+    }
+    if (mixxx::legacyStickUpdateStopAsking(m_pConfig) && outcome.lastResult.ok &&
+            m_pLibraryWidget) {
+        // An update with no question gets a short note.
+        auto* pNote = new QMessageBox(QMessageBox::Information,
+                tr("Rekordbox"),
+                tr("Mix Two updated the stick %1 to Device Library Plus.").arg(root),
+                QMessageBox::Ok,
+                m_pLibraryWidget);
+        pNote->setAttribute(Qt::WA_DeleteOnClose);
+        pNote->setModal(false);
+        pNote->show();
+    }
+    // Read the stick again, so that the view shows the library on it now.
+    removeVolume(root);
+    m_legacyUpdateOffers.insert(root);
+    probeVolume(root, 0);
 }
 // End of AI-generated text.

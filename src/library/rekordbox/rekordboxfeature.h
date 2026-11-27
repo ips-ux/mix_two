@@ -126,6 +126,12 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
             const QString& label);
     /// Reads the stick at `root` again, after it changed.
     void reloadStick(const QString& root);
+    /// Tells the user once for each connection that a stick has only the
+    /// older device library, with a button that starts the update. With
+    /// "Stop asking in the future" set, it updates the stick at once.
+    void offerLegacyStickUpdate(const QString& root);
+    /// Runs the update questions, then reads the stick again.
+    void updateLegacyStick(const QString& root);
     // End of AI-generated text.
 
     mixxx::rekordbox::StickWatcher m_stickWatcher;
@@ -144,6 +150,8 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     std::shared_ptr<QString> m_importPlusError;
     /// For each connected stick: the reason that showPlusReadError() showed.
     QHash<QString, QString> m_plusReadErrors;
+    /// The connected sticks that got the notice of offerLegacyStickUpdate().
+    QSet<QString> m_legacyUpdateOffers;
     QPointer<QWidget> m_pLibraryWidget;
     parented_ptr<QAction> m_pDeleteFromStickAction;
     /// True while a delete from a stick runs. Only one runs at a time.

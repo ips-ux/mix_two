@@ -22,6 +22,20 @@ Writing rules for this file (ASD-STE100):
 ## Unreleased (2026-10-27)
 
 <!-- AI-generated (Claude Code). Start of AI-generated text. -->
+### Update a stick with only the older device library
+
+Mix Two can give a stick with only the older device library (export.pdb) a
+Device Library Plus. The tracks, playlists, folders and histories stay the
+same. When you connect such a stick, a notice shows. Push "Update stick..."
+to start. The export dialog asks the same questions when you push Export.
+
+Mix Two copies export.pdb and exportExt.pdb to a backup on this computer
+first. Then you choose to keep or remove the older device library. If you
+remove it, the stick loses the My Tag data of exportExt.pdb. Push Back in the
+summary to change your choices. Mix Two then changes the stick again.
+"Stop asking in the future" makes Mix Two update each such stick with no
+question.
+
 ### Delete a playlist from a stick
 
 Right-click a playlist of a stick in the rekordbox list, then select "Delete
