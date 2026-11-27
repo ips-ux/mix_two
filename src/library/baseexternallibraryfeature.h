@@ -12,6 +12,8 @@
 class BaseSqlTableModel;
 class TrackCollection;
 
+class QMenu;
+
 class BaseExternalLibraryFeature : public LibraryFeature {
     Q_OBJECT
   public:
@@ -42,6 +44,14 @@ class BaseExternalLibraryFeature : public LibraryFeature {
     void slotImportAsMixxxCrate();
 
   protected:
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Mix Two: adds the items of a subclass at the end of the menu of a
+    /// child item, before the menu shows.
+    virtual void addMenuActions(QMenu* pMenu, const QModelIndex& index) {
+        Q_UNUSED(pMenu);
+        Q_UNUSED(index);
+    }
+    // End of AI-generated text.
     QModelIndex lastRightClickedIndex() const {
         return m_lastRightClickedIndex;
     }

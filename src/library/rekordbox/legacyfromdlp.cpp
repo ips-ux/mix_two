@@ -3,7 +3,10 @@
 #include "library/rekordbox/legacyfromdlp.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QFileInfo>
 #include <QHash>
+#include <QSaveFile>
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -285,6 +288,54 @@ std::optional<LegacyLibrary> legacyFromDlp(
         *pClampedTracks = clampedTracks;
     }
     return library;
+}
+
+namespace {
+
+bool makeLegacyFolder(const QDir& parent, const QString& name) {
+    const QFileInfo folder(parent.filePath(name));
+    return !folder.isSymLink() && (folder.isDir() || parent.mkdir(name));
+}
+
+} // namespace
+
+QString writeLegacyLibraryFromDlp(const DeviceLibraryPlusDb& db,
+        const QString& stickRoot,
+        const QString& pdbPath,
+        const LegacyPdbWriter& writer,
+        int* pClampedTracks) {
+    QString error;
+    const auto library = legacyFromDlp(db, &error, pClampedTracks);
+    if (!library) {
+        return error;
+    }
+    const QByteArray bytes = writer(*library, &error);
+    if (bytes.isEmpty()) {
+        return error.isEmpty()
+                ? QCoreApplication::translate("DeviceLibraryPlus",
+                          "The Device Library has no data.")
+                : error;
+    }
+
+    const QDir folder = QFileInfo(pdbPath).dir();
+    const QFileInfo pioneer(QFileInfo(folder.path()).path());
+    if (!makeLegacyFolder(QDir(stickRoot), pioneer.fileName()) ||
+            !makeLegacyFolder(QDir(pioneer.filePath()), folder.dirName())) {
+        return QCoreApplication::translate("DeviceLibraryPlus",
+                "Mix Two cannot use the Device Library folder.");
+    }
+    if (QFileInfo(pdbPath).isSymLink()) {
+        return QCoreApplication::translate("DeviceLibraryPlus",
+                "The Device Library file is a link.");
+    }
+    // Keep the old file until the new file is complete and ready to rename.
+    QSaveFile file(pdbPath);
+    file.setDirectWriteFallback(false);
+    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() ||
+            !file.flush() || !file.commit()) {
+        return file.errorString();
+    }
+    return {};
 }
 
 } // namespace mixxx::rekordbox

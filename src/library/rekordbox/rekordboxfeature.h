@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QAction>
 #include <QHash>
 #include <QSet>
 #include <QFutureWatcher>
@@ -35,6 +36,7 @@
 #include "library/baseexternalplaylistmodel.h"
 #include "library/baseexternaltrackmodel.h"
 #include "library/treeitemmodel.h"
+#include "library/rekordbox/stickplaylistdelete.h"
 #include "library/rekordbox/stickwatcher.h"
 #include "util/parented_ptr.h"
 
@@ -78,6 +80,15 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
 
   private slots:
     void htmlLinkClicked(const QUrl& link);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// "Delete from stick" of the sidebar menu.
+    void slotDeleteFromStick();
+    // End of AI-generated text.
+
+  protected:
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void addMenuActions(QMenu* pMenu, const QModelIndex& index) override;
+    // End of AI-generated text.
 
   private:
     friend class mixxx::rekordbox::StickWatcherFeature;
@@ -100,6 +111,21 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     /// Tells the user once for each stick that its Device Library Plus cannot
     /// be read.
     void showPlusReadError(const QString& root, const QString& reason);
+    /// The state of the "Delete from stick" item of the sidebar menu.
+    struct DeleteFromStickMenuState {
+        /// False when the item is not a playlist of a stick.
+        bool visible = false;
+        bool enabled = false;
+        /// Tells why the item is disabled.
+        QString toolTip;
+    };
+    DeleteFromStickMenuState deleteFromStickMenuState(const QModelIndex& index) const;
+    /// The second question and the delete, after the preview of the worker.
+    void continueStickDelete(const mixxx::rekordbox::StickDeleteRequest& request,
+            const mixxx::rekordbox::DlpDeletePlaylistResult& preview,
+            const QString& label);
+    /// Reads the stick at `root` again, after it changed.
+    void reloadStick(const QString& root);
     // End of AI-generated text.
 
     mixxx::rekordbox::StickWatcher m_stickWatcher;
@@ -119,6 +145,9 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     /// For each connected stick: the reason that showPlusReadError() showed.
     QHash<QString, QString> m_plusReadErrors;
     QPointer<QWidget> m_pLibraryWidget;
+    parented_ptr<QAction> m_pDeleteFromStickAction;
+    /// True while a delete from a stick runs. Only one runs at a time.
+    bool m_stickDeleteBusy = false;
     // End of AI-generated text.
 
     QSharedPointer<BaseTrackCache> m_trackSource;

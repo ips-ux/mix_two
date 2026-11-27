@@ -77,6 +77,9 @@ void BaseExternalLibraryFeature::onRightClickChild(
     menu.addSeparator();
     menu.addAction(m_pImportAsMixxxPlaylistAction);
     menu.addAction(m_pImportAsMixxxCrateAction);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    addMenuActions(&menu, index);
+    // End of AI-generated text.
     menu.exec(globalPos);
 }
 

@@ -6,7 +6,6 @@
 #include <QFileInfo>
 #include <QHash>
 #include <QMetaObject>
-#include <QSaveFile>
 #include <QSet>
 #include <QSqlQuery>
 #include <QtDebug>
@@ -76,50 +75,6 @@ QString messageOrDefault(const QString& message) {
 QString existingPathOrDefault(const QString& folder, const QString& name) {
     const QString existing = rekordbox::dlpFindPathNoCase(folder, name);
     return existing.isEmpty() ? QDir(folder).filePath(name) : existing;
-}
-
-bool makeLegacyFolder(const QDir& parent, const QString& name) {
-    const QFileInfo folder(parent.filePath(name));
-    return !folder.isSymLink() && (folder.isDir() || parent.mkdir(name));
-}
-
-QString writeLegacyLibrary(const DeviceLibraryPlusDb& db,
-        const QString& root,
-        const QString& path,
-        const DeviceLibraryPlusExportJob::LegacyWriter& writer,
-        int* pClampedTracks) {
-    QString error;
-    const auto library = rekordbox::legacyFromDlp(db, &error, pClampedTracks);
-    if (!library) {
-        return error;
-    }
-    const QByteArray bytes = writer(*library, &error);
-    if (bytes.isEmpty()) {
-        return error.isEmpty()
-                ? QCoreApplication::translate("DeviceLibraryPlus",
-                          "The Device Library has no data.")
-                : error;
-    }
-
-    const QDir folder = QFileInfo(path).dir();
-    const QFileInfo pioneer(QFileInfo(folder.path()).path());
-    if (!makeLegacyFolder(QDir(root), pioneer.fileName()) ||
-            !makeLegacyFolder(QDir(pioneer.filePath()), folder.dirName())) {
-        return QCoreApplication::translate("DeviceLibraryPlus",
-                "Mix Two cannot use the Device Library folder.");
-    }
-    if (QFileInfo(path).isSymLink()) {
-        return QCoreApplication::translate("DeviceLibraryPlus",
-                "The Device Library file is a link.");
-    }
-    // Keep the old file until the new file is complete and ready to rename.
-    QSaveFile file(path);
-    file.setDirectWriteFallback(false);
-    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() ||
-            !file.flush() || !file.commit()) {
-        return file.errorString();
-    }
-    return {};
 }
 // End of AI-generated text.
 
@@ -651,7 +606,7 @@ void DeviceLibraryPlusExportJob::run() {
     if (!exporter.finish(&error, [&] {
             emit jobProgress(++progress);
             if (m_request.writeLegacyLibrary) {
-                summary.legacyLibraryError = writeLegacyLibrary(*pDb,
+                summary.legacyLibraryError = rekordbox::writeLegacyLibraryFromDlp(*pDb,
                         m_request.stickRoot,
                         legacyPath,
                         m_legacyWriter,

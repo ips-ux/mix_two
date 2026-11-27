@@ -64,6 +64,15 @@ struct DlpDeletePlaylistResult {
     /// Mix Two could not delete. This is not an error: the library on the
     /// stick is already saved.
     QStringList filesNotDeleted;
+    /// True when the stick has an `export.pdb` and the function wrote it
+    /// again from the changed Device Library Plus.
+    bool legacyLibraryWritten = false;
+    /// Why the function could not write `export.pdb` again; empty when it
+    /// wrote it or when the stick has none. The delete is still done.
+    QString legacyLibraryError;
+    /// True when the files of the removed tracks stay on the stick, because
+    /// the old `export.pdb` still points to them.
+    bool keptFilesForLegacyLibrary = false;
 };
 
 /// Deletes the playlist `playlistId` (an ID of the playlist table) from the
@@ -93,7 +102,10 @@ struct DlpDeletePlaylistResult {
 /// makes no backup.
 ///
 /// The library changes in one transaction, and the function writes it to the
-/// stick (DeviceLibraryPlusDb::save()). The function deletes files only after
+/// stick (DeviceLibraryPlusDb::save()). When the stick has an `export.pdb`
+/// next to the Device Library Plus, the function then writes it again from the
+/// changed library (writeLegacyLibraryFromDlp()); when that fails, the files
+/// stay and `legacyLibraryError` tells why. The function deletes files only after
 /// the save, and only with the rules of dlpRemoveReplacedFiles(): a file that
 /// cannot be deleted goes in `filesNotDeleted`. When the function fails
 /// before the save, the stick does not change.
@@ -111,6 +123,16 @@ DlpDeletePlaylistResult dlpDeletePlaylistByPath(const QString& stickRoot,
         const QStringList& namePath,
         const DlpLibraryCheck& isInLibrary = {},
         const QString& backupBaseDir = QString());
+
+/// Finds what dlpDeletePlaylistByPath() removes, and does not change the
+/// stick: no backup, no save, no file is deleted. `ok`, `refused`,
+/// `tracksKept` and `removedTracks` (with `inMixTwoLibrary`) are as the
+/// delete gives them; `playlistsRemoved` and `tracksRemoved` are 0. A folder
+/// or an unknown playlist gives the same error as the delete.
+DlpDeletePlaylistResult dlpPreviewDeletePlaylistByPath(const QString& stickRoot,
+        qint64 masterDbId,
+        const QStringList& namePath,
+        const DlpLibraryCheck& isInLibrary = {});
 
 } // namespace rekordbox
 } // namespace mixxx

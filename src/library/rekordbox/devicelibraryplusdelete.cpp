@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QFileInfo>
 #include <QHash>
 #include <QSet>
 #include <QtDebug>
@@ -15,6 +16,7 @@
 #include "library/rekordbox/devicelibraryplusexportcleanup.h"
 #include "library/rekordbox/devicelibraryplusmapping.h"
 #include "library/rekordbox/devicelibraryplusstick.h"
+#include "library/rekordbox/legacyfromdlp.h"
 
 namespace mixxx {
 namespace rekordbox {
@@ -65,13 +67,21 @@ std::optional<qint64> findByPath(DeviceLibraryPlusDb* pDb, const QStringList& na
 /// The name of the backup folder of a stick whose library has no device name.
 const QString kDefaultDeviceName = QStringLiteral("Mix Two");
 
+/// What deletePlaylist() does after it sorted the tracks.
+enum class DeleteMode {
+    /// Stop before the stick changes.
+    Preview,
+    Delete,
+};
+
 /// `playlistId` is not set when the call is by path (`namePath`).
 DlpDeletePlaylistResult deletePlaylist(const QString& stickRoot,
         qint64 masterDbId,
         std::optional<qint64> playlistId,
         const QStringList& namePath,
         const DlpLibraryCheck& isInLibrary,
-        const QString& backupBaseDir) {
+        const QString& backupBaseDir,
+        DeleteMode mode = DeleteMode::Delete) {
     if (stickRoot.trimmed().isEmpty()) {
         return failedDelete(deleteFailedMessage(QCoreApplication::translate("DeviceLibraryPlus",
                 "The path of the stick is empty.")));
@@ -186,6 +196,10 @@ DlpDeletePlaylistResult deletePlaylist(const QString& stickRoot,
             removed.inMixTwoLibrary = isInLibrary(removed);
         }
     }
+    if (mode == DeleteMode::Preview) {
+        result.ok = true;
+        return result;
+    }
 
     // The backup of the library on the stick, before the stick changes.
     if (!backupBaseDir.trimmed().isEmpty()) {
@@ -216,6 +230,22 @@ DlpDeletePlaylistResult deletePlaylist(const QString& stickRoot,
     result.ok = true;
     result.playlistsRemoved = 1;
     result.tracksRemoved = static_cast<int>(removeIds.size());
+
+    // A stick with both formats keeps one library: write export.pdb again
+    // from the changed Device Library Plus, before the files go. When that
+    // fails, the old export.pdb still points to the files, so they stay.
+    const QString legacyPath = dlpFindPathNoCase(
+            QFileInfo(pDb->stickFilePath()).absolutePath(), QStringLiteral("export.pdb"));
+    if (!legacyPath.isEmpty() && QFileInfo(legacyPath).isFile()) {
+        result.legacyLibraryError = writeLegacyLibraryFromDlp(*pDb, stickRoot, legacyPath);
+        if (!result.legacyLibraryError.isEmpty()) {
+            qWarning() << "Device Library Plus delete: cannot write export.pdb:"
+                       << result.legacyLibraryError << "; the files stay";
+            result.keptFilesForLegacyLibrary = true;
+            return result;
+        }
+        result.legacyLibraryWritten = true;
+    }
 
     // The library on the stick has no row of the removed tracks now. Delete
     // their files that no remaining row uses.
@@ -253,6 +283,19 @@ DlpDeletePlaylistResult dlpDeletePlaylistByPath(const QString& stickRoot,
         const QString& backupBaseDir) {
     return deletePlaylist(
             stickRoot, masterDbId, std::nullopt, namePath, isInLibrary, backupBaseDir);
+}
+
+DlpDeletePlaylistResult dlpPreviewDeletePlaylistByPath(const QString& stickRoot,
+        qint64 masterDbId,
+        const QStringList& namePath,
+        const DlpLibraryCheck& isInLibrary) {
+    return deletePlaylist(stickRoot,
+            masterDbId,
+            std::nullopt,
+            namePath,
+            isInLibrary,
+            QString(),
+            DeleteMode::Preview);
 }
 
 } // namespace rekordbox

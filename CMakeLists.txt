@@ -1528,6 +1528,7 @@ add_library(
   src/library/rekordbox/legacypdbwriter.cpp
   src/library/rekordbox/rekordboxbeats.cpp
   src/library/rekordbox/rekordboxfeature.cpp
+  src/library/rekordbox/stickplaylistdelete.cpp
   src/library/rekordbox/stickwatcher.cpp
   src/library/rekordbox/sqlciphercodec.cpp
   src/library/rekordbox/anlzwaveform.cpp
@@ -3073,6 +3074,7 @@ if(BUILD_TESTING)
     src/test/legacypdbwriter_test.cpp
     src/test/rekordboxanlz_test.cpp
     src/test/rekordboxbeats_test.cpp
+    src/test/stickplaylistdelete_test.cpp
     src/test/stickwatcher_test.cpp
     src/test/removablevolume_test.cpp
     src/test/relocate_test.cpp

@@ -4,6 +4,11 @@
 #include <rekordbox_pdb.h>
 
 #include <QDir>
+#include <QFile>
+#include <QMenu>
+#include <QPushButton>
+#include <QRandomGenerator>
+#include <QStandardPaths>
 #include <QFileInfo>
 #include <QMap>
 #include <QMessageBox>
@@ -30,6 +35,7 @@
 #include "library/rekordbox/rekordboxanlz.h"
 #include "library/rekordbox/rekordboxbeats.h"
 #include "library/rekordbox/rekordboxconstants.h"
+#include "library/rekordbox/stickplaylistdelete.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/treeitem.h"
@@ -1523,6 +1529,13 @@ RekordboxFeature::RekordboxFeature(
             m_pendingOpen.clear();
         }
     });
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pDeleteFromStickAction = make_parented<QAction>(tr("Delete from stick"), this);
+    connect(m_pDeleteFromStickAction,
+            &QAction::triggered,
+            this,
+            &RekordboxFeature::slotDeleteFromStick);
+    // End of AI-generated text.
     m_stickWatcher.start();
 }
 
@@ -1872,6 +1885,304 @@ void RekordboxFeature::onDatabaseJobFinished() {
     m_databaseBusy = false;
     startNextDatabaseJob();
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+using mixxx::rekordbox::DlpDeletePlaylistResult;
+using mixxx::rekordbox::DlpRemovedTrack;
+using mixxx::rekordbox::LibraryFileRef;
+using mixxx::rekordbox::StickDeleteHooks;
+using mixxx::rekordbox::StickDeleteOutcome;
+using mixxx::rekordbox::StickDeleteRequest;
+using mixxx::rekordbox::StickDeleteStatus;
+
+/// The same key as the export: the library ID of Mix Two on a stick.
+const ConfigKey kMasterDbIdConfigKey(
+        QStringLiteral("[Library]"), QStringLiteral("DeviceLibraryPlusMasterDbId"));
+/// The same folder as the export, below the settings folder.
+const QString kDeviceBackupFolder = QStringLiteral("/device-backups");
+/// The tracks that the second question names; the rest is a count.
+constexpr int kMaxTracksInQuestion = 10;
+
+/// The device item of a sidebar item.
+const TreeItem* deviceItemOf(const TreeItem* item) {
+    const TreeItem* device = item;
+    while (device->parent() && device->parent()->hasParent()) {
+        device = device->parent();
+    }
+    return device;
+}
+
+/// The library files with a size, for the library check. Runs on the worker
+/// thread that holds a DbConnectionPooler.
+mixxx::rekordbox::LibraryFilesOfSize libraryFilesOfSize(const mixxx::DbConnectionPoolPtr& pool) {
+    return [pool](qint64 size) {
+        QList<LibraryFileRef> files;
+        QSqlDatabase database = mixxx::DbConnectionPooled(pool);
+        QSqlQuery query(database);
+        query.prepare(QStringLiteral(
+                "SELECT track_locations.location, track_locations.filename "
+                "FROM track_locations INNER JOIN library "
+                "ON library.location = track_locations.id "
+                "WHERE track_locations.filesize = :size "
+                "AND track_locations.fs_deleted = 0 AND library.mixxx_deleted = 0"));
+        query.bindValue(QStringLiteral(":size"), size);
+        if (!query.exec()) {
+            LOG_FAILED_QUERY(query);
+            return files;
+        }
+        while (query.next()) {
+            files.append({query.value(0).toString(), query.value(1).toString()});
+        }
+        return files;
+    };
+}
+
+/// Copies a file of the stick into `folder`, with a new name when the name
+/// is used. Gives the path of the copy, or an empty string.
+QString copyFromStick(const QString& stickFilePath, const QString& folder) {
+    const QFileInfo source(stickFilePath);
+    if (!source.isFile() || !QDir().mkpath(folder)) {
+        return {};
+    }
+    const QDir dir(folder);
+    QString target = dir.filePath(source.fileName());
+    for (int n = 2; QFileInfo::exists(target); ++n) {
+        target = dir.filePath(QStringLiteral("%1 (%2).%3")
+                        .arg(source.completeBaseName(), QString::number(n), source.suffix()));
+    }
+    if (!QFile::copy(stickFilePath, target) || QFileInfo(target).size() != source.size()) {
+        QFile::remove(target);
+        return {};
+    }
+    return target;
+}
+
+struct StickDeleteJobResult {
+    StickDeleteOutcome outcome;
+    /// The copies of the stick files, for the import into the library.
+    QStringList copies;
+};
+
+} // namespace
+
+RekordboxFeature::DeleteFromStickMenuState RekordboxFeature::deleteFromStickMenuState(
+        const QModelIndex& index) const {
+    DeleteFromStickMenuState state;
+    if (!index.isValid()) {
+        return state;
+    }
+    const auto* item = m_pSidebarModel->getItem(index);
+    if (!item || !item->getData().isValid() || !item->parent() ||
+            !item->parent()->hasParent()) {
+        // No item, or the item of the stick itself.
+        return state;
+    }
+    const QString root = deviceItemOf(item)->getData().toList().value(0).toString();
+    const auto data = item->getData().toList();
+    if (data.value(1).toString() != IS_NOT_RECORDBOX_DEVICE ||
+            !data.value(0).toString().startsWith(root + kPLaylistPathDelimiter)) {
+        return state;
+    }
+    state.visible = true;
+    if (item->childRows() > 0) {
+        state.toolTip = tr("You cannot delete a folder from the stick.");
+        return state;
+    }
+    if (!m_formats.value(root).hasDeviceLibraryPlus()) {
+        state.toolTip = tr(
+                "This stick has no Device Library Plus. Mix Two can delete only "
+                "from a Device Library Plus.");
+        return state;
+    }
+    if (m_stickDeleteBusy) {
+        state.toolTip = tr("Mix Two deletes a playlist from a stick now.");
+        return state;
+    }
+    state.enabled = true;
+    return state;
+}
+
+void RekordboxFeature::addMenuActions(QMenu* pMenu, const QModelIndex& index) {
+    const auto state = deleteFromStickMenuState(index);
+    if (!state.visible) {
+        return;
+    }
+    m_pDeleteFromStickAction->setEnabled(state.enabled);
+    m_pDeleteFromStickAction->setToolTip(state.toolTip);
+    pMenu->setToolTipsVisible(true);
+    pMenu->addSeparator();
+    pMenu->addAction(m_pDeleteFromStickAction);
+}
+
+void RekordboxFeature::slotDeleteFromStick() {
+    const QModelIndex index = lastRightClickedIndex();
+    if (!deleteFromStickMenuState(index).enabled) {
+        return;
+    }
+    const auto* item = m_pSidebarModel->getItem(index);
+    const auto* device = deviceItemOf(item);
+    const QString root = device->getData().toList().value(0).toString();
+    const QString path = item->getData().toList().value(0).toString();
+    const QStringList namePath =
+            path.mid(root.size() + kPLaylistPathDelimiter.size()).split(kPLaylistPathDelimiter);
+    const QString label = device->getLabel();
+
+    // Question 1, on the GUI thread. The audio has its own thread.
+    if (QMessageBox::question(m_pLibraryWidget,
+                tr("Delete from stick"),
+                tr("Delete the playlist \"%1\" from the stick? Mix Two also deletes "
+                   "the tracks that no other list on the stick uses.")
+                        .arg(namePath.last()),
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No) != QMessageBox::Yes) {
+        return;
+    }
+
+    StickDeleteRequest request;
+    request.stickRoot = root;
+    request.namePath = namePath;
+    request.backupBaseDir = m_pConfig->getSettingsPath() + kDeviceBackupFolder;
+    // The same library ID as the export. The export makes it when it is
+    // missing; so does the delete.
+    request.masterDbId = m_pConfig->getValue<int>(kMasterDbIdConfigKey, 0);
+    if (request.masterDbId <= 0) {
+        request.masterDbId = QRandomGenerator::global()->bounded(1, 0x7fffffff);
+        m_pConfig->setValue<int>(kMasterDbIdConfigKey, static_cast<int>(request.masterDbId));
+        m_pConfig->save();
+    }
+
+    // The preview and the library check run on a worker thread.
+    m_stickDeleteBusy = true;
+    const auto pool = m_pLibrary->dbConnectionPool();
+    auto* pWatcher = new QFutureWatcher<DlpDeletePlaylistResult>(this);
+    connect(pWatcher, &QFutureWatcherBase::finished, this, [this, pWatcher, request, label] {
+        const auto preview = pWatcher->result();
+        pWatcher->deleteLater();
+        continueStickDelete(request, preview, label);
+    });
+    pWatcher->setFuture(QtConcurrent::run([request, pool] {
+        const mixxx::DbConnectionPooler pooler(pool);
+        return mixxx::rekordbox::dlpPreviewDeletePlaylistByPath(request.stickRoot,
+                request.masterDbId,
+                request.namePath,
+                mixxx::rekordbox::dlpFileNameAndSizeCheck(
+                        request.stickRoot, libraryFilesOfSize(pool)));
+    }));
+}
+
+void RekordboxFeature::continueStickDelete(const StickDeleteRequest& request,
+        const DlpDeletePlaylistResult& preview,
+        const QString& label) {
+    const auto showResult = [this](QMessageBox::Icon icon, const QString& text) {
+        // Not modal: the library stays usable.
+        auto* pBox = new QMessageBox(
+                icon, tr("Delete from stick"), text, QMessageBox::Ok, m_pLibraryWidget);
+        pBox->setAttribute(Qt::WA_DeleteOnClose);
+        pBox->setModal(false);
+        pBox->show();
+    };
+    if (!preview.ok) {
+        m_stickDeleteBusy = false;
+        showResult(QMessageBox::Warning, preview.errorMessage);
+        return;
+    }
+
+    // Question 2, when tracks that go are not in the library.
+    QStringList notInLibrary;
+    for (const DlpRemovedTrack& track : preview.removedTracks) {
+        if (!track.inMixTwoLibrary) {
+            notInLibrary.append(track.artist.isEmpty()
+                            ? track.title
+                            : track.artist + QStringLiteral(" - ") + track.title);
+        }
+    }
+    bool addTracks = false;
+    if (!notInLibrary.isEmpty()) {
+        const int count = static_cast<int>(notInLibrary.size());
+        QMessageBox box(QMessageBox::Question,
+                tr("Delete from stick"),
+                tr("%n track(s) of the playlist are not in the Mix Two library. "
+                   "Mix Two deletes them from the stick. Add them to the library first?",
+                        nullptr,
+                        count),
+                QMessageBox::NoButton,
+                m_pLibraryWidget);
+        QStringList lines = notInLibrary.mid(0, kMaxTracksInQuestion);
+        if (count > kMaxTracksInQuestion) {
+            lines.append(tr("%n more track(s)", nullptr, count - kMaxTracksInQuestion));
+        }
+        box.setInformativeText(lines.join(QLatin1Char('\n')));
+        auto* pAdd = box.addButton(tr("Add the tracks to the library"), QMessageBox::AcceptRole);
+        auto* pNoAdd = box.addButton(tr("Do not add"), QMessageBox::DestructiveRole);
+        box.addButton(QMessageBox::Cancel);
+        box.setDefaultButton(pAdd);
+        box.exec();
+        if (box.clickedButton() != pAdd && box.clickedButton() != pNoAdd) {
+            m_stickDeleteBusy = false;
+            return;
+        }
+        addTracks = box.clickedButton() == pAdd;
+    }
+
+    // The copies go to the first music folder of the library; the import
+    // adds them as "Import Track" does.
+    const QStringList musicFolders = m_pTrackCollection->getRootDirStrings();
+    const QString baseFolder = musicFolders.isEmpty()
+            ? QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
+            : musicFolders.first();
+    const QString copyFolder = QDir(baseFolder).filePath(
+            QStringLiteral("From stick/") + mixxx::rekordbox::fatSafeName(label));
+
+    // The delete and the rewrite of export.pdb run on a worker thread.
+    const auto pool = m_pLibrary->dbConnectionPool();
+    auto* pWatcher = new QFutureWatcher<StickDeleteJobResult>(this);
+    connect(pWatcher, &QFutureWatcherBase::finished, this, [this, pWatcher, request, showResult] {
+        const auto result = pWatcher->result();
+        pWatcher->deleteLater();
+        m_stickDeleteBusy = false;
+        if (!result.copies.isEmpty()) {
+            m_pLibrary->importFiles(result.copies);
+        }
+        if (result.outcome.status == StickDeleteStatus::Deleted) {
+            reloadStick(request.stickRoot);
+        }
+        showResult(result.outcome.status == StickDeleteStatus::Deleted
+                        ? QMessageBox::Information
+                        : QMessageBox::Warning,
+                mixxx::rekordbox::stickDeleteSummary(result.outcome));
+    });
+    pWatcher->setFuture(QtConcurrent::run([request, pool, addTracks, copyFolder] {
+        const mixxx::DbConnectionPooler pooler(pool);
+        StickDeleteJobResult result;
+        StickDeleteRequest checked = request;
+        checked.isInLibrary = mixxx::rekordbox::dlpFileNameAndSizeCheck(
+                request.stickRoot, libraryFilesOfSize(pool));
+        StickDeleteHooks hooks;
+        // The user answered both questions on the GUI thread.
+        hooks.offerImport = [addTracks](const QList<DlpRemovedTrack>&) { return addTracks; };
+        hooks.importTrack = [&result, copyFolder](
+                                    const QString& stickFilePath, const DlpRemovedTrack&) {
+            const QString copy = copyFromStick(stickFilePath, copyFolder);
+            if (copy.isEmpty()) {
+                return false;
+            }
+            result.copies.append(copy);
+            return true;
+        };
+        result.outcome = mixxx::rekordbox::runStickPlaylistDelete(checked, hooks);
+        return result;
+    }));
+}
+
+void RekordboxFeature::reloadStick(const QString& root) {
+    // The stick shows again closed; a click reads the changed library.
+    removeDevice(root);
+    m_formats.remove(root);
+    probeVolume(root, 0);
+}
+// End of AI-generated text.
 
 void RekordboxFeature::showPlusReadError(const QString& root, const QString& reason) {
     // One message for each stick while it stays connected.

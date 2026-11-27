@@ -23,6 +23,7 @@
 #include "library/rekordbox/rekordboxfeature.h"
 #include "library/rekordbox/stickwatcher.h"
 #include "library/trackcollection.h"
+#include "library/treeitem.h"
 #include "library/trackcollectionmanager.h"
 #include "test/mixxxtest.h"
 #include "util/cmdlineargs.h"
@@ -383,6 +384,39 @@ class StickWatcherFeature : public MixxxTest {
         return {};
     }
 
+    static RekordboxFeature::DeleteFromStickMenuState deleteMenuState(
+            RekordboxFeature* feature, const QModelIndex& index) {
+        return feature->deleteFromStickMenuState(index);
+    }
+
+    /// The child of `parent` with this label.
+    static QModelIndex childIndex(
+            RekordboxFeature* feature, const QModelIndex& parent, const QString& label) {
+        auto* sidebar = feature->sidebarModel();
+        for (int row = 0; row < sidebar->rowCount(parent); ++row) {
+            const auto index = sidebar->index(row, 0, parent);
+            if (index.data().toString() == label) {
+                return index;
+            }
+        }
+        return {};
+    }
+
+    /// Adds a playlist item below the stick item, with the data that the
+    /// reader gives a playlist. The legacy test stick has no playlist.
+    static void addPlaylistItem(RekordboxFeature* feature, const QDir& root, const QString& name) {
+        const auto device = deviceIndex(feature, root);
+        ASSERT_TRUE(device.isValid());
+        const auto data = device.data(TreeItemModel::kDataRole).toList();
+        ASSERT_EQ(data.size(), 2);
+        std::vector<std::unique_ptr<TreeItem>> items;
+        items.push_back(std::make_unique<TreeItem>(name,
+                QVariant(QList<QString>{
+                        data[0].toString() + QStringLiteral("-->") + name,
+                        data[1].toString()})));
+        feature->m_pSidebarModel->insertTreeItemRows(std::move(items), 0, device);
+    }
+
     QSqlDatabase appDatabase() const {
         return m_services->getTrackCollectionManager()->internalCollection()->database();
     }
@@ -719,6 +753,54 @@ TEST_F(StickWatcherFeature, ProbesAnEmptyRootFromTheStartupScanOnce) {
     EXPECT_FALSE(deviceIndex(feature, root).isValid());
 }
 #endif
+
+TEST_F(StickWatcherFeature, DeleteFromStickIsOnTheListsOfADeviceLibraryPlusStick) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QDir root(stick.path());
+    ASSERT_TRUE(writePlusLibrary(root, threePlusTracks(), true));
+    auto* feature = this->feature();
+    ASSERT_NE(feature, nullptr);
+    ASSERT_NE(openStick(feature, root), nullptr);
+    const auto device = deviceIndex(feature, root);
+    ASSERT_TRUE(device.isValid());
+
+    EXPECT_FALSE(deleteMenuState(feature, device).visible);
+    const auto playlist = childIndex(feature, device, QStringLiteral("Top list"));
+    ASSERT_TRUE(playlist.isValid());
+    const auto playlistState = deleteMenuState(feature, playlist);
+    EXPECT_TRUE(playlistState.visible);
+    EXPECT_TRUE(playlistState.enabled);
+    const auto inner = childIndex(feature,
+            childIndex(feature, device, QStringLiteral("Folder A")),
+            QStringLiteral("Inner list"));
+    ASSERT_TRUE(inner.isValid());
+    EXPECT_TRUE(deleteMenuState(feature, inner).enabled);
+    // A folder is refused: the item shows, disabled, with the reason.
+    const auto folderState =
+            deleteMenuState(feature, childIndex(feature, device, QStringLiteral("Folder A")));
+    EXPECT_TRUE(folderState.visible);
+    EXPECT_FALSE(folderState.enabled);
+    EXPECT_FALSE(folderState.toolTip.isEmpty());
+}
+
+TEST_F(StickWatcherFeature, DeleteFromStickIsDisabledOnALegacyOnlyStick) {
+    QTemporaryDir stick;
+    ASSERT_TRUE(stick.isValid());
+    const QDir root(stick.path());
+    ASSERT_TRUE(writeOneTrackPdb(root, "Legacy only"));
+    auto* feature = this->feature();
+    ASSERT_NE(feature, nullptr);
+    ASSERT_NE(openStick(feature, root), nullptr);
+    ASSERT_NO_FATAL_FAILURE(addPlaylistItem(feature, root, QStringLiteral("Legacy list")));
+    const auto playlist =
+            childIndex(feature, deviceIndex(feature, root), QStringLiteral("Legacy list"));
+    ASSERT_TRUE(playlist.isValid());
+    const auto state = deleteMenuState(feature, playlist);
+    EXPECT_TRUE(state.visible);
+    EXPECT_FALSE(state.enabled);
+    EXPECT_TRUE(state.toolTip.contains(QStringLiteral("Device Library Plus"))) << qPrintable(state.toolTip);
+}
 
 } // namespace mixxx::rekordbox
 // End of AI-generated text.

@@ -22,6 +22,17 @@ Writing rules for this file (ASD-STE100):
 ## Unreleased (2026-10-27)
 
 <!-- AI-generated (Claude Code). Start of AI-generated text. -->
+### Delete a playlist from a stick
+
+Right-click a playlist of a stick in the rekordbox list, then select "Delete
+from stick". Mix Two also deletes the tracks that no other list on the stick
+uses. When some of these tracks are not in your library, Mix Two asks to add
+them first. Mix Two copies them to the "From stick" folder of your first music
+folder. Mix Two makes a backup of the stick library before it deletes. When
+the stick also has the older device library (export.pdb), Mix Two writes it
+again. Mix Two cannot delete a folder, or a playlist from a stick with only the
+older device library.
+
 ### Faster export to a stick that has your tracks
 
 When you export to a stick again, Mix Two does not write the analysis
