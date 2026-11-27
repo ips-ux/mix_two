@@ -276,8 +276,12 @@ bool writePlusLibrary(const QDir& root, const QList<PlusTrack>& tracks, bool wit
     return true;
 }
 
-/// Each file and folder below the root, with its size, the time of its last
-/// change and the SHA-256 of its bytes.
+/// Each file and folder below the root. A file has its size, the time of its
+/// last change and the SHA-256 of its bytes. A folder has only its name: NTFS
+/// sets the time of a folder a moment after a change in it, so the time
+/// would show the test's own writes, not a write of the code under test. A
+/// file that is made and removed again still shows through its folder's
+/// listing when it stays, and the listing is what this snapshot compares.
 QMap<QString, QString> stickSnapshot(const QDir& root) {
     QMap<QString, QString> result;
     QDirIterator it(root.path(),
@@ -286,9 +290,10 @@ QMap<QString, QString> stickSnapshot(const QDir& root) {
     while (it.hasNext()) {
         it.next();
         const QFileInfo info = it.fileInfo();
-        QString value = QString::number(info.size()) + QLatin1Char(' ') +
-                QString::number(info.lastModified().toMSecsSinceEpoch());
+        QString value = QStringLiteral("folder");
         if (info.isFile()) {
+            value = QString::number(info.size()) + QLatin1Char(' ') +
+                    QString::number(info.lastModified().toMSecsSinceEpoch());
             QFile file(info.filePath());
             if (file.open(QIODevice::ReadOnly)) {
                 value += QLatin1Char(' ') +
@@ -651,8 +656,6 @@ TEST_F(StickWatcherFeature, ReadingADeviceLibraryPlusStickChangesNothingOnIt) {
     const QDir root(stick.path());
     ASSERT_TRUE(writePlusLibrary(root, threePlusTracks(), true));
     ASSERT_TRUE(writeOneTrackPdb(root, "Legacy title"));
-    // Some file systems set the time of a folder a moment after a change in it.
-    QThread::msleep(2000);
     const auto before = stickSnapshot(root);
     ASSERT_FALSE(before.isEmpty());
     auto* feature = this->feature();
