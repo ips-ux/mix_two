@@ -23,8 +23,10 @@
 #include "library/dao/trackschema.h"
 #include "library/library.h"
 #include "library/queryutil.h"
+#include "library/rekordbox/devicelibraryplusdb.h"
 #include "library/rekordbox/devicelibraryplusmapping.h"
 #include "library/rekordbox/devicelibraryplusstick.h"
+#include "library/rekordbox/legacyfromdlp.h"
 #include "library/rekordbox/rekordboxanlz.h"
 #include "library/rekordbox/rekordboxbeats.h"
 #include "library/rekordbox/rekordboxconstants.h"
@@ -285,39 +287,48 @@ mixxx::RgbColor colorFromID(int colorID) {
     return kColorForIDNoColor;
 }
 
-void insertTrack(
+// AI-generated (Claude Code). Start of AI-generated text.
+/// The values of one track of a stick, as the app table holds them. Both the
+/// legacy reader and the Device Library Plus reader fill it. The paths are
+/// stick paths (from the root of the stick, with a leading '/').
+struct DeviceTrackRow {
+    int rbId = 0;
+    QString title;
+    QString artist;
+    QString album;
+    QString genre;
+    QString year;
+    QString filePath;
+    float bpm = 0;
+    int bitrate = 0;
+    QString key;
+    int duration = 0;
+    int rating = 0;
+    QString comment;
+    QString trackNumber;
+    QString analyzePath;
+    int colorId = 0;
+};
+
+/// Inserts the track into the app table and into the playlist of all the
+/// tracks of the device, at this position.
+// End of AI-generated text.
+void insertDeviceTrack(
         QSqlDatabase& database,
-        rekordbox_pdb_t::track_row_t* track,
+        const DeviceTrackRow& track,
         QSqlQuery& query,
         QSqlQuery& queryInsertIntoDevicePlaylistTracks,
-        QMap<uint32_t, QString>& artistsMap,
-        QMap<uint32_t, QString>& albumsMap,
-        QMap<uint32_t, QString>& genresMap,
-        QMap<uint32_t, QString>& keysMap,
         const QString& devicePath,
         const QString& device,
         int audioFilesCount) {
-    int rbID = static_cast<int>(track->id());
-    QString title = getText(track->title());
-    QString artist = artistsMap[track->artist_id()];
-    QString album = albumsMap[track->album_id()];
-    QString year = QString::number(track->year());
-    QString genre = genresMap[track->genre_id()];
-    QString location = devicePath + getText(track->file_path());
-    float bpm = static_cast<float>(track->tempo() / 100.0);
-    int bitrate = static_cast<int>(track->bitrate());
-    QString key = keysMap[track->key_id()];
-    int playtime = static_cast<int>(track->duration());
-    int rating = static_cast<int>(track->rating());
-    QString comment = getText(track->comment());
-    QString tracknumber = QString::number(track->track_number());
-    QString anlzPath = devicePath + getText(track->analyze_path());
+    const int rbID = track.rbId;
+    QString anlzPath = devicePath + track.analyzePath;
     // AI-generated (Claude Code). Start of AI-generated text.
     // A stick can have the USBANLZ folders in any letter case. The search
     // runs only when the path of the database does not exist.
     if (!QFileInfo::exists(anlzPath)) {
         const QString found = mixxx::rekordbox::dlpFindPathNoCase(
-                devicePath, getText(track->analyze_path()));
+                devicePath, track.analyzePath);
         if (!found.isEmpty()) {
             anlzPath = found;
         }
@@ -325,24 +336,23 @@ void insertTrack(
     // End of AI-generated text.
 
     query.bindValue(":rb_id", rbID);
-    query.bindValue(":artist", artist);
-    query.bindValue(":title", title);
-    query.bindValue(":album", album);
-    query.bindValue(":genre", genre);
-    query.bindValue(":year", year);
-    query.bindValue(":duration", playtime);
-    query.bindValue(":location", location);
-    query.bindValue(":rating", rating);
-    query.bindValue(":comment", comment);
-    query.bindValue(":tracknumber", tracknumber);
-    query.bindValue(":key", key);
-    query.bindValue(":bpm", bpm);
-    query.bindValue(":bitrate", bitrate);
+    query.bindValue(":artist", track.artist);
+    query.bindValue(":title", track.title);
+    query.bindValue(":album", track.album);
+    query.bindValue(":genre", track.genre);
+    query.bindValue(":year", track.year);
+    query.bindValue(":duration", track.duration);
+    query.bindValue(":location", QString(devicePath + track.filePath));
+    query.bindValue(":rating", track.rating);
+    query.bindValue(":comment", track.comment);
+    query.bindValue(":tracknumber", track.trackNumber);
+    query.bindValue(":key", track.key);
+    query.bindValue(":bpm", track.bpm);
+    query.bindValue(":bitrate", track.bitrate);
     query.bindValue(":analyze_path", anlzPath);
     query.bindValue(":device", device);
     query.bindValue(":color",
-            mixxx::RgbColor::toQVariant(
-                    colorFromID(static_cast<int>(track->color_id()))));
+            mixxx::RgbColor::toQVariant(colorFromID(track.colorId)));
 
     if (!query.exec()) {
         LOG_FAILED_QUERY(query);
@@ -373,6 +383,44 @@ void insertTrack(
                 << "trackID:" << trackID
                 << "position:" << audioFilesCount;
     }
+}
+
+void insertTrack(
+        QSqlDatabase& database,
+        rekordbox_pdb_t::track_row_t* track,
+        QSqlQuery& query,
+        QSqlQuery& queryInsertIntoDevicePlaylistTracks,
+        QMap<uint32_t, QString>& artistsMap,
+        QMap<uint32_t, QString>& albumsMap,
+        QMap<uint32_t, QString>& genresMap,
+        QMap<uint32_t, QString>& keysMap,
+        const QString& devicePath,
+        const QString& device,
+        int audioFilesCount) {
+    DeviceTrackRow row;
+    row.rbId = static_cast<int>(track->id());
+    row.title = getText(track->title());
+    row.artist = artistsMap[track->artist_id()];
+    row.album = albumsMap[track->album_id()];
+    row.year = QString::number(track->year());
+    row.genre = genresMap[track->genre_id()];
+    row.filePath = getText(track->file_path());
+    row.bpm = static_cast<float>(track->tempo() / 100.0);
+    row.bitrate = static_cast<int>(track->bitrate());
+    row.key = keysMap[track->key_id()];
+    row.duration = static_cast<int>(track->duration());
+    row.rating = static_cast<int>(track->rating());
+    row.comment = getText(track->comment());
+    row.trackNumber = QString::number(track->track_number());
+    row.analyzePath = getText(track->analyze_path());
+    row.colorId = static_cast<int>(track->color_id());
+    insertDeviceTrack(database,
+            row,
+            query,
+            queryInsertIntoDevicePlaylistTracks,
+            devicePath,
+            device,
+            audioFilesCount);
 }
 
 void buildPlaylistTree(
@@ -609,6 +657,160 @@ bool parseDeviceDB(mixxx::DbConnectionPoolPtr dbConnectionPool,
     }
     return transaction.commit();
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+/// Fills the app tables from the Device Library Plus database of a stick, as
+/// parseDeviceDB() does from export.pdb. It reads a copy of the database file
+/// and never writes to the stick. Returns false and sets *pError on a read
+/// error; then the transaction undoes all its rows.
+bool parseDeviceLibraryPlus(mixxx::DbConnectionPoolPtr dbConnectionPool,
+        TreeItem* deviceItem,
+        const QString& dbPath,
+        const std::atomic_bool& canceled,
+        QString* pError) {
+    const QString devicePath = deviceItem->getData().toList().at(0).toString();
+    const QString& device = devicePath;
+    if (canceled.load()) {
+        return false;
+    }
+    mixxx::FileInfo fileInfo(dbPath);
+    if (!Sandbox::askForAccess(&fileInfo)) {
+        *pError = QObject::tr("Mix Two has no access to %1.").arg(dbPath);
+        return false;
+    }
+    if (canceled.load()) {
+        return false;
+    }
+    // open() copies the file to a temporary folder. The copy goes when pDb
+    // goes. This function never calls save(), so the stick does not change.
+    const auto pDb = mixxx::rekordbox::DeviceLibraryPlusDb::open(devicePath, pError);
+    if (!pDb || canceled.load()) {
+        return false;
+    }
+    const auto library = mixxx::rekordbox::legacyFromDlp(*pDb, pError);
+    if (!library || canceled.load()) {
+        return false;
+    }
+
+    const mixxx::DbConnectionPooler dbConnectionPooler(dbConnectionPool);
+    QSqlDatabase database = mixxx::DbConnectionPooled(dbConnectionPool);
+    VERIFY_OR_DEBUG_ASSERT(database.isOpen()) {
+        *pError = database.lastError().text();
+        return false;
+    }
+    QThread::currentThread()->setPriority(QThread::LowPriority);
+
+    ScopedTransaction transaction(database);
+    QSqlQuery query(database);
+    query.prepare("INSERT INTO " + kRekordboxLibraryTable +
+            " (rb_id, artist, title, album, year,"
+            "genre,comment,tracknumber,bpm, bitrate,duration, location,"
+            "rating,key,analyze_path,device,color) VALUES (:rb_id, :artist, "
+            ":title, :album, :year,:genre,"
+            ":comment, :tracknumber,:bpm, :bitrate,:duration, :location,"
+            ":rating,:key,:analyze_path,:device,:color)");
+
+    const int playlistID = createDevicePlaylist(database, devicePath);
+    if (playlistID == kInvalidPlaylistId) {
+        *pError = QObject::tr("Mix Two cannot make the playlist of the stick.");
+        return false;
+    }
+    QSqlQuery queryInsertIntoDevicePlaylistTracks(database);
+    queryInsertIntoDevicePlaylistTracks.prepare(
+            "INSERT INTO " + kRekordboxPlaylistTracksTable +
+            " (playlist_id, track_id, position) "
+            "VALUES (:playlist_id, :track_id, :position)");
+    queryInsertIntoDevicePlaylistTracks.bindValue(":playlist_id", playlistID);
+
+    QMap<uint32_t, QString> artistsMap;
+    for (const auto& row : library->artists) {
+        artistsMap[row.id] = row.name;
+    }
+    QMap<uint32_t, QString> albumsMap;
+    for (const auto& row : library->albums) {
+        albumsMap[row.id] = row.name;
+    }
+    QMap<uint32_t, QString> genresMap;
+    for (const auto& row : library->genres) {
+        genresMap[row.id] = row.name;
+    }
+    QMap<uint32_t, QString> keysMap;
+    for (const auto& row : library->keys) {
+        keysMap[row.id] = row.name;
+    }
+
+    int audioFilesCount = 0;
+    for (const auto& track : library->tracks) {
+        if (canceled.load()) {
+            return false;
+        }
+        DeviceTrackRow row;
+        row.rbId = static_cast<int>(track.id);
+        row.title = track.title;
+        row.artist = artistsMap.value(track.artistId);
+        row.album = albumsMap.value(track.albumId);
+        row.genre = genresMap.value(track.genreId);
+        row.year = QString::number(track.year);
+        row.filePath = track.filePath;
+        row.bpm = static_cast<float>(track.tempo / 100.0);
+        row.bitrate = static_cast<int>(track.bitrate);
+        row.key = keysMap.value(track.keyId);
+        row.duration = static_cast<int>(track.duration);
+        row.rating = static_cast<int>(track.rating);
+        row.comment = track.comment;
+        row.trackNumber = QString::number(track.trackNumber);
+        row.analyzePath = track.analyzePath;
+        row.colorId = static_cast<int>(track.colorId);
+        insertDeviceTrack(database,
+                row,
+                query,
+                queryInsertIntoDevicePlaylistTracks,
+                devicePath,
+                device,
+                audioFilesCount);
+        audioFilesCount++;
+    }
+
+    // The same maps as the legacy reader fills, so that one function builds
+    // the tree of both formats.
+    QMap<uint32_t, QString> playlistNameMap;
+    QMap<uint32_t, bool> playlistIsFolderMap;
+    QMap<uint32_t, QMap<uint32_t, uint32_t>> playlistTreeMap;
+    QMap<uint32_t, QMap<uint32_t, uint32_t>> playlistTrackMap;
+    for (const auto& node : library->playlists) {
+        playlistNameMap[node.id] = node.name;
+        playlistIsFolderMap[node.id] = node.isFolder;
+        playlistTreeMap[node.parentId][node.sortOrder] = node.id;
+    }
+    for (const auto& entry : library->playlistEntries) {
+        playlistTrackMap[entry.playlistId][entry.entryIndex] = entry.trackId;
+    }
+    if (canceled.load()) {
+        return false;
+    }
+    if (audioFilesCount > 0 || !library->playlists.isEmpty()) {
+        buildPlaylistTree(database,
+                deviceItem,
+                0,
+                playlistNameMap,
+                playlistIsFolderMap,
+                playlistTreeMap,
+                playlistTrackMap,
+                devicePath,
+                device);
+    }
+    qDebug() << "Found:" << audioFilesCount
+             << "audio files in the Device Library Plus of" << device;
+    if (canceled.load()) {
+        return false;
+    }
+    if (!transaction.commit()) {
+        *pError = database.lastError().text();
+        return false;
+    }
+    return true;
+}
+// End of AI-generated text.
 
 void buildPlaylistTree(
         QSqlDatabase& database,
@@ -1347,6 +1549,9 @@ void RekordboxFeature::bindLibraryWidget(WLibrary* pLibraryWidget,
     pEdit->setOpenLinks(false);
     connect(pEdit, &WLibraryTextBrowser::anchorClicked, this, &RekordboxFeature::htmlLinkClicked);
     pLibraryWidget->registerView("REKORDBOXHOME", pEdit);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    m_pLibraryWidget = pLibraryWidget;
+    // End of AI-generated text.
 }
 
 void RekordboxFeature::htmlLinkClicked(const QUrl& link) {
@@ -1497,7 +1702,7 @@ void RekordboxFeature::probeVolume(const QString& root, int retriesLeft) {
         }
 #endif
         m_formats.insert(root, formats);
-        if (!formats.hasLegacy()) {
+        if (!formats.hasLegacy() && !formats.hasDeviceLibraryPlus()) {
             removeDevice(root);
             return;
         }
@@ -1533,6 +1738,7 @@ void RekordboxFeature::removeVolume(const QString& root) {
         job->deleteLater();
     }
     m_formats.remove(root);
+    m_plusReadErrors.remove(root);
     removeDevice(root);
 }
 
@@ -1597,14 +1803,36 @@ void RekordboxFeature::startNextDatabaseJob() {
     const auto* item = m_pSidebarModel->getItem(index);
     m_importRoot = m_pendingOpen;
     m_importCanceled = std::make_shared<std::atomic_bool>(false);
-    const auto pdbPath = m_formats.value(m_importRoot).legacyPath;
+    const auto formats = m_formats.value(m_importRoot);
+    m_importPlusError = std::make_shared<QString>();
     m_databaseBusy = true;
     // The worker owns a detached tree. A removal can delete the sidebar row immediately.
     auto result = std::make_shared<TreeItem>(item->getLabel(), item->getData());
     m_databaseJob.setFuture(QtConcurrent::run(
-            [pool, result, pdbPath, canceled = m_importCanceled]() -> std::shared_ptr<TreeItem> {
+            [pool, result, formats, canceled = m_importCanceled, plusError = m_importPlusError]()
+                    -> std::shared_ptr<TreeItem> {
+                auto tree = result;
                 try {
-                    return parseDeviceDB(pool, result.get(), pdbPath, *canceled) ? result : nullptr;
+                    // A stick with both formats shows its Device Library Plus.
+                    if (formats.hasDeviceLibraryPlus()) {
+                        if (parseDeviceLibraryPlus(pool,
+                                    tree.get(),
+                                    formats.deviceLibraryPlusPath,
+                                    *canceled,
+                                    plusError.get())) {
+                            return tree;
+                        }
+                        if (canceled->load() || !formats.hasLegacy()) {
+                            return nullptr;
+                        }
+                        qWarning() << "Reads export.pdb, because the Device Library Plus"
+                                   << "cannot be read:" << *plusError;
+                        // The failed read can have added rows to its tree.
+                        tree = std::make_shared<TreeItem>(tree->getLabel(), tree->getData());
+                    }
+                    return parseDeviceDB(pool, tree.get(), formats.legacyPath, *canceled)
+                            ? tree
+                            : nullptr;
                 } catch (const std::exception& e) {
                     qWarning() << "Failed to load Rekordbox database:" << e.what();
                     return nullptr;
@@ -1616,6 +1844,10 @@ void RekordboxFeature::onDatabaseJobFinished() {
     const auto root = std::exchange(m_importRoot, {});
     const auto result = m_databaseJob.result();
     const bool canceled = m_importCanceled && m_importCanceled->load();
+    const auto plusError = std::exchange(m_importPlusError, {});
+    if (!canceled && plusError && !plusError->isEmpty() && m_formats.contains(root)) {
+        showPlusReadError(root, *plusError);
+    }
     if (result && !canceled) {
         const auto index = deviceIndex(root);
         if (index.isValid()) {
@@ -1639,5 +1871,32 @@ void RekordboxFeature::onDatabaseJobFinished() {
     m_importCanceled.reset();
     m_databaseBusy = false;
     startNextDatabaseJob();
+}
+
+void RekordboxFeature::showPlusReadError(const QString& root, const QString& reason) {
+    // One message for each stick while it stays connected.
+    if (m_plusReadErrors.contains(root)) {
+        return;
+    }
+    m_plusReadErrors.insert(root, reason);
+    QString text = tr("Mix Two cannot read the Device Library Plus of the stick %1.").arg(root);
+    if (m_formats.value(root).hasLegacy()) {
+        text += QLatin1Char(' ') +
+                tr("Mix Two shows the older device library (export.pdb) of the stick.");
+    }
+    text += QStringLiteral("\n\n") + reason;
+    qWarning() << text;
+    if (!m_pLibraryWidget) {
+        return;
+    }
+    // Not modal: the tracks of the stick stay usable.
+    auto* pBox = new QMessageBox(QMessageBox::Warning,
+            tr("Rekordbox"),
+            text,
+            QMessageBox::Ok,
+            m_pLibraryWidget);
+    pBox->setAttribute(Qt::WA_DeleteOnClose);
+    pBox->setModal(false);
+    pBox->show();
 }
 // End of AI-generated text.

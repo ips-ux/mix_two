@@ -27,6 +27,8 @@
 #include <QHash>
 #include <QSet>
 #include <QFutureWatcher>
+#include <QPointer>
+#include <QWidget>
 #include <atomic>
 
 #include "library/baseexternallibraryfeature.h"
@@ -94,6 +96,11 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     void showDevicePlaylist(const QString& root, const QString& playlist);
     void startNextDatabaseJob();
     void onDatabaseJobFinished();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Tells the user once for each stick that its Device Library Plus cannot
+    /// be read.
+    void showPlusReadError(const QString& root, const QString& reason);
+    // End of AI-generated text.
 
     mixxx::rekordbox::StickWatcher m_stickWatcher;
     QHash<QString, QFutureWatcher<mixxx::rekordbox::StickFormats>*> m_probes;
@@ -106,6 +113,13 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     bool m_databaseBusy = false;
     std::shared_ptr<std::atomic_bool> m_importCanceled;
     QFutureWatcher<std::shared_ptr<TreeItem>> m_databaseJob;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The worker writes the reason why the Device Library Plus cannot be read.
+    std::shared_ptr<QString> m_importPlusError;
+    /// For each connected stick: the reason that showPlusReadError() showed.
+    QHash<QString, QString> m_plusReadErrors;
+    QPointer<QWidget> m_pLibraryWidget;
+    // End of AI-generated text.
 
     QSharedPointer<BaseTrackCache> m_trackSource;
 };

@@ -22,6 +22,15 @@ Writing rules for this file (ASD-STE100):
 ## Unreleased (2026-10-27)
 
 <!-- AI-generated (Claude Code). Start of AI-generated text. -->
+### Device Library Plus sticks in the rekordbox list
+
+A stick with only a Device Library Plus now shows in the rekordbox list.
+When a stick has both formats, Mix Two shows the Device Library Plus. Mix Two
+does not write to the stick when it reads it. If Mix Two cannot read the
+Device Library Plus, it shows the reason once and shows the older library.
+<!-- End of AI-generated text. -->
+
+<!-- AI-generated (Claude Code). Start of AI-generated text. -->
 ### Start Mix Two on Linux
 
 Use `tools/mixtwo_linux.sh` to configure, build, test, or run Mix Two. Set
