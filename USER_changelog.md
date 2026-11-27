@@ -71,6 +71,12 @@ then click **Retry**. Click **Start Anyway** only if you accept the risk.
 Mix Two writes Device Library Plus and Device Library by default. Both
 formats use the same audio files on the stick.
 
+<!-- AI-generated (Claude Code). Start of AI-generated text. -->
+A stick has one library for Mix Two and rekordbox. When you export a track
+that rekordbox put on the stick, Mix Two updates the rekordbox entry with its
+data. It does not add a second entry for the track.
+<!-- End of AI-generated text. -->
+
 ### Pioneer DDJ-800
 
 Mix Two now has a mapping for the Pioneer DDJ-800.

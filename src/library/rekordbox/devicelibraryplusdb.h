@@ -71,6 +71,12 @@ struct DlpContentRef {
     qint64 masterContentId = 0;
     QString analysisDataFilePath;
     std::optional<qint64> imageId;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The title and the name of the artist, for the report of a delete.
+    /// Empty when the row has none.
+    QString title;
+    QString artistName;
+    // End of AI-generated text.
 };
 
 // AI-generated (Claude Code). Start of AI-generated text.

@@ -718,12 +718,22 @@ TEST_F(DeviceLibraryPlusExporterTest, OwnFileOutsideContentsIsNeverReplaced) {
     EXPECT_EQ(QStringLiteral("/Music/Set/own.mp3"), rows[0].path);
 }
 
-TEST_F(DeviceLibraryPlusExporterTest, OtherProgramFileAtContentsTargetIsUsed) {
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusExporterTest, RekordboxTrackAtContentsTargetIsUpdatedInPlace) {
     // Ruling R19: rekordbox exported the track to the /Contents path that Mix
-    // Two would use, and the file there has the size of the track.
+    // Two would use, and the file there has the size of the track. A stick
+    // has one library: the export updates that row with Mix Two's data and
+    // adds no second row.
     const QString source = toComputer(QStringLiteral("artist.mp3"));
     const QString target = QStringLiteral("/Contents/Shared Artist/UnknownAlbum/artist.mp3");
+    const QString theirAnlz = QStringLiteral("/PIONEER/USBANLZ/P001/00000001/ANLZ0000.DAT");
     copyTestFile(QStringLiteral("artist.mp3"), QFileInfo(onStick(target)).path());
+    ASSERT_TRUE(QDir().mkpath(QFileInfo(onStick(theirAnlz)).path()));
+    {
+        QFile anlz(onStick(theirAnlz));
+        ASSERT_TRUE(anlz.open(QIODevice::WriteOnly));
+        ASSERT_EQ(5, anlz.write("other"));
+    }
     {
         auto pDb = newDb(kOtherMasterDbId);
         ASSERT_TRUE(pDb);
@@ -735,22 +745,20 @@ TEST_F(DeviceLibraryPlusExporterTest, OtherProgramFileAtContentsTargetIsUsed) {
         other.fileType = 1;
         other.masterDbId = kOtherMasterDbId;
         other.masterContentId = 7;
-        other.analysisDataFilePath = QStringLiteral("/PIONEER/USBANLZ/P001/00000001/ANLZ0000.DAT");
+        other.analysisDataFilePath = theirAnlz;
         ASSERT_EQ(1, pDb->addContent(other));
+        pDb->updateContentCount();
         QString error;
         ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
     }
-    const QString contentSql = QStringLiteral("SELECT * FROM content");
-    QString contentBefore;
-    {
-        StickLibrary library(stickRoot());
-        ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
-        contentBefore = library.value(contentSql);
-    }
-    TrackPointer pTrack = makeTrack(source, 7);
+    // Another Mix Two track ID than the masterContentId of the row: the row
+    // is found by its stick path.
+    TrackPointer pTrack = makeTrack(source, 3);
     pTrack->setArtist(QStringLiteral("Shared Artist"));
     pTrack->setAlbum(QString());
-    {
+    pTrack->setTitle(QStringLiteral("Mix Two Title"));
+    for (int run = 0; run < 2; ++run) {
+        SCOPED_TRACE(run);
         auto pDb = openDb();
         ASSERT_TRUE(pDb);
         DeviceLibraryPlusExporter exporter(pDb.get(), options());
@@ -763,28 +771,42 @@ TEST_F(DeviceLibraryPlusExporterTest, OtherProgramFileAtContentsTargetIsUsed) {
                 exporter.exportTrack(itemFor(pTrack, makeCover(), mixxx::cache_key_t(4)));
         ASSERT_TRUE(result.contentId) << qPrintable(result.skipReason);
         EXPECT_EQ(1, *result.contentId);
-        EXPECT_EQ(QStringList{QStringLiteral(
-                          "The stick already has this track from another program. "
-                          "Mix Two did not change it.")},
-                result.warnings);
+        EXPECT_TRUE(result.warnings.isEmpty()) << qPrintable(result.warnings.join('\n'));
         ASSERT_TRUE(exporter.exportPlaylists(
                 {DlpExportPlaylist{QStringLiteral("Ours"), {pTrack->getId()}}}, {}, &error))
                 << qPrintable(error);
         ASSERT_TRUE(exporter.finish(&error)) << qPrintable(error);
     }
-    // No second copy, no ANLZ files and no artwork.
+    // One audio file, no second copy.
     EXPECT_EQ(QStringList{QStringLiteral("Contents/Shared Artist/UnknownAlbum/artist.mp3")},
             filesBelow(stickRoot()).filter(QStringLiteral("Contents/")));
-    EXPECT_FALSE(QFileInfo::exists(onStick(QStringLiteral("/PIONEER/USBANLZ"))));
-    EXPECT_FALSE(QFileInfo::exists(onStick(QStringLiteral("/PIONEER/Artwork"))));
     StickLibrary library(stickRoot());
     ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
-    EXPECT_EQ(QStringList{contentBefore}, library.rows(contentSql));
+    EXPECT_EQ(QStringLiteral("1"), library.value(QStringLiteral("SELECT count(*) FROM content")));
+    EXPECT_EQ(QStringLiteral("1"),
+            library.value(QStringLiteral("SELECT numberOfContents FROM property")));
+    // Mix Two's data is in the row. The row keeps the library IDs that it
+    // had (a choice for the controller to confirm).
+    EXPECT_EQ(QStringLiteral("1|Mix Two Title|%1|%2|7")
+                      .arg(target, QString::number(kOtherMasterDbId)),
+            library.value(QStringLiteral("SELECT content_id, title, path, masterDbId, "
+                                         "masterContentId FROM content")));
+    const QString anlzPath =
+            library.value(QStringLiteral("SELECT analysisDataFilePath FROM content"));
+    EXPECT_TRUE(kAnlzPathPattern.match(anlzPath).hasMatch()) << qPrintable(anlzPath);
+    EXPECT_NE(theirAnlz, anlzPath);
+    EXPECT_TRUE(QFileInfo::exists(onStick(anlzPath)));
+    // The old ANLZ file of the row has no user now.
+    EXPECT_FALSE(QFileInfo::exists(onStick(theirAnlz)));
+    EXPECT_EQ(QStringLiteral("1"), library.value(QStringLiteral("SELECT count(*) FROM image")));
+    EXPECT_NE(QStringLiteral("NULL"),
+            library.value(QStringLiteral("SELECT image_id FROM content")));
     EXPECT_EQ(QStringLiteral("1"),
             library.value(QStringLiteral(
                     "SELECT group_concat(pc.content_id) FROM playlist_content pc "
                     "JOIN playlist p ON p.playlist_id = pc.playlist_id WHERE p.name = 'Ours'")));
 }
+// End of AI-generated text.
 
 TEST_F(DeviceLibraryPlusExporterTest, SkippedTrackKeepsOlderRowInPlaylists) {
     // Ruling R20: the music drive is not connected for the second export.
@@ -1411,10 +1433,12 @@ TEST_F(DeviceLibraryPlusExporterTest, PlaylistsAndCrates) {
     EXPECT_EQ(replaced, library.rows(playlistsSql));
 }
 
-TEST_F(DeviceLibraryPlusExporterTest, KeepsRowsOfOtherPrograms) {
+TEST_F(DeviceLibraryPlusExporterTest, UnrelatedRekordboxRowWithSameIdStaysUntouched) {
     // A library that another program wrote: a track at the path that the
     // export would use, an artist with the name of the export's artist, and a
-    // playlist.
+    // playlist. The row has the Mix Two track ID as its masterContentId, but
+    // no file of the track's size is at its path: it is another track, and
+    // the export does not change it.
     {
         auto pDb = newDb(kOtherMasterDbId);
         ASSERT_TRUE(pDb);
@@ -1529,9 +1553,11 @@ TEST_F(DeviceLibraryPlusExporterTest, SharedImageIsNotRewritten) {
                     "SELECT masterContentId, image_id FROM content ORDER BY masterContentId")));
 }
 
-TEST_F(DeviceLibraryPlusExporterTest, TrackOfOtherProgramOnStickIsKept) {
-    // Ruling R8. The file is on the stick, and another program has a row for
-    // it; the row has the path in other letter case.
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusExporterTest, RekordboxTrackOfFileOnStickIsUpdatedInPlace) {
+    // Ruling R8. The file is on the stick, and rekordbox has a row for it;
+    // the row has the path in other letter case. The export updates that row
+    // with Mix Two's data and adds no second row.
     copyTestFile(QStringLiteral("artist.mp3"), onStick(QStringLiteral("/Music/Set")), "own.mp3");
     {
         auto pDb = newDb(kOtherMasterDbId);
@@ -1545,19 +1571,15 @@ TEST_F(DeviceLibraryPlusExporterTest, TrackOfOtherProgramOnStickIsKept) {
         other.masterContentId = 3;
         other.analysisDataFilePath = QStringLiteral("/PIONEER/USBANLZ/P001/00000001/ANLZ0000.DAT");
         ASSERT_EQ(1, pDb->addContent(other));
+        const qint64 theirs = pDb->addPlaylist(QStringLiteral("Theirs"), 0, false);
+        pDb->setPlaylistContents(theirs, {1});
+        pDb->updateContentCount();
         QString error;
         ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
     }
-    const QString contentSql = QStringLiteral("SELECT * FROM content");
-    QString contentBefore;
-    {
-        StickLibrary library(stickRoot());
-        ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
-        contentBefore = library.value(contentSql);
-    }
-    ASSERT_FALSE(contentBefore.isEmpty());
 
     TrackPointer pTrack = makeTrack(onStick(QStringLiteral("/Music/Set/own.mp3")), 8);
+    pTrack->setTitle(QStringLiteral("Mix Two Title"));
     QList<DlpTrackResult> results;
     {
         auto pDb = openDb();
@@ -1569,24 +1591,84 @@ TEST_F(DeviceLibraryPlusExporterTest, TrackOfOtherProgramOnStickIsKept) {
     ASSERT_EQ(1, results.size());
     ASSERT_TRUE(results[0].contentId) << qPrintable(results[0].skipReason);
     EXPECT_EQ(1, *results[0].contentId);
-    EXPECT_EQ(QStringList{QStringLiteral(
-                      "The stick already has this track from another program. "
-                      "Mix Two did not change it.")},
-            results[0].warnings);
-    // No ANLZ files, no artwork and no copy for it.
-    EXPECT_FALSE(QFileInfo::exists(onStick(QStringLiteral("/PIONEER/USBANLZ"))));
-    EXPECT_FALSE(QFileInfo::exists(onStick(QStringLiteral("/PIONEER/Artwork"))));
+    EXPECT_TRUE(results[0].warnings.isEmpty()) << qPrintable(results[0].warnings.join('\n'));
+    // The file stays where it is: no copy in /Contents.
     EXPECT_FALSE(QFileInfo::exists(onStick(QStringLiteral("/Contents"))));
 
     StickLibrary library(stickRoot());
     ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
-    EXPECT_EQ(QStringList{contentBefore}, library.rows(contentSql));
-    EXPECT_EQ(QStringLiteral("0"), library.value(QStringLiteral("SELECT count(*) FROM image")));
-    EXPECT_EQ(QStringLiteral("1"),
-            library.value(QStringLiteral(
-                    "SELECT group_concat(pc.content_id) FROM playlist_content pc "
-                    "JOIN playlist p ON p.playlist_id = pc.playlist_id WHERE p.name = 'Ours'")));
+    EXPECT_EQ(QStringLiteral("1"), library.value(QStringLiteral("SELECT count(*) FROM content")));
+    // Mix Two's data is in the row; the path keeps the letter case of the row.
+    EXPECT_EQ(QStringLiteral("1|Mix Two Title|/MUSIC/set/Own.mp3"),
+            library.value(QStringLiteral("SELECT content_id, title, path FROM content")));
+    const QString anlzPath =
+            library.value(QStringLiteral("SELECT analysisDataFilePath FROM content"));
+    EXPECT_TRUE(kAnlzPathPattern.match(anlzPath).hasMatch()) << qPrintable(anlzPath);
+    EXPECT_TRUE(QFileInfo::exists(onStick(anlzPath)));
+    EXPECT_EQ(QStringLiteral("1"), library.value(QStringLiteral("SELECT count(*) FROM image")));
+    // Both playlists hold the one row.
+    EXPECT_EQ((QStringList{QStringLiteral("Theirs|1"), QStringLiteral("Ours|1")}),
+            library.rows(QStringLiteral(
+                    "SELECT p.name, group_concat(pc.content_id) FROM playlist p "
+                    "JOIN playlist_content pc ON p.playlist_id = pc.playlist_id "
+                    "GROUP BY p.playlist_id ORDER BY p.playlist_id")));
 }
+
+TEST_F(DeviceLibraryPlusExporterTest, RekordboxPlaylistWithSameNameIsReused) {
+    // rekordbox wrote the playlist "Set" and the crate "K" in the folder
+    // "Crates", each with one rekordbox track. Mix Two exports a playlist and
+    // a crate with the same names.
+    qint64 setId = 0;
+    qint64 cratesId = 0;
+    qint64 crateId = 0;
+    {
+        auto pDb = newDb(kOtherMasterDbId);
+        ASSERT_TRUE(pDb);
+        DlpContent other;
+        other.title = QStringLiteral("Their Title");
+        other.path = QStringLiteral("/Contents/Their Artist/Their Album/theirs.mp3");
+        other.fileName = QStringLiteral("theirs.mp3");
+        other.fileSize = 5;
+        other.fileType = 1;
+        other.masterDbId = kOtherMasterDbId;
+        other.masterContentId = 7;
+        const qint64 otherId = pDb->addContent(other);
+        ASSERT_EQ(1, otherId);
+        setId = pDb->addPlaylist(QStringLiteral("Set"), 0, false);
+        pDb->setPlaylistContents(setId, {otherId});
+        cratesId = pDb->addPlaylist(QStringLiteral("Crates"), 0, true);
+        crateId = pDb->addPlaylist(QStringLiteral("K"), cratesId, false);
+        pDb->setPlaylistContents(crateId, {otherId});
+        pDb->updateContentCount();
+        QString error;
+        ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
+    }
+    TrackPointer pTrack = makeTrack(toComputer(QStringLiteral("artist.mp3")), 1);
+    QList<DlpTrackResult> results;
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        results = exportAndFinish(pDb.get(),
+                {itemFor(pTrack)},
+                {DlpExportPlaylist{QStringLiteral("Set"), {pTrack->getId()}}},
+                {DlpExportPlaylist{QStringLiteral("K"), {pTrack->getId()}}});
+    }
+    ASSERT_TRUE(results[0].contentId) << qPrintable(results[0].skipReason);
+    const QString ownId = QString::number(*results[0].contentId);
+    StickLibrary library(stickRoot());
+    ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
+    // One playlist of each name, with the IDs that rekordbox gave them, and
+    // the track list of the export.
+    EXPECT_EQ((QStringList{QStringLiteral("%1|Set|0|%2").arg(setId).arg(ownId),
+                      QStringLiteral("%1|Crates|%2|NULL").arg(cratesId).arg(0),
+                      QStringLiteral("%1|K|%2|%3").arg(crateId).arg(cratesId).arg(ownId)}),
+            library.rows(QStringLiteral(
+                    "SELECT p.playlist_id, p.name, p.playlist_id_parent, "
+                    "(SELECT group_concat(content_id) FROM playlist_content pc "
+                    "WHERE pc.playlist_id = p.playlist_id) FROM playlist p "
+                    "ORDER BY p.playlist_id")));
+}
+// End of AI-generated text.
 
 TEST_F(DeviceLibraryPlusExporterTest, NoFinishLeavesLibraryUnchanged) {
     saveEmptyLibrary();
@@ -1840,6 +1922,9 @@ TEST_F(DeviceLibraryPlusDeleteTest, KeepsTrackOfAnotherPlaylist) {
     EXPECT_EQ(1, result.tracksKept);
     EXPECT_TRUE(result.refused.isEmpty());
     EXPECT_TRUE(result.filesNotDeleted.isEmpty()) << qPrintable(result.filesNotDeleted.join('\n'));
+    ASSERT_EQ(1, result.removedTracks.size());
+    EXPECT_EQ(rowA.path, result.removedTracks[0].stickPath);
+    EXPECT_FALSE(result.removedTracks[0].inMixTwoLibrary);
 
     // A is gone, with its files. B stays: P2 holds it.
     EXPECT_FALSE(fileExists(rowA.path));
@@ -1993,9 +2078,9 @@ TEST_F(DeviceLibraryPlusDeleteTest, FolderIsRefused) {
     EXPECT_EQ(withEmptyFolder, libraryBytes());
 }
 
-TEST_F(DeviceLibraryPlusDeleteTest, KeepsRowsOfOtherPrograms) {
-    // Another program adds two tracks with files and ANLZ files, the playlist
-    // "Theirs" with the first track, and Mix Two's playlist P1 gets both.
+TEST_F(DeviceLibraryPlusDeleteTest, RemovesRekordboxTracksThatNoOtherListUses) {
+    // rekordbox adds two tracks with files and ANLZ files, and the playlist
+    // "Theirs" with the first track. P1 gets A and both rekordbox tracks.
     const QString otherAudio = QStringLiteral("/Contents/Their Artist/Their Album/theirs.mp3");
     const QString otherAudio2 = QStringLiteral("/Contents/Their Artist/Their Album/theirs2.mp3");
     const QString otherAnlz = QStringLiteral("/PIONEER/USBANLZ/P0AA/0000AAAA/ANLZ0000.DAT");
@@ -2009,13 +2094,14 @@ TEST_F(DeviceLibraryPlusDeleteTest, KeepsRowsOfOtherPrograms) {
     qint64 firstId = 0;
     qint64 secondId = 0;
     const qint64 p1Id = playlistId(QStringLiteral("P1"));
-    const DlpContentRef rowOfA = rowOf(1);
+    const DlpContentRef rowA = rowOf(1);
     {
         auto pDb = openDb();
         ASSERT_TRUE(pDb);
         const auto makeOther = [&pDb](const QString& path, const QString& anlz, int id) {
             DlpContent other;
             other.title = QStringLiteral("Other %1").arg(id);
+            other.artistId = pDb->findOrAddArtist(QStringLiteral("Their Artist"));
             other.path = path;
             other.fileName = QFileInfo(path).fileName();
             other.fileSize = 5;
@@ -2029,63 +2115,128 @@ TEST_F(DeviceLibraryPlusDeleteTest, KeepsRowsOfOtherPrograms) {
         secondId = makeOther(otherAudio2, otherAnlz2, 8);
         const qint64 theirs = pDb->addPlaylist(QStringLiteral("Theirs"), 0, false);
         pDb->setPlaylistContents(theirs, {firstId});
-        pDb->setPlaylistContents(p1Id, {rowOfA.id, firstId, secondId});
+        pDb->setPlaylistContents(p1Id, {rowA.id, firstId, secondId});
         pDb->updateContentCount();
         QString error;
         ASSERT_TRUE(pDb->save(&error)) << qPrintable(error);
     }
-    const QString otherRowsSql = QStringLiteral(
-            "SELECT * FROM content WHERE masterDbId = 99 ORDER BY content_id");
-    const QString theirsSql = QStringLiteral(
-            "SELECT p.*, (SELECT group_concat(content_id) FROM playlist_content pc "
-            "WHERE pc.playlist_id = p.playlist_id) FROM playlist p WHERE name = 'Theirs'");
-    QString otherRowsBefore, theirsBefore;
+    const QString firstRowSql =
+            QStringLiteral("SELECT * FROM content WHERE content_id = %1").arg(firstId);
+    QString firstRowBefore;
     {
         StickLibrary library(stickRoot());
         ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
-        otherRowsBefore = library.rows(otherRowsSql).join('\n');
-        theirsBefore = library.value(theirsSql);
+        firstRowBefore = library.value(firstRowSql);
     }
-    ASSERT_FALSE(otherRowsBefore.isEmpty());
-    const DlpContentRef rowA = rowOf(1);
+    ASSERT_FALSE(firstRowBefore.isEmpty());
 
-    const DlpDeletePlaylistResult result =
-            dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("P1")));
+    // The caller knows the tracks of its library: here the rows of Mix Two.
+    QList<qint64> askedRows;
+    const DlpDeletePlaylistResult result = dlpDeletePlaylist(stickRoot(),
+            kMasterDbId,
+            p1Id,
+            [&askedRows](const DlpRemovedTrack& track) {
+                askedRows.append(track.contentId);
+                return track.masterDbId == kMasterDbId;
+            });
     ASSERT_TRUE(result.ok) << qPrintable(result.errorMessage);
     EXPECT_EQ(1, result.playlistsRemoved);
-    // A goes. The two tracks of the other program are refused, also the one
-    // that "Theirs" holds.
-    EXPECT_EQ(1, result.tracksRemoved);
-    EXPECT_EQ(0, result.tracksKept);
-    ASSERT_EQ(2, result.refused.size());
-    EXPECT_EQ(otherAudio, result.refused[0].name);
-    EXPECT_EQ(otherAudio2, result.refused[1].name);
-    EXPECT_FALSE(result.refused[0].reason.isEmpty());
-    EXPECT_TRUE(result.filesNotDeleted.isEmpty());
-    EXPECT_FALSE(fileExists(rowA.path));
+    // A and the second rekordbox track go. "Theirs" holds the first one.
+    EXPECT_EQ(2, result.tracksRemoved);
+    EXPECT_EQ(1, result.tracksKept);
+    EXPECT_TRUE(result.refused.isEmpty());
+    EXPECT_TRUE(result.filesNotDeleted.isEmpty()) << qPrintable(result.filesNotDeleted.join('\n'));
 
+    // The report: each removed track, in the order of the playlist.
+    ASSERT_EQ(2, result.removedTracks.size());
+    EXPECT_EQ(rowA.id, result.removedTracks[0].contentId);
+    EXPECT_EQ(rowA.path, result.removedTracks[0].stickPath);
+    EXPECT_FALSE(result.removedTracks[0].title.isEmpty());
+    EXPECT_EQ(QStringLiteral("Artist A"), result.removedTracks[0].artist);
+    EXPECT_TRUE(result.removedTracks[0].inMixTwoLibrary);
+    EXPECT_EQ(secondId, result.removedTracks[1].contentId);
+    EXPECT_EQ(otherAudio2, result.removedTracks[1].stickPath);
+    EXPECT_EQ(QStringLiteral("Other 8"), result.removedTracks[1].title);
+    EXPECT_EQ(QStringLiteral("Their Artist"), result.removedTracks[1].artist);
+    EXPECT_EQ(kOtherMasterDbId, result.removedTracks[1].masterDbId);
+    EXPECT_EQ(8, result.removedTracks[1].masterContentId);
+    EXPECT_FALSE(result.removedTracks[1].inMixTwoLibrary);
+    // The check runs only for the removed tracks.
+    EXPECT_EQ((QList<qint64>{rowA.id, secondId}), askedRows);
+
+    EXPECT_FALSE(fileExists(rowA.path));
     EXPECT_TRUE(fileExists(otherAudio));
-    EXPECT_TRUE(fileExists(otherAudio2));
     EXPECT_TRUE(fileExists(otherAnlz));
-    EXPECT_TRUE(fileExists(otherAnlz2));
+    EXPECT_FALSE(fileExists(otherAudio2));
+    EXPECT_FALSE(fileExists(otherAnlz2));
     StickLibrary library(stickRoot());
     ASSERT_TRUE(library.isValid()) << qPrintable(library.error());
     EXPECT_EQ(QStringLiteral("ok"), library.value(QStringLiteral("PRAGMA integrity_check")));
-    EXPECT_EQ(otherRowsBefore, library.rows(otherRowsSql).join('\n'));
-    // Only the sequence number of the playlist "Theirs" changes: it is one
-    // less, as P1 was before it.
-    const QString theirsAfter = library.value(theirsSql);
-    EXPECT_EQ(theirsBefore.split('|').mid(2), theirsAfter.split('|').mid(2)) << qPrintable(theirsAfter);
+    EXPECT_EQ(firstRowBefore, library.value(firstRowSql));
     EXPECT_EQ(QString::number(firstId),
             library.value(QStringLiteral("SELECT group_concat(content_id) FROM playlist_content "
                                          "WHERE playlist_id = (SELECT playlist_id FROM playlist "
                                          "WHERE name = 'Theirs')")));
-    // B, C and the two tracks of the other program.
-    EXPECT_EQ(QStringLiteral("4"), library.value(QStringLiteral("SELECT count(*) FROM content")));
-    EXPECT_EQ(QStringLiteral("4"),
+    // B, C and the first rekordbox track.
+    EXPECT_EQ(QStringLiteral("3"), library.value(QStringLiteral("SELECT count(*) FROM content")));
+    EXPECT_EQ(QStringLiteral("3"),
             library.value(QStringLiteral("SELECT numberOfContents FROM property")));
-    EXPECT_GT(secondId, firstId);
+    EXPECT_EQ(QStringLiteral("0"),
+            library.value(QStringLiteral("SELECT count(*) FROM content WHERE content_id = %1")
+                            .arg(secondId)));
+
+    // Then "Theirs" goes, and with it the first rekordbox track. Without a
+    // check, no track counts as in the library.
+    const DlpDeletePlaylistResult theirs =
+            dlpDeletePlaylist(stickRoot(), kMasterDbId, playlistId(QStringLiteral("Theirs")));
+    ASSERT_TRUE(theirs.ok) << qPrintable(theirs.errorMessage);
+    EXPECT_EQ(1, theirs.tracksRemoved);
+    ASSERT_EQ(1, theirs.removedTracks.size());
+    EXPECT_EQ(otherAudio, theirs.removedTracks[0].stickPath);
+    EXPECT_FALSE(theirs.removedTracks[0].inMixTwoLibrary);
+    EXPECT_FALSE(fileExists(otherAudio));
+    EXPECT_FALSE(fileExists(otherAnlz));
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusDeleteTest, BacksUpLibraryBeforeDelete) {
+    const QByteArray before = libraryBytes();
+    QTemporaryDir backupDir;
+    ASSERT_TRUE(backupDir.isValid());
+
+    // A backup folder that is a file: the backup fails, and the stick does
+    // not change.
+    const QString notAFolder = backupDir.filePath(QStringLiteral("file"));
+    {
+        QFile file(notAFolder);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+        ASSERT_EQ(5, file.write("other"));
+    }
+    const DlpDeletePlaylistResult refused = dlpDeletePlaylist(
+            stickRoot(), kMasterDbId, playlistId(QStringLiteral("P1")), {}, notAFolder);
+    EXPECT_FALSE(refused.ok);
+    EXPECT_FALSE(refused.errorMessage.isEmpty());
+    EXPECT_EQ(before, libraryBytes());
+
+    // A good backup folder: the copy of the library is there before the
+    // delete changes the stick.
+    const QString backupBase = backupDir.filePath(QStringLiteral("backups"));
+    const DlpDeletePlaylistResult result = dlpDeletePlaylist(
+            stickRoot(), kMasterDbId, playlistId(QStringLiteral("P1")), {}, backupBase);
+    ASSERT_TRUE(result.ok) << qPrintable(result.errorMessage);
+    EXPECT_NE(before, libraryBytes());
+    QStringList copies;
+    QDirIterator it(backupBase,
+            {QStringLiteral("exportLibrary.db")},
+            QDir::Files,
+            QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        copies.append(it.next());
+    }
+    ASSERT_EQ(1, copies.size()) << qPrintable(copies.join('\n'));
+    EXPECT_EQ(before, readFile(copies[0]));
+}
+// End of AI-generated text.
 
 TEST_F(DeviceLibraryPlusDeleteTest, ReportsFileThatCannotBeDeleted) {
     const DlpContentRef rowA = rowOf(1);

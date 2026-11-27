@@ -403,8 +403,10 @@ std::optional<qint64> DeviceLibraryPlusDb::findPlaylistOnly(
 
 QList<DlpContentRef> DeviceLibraryPlusDb::listContents() {
     NamedStatement select(m_pDb,
-            "SELECT content_id, path, masterDbId, masterContentId, "
-            "analysisDataFilePath, image_id FROM content ORDER BY content_id");
+            "SELECT c.content_id, c.path, c.masterDbId, c.masterContentId, "
+            "c.analysisDataFilePath, c.image_id, c.title, a.name FROM content c "
+            "LEFT JOIN artist a ON a.artist_id = c.artist_id_artist "
+            "ORDER BY c.content_id");
     QList<DlpContentRef> contents;
     while (true) {
         switch (select.step()) {
@@ -420,6 +422,8 @@ QList<DlpContentRef> DeviceLibraryPlusDb::listContents() {
             if (!select.columnIsNull(5)) {
                 ref.imageId = select.columnInt(5);
             }
+            ref.title = select.columnText(6);
+            ref.artistName = select.columnText(7);
             contents.append(ref);
             break;
         }

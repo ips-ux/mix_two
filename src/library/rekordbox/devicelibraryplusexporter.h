@@ -25,7 +25,8 @@ namespace rekordbox {
 /// the main thread.
 struct DlpExportTrack {
     /// The track, loaded on the main thread. It must have a valid ID: the ID
-    /// is the `masterContentId` of its row.
+    /// is the `masterContentId` of its row (a row of another program keeps
+    /// its own `masterContentId`).
     TrackPointer pTrack;
     /// The waveform of the analysis database. May be null; then the track is
     /// skipped.
@@ -88,19 +89,26 @@ struct DlpTrackResult {
 /// removes the replaced files only after a good save, and only when no row
 /// uses them (dlpRemoveReplacedFiles()). A file outside /Contents is never
 /// copied over or removed. Each path of the database must pass
-/// dlpIsSafeStickPath(); a row of Mix Two with a path that does not is used
-/// as a row without that path, and the files of the bad path are never
+/// dlpIsSafeStickPath(); a row that the export updates with a path that
+/// does not is used as a row without that path, and the files of the bad path are never
 /// touched.
 ///
-/// Rows of other programs (another `masterDbId`) are never changed. The row
-/// with the `masterDbId` of the options and the ID of the track as
-/// `masterContentId` belongs to the track: an export updates it and does not
-/// add a second row. A track without a row of its own uses the row of
-/// another program, writes nothing and gives a warning, when its file is on
-/// the stick and that row has the path of the file (Ruling R8), or when that
-/// row has the /Contents path of the track and the file there has the size
-/// of the track (Ruling R19). All stick paths are compared through
-/// dlpPathKey().
+// AI-generated (Claude Code). Start of AI-generated text.
+/// A stick has one library. The row with the `masterDbId` of the options and
+/// the ID of the track as `masterContentId` is the row of the track: an
+/// export updates it and does not add a second row. A track without such a
+/// row uses a row that rekordbox or another program wrote (another
+/// `masterDbId`) for the same file, when its file is on the stick and that
+/// row has the path of the file (Ruling R8), or when that row has the
+/// /Contents path of the track and the file there has the size of the track
+/// (Ruling R19). The export updates that row in place with the data of Mix
+/// Two, as for its own row; the row keeps its `masterDbId` and
+/// `masterContentId`, so that the other program can find it again. Such a
+/// row is found by its stick path only: the `masterContentId` of another
+/// program is not an ID of the Mix Two library. A row of another program at
+/// the target with a file of another size is another track: it does not
+/// change. All stick paths are compared through dlpPathKey().
+// End of AI-generated text.
 class DeviceLibraryPlusExporter {
   public:
     struct Options {
@@ -126,8 +134,9 @@ class DeviceLibraryPlusExporter {
     /// exportTrack(): a file that is on the stick already, a track that has a
     /// row of its own whose file exists (with the size of the track, or
     /// outside /Contents), a file of the same size at the target, a track
-    /// that uses the row of another program, and a track that exportTrack()
-    /// skips (missing file, file type, size) count 0. Call it after prepare().
+    /// whose file a row of another program has (Rulings R8 and R19), and a
+    /// track that exportTrack() skips (missing file, file type, size) count
+    /// 0. Call it after prepare().
     /// It writes nothing.
     qint64 bytesToCopy(const QList<DlpCopyCandidate>& tracks) const;
 
@@ -136,7 +145,8 @@ class DeviceLibraryPlusExporter {
     /// or updates the row of the track. A track that cannot be exported is
     /// skipped; the export goes on. A track without a valid ID is skipped.
     /// A skipped track that has a row on the stick (its own row, or the row
-    /// of another program of Ruling R8) keeps that row in the playlists, with
+    /// of another program for its file of Ruling R8) keeps that row in the
+    /// playlists, with
     /// the warning "The stick has an older copy of this track. The playlist
     /// uses it." (Ruling R20).
     DlpTrackResult exportTrack(const DlpExportTrack& item);
@@ -177,8 +187,8 @@ class DeviceLibraryPlusExporter {
     }
 
     /// The number of tracks of this export that the playlists can use: the
-    /// exported tracks, the tracks with the row of another program, and the
-    /// skipped tracks that keep an older row (Ruling R20).
+    /// exported tracks and the skipped tracks that keep an older row (Ruling
+    /// R20).
     int usableTrackCount() const {
         return static_cast<int>(m_exportedContentIds.size());
     }
@@ -191,8 +201,9 @@ class DeviceLibraryPlusExporter {
         /// Ruling R18: the copy in /Contents of the own row that the new
         /// copy replaces.
         std::optional<QString> replacedPath;
-        /// Ruling R19: the row of another program at the /Contents path.
-        std::optional<qint64> otherRowId;
+        /// Ruling R19: the row of another program at the /Contents path, with
+        /// the file of the track. The export updates it.
+        std::optional<DlpContentRef> otherRow;
     };
 
     /// The path from the stick root of a file below the stick root, else none.
@@ -200,12 +211,13 @@ class DeviceLibraryPlusExporter {
     /// Where the audio file of a track goes. exportTrack() and bytesToCopy()
     /// both use it, so that the estimate follows the export.
     struct Placement {
-        /// The row of the Mix Two track ID, if there is one.
+        /// The row that the export updates: the row of the Mix Two track ID,
+        /// or else the row of another program for the file of the track
+        /// (Rulings R8 and R19).
         std::optional<DlpContentRef> ownRow;
-        /// Set when the track has no row of its own and uses the row of
-        /// another program (Rulings R8 and R19): the ID of that row.
-        std::optional<qint64> otherRowId;
-        /// Not set when `otherRowId` is set.
+        /// True when `ownRow` is the row of another program. The row keeps
+        /// its `masterDbId` and `masterContentId`.
+        bool otherProgramRow = false;
         Target target;
     };
     Placement placementOf(qint64 trackId,
@@ -243,9 +255,11 @@ class DeviceLibraryPlusExporter {
     /// of the options. A path of the row that does not pass
     /// dlpIsSafeStickPath() is empty here.
     QHash<qint64, DlpContentRef> m_ownRows;
-    /// The ID of the first row of another program (another `masterDbId`) by
-    /// the dlpPathKey() of its path.
-    QHash<QString, qint64> m_otherRowIdsByPath;
+    /// The first row of another program (another `masterDbId`) by the
+    /// dlpPathKey() of its path; a row of this export replaces the one that
+    /// it updated. A path of the row that does not pass dlpIsSafeStickPath()
+    /// is empty here.
+    QHash<QString, DlpContentRef> m_otherRowsByPath;
     /// The dlpPathKey() of the paths that rows use (also paths that are not
     /// safe).
     QSet<QString> m_usedPathKeys;

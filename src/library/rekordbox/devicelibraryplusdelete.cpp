@@ -2,6 +2,7 @@
 #include "library/rekordbox/devicelibraryplusdelete.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QHash>
 #include <QSet>
@@ -13,6 +14,7 @@
 #include "library/rekordbox/devicelibraryplusdb.h"
 #include "library/rekordbox/devicelibraryplusexportcleanup.h"
 #include "library/rekordbox/devicelibraryplusmapping.h"
+#include "library/rekordbox/devicelibraryplusstick.h"
 
 namespace mixxx {
 namespace rekordbox {
@@ -41,11 +43,6 @@ QString folderMessage() {
             "This is a folder of playlists. Mix Two does not delete folders.");
 }
 
-QString otherProgramTrackMessage() {
-    return QCoreApplication::translate("DeviceLibraryPlus",
-            "Another program wrote this track. Mix Two keeps it on the stick.");
-}
-
 QString invalidMasterDbIdMessage() {
     return deleteFailedMessage(QCoreApplication::translate("DeviceLibraryPlus",
             "The library of Mix Two has no valid ID."));
@@ -65,11 +62,16 @@ std::optional<qint64> findByPath(DeviceLibraryPlusDb* pDb, const QStringList& na
     return pDb->findPlaylist(namePath.last(), parentId);
 }
 
+/// The name of the backup folder of a stick whose library has no device name.
+const QString kDefaultDeviceName = QStringLiteral("Mix Two");
+
 /// `playlistId` is not set when the call is by path (`namePath`).
 DlpDeletePlaylistResult deletePlaylist(const QString& stickRoot,
         qint64 masterDbId,
         std::optional<qint64> playlistId,
-        const QStringList& namePath) {
+        const QStringList& namePath,
+        const DlpLibraryCheck& isInLibrary,
+        const QString& backupBaseDir) {
     if (stickRoot.trimmed().isEmpty()) {
         return failedDelete(deleteFailedMessage(QCoreApplication::translate("DeviceLibraryPlus",
                 "The path of the stick is empty.")));
@@ -147,13 +149,20 @@ DlpDeletePlaylistResult deletePlaylist(const QString& stickRoot,
             continue;
         }
         const DlpContentRef& row = *it;
-        if (row.masterDbId != masterDbId) {
-            // The rule of the export: a row of another program is never changed.
-            result.refused.append({row.path, otherProgramTrackMessage()});
-        } else if (heldElsewhere.contains(contentId)) {
+        // A stick has one library: the rows of Mix Two, of rekordbox and of
+        // other programs follow the same rule.
+        if (heldElsewhere.contains(contentId)) {
             ++result.tracksKept;
         } else {
             removeIds.append(contentId);
+            DlpRemovedTrack removed;
+            removed.contentId = row.id;
+            removed.title = row.title;
+            removed.artist = row.artistName;
+            removed.stickPath = row.path;
+            removed.masterDbId = row.masterDbId;
+            removed.masterContentId = row.masterContentId;
+            result.removedTracks.append(removed);
             if (!row.path.isEmpty()) {
                 files.audioPaths.append(row.path);
             }
@@ -170,6 +179,26 @@ DlpDeletePlaylistResult deletePlaylist(const QString& stickRoot,
         const QString imagePath = imagePaths.value(imageId);
         if (!imagePath.isEmpty()) {
             files.imagePaths.append(imagePath);
+        }
+    }
+    if (isInLibrary) {
+        for (DlpRemovedTrack& removed : result.removedTracks) {
+            removed.inMixTwoLibrary = isInLibrary(removed);
+        }
+    }
+
+    // The backup of the library on the stick, before the stick changes.
+    if (!backupBaseDir.trimmed().isEmpty()) {
+        const QString deviceName = pDb->deviceName().trimmed().isEmpty()
+                ? kDefaultDeviceName
+                : pDb->deviceName().trimmed();
+        if (dlpBackupLibrary(stickRoot,
+                    backupBaseDir,
+                    deviceName,
+                    QDateTime::currentDateTime(),
+                    &error)
+                        .isEmpty()) {
+            return failedDelete(deleteFailedMessage(error));
         }
     }
 
@@ -208,14 +237,22 @@ DlpDeletePlaylistResult deletePlaylist(const QString& stickRoot,
 
 } // namespace
 
-DlpDeletePlaylistResult dlpDeletePlaylist(
-        const QString& stickRoot, qint64 masterDbId, qint64 playlistId) {
-    return deletePlaylist(stickRoot, masterDbId, playlistId, QStringList());
+DlpDeletePlaylistResult dlpDeletePlaylist(const QString& stickRoot,
+        qint64 masterDbId,
+        qint64 playlistId,
+        const DlpLibraryCheck& isInLibrary,
+        const QString& backupBaseDir) {
+    return deletePlaylist(
+            stickRoot, masterDbId, playlistId, QStringList(), isInLibrary, backupBaseDir);
 }
 
-DlpDeletePlaylistResult dlpDeletePlaylistByPath(
-        const QString& stickRoot, qint64 masterDbId, const QStringList& namePath) {
-    return deletePlaylist(stickRoot, masterDbId, std::nullopt, namePath);
+DlpDeletePlaylistResult dlpDeletePlaylistByPath(const QString& stickRoot,
+        qint64 masterDbId,
+        const QStringList& namePath,
+        const DlpLibraryCheck& isInLibrary,
+        const QString& backupBaseDir) {
+    return deletePlaylist(
+            stickRoot, masterDbId, std::nullopt, namePath, isInLibrary, backupBaseDir);
 }
 
 } // namespace rekordbox

@@ -75,11 +75,6 @@ QString artworkFailedMessage() {
     return QCoreApplication::translate("DeviceLibraryPlus", "Mix Two cannot write the artwork.");
 }
 
-QString otherProgramMessage() {
-    return QCoreApplication::translate("DeviceLibraryPlus",
-            "The stick already has this track from another program. Mix Two did not change it.");
-}
-
 QString olderCopyMessage() {
     return QCoreApplication::translate("DeviceLibraryPlus",
             "The stick has an older copy of this track. The playlist uses it.");
@@ -355,15 +350,10 @@ DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item
     // 2. The place of the audio file on the stick.
     const Placement placement = placementOf(
             track.getId().toVariant().toLongLong(), location, track.getArtist(), track.getAlbum());
-    if (placement.otherRowId) {
-        // Rulings R8 and R19: the file is on the stick, and another program
-        // has a row for it. The export uses that row as it is and writes
-        // nothing.
-        result.warnings.append(otherProgramMessage());
-        result.contentId = *placement.otherRowId;
-        m_exportedContentIds.insert(track.getId(), *placement.otherRowId);
-        return result;
-    }
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Rulings R8 and R19: when another program has a row for the file, the
+    // export updates that row below, as its own row.
+    // End of AI-generated text.
     const std::optional<DlpContentRef>& ownRow = placement.ownRow;
     const Target& target = placement.target;
 
@@ -440,8 +430,17 @@ DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item
     content.bitrate = track.getBitrate();
     content.bitDepth = dlpBitDepth(location, fileType);
     content.samplingRate = static_cast<int>(track.getSampleRate().value());
-    content.masterDbId = m_options.masterDbId;
-    content.masterContentId = track.getId().toVariant().toLongLong();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The row of another program keeps its library IDs, so that the other
+    // program can find it again. Mix Two finds it by its path.
+    if (ownRow && placement.otherProgramRow) {
+        content.masterDbId = ownRow->masterDbId;
+        content.masterContentId = ownRow->masterContentId;
+    } else {
+        content.masterDbId = m_options.masterDbId;
+        content.masterContentId = track.getId().toVariant().toLongLong();
+    }
+    // End of AI-generated text.
     content.analysisDataFilePath = anlzFolder + QLatin1Char('/') + kAnlzFileName;
 
     qint64 contentId = -1;
@@ -566,7 +565,7 @@ qint64 DeviceLibraryPlusExporter::bytesToCopy(const QList<DlpCopyCandidate>& tra
                 location,
                 candidate.artist,
                 candidate.album);
-        if (!placement.otherRowId && placement.target.needsCopy) {
+        if (placement.target.needsCopy) {
             total += source.size();
         }
     }
@@ -583,15 +582,18 @@ DeviceLibraryPlusExporter::Placement DeviceLibraryPlusExporter::placementOf(qint
     }
     const std::optional<QString> ownStickPath = stickPathOf(location);
     if (ownStickPath && !placement.ownRow) {
-        const auto it = m_otherRowIdsByPath.constFind(dlpPathKey(*ownStickPath));
-        if (it != m_otherRowIdsByPath.constEnd()) {
-            placement.otherRowId = *it;
-            return placement;
+        // Ruling R8: the file is on the stick, and another program has a row
+        // for it. targetOf() keeps the path of the row.
+        const auto it = m_otherRowsByPath.constFind(dlpPathKey(*ownStickPath));
+        if (it != m_otherRowsByPath.constEnd()) {
+            placement.ownRow = *it;
+            placement.otherProgramRow = true;
         }
     }
     placement.target = targetOf(artist, album, location, ownStickPath, placement.ownRow);
-    if (placement.target.otherRowId) {
-        placement.otherRowId = placement.target.otherRowId;
+    if (placement.target.otherRow) {
+        placement.ownRow = placement.target.otherRow;
+        placement.otherProgramRow = true;
     }
     return placement;
 }
@@ -646,13 +648,14 @@ DeviceLibraryPlusExporter::Target DeviceLibraryPlusExporter::targetOf(const QStr
         const QFileInfo onStick(absolutePath(candidate));
         if (m_usedPathKeys.contains(key)) {
             // Ruling R19: rekordbox put the track at the same place. The file
-            // there has the size of the track, so it is the track: use the
-            // row of the other program (as Ruling R8).
-            const auto it = m_otherRowIdsByPath.constFind(key);
-            if (!ownRow && it != m_otherRowIdsByPath.constEnd() && onStick.isFile() &&
+            // there has the size of the track, so it is the track: the
+            // export updates the row of the other program (as Ruling R8) and
+            // keeps the letter case of its path.
+            const auto it = m_otherRowsByPath.constFind(key);
+            if (!ownRow && it != m_otherRowsByPath.constEnd() && onStick.isFile() &&
                     !onStick.isSymLink() && onStick.size() == size) {
-                result.stickPath = candidate;
-                result.otherRowId = *it;
+                result.stickPath = it->path.isEmpty() ? candidate : it->path;
+                result.otherRow = *it;
                 return result;
             }
             continue;
@@ -682,9 +685,9 @@ std::optional<qint64> DeviceLibraryPlusExporter::olderRowOf(const Track& track) 
     const std::optional<QString> stickPath =
             stickPathOf(QDir::fromNativeSeparators(track.getLocation()));
     if (stickPath) {
-        const auto other = m_otherRowIdsByPath.constFind(dlpPathKey(*stickPath));
-        if (other != m_otherRowIdsByPath.constEnd()) {
-            return *other;
+        const auto other = m_otherRowsByPath.constFind(dlpPathKey(*stickPath));
+        if (other != m_otherRowsByPath.constEnd()) {
+            return other->id;
         }
     }
     return std::nullopt;
@@ -758,25 +761,30 @@ std::optional<qint64> DeviceLibraryPlusExporter::imageOf(const DlpExportTrack& i
 }
 
 void DeviceLibraryPlusExporter::remember(const DlpContentRef& row) {
+    // Important 4: a path of the database that does not pass
+    // dlpIsSafeStickPath() is not used. The track gets a new place, and
+    // the files of the bad path are never touched.
+    DlpContentRef own = row;
+    if (!dlpIsSafeStickPath(own.path)) {
+        own.path.clear();
+    }
+    if (!dlpIsSafeStickPath(own.analysisDataFilePath)) {
+        own.analysisDataFilePath.clear();
+    }
     if (row.masterDbId == m_options.masterDbId) {
-        // Important 4: a path of the database that does not pass
-        // dlpIsSafeStickPath() is not used. The track gets a new place, and
-        // the files of the bad path are never touched.
-        DlpContentRef own = row;
-        if (!dlpIsSafeStickPath(own.path)) {
-            own.path.clear();
-        }
-        if (!dlpIsSafeStickPath(own.analysisDataFilePath)) {
-            own.analysisDataFilePath.clear();
-        }
         // The first row of a track wins, as in findContentByMaster(); a row of
         // this export replaces the one that it updated.
         const auto it = m_ownRows.constFind(own.masterContentId);
         if (it == m_ownRows.constEnd() || it->id == own.id) {
             m_ownRows.insert(own.masterContentId, own);
         }
-    } else if (!m_otherRowIdsByPath.contains(dlpPathKey(row.path))) {
-        m_otherRowIdsByPath.insert(dlpPathKey(row.path), row.id);
+    } else {
+        // The same rule for the rows of other programs, by path.
+        const QString key = dlpPathKey(row.path);
+        const auto it = m_otherRowsByPath.constFind(key);
+        if (it == m_otherRowsByPath.constEnd() || it->id == own.id) {
+            m_otherRowsByPath.insert(key, own);
+        }
     }
     // The paths of all rows count as used, also those that are not safe.
     if (!row.path.isEmpty()) {
