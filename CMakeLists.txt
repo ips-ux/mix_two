@@ -3081,6 +3081,7 @@ if(BUILD_TESTING)
     src/test/devicelibraryplusdb_test.cpp
     src/test/devicelibraryplusexporter_test.cpp
     src/test/devicelibraryplusexportjob_test.cpp
+    src/test/devicelibraryplusexportjob_bench_test.cpp
     src/test/legacyfromdlp_test.cpp
     src/test/exportloop_test.cpp
     src/test/devicelibraryplusmapping_test.cpp
