@@ -8,8 +8,11 @@
 #include <QMetaObject>
 #include <QSet>
 #include <QSqlQuery>
+#include <QThreadPool>
+#include <QtConcurrent>
 #include <QtDebug>
 #include <algorithm>
+#include <deque>
 #include <memory>
 #include <utility>
 
@@ -17,6 +20,7 @@
 #include "library/dao/analysisdao.h"
 #include "library/queryutil.h"
 #include "library/rekordbox/devicelibraryplusdb.h"
+#include "library/rekordbox/devicelibraryplusmapping.h"
 #include "library/rekordbox/devicelibraryplusstick.h"
 #include "library/rekordbox/legacyfromdlp.h"
 #include "library/trackcollection.h"
@@ -37,7 +41,9 @@ using rekordbox::DeviceLibraryPlusExporter;
 using rekordbox::DlpCopyCandidate;
 using rekordbox::DlpExportPlaylist;
 using rekordbox::DlpExportTrack;
+using rekordbox::DlpPreparedTrack;
 using rekordbox::DlpStickInfo;
+using rekordbox::DlpTrackPlan;
 using rekordbox::DlpTrackResult;
 
 constexpr qint64 kBytesPerMegabyte = 1024 * 1024;
@@ -147,10 +153,42 @@ DlpExportTrack loadTrackData(
     return item;
 }
 
+/// A track that a prepare task made ready for the commit.
+struct PreparedItem {
+    DlpExportTrack item;
+    DlpPreparedTrack prepared;
+};
+
+/// The prepare task of a track: the waveform and the cover, then the CPU
+/// work of the exporter. It uses no database and writes nothing.
+PreparedItem prepareItem(const TrackPointer& pTrack,
+        const QList<AnalysisDao::AnalysisInfo>& waveformFiles,
+        const DlpTrackPlan& plan,
+        const QAtomicInteger<int>* pCancel) {
+    PreparedItem result;
+    if (pCancel->loadAcquire() != 0) {
+        result.item.pTrack = pTrack;
+        result.prepared.cancelled = true;
+        return result;
+    }
+    result.item = loadTrackData(pTrack, waveformFiles);
+    result.prepared = DeviceLibraryPlusExporter::prepareTrack(result.item, plan, pCancel);
+    return result;
+}
+
 } // namespace
 
 void DeviceLibraryPlusExportJob::setTrackLoadGroupSize(int groupSize) {
     m_trackLoadGroupSize = std::max(1, groupSize);
+}
+
+void DeviceLibraryPlusExportJob::setPrepareThreads(int threadCount, int tracksAhead) {
+    m_prepareThreadCount = std::max(0, threadCount);
+    m_tracksAhead = std::max(1, tracksAhead);
+}
+
+int DeviceLibraryPlusExportJob::defaultPrepareThreadCount() {
+    return std::clamp(QThread::idealThreadCount() / 2, 1, 3);
 }
 // End of AI-generated text.
 
@@ -472,51 +510,122 @@ void DeviceLibraryPlusExportJob::run() {
     // The tracks.
     DeviceLibraryPlusExportSummary summary;
     // AI-generated (Claude Code). Start of AI-generated text.
+    // The pipeline: plan in the order of the tracks, prepare in the pool,
+    // commit in the order of the tracks. The pool is private: the cover and
+    // analysis work of the app use the global pool.
+    const int prepareThreadCount =
+            m_prepareThreadCount < 0 ? defaultPrepareThreadCount() : m_prepareThreadCount;
+    std::unique_ptr<QThreadPool> pPool;
+    if (prepareThreadCount > 0) {
+        pPool = std::make_unique<QThreadPool>();
+        pPool->setMaxThreadCount(prepareThreadCount);
+    }
+    /// A planned track that is not yet committed.
+    struct PendingTrack {
+        bool hasTrack = false;
+        /// The dlpPathKey() of the planned stick path, or empty.
+        QString pathKey;
+        QFuture<PreparedItem> future;
+        std::optional<PreparedItem> ready;
+    };
+    std::deque<PendingTrack> pending;
+    /// Waits for every prepare task on each return: a task must not run
+    /// after the job. The tasks see the cancel flag and end soon.
+    struct WaitForPrepareTasks {
+        std::deque<PendingTrack>* pPending;
+        ~WaitForPrepareTasks() {
+            for (PendingTrack& track : *pPending) {
+                track.future.waitForFinished();
+            }
+        }
+    } waitForPrepareTasks{&pending};
+    QSet<QString> pendingPathKeys;
     QList<LoadedTrack> group;
     int groupNext = 0;
-    // End of AI-generated text.
+    int nextToPlan = 0;
     for (int i = 0; i < trackCount; ++i) {
-        if (isCancelled()) {
-            qInfo() << "Device Library Plus export: cancelled";
-            return;
-        }
-        // AI-generated (Claude Code). Start of AI-generated text.
-        // The main thread loads the next group of tracks in one call.
-        if (groupNext >= group.size()) {
-            if (!callInMainThread("loadTracks", i)) {
-                emit failed(loadFailedMessage);
-                return;
-            }
-            group = std::move(m_loadedTracks);
-            m_loadedTracks.clear();
-            groupNext = 0;
-            DEBUG_ASSERT(!group.isEmpty());
+        // Plan and start the preparation of the next tracks.
+        while (nextToPlan < trackCount && static_cast<int>(pending.size()) < m_tracksAhead) {
             if (isCancelled()) {
                 qInfo() << "Device Library Plus export: cancelled";
                 return;
             }
+            // The main thread loads the next group of tracks in one call.
+            if (groupNext >= group.size()) {
+                if (!callInMainThread("loadTracks", nextToPlan)) {
+                    emit failed(loadFailedMessage);
+                    return;
+                }
+                group = std::move(m_loadedTracks);
+                m_loadedTracks.clear();
+                groupNext = 0;
+                DEBUG_ASSERT(!group.isEmpty());
+                if (isCancelled()) {
+                    qInfo() << "Device Library Plus export: cancelled";
+                    return;
+                }
+            }
+            LoadedTrack loaded = std::move(group[groupNext]);
+            group[groupNext] = LoadedTrack();
+            ++groupNext;
+            ++nextToPlan;
+            PendingTrack track;
+            if (loaded.pTrack) {
+                track.hasTrack = true;
+                DlpExportTrack planItem;
+                planItem.pTrack = loaded.pTrack;
+                const DlpTrackPlan plan = exporter.planTrack(planItem, pendingPathKeys);
+                if (!plan.stickPath.isEmpty()) {
+                    track.pathKey = rekordbox::dlpPathKey(plan.stickPath);
+                    pendingPathKeys.insert(track.pathKey);
+                }
+                const QAtomicInteger<int>* pCancel = &m_cancellationRequested;
+                auto task = [pTrack = std::move(loaded.pTrack),
+                                    waveformFiles = std::move(loaded.waveformFiles),
+                                    plan,
+                                    pCancel]() {
+                    return prepareItem(pTrack, waveformFiles, plan, pCancel);
+                };
+                if (pPool) {
+                    track.future = QtConcurrent::run(pPool.get(), std::move(task));
+                } else {
+                    track.ready = task();
+                }
+            }
+            pending.push_back(std::move(track));
         }
-        LoadedTrack loaded = std::move(group[groupNext]);
-        group[groupNext] = LoadedTrack();
-        ++groupNext;
-        DlpExportTrack item;
-        if (loaded.pTrack) {
-            item = loadTrackData(std::move(loaded.pTrack), loaded.waveformFiles);
+
+        // Commit the first planned track.
+        DEBUG_ASSERT(!pending.empty());
+        PendingTrack track = std::move(pending.front());
+        pending.pop_front();
+        PreparedItem prepared;
+        if (track.ready) {
+            prepared = std::move(*track.ready);
+        } else if (track.hasTrack) {
+            prepared = track.future.result();
         }
-        // End of AI-generated text.
+        // The future keeps a copy of the result: the track is released in
+        // this thread.
+        pendingPathKeys.remove(track.pathKey);
+        track = PendingTrack();
         if (isCancelled()) {
             qInfo() << "Device Library Plus export: cancelled";
             return;
         }
-        if (!item.pTrack) {
+        // End of AI-generated text.
+        if (!prepared.item.pTrack) {
             summary.skipped.append(QStringLiteral("%1: %2")
                             .arg(m_trackEntries.at(i).location,
                                     QCoreApplication::translate("DeviceLibraryPlus",
                                             "The track is not in the Mix Two "
                                             "library.")));
         } else {
-            const DlpTrackResult result = exporter.exportTrack(item);
-            const QString label = trackLabel(*item.pTrack);
+            // AI-generated (Claude Code). Start of AI-generated text.
+            const DlpTrackResult result =
+                    exporter.commitTrack(prepared.item, std::move(prepared.prepared));
+            const QString label = trackLabel(*prepared.item.pTrack);
+            // End of AI-generated text.
             if (result.contentId) {
                 ++summary.tracksExported;
             } else {
@@ -527,7 +636,7 @@ void DeviceLibraryPlusExportJob::run() {
             }
         }
         // The track is released in this thread.
-        item = DlpExportTrack();
+        prepared = PreparedItem();
         emit jobProgress(++progress);
     }
 

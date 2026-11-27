@@ -43,6 +43,10 @@
 // copy of the same files. When MIXTWO_EXPORT_BENCH_RATIO is set (for example
 // 1.25), the test also fails if the ratio is higher. The test always fails
 // if the second export copies audio files again.
+// AI-generated (Claude Code). Start of AI-generated text.
+// MIXTWO_EXPORT_BENCH_THREADS="<threads>,<tracks ahead>" sets the threads that
+// prepare the tracks; "0,1" measures the export in one thread.
+// End of AI-generated text.
 
 namespace mixxx {
 
@@ -172,6 +176,18 @@ class DeviceLibraryPlusExportJobBenchTest : public LibraryTest {
     BenchRun runJob(const DeviceLibraryPlusExportRequest& jobRequest) {
         BenchRun run;
         DeviceLibraryPlusExportJob job(nullptr, trackCollectionManager(), jobRequest);
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // MIXTWO_EXPORT_BENCH_THREADS="<threads>,<tracks ahead>" sets the
+        // pipeline; "0,1" is the export in one thread.
+        const QStringList threads =
+                qEnvironmentVariable("MIXTWO_EXPORT_BENCH_THREADS").split(QLatin1Char(','));
+        if (threads.size() == 2) {
+            job.setPrepareThreads(threads[0].toInt(), threads[1].toInt());
+            std::printf("prepare threads %d, tracks ahead %d\n",
+                    threads[0].toInt(),
+                    threads[1].toInt());
+        }
+        // End of AI-generated text.
         QObject context;
         QEventLoop loop;
         QElapsedTimer clock;

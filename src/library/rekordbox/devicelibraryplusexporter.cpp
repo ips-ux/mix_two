@@ -303,7 +303,102 @@ bool DeviceLibraryPlusExporter::prepare(QString* pErrorMessage) {
     return true;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
 DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item) {
+    return commitTrack(item, prepareTrack(item, planTrack(item)));
+}
+
+DlpTrackPlan DeviceLibraryPlusExporter::checkTrack(
+        const DlpExportTrack& item, QString* pSkipReason) const {
+    DlpTrackPlan plan;
+    if (!m_pDb->lastErrorMessage().isEmpty()) {
+        // The export cannot finish; write nothing more to the stick.
+        *pSkipReason = m_pDb->lastErrorMessage();
+        return plan;
+    }
+    // 1. The checks of the file.
+    if (!item.pTrack) {
+        *pSkipReason = missingFileMessage();
+        return plan;
+    }
+    if (!item.pTrack->getId().isValid()) {
+        // The ID is the masterContentId of the row.
+        *pSkipReason = notInLibraryMessage();
+        return plan;
+    }
+    plan.location = QDir::fromNativeSeparators(item.pTrack->getLocation());
+    const QFileInfo source(plan.location);
+    if (plan.location.isEmpty() || !source.isFile()) {
+        *pSkipReason = missingFileMessage();
+        return plan;
+    }
+    const int fileType = dlpFileType(source.suffix());
+    if (fileType == 0) {
+        *pSkipReason = fileTypeMessage();
+        return plan;
+    }
+    if (source.size() > m_options.maxFileSize) {
+        *pSkipReason = largeFileMessage();
+        return plan;
+    }
+    plan.fileType = fileType;
+    pSkipReason->clear();
+    return plan;
+}
+
+DlpTrackPlan DeviceLibraryPlusExporter::planTrack(
+        const DlpExportTrack& item, const QSet<QString>& pendingPathKeys) const {
+    QString skipReason;
+    DlpTrackPlan plan = checkTrack(item, &skipReason);
+    if (!skipReason.isEmpty()) {
+        return DlpTrackPlan();
+    }
+    const Track& track = *item.pTrack;
+    plan.stickPath = placementOf(track.getId().toVariant().toLongLong(),
+            plan.location,
+            track.getArtist(),
+            track.getAlbum(),
+            &pendingPathKeys)
+                             .target.stickPath;
+    return plan;
+}
+
+DlpPreparedTrack DeviceLibraryPlusExporter::prepareTrack(const DlpExportTrack& item,
+        const DlpTrackPlan& plan,
+        const QAtomicInteger<int>* pCancel) {
+    DlpPreparedTrack prepared;
+    if (pCancel && pCancel->loadAcquire() != 0) {
+        prepared.cancelled = true;
+        return prepared;
+    }
+    if (plan.stickPath.isEmpty() || !item.pTrack) {
+        // The checks skip the track; commitTrack() gives the reason.
+        return prepared;
+    }
+    prepared.stickPath = plan.stickPath;
+    prepared.timingOffsetMs = rekordboxTimingOffsetMs(plan.location);
+    if (plan.fileType == kMp3FileType) {
+        prepared.mp3PcmFrames = dlpMpegPcmFrames(plan.location).value_or(0);
+    }
+    std::optional<AnlzTrackData> data = anlzTrackDataFrom(*item.pTrack,
+            item.pWaveform,
+            plan.stickPath,
+            *prepared.timingOffsetMs,
+            &prepared.anlzWarnings,
+            &prepared.anlzError);
+    if (data) {
+        data->mp3PcmFrames = prepared.mp3PcmFrames;
+        prepared.anlzFiles = anlzFileSet(*data);
+    }
+    if (!item.cover.isNull()) {
+        const ArtworkBytes bytes = artworkBytes(item.cover);
+        prepared.artworkJpegs = std::make_pair(bytes.smallJpeg, bytes.mediumJpeg);
+    }
+    return prepared;
+}
+
+DlpTrackResult DeviceLibraryPlusExporter::commitTrack(
+        const DlpExportTrack& item, DlpPreparedTrack prepared) {
     ++m_offeredTrackCount;
     DlpTrackResult result;
     const auto skip = [this, &result, &item](const QString& reason) {
@@ -320,57 +415,42 @@ DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item
         }
         return result;
     };
-    if (!m_pDb->lastErrorMessage().isEmpty()) {
-        // The export cannot finish; write nothing more to the stick.
-        return skip(m_pDb->lastErrorMessage());
-    }
-
-    // 1. The checks of the file.
-    if (!item.pTrack) {
-        return skip(missingFileMessage());
-    }
-    if (!item.pTrack->getId().isValid()) {
-        // The ID is the masterContentId of the row.
-        return skip(notInLibraryMessage());
+    // 1. The checks of the file, again: the commit decides with the stick
+    // and the rows as they are now.
+    QString skipReason;
+    const DlpTrackPlan checked = checkTrack(item, &skipReason);
+    if (!skipReason.isEmpty()) {
+        return skip(skipReason);
     }
     const Track& track = *item.pTrack;
-    const QString location = QDir::fromNativeSeparators(track.getLocation());
+    const QString& location = checked.location;
     const QFileInfo source(location);
-    if (location.isEmpty() || !source.isFile()) {
-        return skip(missingFileMessage());
-    }
-    const int fileType = dlpFileType(source.suffix());
-    if (fileType == 0) {
-        return skip(fileTypeMessage());
-    }
-    if (source.size() > m_options.maxFileSize) {
-        return skip(largeFileMessage());
-    }
+    const int fileType = checked.fileType;
 
     // 2. The place of the audio file on the stick.
     const Placement placement = placementOf(
             track.getId().toVariant().toLongLong(), location, track.getArtist(), track.getAlbum());
-    // AI-generated (Claude Code). Start of AI-generated text.
     // Rulings R8 and R19: when another program has a row for the file, the
     // export updates that row below, as its own row.
-    // End of AI-generated text.
     const std::optional<DlpContentRef>& ownRow = placement.ownRow;
     const Target& target = placement.target;
 
     // 3. The analysis data. A refusal skips the track before anything is
-    // written.
-    QString error;
-    std::optional<AnlzTrackData> data = anlzTrackDataFrom(track,
-            item.pWaveform,
-            target.stickPath,
-            rekordboxTimingOffsetMs(location),
-            &result.warnings,
-            &error);
-    if (!data) {
-        return skip(error);
+    // written. The prepared files are good only for the same stick path (the
+    // DAT file holds it); else they are built here.
+    if (prepared.cancelled || prepared.stickPath != target.stickPath) {
+        DlpTrackPlan plan = checked;
+        plan.stickPath = target.stickPath;
+        std::optional<std::pair<QByteArray, QByteArray>> jpegs =
+                std::move(prepared.artworkJpegs);
+        prepared = prepareTrack(item, plan);
+        if (jpegs) {
+            prepared.artworkJpegs = std::move(jpegs);
+        }
     }
-    if (fileType == kMp3FileType) {
-        data->mp3PcmFrames = dlpMpegPcmFrames(location).value_or(0);
+    result.warnings.append(prepared.anlzWarnings);
+    if (!prepared.anlzFiles) {
+        return skip(prepared.anlzError);
     }
 
     // 4. The audio file. A copy never replaces a file (targetOf()).
@@ -380,20 +460,18 @@ DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item
         if (!reason.isEmpty()) {
             return skip(copyFailedMessage(reason));
         }
-        // AI-generated (Claude Code). Start of AI-generated text.
         m_bytesCopied += source.size();
         ++m_audioFilesCopied;
-        // End of AI-generated text.
     }
 
-    // AI-generated (Claude Code). Start of AI-generated text.
     // 5. The ANLZ files. Ruling R17 (amended): when the folder of the row
     // has the three files with the same bytes, the track keeps that folder
     // and nothing is written. Else the files go into a new folder; the files
     // of the row stay until the new library is on the stick, and finish()
     // removes them after the save. The DAT file holds the stick path, so a
     // track at a new path always gets a new folder.
-    const AnlzFileSet anlzFiles = anlzFileSet(*data);
+    const AnlzFileSet& anlzFiles = *prepared.anlzFiles;
+    QString error;
     QString anlzFolder;
     if (ownRow && !ownRow->analysisDataFilePath.isEmpty()) {
         const QString oldFolder = folderOf(ownRow->analysisDataFilePath);
@@ -412,10 +490,13 @@ DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item
         }
         ++m_anlzWritten;
     }
-    // End of AI-generated text.
 
     // 6. The artwork.
-    const std::optional<qint64> imageId = imageOf(item, ownRow, &result.warnings);
+    const std::optional<qint64> imageId = imageOf(item,
+            ownRow,
+            &result.warnings,
+            prepared.artworkJpegs ? &*prepared.artworkJpegs : nullptr);
+    // End of AI-generated text.
 
     // 7. The rows.
     DlpContent content;
@@ -599,7 +680,8 @@ qint64 DeviceLibraryPlusExporter::bytesToCopy(const QList<DlpCopyCandidate>& tra
 DeviceLibraryPlusExporter::Placement DeviceLibraryPlusExporter::placementOf(qint64 trackId,
         const QString& location,
         const QString& artist,
-        const QString& album) const {
+        const QString& album,
+        const QSet<QString>* pPendingPathKeys) const {
     Placement placement;
     if (const auto it = m_ownRows.constFind(trackId); it != m_ownRows.constEnd()) {
         placement.ownRow = *it;
@@ -614,7 +696,8 @@ DeviceLibraryPlusExporter::Placement DeviceLibraryPlusExporter::placementOf(qint
             placement.otherProgramRow = true;
         }
     }
-    placement.target = targetOf(artist, album, location, ownStickPath, placement.ownRow);
+    placement.target =
+            targetOf(artist, album, location, ownStickPath, placement.ownRow, pPendingPathKeys);
     if (placement.target.otherRow) {
         placement.ownRow = placement.target.otherRow;
         placement.otherProgramRow = true;
@@ -633,7 +716,8 @@ DeviceLibraryPlusExporter::Target DeviceLibraryPlusExporter::targetOf(const QStr
         const QString& album,
         const QString& location,
         const std::optional<QString>& ownStickPath,
-        const std::optional<DlpContentRef>& ownRow) const {
+        const std::optional<DlpContentRef>& ownRow,
+        const QSet<QString>* pPendingPathKeys) const {
     // A file that is on the stick already stays where it is. The check comes
     // first, so that such a file is never copied.
     if (ownStickPath) {
@@ -670,7 +754,10 @@ DeviceLibraryPlusExporter::Target DeviceLibraryPlusExporter::targetOf(const QStr
         const QString candidate = dlpAudioStickPath(artist, album, numberedFileName(safeName, number));
         const QString key = dlpPathKey(candidate);
         const QFileInfo onStick(absolutePath(candidate));
-        if (m_usedPathKeys.contains(key)) {
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // A pending path is used as soon as the track before is exported.
+        if (m_usedPathKeys.contains(key) || (pPendingPathKeys && pPendingPathKeys->contains(key))) {
+            // End of AI-generated text.
             // Ruling R19: rekordbox put the track at the same place. The file
             // there has the size of the track, so it is the track: the
             // export updates the row of the other program (as Ruling R8) and
@@ -729,7 +816,8 @@ QString DeviceLibraryPlusExporter::freeArtworkPath() {
 
 std::optional<qint64> DeviceLibraryPlusExporter::imageOf(const DlpExportTrack& item,
         const std::optional<DlpContentRef>& ownRow,
-        QStringList* pWarnings) {
+        QStringList* pWarnings,
+        const std::pair<QByteArray, QByteArray>* pJpegs) {
     if (item.cover.isNull()) {
         return std::nullopt;
     }
@@ -756,7 +844,10 @@ std::optional<qint64> DeviceLibraryPlusExporter::imageOf(const DlpExportTrack& i
         }
     }
 
-    const ArtworkBytes bytes = artworkBytes(item.cover);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    const ArtworkBytes bytes =
+            pJpegs ? ArtworkBytes{pJpegs->first, pJpegs->second} : artworkBytes(item.cover);
+    // End of AI-generated text.
     if (bytes.smallJpeg.isEmpty() || bytes.mediumJpeg.isEmpty()) {
         pWarnings->append(artworkFailedMessage());
         return rowImageId;

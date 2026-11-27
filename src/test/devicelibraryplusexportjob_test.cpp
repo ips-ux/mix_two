@@ -6,6 +6,7 @@
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QDirIterator>
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
@@ -1174,6 +1175,286 @@ TEST_F(DeviceLibraryPlusExportJobTest, CorruptWaveformFileSkipsTheTrack) {
     EXPECT_EQ(QList<qint64>{pGood->getId().toVariant().toLongLong()},
             contentIdsInRowOrder(m_stick.path()));
 }
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+/// The bytes of every file on a stick by its relative path, without the
+/// encrypted library file (it differs from save to save).
+QMap<QString, QByteArray> stickFileBytes(const QString& stickRoot) {
+    QMap<QString, QByteArray> result;
+    QDirIterator it(stickRoot,
+            QDir::Files | QDir::Hidden | QDir::System,
+            QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString path = it.next();
+        if (QFileInfo(path).fileName() == QStringLiteral("exportLibrary.db")) {
+            continue;
+        }
+        QFile file(path);
+        EXPECT_TRUE(file.open(QIODevice::ReadOnly)) << qPrintable(path);
+        result.insert(QDir(stickRoot).relativeFilePath(path), file.readAll());
+    }
+    return result;
+}
+
+/// The rows of the Plus library as text: the content rows with their stick
+/// paths, the images and the playlists with their tracks in order.
+QStringList plusRows(const QString& stickRoot) {
+    QStringList result;
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::open(stickRoot, &error);
+    EXPECT_TRUE(pDb) << qPrintable(error);
+    if (!pDb) {
+        return result;
+    }
+    for (const DlpContentRef& row : pDb->listContents()) {
+        result.append(QStringLiteral("content %1|%2|%3|%4|%5|%6")
+                        .arg(QString::number(row.id),
+                                row.path,
+                                QString::number(row.masterDbId),
+                                QString::number(row.masterContentId),
+                                row.analysisDataFilePath,
+                                row.imageId ? QString::number(*row.imageId)
+                                            : QStringLiteral("-")));
+    }
+    for (const auto& [imageId, path] : pDb->listImages()) {
+        result.append(QStringLiteral("image %1|%2").arg(QString::number(imageId), path));
+    }
+    for (const auto& playlist : pDb->listPlaylists()) {
+        QStringList ids;
+        for (const qint64 id : pDb->listPlaylistContentIds(playlist.id)) {
+            ids.append(QString::number(id));
+        }
+        result.append(QStringLiteral("playlist %1|%2|%3")
+                        .arg(QString::number(playlist.id), playlist.name, ids.join(',')));
+    }
+    return result;
+}
+
+/// The stick path that the export gives to artist.mp3 of the blocked track.
+const QString kBlockedStickPath =
+        QStringLiteral("/Contents/Blocked Artist/Blocked Album/artist.mp3");
+
+} // namespace
+
+/// The prepare threads and the tracks ahead of the pipelined export.
+class DeviceLibraryPlusExportJobPipelineTest
+        : public DeviceLibraryPlusExportJobTest,
+          public ::testing::WithParamInterface<std::pair<int, int>> {
+  protected:
+    /// A library with tracks that get the same file name on the stick, two
+    /// tracks with the same cover, a track without a waveform, a track whose
+    /// file is missing and a track whose copy fails, and one playlist with
+    /// all tracks.
+    void makeLibrary() {
+        QList<TrackId> playlistTracks;
+        for (int i = 0; i < 12; ++i) {
+            TrackPointer pTrack = addTrack(QStringLiteral("artist.mp3"), QString::number(i));
+            ASSERT_TRUE(pTrack);
+            pTrack->setTitle(QStringLiteral("Pipeline %1").arg(i));
+            storeWaveform(pTrack);
+            playlistTracks.append(pTrack->getId());
+            m_tracks.append(pTrack);
+            if (i == 4) {
+                const QString coverFile = QString::fromUtf8(
+                        "cover-test-\xc3\xb8\xc3\xa9~\xc5\x82\xe2\x82\xac\xcb\x9a-jpg.mp3");
+                for (int cover = 0; cover < 2; ++cover) {
+                    TrackPointer pCover =
+                            addTrack(coverFile, QStringLiteral("cover%1").arg(cover));
+                    ASSERT_TRUE(pCover);
+                    storeWaveform(pCover);
+                    playlistTracks.append(pCover->getId());
+                    m_tracks.append(pCover);
+                }
+            }
+            if (i == 6) {
+                TrackPointer pNoWaveform =
+                        addTrack(QStringLiteral("all.mp3"), QStringLiteral("nw"));
+                ASSERT_TRUE(pNoWaveform);
+                playlistTracks.append(pNoWaveform->getId());
+                m_tracks.append(pNoWaveform);
+                TrackPointer pMissing =
+                        addTrack(QStringLiteral("artist.mp3"), QStringLiteral("gone"));
+                ASSERT_TRUE(pMissing);
+                storeWaveform(pMissing);
+                ASSERT_TRUE(QFile::remove(pMissing->getLocation()));
+                playlistTracks.append(pMissing->getId());
+                m_tracks.append(pMissing);
+            }
+            if (i == 8) {
+                TrackPointer pBlocked =
+                        addTrack(QStringLiteral("artist.mp3"), QStringLiteral("blk"));
+                ASSERT_TRUE(pBlocked);
+                pBlocked->setArtist(QStringLiteral("Blocked Artist"));
+                pBlocked->setAlbum(QStringLiteral("Blocked Album"));
+                storeWaveform(pBlocked);
+                playlistTracks.append(pBlocked->getId());
+                m_tracks.append(pBlocked);
+            }
+        }
+        PlaylistDAO& playlists = internalCollection()->getPlaylistDAO();
+        const int playlistId = playlists.createPlaylist(QStringLiteral("Pipeline Playlist"));
+        ASSERT_GE(playlistId, 0);
+        ASSERT_TRUE(playlists.appendTracksToPlaylist(playlistTracks, playlistId));
+    }
+
+    /// The copy to the blocked path fails: a folder has the name of the
+    /// temporary file of the copy.
+    static void blockCopy(const QString& stickRoot) {
+        ASSERT_TRUE(QDir().mkpath(stickRoot + kBlockedStickPath + QStringLiteral(".mixtwo-part")));
+    }
+
+    /// Runs the job to a stick with the prepare threads and tracks ahead.
+    /// When `cancelAtProgress` is larger than 0, the job is cancelled when it
+    /// sends this progress.
+    Outcome runTo(const QString& stickRoot,
+            int threads,
+            int tracksAhead,
+            int cancelAtProgress = 0) {
+        DeviceLibraryPlusExportRequest jobRequest = request();
+        jobRequest.stickRoot = stickRoot;
+        DeviceLibraryPlusExportJob job(nullptr, trackCollectionManager(), jobRequest);
+        job.setPrepareThreads(threads, tracksAhead);
+        if (cancelAtProgress > 0) {
+            // Direct: the cancel comes in the worker thread when it sends
+            // the progress, so the point of the cancel is the same each time.
+            QObject::connect(&job,
+                    &DeviceLibraryPlusExportJob::jobProgress,
+                    [&job, cancelAtProgress](int progress) {
+                        if (progress == cancelAtProgress) {
+                            job.slotCancel();
+                        }
+                    });
+        }
+        return runJob(job);
+    }
+
+    QList<TrackPointer> m_tracks;
+};
+
+// The pipelined export gives the same stick as the export in one thread: the
+// same files with the same bytes (audio, ANLZ, artwork, export.pdb), the same
+// rows and playlists, and the same summary in the order of the tracks. The
+// failed tracks do not stop the others.
+TEST_P(DeviceLibraryPlusExportJobPipelineTest, GivesTheSameStickAsOneThread) {
+    makeLibrary();
+    QTemporaryDir serialStick;
+    ASSERT_TRUE(serialStick.isValid());
+    blockCopy(serialStick.path());
+    blockCopy(m_stick.path());
+
+    const Outcome serial = runTo(serialStick.path(), 0, 1);
+    ASSERT_TRUE(serial.finished);
+    ASSERT_EQ(1, serial.completedCount) << qPrintable(serial.failure);
+    EXPECT_EQ(14, serial.summary.tracksExported);
+    ASSERT_EQ(3, serial.summary.skipped.size()) << qPrintable(serial.summary.skipped.join('\n'));
+    EXPECT_TRUE(serial.summary.skipped[0].endsWith(
+            QStringLiteral(": The track has no waveform. Analyse the track first.")));
+    EXPECT_TRUE(serial.summary.skipped[1].endsWith(QStringLiteral(": The track file is missing.")));
+    EXPECT_TRUE(serial.summary.skipped[2].contains(
+            QStringLiteral(": Mix Two cannot copy the track to the stick: ")))
+            << qPrintable(serial.summary.skipped[2]);
+
+    const Outcome pipelined = runTo(m_stick.path(), GetParam().first, GetParam().second);
+    ASSERT_TRUE(pipelined.finished);
+    ASSERT_EQ(1, pipelined.completedCount) << qPrintable(pipelined.failure);
+    EXPECT_EQ(serial.summary.tracksExported, pipelined.summary.tracksExported);
+    EXPECT_EQ(serial.summary.playlistsExported, pipelined.summary.playlistsExported);
+    EXPECT_EQ(serial.summary.skipped, pipelined.summary.skipped);
+    EXPECT_EQ(serial.summary.warnings, pipelined.summary.warnings);
+    EXPECT_EQ(serial.summary.bytesCopied, pipelined.summary.bytesCopied);
+    EXPECT_EQ(serial.summary.audioFilesCopied, pipelined.summary.audioFilesCopied);
+    EXPECT_EQ(serial.summary.anlzWritten, pipelined.summary.anlzWritten);
+    EXPECT_EQ(serial.summary.anlzKept, pipelined.summary.anlzKept);
+
+    const auto serialFiles = stickFileBytes(serialStick.path());
+    const auto pipelinedFiles = stickFileBytes(m_stick.path());
+    EXPECT_EQ(serialFiles.keys(), pipelinedFiles.keys());
+    for (auto it = serialFiles.cbegin(); it != serialFiles.cend(); ++it) {
+        EXPECT_TRUE(pipelinedFiles.value(it.key()) == it.value()) << qPrintable(it.key());
+    }
+    const QStringList serialRows = plusRows(serialStick.path());
+    EXPECT_EQ(serialRows, plusRows(m_stick.path()));
+    // Two tracks share the cover image; the names of the same file are
+    // numbered in the order of the tracks.
+    EXPECT_EQ(1, serialRows.filter(QStringLiteral("image ")).size());
+    EXPECT_EQ(1, QStringList(serialFiles.keys()).filter(QStringLiteral("/artist (12).mp3")).size())
+            << qPrintable(QStringList(serialFiles.keys()).join('\n'));
+
+    // A second export of each: no copy, every ANLZ folder kept, the same rows.
+    const Outcome serialAgain = runTo(serialStick.path(), 0, 1);
+    const Outcome pipelinedAgain = runTo(m_stick.path(), GetParam().first, GetParam().second);
+    ASSERT_EQ(1, serialAgain.completedCount) << qPrintable(serialAgain.failure);
+    ASSERT_EQ(1, pipelinedAgain.completedCount) << qPrintable(pipelinedAgain.failure);
+    EXPECT_EQ(0, pipelinedAgain.summary.bytesCopied);
+    EXPECT_EQ(0, pipelinedAgain.summary.anlzWritten);
+    EXPECT_EQ(serialAgain.summary.anlzKept, pipelinedAgain.summary.anlzKept);
+    EXPECT_EQ(serialAgain.summary.skipped, pipelinedAgain.summary.skipped);
+    EXPECT_EQ(plusRows(serialStick.path()), plusRows(m_stick.path()));
+}
+
+// A cancel after some tracks stops the job and the prepare threads: no
+// `completed`, no `failed`, no library on a new stick, no half-copied file,
+// and the same files on the stick as a cancel at the same point in one
+// thread. On a stick with a library, the library does not change.
+TEST_P(DeviceLibraryPlusExportJobPipelineTest, CancelLeavesTheSameStickAsOneThread) {
+    makeLibrary();
+    // Progress 2 is the end of the checks and the backup; then one per track.
+    constexpr int kCancelAt = 2 + 3;
+    QTemporaryDir serialStick;
+    ASSERT_TRUE(serialStick.isValid());
+
+    const Outcome serial = runTo(serialStick.path(), 0, 1, kCancelAt);
+    ASSERT_TRUE(serial.finished);
+    EXPECT_EQ(0, serial.completedCount);
+    EXPECT_EQ(0, serial.failedCount);
+    const Outcome pipelined =
+            runTo(m_stick.path(), GetParam().first, GetParam().second, kCancelAt);
+    ASSERT_TRUE(pipelined.finished);
+    EXPECT_EQ(0, pipelined.completedCount);
+    EXPECT_EQ(0, pipelined.failedCount);
+    EXPECT_FALSE(QFileInfo::exists(libraryFile()));
+
+    const auto serialFiles = stickFileBytes(serialStick.path());
+    const auto pipelinedFiles = stickFileBytes(m_stick.path());
+    // The three tracks before the cancel: their audio and ANLZ files.
+    EXPECT_EQ(3, QStringList(serialFiles.keys()).filter(QStringLiteral(".mp3")).size());
+    EXPECT_EQ(serialFiles.keys(), pipelinedFiles.keys());
+    for (auto it = serialFiles.cbegin(); it != serialFiles.cend(); ++it) {
+        EXPECT_TRUE(pipelinedFiles.value(it.key()) == it.value()) << qPrintable(it.key());
+        EXPECT_FALSE(it.key().endsWith(QStringLiteral(".mixtwo-part"))) << qPrintable(it.key());
+    }
+
+    // A full export, then a cancel of the next one: the library on the stick
+    // stays as it was.
+    const Outcome full = runTo(m_stick.path(), GetParam().first, GetParam().second);
+    ASSERT_EQ(1, full.completedCount) << qPrintable(full.failure);
+    const QByteArray libraryBefore = [this] {
+        QFile file(libraryFile());
+        EXPECT_TRUE(file.open(QIODevice::ReadOnly));
+        return file.readAll();
+    }();
+    const QStringList rowsBefore = plusRows(m_stick.path());
+    const auto filesBefore = stickFileBytes(m_stick.path());
+    const Outcome cancelled =
+            runTo(m_stick.path(), GetParam().first, GetParam().second, kCancelAt);
+    EXPECT_EQ(0, cancelled.completedCount);
+    EXPECT_EQ(0, cancelled.failedCount);
+    QFile library(libraryFile());
+    ASSERT_TRUE(library.open(QIODevice::ReadOnly));
+    EXPECT_TRUE(library.readAll() == libraryBefore);
+    EXPECT_EQ(rowsBefore, plusRows(m_stick.path()));
+    EXPECT_EQ(filesBefore.keys(), stickFileBytes(m_stick.path()).keys());
+}
+
+INSTANTIATE_TEST_SUITE_P(DeviceLibraryPlusExportJobPipeline,
+        DeviceLibraryPlusExportJobPipelineTest,
+        ::testing::Values(std::make_pair(1, 1),
+                std::make_pair(2, 3),
+                std::make_pair(3, 8),
+                std::make_pair(4, 20)));
 // End of AI-generated text.
 
 } // namespace mixxx

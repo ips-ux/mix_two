@@ -39,6 +39,14 @@ QString deviceLibraryPlusCompletionText(const DeviceLibraryPlusExportSummary& su
 /// The main thread loads the tracks in groups (kTrackLoadGroupSize per call):
 /// only the track and the list of its waveform files. The worker reads and
 /// decodes the waveform file and loads the cover image.
+///
+/// The track export is a pipeline: the job thread plans each track (its
+/// stick path) in the order of the tracks, a private thread pool prepares up
+/// to kTracksAhead planned tracks (waveform, cover, ANLZ bytes, JPEG bytes),
+/// and the job thread writes the audio, the ANLZ files, the artwork and the
+/// rows in the order of the tracks. Only the job thread writes to the stick
+/// and uses the database. The job thread waits for all prepare tasks before
+/// it returns.
 // End of AI-generated text.
 ///
 /// Delete the job after its `finished()` signal. Do not wait for the thread in
@@ -72,6 +80,22 @@ class DeviceLibraryPlusExportJob : public QThread {
 
     /// The default number of tracks that one call into the main thread loads.
     static constexpr int kTrackLoadGroupSize = 8;
+    // End of AI-generated text.
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// For tests: the number of threads that prepare the next tracks, and the
+    /// number of tracks that are planned and prepared before they are written
+    /// (at least 1). 0 threads: the job thread prepares each track itself.
+    /// Call before start(). The default is defaultPrepareThreadCount() and
+    /// kTracksAhead.
+    void setPrepareThreads(int threadCount, int tracksAhead);
+
+    /// Half the cores, from 1 to 3.
+    static int defaultPrepareThreadCount();
+
+    /// The default number of tracks ahead. It limits the memory of the
+    /// decoded waveforms.
+    static constexpr int kTracksAhead = 8;
     // End of AI-generated text.
 
   signals:
@@ -152,6 +176,9 @@ class DeviceLibraryPlusExportJob : public QThread {
     // AI-generated (Claude Code). Start of AI-generated text.
     int m_trackLoadGroupSize = kTrackLoadGroupSize;
     int m_trackLoadCallCount = 0;
+    /// -1: defaultPrepareThreadCount().
+    int m_prepareThreadCount = -1;
+    int m_tracksAhead = kTracksAhead;
     // End of AI-generated text.
 };
 

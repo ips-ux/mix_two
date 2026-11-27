@@ -405,6 +405,77 @@ TEST_F(DeviceLibraryPlusExporterTest, ExportsOneTrack) {
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
+// The three steps of exportTrack() one by one. When the plan gave another
+// stick path than the commit finds (an earlier track of the pipeline was
+// skipped), the commit builds the ANLZ files again for the right path: the
+// stick is the same as with exportTrack(). A cancelled preparation is built
+// in the commit too.
+TEST_F(DeviceLibraryPlusExporterTest, CommitBuildsAgainWhenThePlannedPathChanged) {
+    const QString source = toComputer(QStringLiteral("artist.mp3"));
+    TrackPointer pTrack = makeTrack(source, 7);
+    pTrack->setArtist(QStringLiteral("Plan Artist"));
+    pTrack->setAlbum(QStringLiteral("Plan Album"));
+    const DlpExportTrack item = itemFor(pTrack, makeCover(), mixxx::cache_key_t{99});
+    const QString stickPath = QStringLiteral("/Contents/Plan Artist/Plan Album/artist.mp3");
+
+    QTemporaryDir reference;
+    ASSERT_TRUE(reference.isValid());
+    {
+        QString error;
+        auto pDb = DeviceLibraryPlusDb::create(reference.path(), kDeviceName, kMasterDbId, &error);
+        ASSERT_TRUE(pDb) << qPrintable(error);
+        const auto results = exportAndFinish(pDb.get(), {item}, {}, {}, reference.path());
+        ASSERT_TRUE(results[0].contentId) << qPrintable(results[0].skipReason);
+    }
+
+    for (const bool cancelled : {false, true}) {
+        QTemporaryDir stick;
+        ASSERT_TRUE(stick.isValid());
+        QString error;
+        auto pDb = DeviceLibraryPlusDb::create(stick.path(), kDeviceName, kMasterDbId, &error);
+        ASSERT_TRUE(pDb) << qPrintable(error);
+        DeviceLibraryPlusExporter::Options stickOptions = options();
+        stickOptions.stickRoot = stick.path();
+        DeviceLibraryPlusExporter exporter(pDb.get(), stickOptions);
+        ASSERT_TRUE(exporter.prepare(&error)) << qPrintable(error);
+        EXPECT_EQ(stickPath, exporter.planTrack(item).stickPath);
+        // The path is held by an earlier track that is not yet committed.
+        const DlpTrackPlan plan = exporter.planTrack(item, {dlpPathKey(stickPath)});
+        EXPECT_EQ(QStringLiteral("/Contents/Plan Artist/Plan Album/artist (2).mp3"),
+                plan.stickPath);
+        QAtomicInteger<int> cancel(cancelled ? 1 : 0);
+        DlpPreparedTrack prepared = DeviceLibraryPlusExporter::prepareTrack(item, plan, &cancel);
+        EXPECT_EQ(cancelled, prepared.cancelled);
+        EXPECT_EQ(!cancelled, prepared.anlzFiles.has_value());
+        const DlpTrackResult result = exporter.commitTrack(item, std::move(prepared));
+        ASSERT_TRUE(result.contentId) << qPrintable(result.skipReason);
+        ASSERT_TRUE(exporter.finish(&error)) << qPrintable(error);
+        pDb.reset();
+
+        auto pStickDb = DeviceLibraryPlusDb::open(stick.path(), &error);
+        auto pReferenceDb = DeviceLibraryPlusDb::open(reference.path(), &error);
+        ASSERT_TRUE(pStickDb && pReferenceDb) << qPrintable(error);
+        const QList<DlpContentRef> rows = pStickDb->listContents();
+        const QList<DlpContentRef> referenceRows = pReferenceDb->listContents();
+        ASSERT_EQ(1, rows.size());
+        ASSERT_EQ(1, referenceRows.size());
+        EXPECT_EQ(stickPath, rows[0].path);
+        EXPECT_EQ(referenceRows[0].analysisDataFilePath, rows[0].analysisDataFilePath);
+        EXPECT_EQ(filesBelow(reference.path()).filter(QStringLiteral("PIONEER/")).size(),
+                filesBelow(stick.path()).filter(QStringLiteral("PIONEER/")).size());
+        for (const QString& file : filesBelow(reference.path())) {
+            if (file.endsWith(QStringLiteral(".db"))) {
+                continue;
+            }
+            EXPECT_TRUE(readFile(QDir(reference.path()).filePath(file)) ==
+                    readFile(QDir(stick.path()).filePath(file)))
+                    << qPrintable(file);
+        }
+    }
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
 TEST_F(DeviceLibraryPlusExporterTest, WritesTheHotCueAutoLoadFlagOfEachTrack) {
     TrackPointer pOn = makeTrack(toComputer(QStringLiteral("artist.mp3"), "a"), 1);
     TrackPointer pOff = makeTrack(toComputer(QStringLiteral("all.mp3"), "b"), 2);

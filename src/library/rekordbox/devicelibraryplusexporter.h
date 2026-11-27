@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QAtomicInteger>
 #include <QHash>
 #include <QImage>
 #include <QList>
@@ -10,7 +11,9 @@
 #include <functional>
 #include <limits>
 #include <optional>
+#include <utility>
 
+#include "library/rekordbox/anlzwriter.h"
 #include "library/rekordbox/devicelibraryplusdb.h"
 #include "library/rekordbox/devicelibraryplusexportcleanup.h"
 #include "track/track_decl.h"
@@ -66,6 +69,43 @@ struct DlpTrackResult {
     /// The warnings of the ANLZ builder and of the exporter (ASD-STE100).
     QStringList warnings;
 };
+
+// AI-generated (Claude Code). Start of AI-generated text.
+/// Mix Two: what planTrack() found for a track, before anything is written.
+struct DlpTrackPlan {
+    /// The location of the audio file, with '/'.
+    QString location;
+    /// The `fileType` of the file; 0 when the checks skip the track.
+    int fileType = 0;
+    /// The stick path that the track gets when the tracks before it are
+    /// exported. Empty when the checks skip the track (commitTrack() gives
+    /// the reason).
+    QString stickPath;
+};
+
+/// Mix Two: what prepareTrack() made for a track. It holds only values: it
+/// can come from another thread.
+struct DlpPreparedTrack {
+    /// True when the job was cancelled before the work; then nothing else is
+    /// set.
+    bool cancelled = false;
+    /// The stick path of the plan. The DAT file holds it, so the files are
+    /// good only for this path.
+    QString stickPath;
+    /// The timing offset and the MP3 frame count of the audio file, when set.
+    std::optional<int> timingOffsetMs;
+    quint32 mp3PcmFrames = 0;
+    /// The ANLZ files; empty when the builder refused the track (then
+    /// `anlzError` has the reason) or nothing was prepared.
+    std::optional<AnlzFileSet> anlzFiles;
+    QString anlzError;
+    /// The warnings of the ANLZ builder.
+    QStringList anlzWarnings;
+    /// The JPEG bytes of bN.jpg and bN_m.jpg of the cover, when the cover
+    /// was encoded. Empty bytes: the cover cannot be encoded.
+    std::optional<std::pair<QByteArray, QByteArray>> artworkJpegs;
+};
+// End of AI-generated text.
 
 /// Mix Two: exports Mix Two tracks, playlists and crates to the Device
 /// Library Plus of one stick (spec sections 6, 7 and 8).
@@ -152,6 +192,35 @@ class DeviceLibraryPlusExporter {
     /// the warning "The stick has an older copy of this track. The playlist
     /// uses it." (Ruling R20).
     DlpTrackResult exportTrack(const DlpExportTrack& item);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// exportTrack() in three steps, so that an export job can prepare the
+    /// next tracks in other threads while this thread writes to the stick.
+    /// exportTrack() is commitTrack(item, prepareTrack(item, planTrack(item))).
+    ///
+    /// planTrack(): this thread; it writes nothing. The checks of the file and
+    /// the stick path of the track. `pendingPathKeys` are the dlpPathKey() of
+    /// the stick paths of the planned tracks that are not committed yet: they
+    /// count as used, as they will be when those tracks are exported.
+    DlpTrackPlan planTrack(const DlpExportTrack& item,
+            const QSet<QString>& pendingPathKeys = {}) const;
+
+    /// Any thread: the CPU work of a track (timing offset, MP3 frame count,
+    /// the ANLZ files for the stick path of the plan, the JPEG bytes of the
+    /// cover). It reads only its arguments, the track getters and the audio
+    /// file; it uses no exporter and no database. When `*pCancel` is not 0,
+    /// it does nothing and sets `cancelled`.
+    static DlpPreparedTrack prepareTrack(const DlpExportTrack& item,
+            const DlpTrackPlan& plan,
+            const QAtomicInteger<int>* pCancel = nullptr);
+
+    /// This thread, in the order of the tracks: the rest of exportTrack()
+    /// with the prepared data. It finds the stick path again; when it is not
+    /// the path of the preparation (an earlier track was skipped), or the
+    /// preparation was cancelled, it builds the ANLZ files here. So the stick
+    /// is the same as with exportTrack() for each track in turn.
+    DlpTrackResult commitTrack(const DlpExportTrack& item, DlpPreparedTrack prepared);
+    // End of AI-generated text.
 
     /// Writes the playlists at the top level and the crates as playlists in
     /// the folder `Crates`. A playlist with the same name at the same level
@@ -242,15 +311,24 @@ class DeviceLibraryPlusExporter {
         bool otherProgramRow = false;
         Target target;
     };
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// `pPendingPathKeys` (if it is not null): more paths that count as used
+    /// (planTrack()).
     Placement placementOf(qint64 trackId,
             const QString& location,
             const QString& artist,
-            const QString& album) const;
+            const QString& album,
+            const QSet<QString>* pPendingPathKeys = nullptr) const;
     Target targetOf(const QString& artist,
             const QString& album,
             const QString& location,
             const std::optional<QString>& ownStickPath,
-            const std::optional<DlpContentRef>& ownRow) const;
+            const std::optional<DlpContentRef>& ownRow,
+            const QSet<QString>* pPendingPathKeys = nullptr) const;
+    /// The checks of step 1 of exportTrack(): the plan without the stick
+    /// path, or the reason to skip the track.
+    DlpTrackPlan checkTrack(const DlpExportTrack& item, QString* pSkipReason) const;
+    // End of AI-generated text.
     QString absolutePath(const QString& stickPath) const;
     /// The row that the stick has for a track already: its own row, or the
     /// row of another program for its file on the stick (Ruling R20).
@@ -260,9 +338,13 @@ class DeviceLibraryPlusExporter {
     /// The image row of a track; empty when the track has no cover. When the
     /// artwork cannot be written, the track keeps the image of its row and
     /// a warning is added.
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// `pJpegs` (if it is not null): the JPEG bytes that prepareTrack() made.
     std::optional<qint64> imageOf(const DlpExportTrack& item,
             const std::optional<DlpContentRef>& ownRow,
-            QStringList* pWarnings);
+            QStringList* pWarnings,
+            const std::pair<QByteArray, QByteArray>* pJpegs = nullptr);
+    // End of AI-generated text.
     /// Records a row in the look-ups.
     void remember(const DlpContentRef& row);
     bool writePlaylist(const DlpExportPlaylist& playlist, qint64 parentId);
