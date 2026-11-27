@@ -7,6 +7,7 @@
 #include <QThread>
 #include <functional>
 
+#include "library/dao/analysisdao.h"
 #include "library/export/devicelibraryplusexportrequest.h"
 #include "library/rekordbox/devicelibraryplusexporter.h"
 #include "library/rekordbox/legacylibrary.h"
@@ -34,6 +35,11 @@ QString deviceLibraryPlusCompletionText(const DeviceLibraryPlusExportSummary& su
 /// DeviceLibraryPlusDb and the exporter. The database and the exporter exist
 /// only inside run(). run() checks for a cancel before each call into the
 /// main thread.
+// AI-generated (Claude Code). Start of AI-generated text.
+/// The main thread loads the tracks in groups (kTrackLoadGroupSize per call):
+/// only the track and the list of its waveform files. The worker reads and
+/// decodes the waveform file and loads the cover image.
+// End of AI-generated text.
 ///
 /// Delete the job after its `finished()` signal. Do not wait for the thread in
 /// the main thread: the worker waits for the main thread when it loads data.
@@ -52,6 +58,21 @@ class DeviceLibraryPlusExportJob : public QThread {
 
     /// Runs the export in the worker thread. Call start(), not run().
     void run() override;
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// For tests: the number of tracks that one call into the main thread
+    /// loads (default kTrackLoadGroupSize). Call before start().
+    void setTrackLoadGroupSize(int groupSize);
+
+    /// For tests: the number of calls into the main thread that loaded tracks.
+    /// Read after the job finished.
+    int trackLoadCallCount() const {
+        return m_trackLoadCallCount;
+    }
+
+    /// The default number of tracks that one call into the main thread loads.
+    static constexpr int kTrackLoadGroupSize = 8;
+    // End of AI-generated text.
 
   signals:
     /// The maximum of the numbers that jobProgress() sends.
@@ -76,7 +97,9 @@ class DeviceLibraryPlusExportJob : public QThread {
     // These slots load data from the Mix Two library. Qt runs them in the
     // main thread, which is not the thread of run().
     void loadIds();
-    void loadTrack(int index);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    void loadTracks(int first);
+    // End of AI-generated text.
     void loadCrate(int index);
     void loadPlaylist(int index);
 
@@ -89,6 +112,15 @@ class DeviceLibraryPlusExportJob : public QThread {
         QString artist;
         QString album;
     };
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// A track that loadTracks() loaded in the main thread: the track (null
+    /// when it is not in the library) and its waveform files, not yet read.
+    struct LoadedTrack {
+        TrackPointer pTrack;
+        QList<AnalysisDao::AnalysisInfo> waveformFiles;
+    };
+    // End of AI-generated text.
 
     bool isCancelled() const {
         return m_cancellationRequested.loadAcquire() != 0;
@@ -113,8 +145,14 @@ class DeviceLibraryPlusExportJob : public QThread {
 
     // Written by the slots in the main thread, one slot at a time. run() reads
     // the result after the blocking call returns.
-    rekordbox::DlpExportTrack m_loadedTrack;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    QList<LoadedTrack> m_loadedTracks;
+    // End of AI-generated text.
     rekordbox::DlpExportPlaylist m_loadedList;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    int m_trackLoadGroupSize = kTrackLoadGroupSize;
+    int m_trackLoadCallCount = 0;
+    // End of AI-generated text.
 };
 
 } // namespace mixxx

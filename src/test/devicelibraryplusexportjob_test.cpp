@@ -14,6 +14,7 @@
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QtConcurrent>
 #include <QtEndian>
 #include <cstdio>
 #include <sstream>
@@ -23,6 +24,7 @@
 #include "library/dao/playlistdao.h"
 #include "library/export/dlgdeviceexport.h"
 #include "library/rekordbox/devicelibraryplusdb.h"
+#include "library/rekordbox/devicelibraryplusexporter.h"
 #include "library/rekordbox/legacyfromdlp.h"
 #include "library/trackset/crate/crate.h"
 #include "sources/soundsourceproxy.h"
@@ -917,6 +919,260 @@ TEST_F(DeviceLibraryPlusExportJobTest, WritesBothFormatsToSampleStick) {
     EXPECT_EQ((QStringList{QStringLiteral("Sample Two"),
                       QString::fromUtf8("Sample Three \xe6\x97\xa5")}),
             titles(plusPlaylists.value(QStringLiteral("Sample Crate"))));
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+/// The bytes of the three ANLZ files of each row, by masterContentId.
+QMap<qint64, QList<QByteArray>> anlzBytesByTrack(const QString& stickRoot) {
+    QMap<qint64, QList<QByteArray>> result;
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::open(stickRoot, &error);
+    EXPECT_TRUE(pDb) << qPrintable(error);
+    if (!pDb) {
+        return result;
+    }
+    for (const DlpContentRef& row : pDb->listContents()) {
+        const QFileInfo dat(stickRoot + row.analysisDataFilePath);
+        QList<QByteArray> files;
+        for (const QString& name : {QStringLiteral("ANLZ0000.DAT"),
+                     QStringLiteral("ANLZ0000.EXT"),
+                     QStringLiteral("ANLZ0000.2EX")}) {
+            QFile file(dat.dir().filePath(name));
+            EXPECT_TRUE(file.open(QIODevice::ReadOnly)) << qPrintable(file.fileName());
+            files.append(file.readAll());
+        }
+        result.insert(row.masterContentId, files);
+    }
+    return result;
+}
+
+/// The masterContentIds of the rows, in the order of the rows.
+QList<qint64> contentIdsInRowOrder(const QString& stickRoot) {
+    QList<qint64> result;
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::open(stickRoot, &error);
+    EXPECT_TRUE(pDb) << qPrintable(error);
+    if (pDb) {
+        for (const DlpContentRef& row : pDb->listContents()) {
+            result.append(row.masterContentId);
+        }
+    }
+    return result;
+}
+
+} // namespace
+
+// The job reads and decodes the waveform and the cover in its own thread. The
+// ANLZ files are the same as from the waveform and the cover that the main
+// thread loaded before this change.
+TEST_F(DeviceLibraryPlusExportJobTest, WorkerLoadGivesTheSameAnlzBytes) {
+    TrackPointer pPlain = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
+    TrackPointer pCover = addTrack(
+            QString::fromUtf8("cover-test-\xc3\xb8\xc3\xa9~\xc5\x82\xe2\x82\xac\xcb\x9a-jpg.mp3"),
+            QStringLiteral("b"));
+    ASSERT_TRUE(pPlain && pCover);
+    storeWaveform(pPlain);
+    storeWaveform(pCover);
+
+    const Outcome outcome = runJob(request());
+    ASSERT_TRUE(outcome.finished);
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    ASSERT_EQ(2, outcome.summary.tracksExported)
+            << qPrintable(outcome.summary.skipped.join('\n'));
+
+    // The reference: the exporter with the data loaded in this (main) thread,
+    // as the job did before.
+    QTemporaryDir reference;
+    ASSERT_TRUE(reference.isValid());
+    QString error;
+    auto pDb = DeviceLibraryPlusDb::create(reference.path(), kDeviceName, kMasterDbId, &error);
+    ASSERT_TRUE(pDb) << qPrintable(error);
+    int referenceImages = 0;
+    {
+        rekordbox::DeviceLibraryPlusExporter::Options options;
+        options.stickRoot = reference.path();
+        options.masterDbId = kMasterDbId;
+        rekordbox::DeviceLibraryPlusExporter exporter(pDb.get(), options);
+        ASSERT_TRUE(exporter.prepare(&error)) << qPrintable(error);
+        auto& analysisDao = internalCollection()->getAnalysisDAO();
+        for (const TrackPointer& pTrack : {pPlain, pCover}) {
+            rekordbox::DlpExportTrack item;
+            item.pTrack = pTrack;
+            const auto analyses = analysisDao.getAnalysesForTrackByType(
+                    pTrack->getId(), AnalysisDao::TYPE_WAVEFORM);
+            ASSERT_EQ(1, analyses.size());
+            item.pWaveform = ConstWaveformPointer(
+                    WaveformFactory::loadWaveformFromAnalysis(analyses.first()));
+            CoverInfo coverInfo = pTrack->getCoverInfoWithLocation();
+            if (coverInfo.hasImage()) {
+                const CoverInfo::LoadedImage loaded = coverInfo.loadImage(pTrack);
+                if (loaded.result == CoverInfo::LoadedImage::Result::Ok &&
+                        !loaded.image.isNull()) {
+                    if (!coverInfo.hasCacheKey()) {
+                        coverInfo.setImageDigest(loaded.image);
+                    }
+                    item.cover = loaded.image;
+                    item.coverHash = coverInfo.cacheKey();
+                }
+            }
+            ASSERT_TRUE(exporter.exportTrack(item).contentId);
+        }
+        ASSERT_TRUE(exporter.finish(&error)) << qPrintable(error);
+        referenceImages = static_cast<int>(pDb->listImages().size());
+    }
+    pDb.reset();
+
+    const auto expected = anlzBytesByTrack(reference.path());
+    const auto actual = anlzBytesByTrack(m_stick.path());
+    ASSERT_EQ(2, expected.size());
+    EXPECT_EQ(expected.keys(), actual.keys());
+    for (auto it = expected.cbegin(); it != expected.cend(); ++it) {
+        const QList<QByteArray> files = actual.value(it.key());
+        ASSERT_EQ(3, files.size());
+        for (int i = 0; i < 3; ++i) {
+            EXPECT_FALSE(files[i].isEmpty());
+            EXPECT_TRUE(files[i] == it.value()[i]) << "track " << it.key() << " file " << i;
+        }
+    }
+    auto pJobDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
+    ASSERT_TRUE(pJobDb) << qPrintable(error);
+    EXPECT_EQ(referenceImages, pJobDb->listImages().size());
+}
+
+/// The group size of the main-thread loads, and the track count.
+class DeviceLibraryPlusExportJobGroupTest
+        : public DeviceLibraryPlusExportJobTest,
+          public ::testing::WithParamInterface<std::pair<int, int>> {};
+
+// The main thread loads up to the group size of tracks in one call. Every
+// track is exported in the order of the library, at each group boundary. The
+// track without a waveform is skipped with the same reason as before.
+TEST_P(DeviceLibraryPlusExportJobGroupTest, ExportsEveryTrackInOrder) {
+    const int groupSize = GetParam().first;
+    const int trackCount = GetParam().second;
+    const int noWaveformIndex = trackCount > 8 ? 8 : -1;
+    QList<qint64> expectedIds;
+    for (int i = 0; i < trackCount; ++i) {
+        TrackPointer pTrack = addTrack(QStringLiteral("artist.mp3"), QString::number(i));
+        ASSERT_TRUE(pTrack);
+        pTrack->setTitle(QStringLiteral("Group %1").arg(i));
+        if (i != noWaveformIndex) {
+            storeWaveform(pTrack);
+            expectedIds.append(pTrack->getId().toVariant().toLongLong());
+        }
+    }
+
+    DeviceLibraryPlusExportJob job(nullptr, trackCollectionManager(), request());
+    job.setTrackLoadGroupSize(groupSize);
+    const Outcome outcome = runJob(job);
+    ASSERT_TRUE(outcome.finished);
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_EQ(expectedIds.size(), outcome.summary.tracksExported);
+    EXPECT_EQ((trackCount + groupSize - 1) / groupSize, job.trackLoadCallCount());
+    if (noWaveformIndex >= 0) {
+        ASSERT_EQ(1, outcome.summary.skipped.size());
+        EXPECT_TRUE(outcome.summary.skipped.first().endsWith(
+                QStringLiteral(": The track has no waveform. Analyse the track first.")))
+                << qPrintable(outcome.summary.skipped.first());
+    } else {
+        EXPECT_TRUE(outcome.summary.skipped.isEmpty());
+    }
+    EXPECT_EQ(expectedIds, contentIdsInRowOrder(m_stick.path()));
+}
+
+INSTANTIATE_TEST_SUITE_P(DeviceLibraryPlusExportJobGroups,
+        DeviceLibraryPlusExportJobGroupTest,
+        ::testing::Values(std::make_pair(8, 1),
+                std::make_pair(8, 8),
+                std::make_pair(8, 9),
+                std::make_pair(8, 17),
+                std::make_pair(1, 9)));
+
+/// The analysis file read without a database: AnalysisDao::loadAnalysisData.
+class AnalysisDaoFileReadTest : public DeviceLibraryPlusExportJobTest {};
+
+// The file list of the query and the read in another thread give the bytes
+// that getAnalysesForTrackByType() gives. A corrupt file gives no bytes.
+TEST_F(AnalysisDaoFileReadTest, ReadInAWorkerGivesTheSameBytes) {
+    TrackPointer pTrack = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("a"));
+    ASSERT_TRUE(pTrack);
+    storeWaveform(pTrack);
+    auto& analysisDao = internalCollection()->getAnalysisDAO();
+    const auto analyses =
+            analysisDao.getAnalysesForTrackByType(pTrack->getId(), AnalysisDao::TYPE_WAVEFORM);
+    ASSERT_EQ(1, analyses.size());
+    const auto files = analysisDao.getAnalysisFilesForTrackByType(
+            pTrack->getId(), AnalysisDao::TYPE_WAVEFORM);
+    ASSERT_EQ(1, files.size());
+    EXPECT_EQ(analyses.first().analysisId, files.first().analysisId);
+    EXPECT_EQ(analyses.first().version, files.first().version);
+    EXPECT_EQ(analyses.first().description, files.first().description);
+    EXPECT_TRUE(files.first().data.isEmpty());
+    ASSERT_TRUE(QFileInfo(files.first().dataPath).isFile());
+
+    const QString path = files.first().dataPath;
+    const int checksum = files.first().dataChecksum;
+    const std::optional<QByteArray> data =
+            QtConcurrent::run([path, checksum]() {
+                return AnalysisDao::loadAnalysisData(path, checksum);
+            }).result();
+    ASSERT_TRUE(data);
+    EXPECT_TRUE(*data == analyses.first().data);
+    const ConstWaveformPointer pWaveform(
+            WaveformFactory::loadWaveformFromAnalysis(analyses.first()));
+    AnalysisDao::AnalysisInfo read = files.first();
+    read.data = *data;
+    const ConstWaveformPointer pRead(WaveformFactory::loadWaveformFromAnalysis(read));
+    ASSERT_TRUE(pWaveform && pRead);
+    EXPECT_TRUE(pWaveform->toByteArray() == pRead->toByteArray());
+
+    // A corrupt file: no bytes, and the old function leaves the analysis out.
+    {
+        QFile file(path);
+        ASSERT_TRUE(file.open(QIODevice::ReadWrite));
+        file.seek(file.size() / 2);
+        char byte = 0;
+        file.peek(&byte, 1);
+        byte = static_cast<char>(byte ^ 0x5a);
+        file.write(&byte, 1);
+    }
+    EXPECT_FALSE(AnalysisDao::loadAnalysisData(path, checksum));
+    EXPECT_TRUE(analysisDao.getAnalysesForTrackByType(pTrack->getId(), AnalysisDao::TYPE_WAVEFORM)
+                        .isEmpty());
+    // A missing file: no bytes.
+    ASSERT_TRUE(QFile::remove(path));
+    EXPECT_FALSE(AnalysisDao::loadAnalysisData(path, checksum));
+}
+
+// A track with a corrupt waveform file is skipped as a track without a
+// waveform, as before.
+TEST_F(DeviceLibraryPlusExportJobTest, CorruptWaveformFileSkipsTheTrack) {
+    TrackPointer pGood = addTrack(QStringLiteral("all.mp3"), QStringLiteral("a"));
+    TrackPointer pTrack = addTrack(QStringLiteral("artist.mp3"), QStringLiteral("b"));
+    ASSERT_TRUE(pGood && pTrack);
+    storeWaveform(pGood);
+    storeWaveform(pTrack);
+    const auto files = internalCollection()->getAnalysisDAO().getAnalysisFilesForTrackByType(
+            pTrack->getId(), AnalysisDao::TYPE_WAVEFORM);
+    ASSERT_EQ(1, files.size());
+    {
+        QFile file(files.first().dataPath);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write("broken");
+    }
+    const Outcome outcome = runJob(request());
+    ASSERT_TRUE(outcome.finished);
+    ASSERT_EQ(1, outcome.completedCount) << qPrintable(outcome.failure);
+    EXPECT_EQ(1, outcome.summary.tracksExported);
+    ASSERT_EQ(1, outcome.summary.skipped.size());
+    EXPECT_TRUE(outcome.summary.skipped.first().endsWith(
+            QStringLiteral(": The track has no waveform. Analyse the track first.")))
+            << qPrintable(outcome.summary.skipped.first());
+    EXPECT_EQ(QList<qint64>{pGood->getId().toVariant().toLongLong()},
+            contentIdsInRowOrder(m_stick.path()));
 }
 // End of AI-generated text.
 

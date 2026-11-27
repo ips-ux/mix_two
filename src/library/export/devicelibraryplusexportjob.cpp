@@ -150,6 +150,55 @@ void DeviceLibraryPlusExportJob::slotCancel() {
     m_cancellationRequested = 1;
 }
 
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+/// Reads and decodes the waveform and loads the cover of a track that the
+/// main thread loaded. Runs in the worker thread: it uses no database, and
+/// only the getters of the track.
+DlpExportTrack loadTrackData(
+        TrackPointer pTrack, const QList<AnalysisDao::AnalysisInfo>& waveformFiles) {
+    DEBUG_ASSERT(QThread::currentThread() != QCoreApplication::instance()->thread());
+    DlpExportTrack item;
+    item.pTrack = std::move(pTrack);
+
+    // The first waveform file that reads well, as getAnalysesForTrackByType()
+    // leaves out a corrupt one. A track without one stays without; the
+    // exporter skips it.
+    for (AnalysisDao::AnalysisInfo file : waveformFiles) {
+        std::optional<QByteArray> data =
+                AnalysisDao::loadAnalysisData(file.dataPath, file.dataChecksum);
+        if (!data) {
+            continue;
+        }
+        file.data = std::move(*data);
+        item.pWaveform = ConstWaveformPointer(WaveformFactory::loadWaveformFromAnalysis(file));
+        break;
+    }
+
+    // The cover image and its hash. The copy of the cover info gets a digest
+    // when the library has none; the track does not change.
+    CoverInfo coverInfo = item.pTrack->getCoverInfoWithLocation();
+    if (coverInfo.hasImage()) {
+        const CoverInfo::LoadedImage loaded = coverInfo.loadImage(item.pTrack);
+        if (loaded.result == CoverInfo::LoadedImage::Result::Ok && !loaded.image.isNull()) {
+            if (!coverInfo.hasCacheKey()) {
+                coverInfo.setImageDigest(loaded.image);
+            }
+            item.cover = loaded.image;
+            item.coverHash = coverInfo.cacheKey();
+        }
+    }
+    return item;
+}
+
+} // namespace
+
+void DeviceLibraryPlusExportJob::setTrackLoadGroupSize(int groupSize) {
+    m_trackLoadGroupSize = std::max(1, groupSize);
+}
+// End of AI-generated text.
+
 bool DeviceLibraryPlusExportJob::callInMainThread(const char* slotName, int index) {
     // The object lives in the main thread, so the call waits for it. Called
     // from the thread of the object, the call would wait for itself.
@@ -287,42 +336,30 @@ void DeviceLibraryPlusExportJob::loadIds() {
              << m_playlistIdsAndNames.size() << "playlists";
 }
 
-void DeviceLibraryPlusExportJob::loadTrack(int index) {
+// AI-generated (Claude Code). Start of AI-generated text.
+void DeviceLibraryPlusExportJob::loadTracks(int first) {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(m_pTrackCollectionManager);
 
-    m_loadedTrack = DlpExportTrack();
-    DEBUG_ASSERT(index >= 0 && index < m_trackEntries.size());
-    const TrackId trackId = m_trackEntries.at(index).id;
-    const TrackPointer pTrack = m_pTrackCollectionManager->getTrackById(trackId);
-    if (!pTrack) {
-        return;
-    }
-    m_loadedTrack.pTrack = pTrack;
-
-    // The waveform of the analysis database. A track without one stays
-    // without; the exporter skips it.
+    // Only the database work: the track and the list of its waveform files.
+    // The worker reads the files (loadTrackData()).
+    m_loadedTracks.clear();
+    ++m_trackLoadCallCount;
+    DEBUG_ASSERT(first >= 0 && first < m_trackEntries.size());
+    const int end = std::min(first + m_trackLoadGroupSize,
+            static_cast<int>(m_trackEntries.size()));
     auto& analysisDao = m_pTrackCollectionManager->internalCollection()->getAnalysisDAO();
-    const auto waveformAnalyses =
-            analysisDao.getAnalysesForTrackByType(trackId, AnalysisDao::TYPE_WAVEFORM);
-    if (!waveformAnalyses.isEmpty()) {
-        m_loadedTrack.pWaveform = ConstWaveformPointer(
-                WaveformFactory::loadWaveformFromAnalysis(waveformAnalyses.first()));
-    }
-
-    // The cover image and its hash. The copy of the cover info gets a digest
-    // when the library has none; the track does not change.
-    CoverInfo coverInfo = pTrack->getCoverInfoWithLocation();
-    if (coverInfo.hasImage()) {
-        const CoverInfo::LoadedImage loaded = coverInfo.loadImage(pTrack);
-        if (loaded.result == CoverInfo::LoadedImage::Result::Ok && !loaded.image.isNull()) {
-            if (!coverInfo.hasCacheKey()) {
-                coverInfo.setImageDigest(loaded.image);
-            }
-            m_loadedTrack.cover = loaded.image;
-            m_loadedTrack.coverHash = coverInfo.cacheKey();
+    for (int index = first; index < end; ++index) {
+        const TrackId trackId = m_trackEntries.at(index).id;
+        LoadedTrack loaded;
+        loaded.pTrack = m_pTrackCollectionManager->getTrackById(trackId);
+        if (loaded.pTrack) {
+            loaded.waveformFiles = analysisDao.getAnalysisFilesForTrackByType(
+                    trackId, AnalysisDao::TYPE_WAVEFORM);
         }
+        m_loadedTracks.append(std::move(loaded));
     }
 }
+// End of AI-generated text.
 
 void DeviceLibraryPlusExportJob::loadCrate(int index) {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(m_pTrackCollectionManager);
@@ -479,17 +516,39 @@ void DeviceLibraryPlusExportJob::run() {
 
     // The tracks.
     DeviceLibraryPlusExportSummary summary;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    QList<LoadedTrack> group;
+    int groupNext = 0;
+    // End of AI-generated text.
     for (int i = 0; i < trackCount; ++i) {
         if (isCancelled()) {
             qInfo() << "Device Library Plus export: cancelled";
             return;
         }
-        if (!callInMainThread("loadTrack", i)) {
-            emit failed(loadFailedMessage);
-            return;
+        // AI-generated (Claude Code). Start of AI-generated text.
+        // The main thread loads the next group of tracks in one call.
+        if (groupNext >= group.size()) {
+            if (!callInMainThread("loadTracks", i)) {
+                emit failed(loadFailedMessage);
+                return;
+            }
+            group = std::move(m_loadedTracks);
+            m_loadedTracks.clear();
+            groupNext = 0;
+            DEBUG_ASSERT(!group.isEmpty());
+            if (isCancelled()) {
+                qInfo() << "Device Library Plus export: cancelled";
+                return;
+            }
         }
-        DlpExportTrack item = std::move(m_loadedTrack);
-        m_loadedTrack = DlpExportTrack();
+        LoadedTrack loaded = std::move(group[groupNext]);
+        group[groupNext] = LoadedTrack();
+        ++groupNext;
+        DlpExportTrack item;
+        if (loaded.pTrack) {
+            item = loadTrackData(std::move(loaded.pTrack), loaded.waveformFiles);
+        }
+        // End of AI-generated text.
         if (isCancelled()) {
             qInfo() << "Device Library Plus export: cancelled";
             return;

@@ -266,6 +266,9 @@ class DeviceLibraryPlusExportJobBenchTest : public LibraryTest {
     void printTrackSteps(const QList<TrackId>& trackIds, const QString& stickRoot) {
         const int count = std::min(static_cast<int>(trackIds.size()), 20);
         const QString anlzRoot = QDir(stickRoot).filePath(QStringLiteral("bench-anlz"));
+        // AI-generated (Claude Code). Start of AI-generated text.
+        qint64 waveformQueryNs = 0, waveformReadNs = 0;
+        // End of AI-generated text.
         qint64 loadNs = 0, waveformNs = 0, coverNs = 0, offsetNs = 0, framesNs = 0,
                dataNs = 0, writeNs = 0;
         QElapsedTimer clock;
@@ -275,13 +278,25 @@ class DeviceLibraryPlusExportJobBenchTest : public LibraryTest {
             const TrackPointer pTrack = trackCollectionManager()->getTrackById(trackIds.at(i));
             loadNs += clock.nsecsElapsed();
             ASSERT_TRUE(pTrack);
+            // AI-generated (Claude Code). Start of AI-generated text.
+            // The waveform in its three steps: the query (main thread), the
+            // file read with uncompress and the decode (both in the worker).
             clock.start();
-            const auto analyses = analysisDao.getAnalysesForTrackByType(
+            auto files = analysisDao.getAnalysisFilesForTrackByType(
                     trackIds.at(i), AnalysisDao::TYPE_WAVEFORM);
-            ASSERT_FALSE(analyses.isEmpty());
+            ASSERT_FALSE(files.isEmpty());
+            waveformQueryNs += clock.nsecsElapsed();
+            clock.start();
+            auto waveformData = AnalysisDao::loadAnalysisData(
+                    files.first().dataPath, files.first().dataChecksum);
+            ASSERT_TRUE(waveformData);
+            files.first().data = std::move(*waveformData);
+            waveformReadNs += clock.nsecsElapsed();
+            clock.start();
             const ConstWaveformPointer pWaveform(
-                    WaveformFactory::loadWaveformFromAnalysis(analyses.first()));
+                    WaveformFactory::loadWaveformFromAnalysis(files.first()));
             waveformNs += clock.nsecsElapsed();
+            // End of AI-generated text.
             clock.start();
             CoverInfo coverInfo = pTrack->getCoverInfoWithLocation();
             if (coverInfo.hasImage()) {
@@ -320,11 +335,14 @@ class DeviceLibraryPlusExportJobBenchTest : public LibraryTest {
         const auto ms = [count](qint64 ns) {
             return static_cast<double>(ns) / 1e6 / count;
         };
-        std::printf("steps per track (ms, mean of %d): track load %.2f, waveform load %.2f, "
+        std::printf("steps per track (ms, mean of %d): track load %.2f, waveform query %.2f, "
+                    "waveform read %.2f, waveform decode %.2f, "
                     "cover load %.2f, timing offset %.2f, MP3 frame count %.2f, ANLZ data %.2f, "
                     "ANLZ write %.2f\n",
                 count,
                 ms(loadNs),
+                ms(waveformQueryNs),
+                ms(waveformReadNs),
                 ms(waveformNs),
                 ms(coverNs),
                 ms(offsetNs),

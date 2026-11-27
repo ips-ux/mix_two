@@ -1,5 +1,6 @@
 #include "library/dao/analysisdao.h"
 
+#include <QFile>
 #include <QSqlQuery>
 #include <QSqlRecord>
 #include <QtDebug>
@@ -55,17 +56,55 @@ QList<AnalysisDao::AnalysisInfo> AnalysisDao::getAnalysesForTrackByType(
     return loadAnalysesFromQuery(trackId, &query);
 }
 
-QList<AnalysisDao::AnalysisInfo> AnalysisDao::loadAnalysesFromQuery(TrackId trackId, QSqlQuery* query) {
-    QList<AnalysisDao::AnalysisInfo> analyses;
-    PerformanceTimer time;
-    time.start();
+// AI-generated (Claude Code). Start of AI-generated text.
+QList<AnalysisDao::AnalysisInfo> AnalysisDao::getAnalysisFilesForTrackByType(
+        TrackId trackId, AnalysisType type) {
+    if (!m_database.isOpen() || !trackId.isValid()) {
+        return QList<AnalysisInfo>();
+    }
 
+    QSqlQuery query(m_database);
+    query.prepare(QString(
+        "SELECT id, type, description, version, data_checksum FROM %1 "
+        "WHERE track_id=:trackId AND type=:type").arg(s_analysisTableName));
+    query.bindValue(":trackId", trackId.toVariant());
+    query.bindValue(":type", type);
+
+    return loadAnalysisFilesFromQuery(trackId, &query);
+}
+
+std::optional<QByteArray> AnalysisDao::loadAnalysisData(const QString& dataPath, int dataChecksum) {
+    // As loadDataFromFile(): a missing file gives empty bytes, which the
+    // checksum then refuses.
+    QByteArray compressedData;
+    QFile file(dataPath);
+    if (file.exists() && file.open(QIODevice::ReadOnly)) {
+        compressedData = file.readAll();
+    }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const int file_checksum = qChecksum(
+            compressedData);
+#else
+    const int file_checksum = qChecksum(
+            compressedData.constData(),
+            compressedData.length());
+#endif
+    if (dataChecksum != file_checksum) {
+        qDebug() << "WARNING: Corrupt analysis loaded from" << dataPath
+                 << "length" << compressedData.length();
+        return std::nullopt;
+    }
+    return qUncompress(compressedData);
+}
+
+QList<AnalysisDao::AnalysisInfo> AnalysisDao::loadAnalysisFilesFromQuery(
+        TrackId trackId, QSqlQuery* query) {
+    QList<AnalysisDao::AnalysisInfo> analyses;
     if (!query->exec()) {
         LOG_FAILED_QUERY(*query) << "couldn't get analyses for track" << trackId;
         return analyses;
     }
 
-    int bytes = 0;
     QSqlRecord queryRecord = query->record();
     const int idColumn = queryRecord.indexOf("id");
     const int typeColumn = queryRecord.indexOf("type");
@@ -81,27 +120,35 @@ QList<AnalysisDao::AnalysisInfo> AnalysisDao::loadAnalysesFromQuery(TrackId trac
         info.type = static_cast<AnalysisType>(query->value(typeColumn).toInt());
         info.description = query->value(descriptionColumn).toString();
         info.version = query->value(versionColumn).toString();
-        int checksum = query->value(dataChecksumColumn).toInt();
-        QString dataPath = analysisPath.absoluteFilePath(
+        info.dataChecksum = query->value(dataChecksumColumn).toInt();
+        info.dataPath = analysisPath.absoluteFilePath(
             QString::number(info.analysisId));
-        const QByteArray compressedData = loadDataFromFile(dataPath);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        const int file_checksum = qChecksum(
-                compressedData);
-#else
-        const int file_checksum = qChecksum(
-                compressedData.constData(),
-                compressedData.length());
-#endif
-        if (checksum != file_checksum) {
-            qDebug() << "WARNING: Corrupt analysis loaded from" << dataPath
-                     << "length" << compressedData.length();
+        analyses.append(info);
+    }
+    return analyses;
+}
+// End of AI-generated text.
+
+QList<AnalysisDao::AnalysisInfo> AnalysisDao::loadAnalysesFromQuery(TrackId trackId, QSqlQuery* query) {
+    QList<AnalysisDao::AnalysisInfo> analyses;
+    PerformanceTimer time;
+    time.start();
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Mix Two: the query and the file read are two steps, so that a worker
+    // thread can do the file read (getAnalysisFilesForTrackByType()).
+    int bytes = 0;
+    const QList<AnalysisInfo> files = loadAnalysisFilesFromQuery(trackId, query);
+    for (AnalysisInfo info : files) {
+        std::optional<QByteArray> data = loadAnalysisData(info.dataPath, info.dataChecksum);
+        if (!data) {
             continue;
         }
-        info.data = qUncompress(compressedData);
+        info.data = std::move(*data);
         bytes += info.data.length();
         analyses.append(info);
     }
+    // End of AI-generated text.
     qDebug() << "AnalysisDAO fetched" << analyses.size() << "analyses,"
              << bytes << "bytes for track"
              << trackId << "in" << time.elapsed().debugMillisWithUnit();
