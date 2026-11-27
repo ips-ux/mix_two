@@ -1478,6 +1478,7 @@ add_library(
   src/library/export/stickeject.cpp
   src/library/export/devicelibraryplusexportjob.cpp
   src/library/export/dlgdeviceexport.cpp
+  src/library/export/legacystickflow.cpp
   src/library/export/dlgtrackexport.ui
   src/library/export/trackexportdlg.cpp
   src/library/export/trackexportwizard.cpp
@@ -1526,6 +1527,7 @@ add_library(
   src/library/rekordbox/devicelibraryplusstick.cpp
   src/library/rekordbox/legacyfromdlp.cpp
   src/library/rekordbox/legacypdbwriter.cpp
+  src/library/rekordbox/legacytodlp.cpp
   src/library/rekordbox/rekordboxbeats.cpp
   src/library/rekordbox/rekordboxfeature.cpp
   src/library/rekordbox/stickplaylistdelete.cpp
@@ -3085,6 +3087,8 @@ if(BUILD_TESTING)
     src/test/devicelibraryplusexportjob_test.cpp
     src/test/devicelibraryplusexportjob_bench_test.cpp
     src/test/legacyfromdlp_test.cpp
+    src/test/legacytodlp_test.cpp
+    src/test/legacystickflow_test.cpp
     src/test/exportloop_test.cpp
     src/test/devicelibraryplusmapping_test.cpp
     src/test/devicelibraryplusstick_test.cpp

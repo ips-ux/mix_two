@@ -2091,5 +2091,107 @@ TEST_F(DeviceLibraryPlusDbTest, SaveWritesTheFileThatOpenRead) {
 }
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusDbTest, AddWritersAddARowForEachCall) {
+    auto pDb = createDb();
+    ASSERT_TRUE(pDb);
+    const qint64 first = pDb->addArtist(QStringLiteral("Same"));
+    const qint64 second = pDb->addArtist(QStringLiteral("Same"));
+    EXPECT_NE(first, second);
+    EXPECT_EQ(first, pDb->findOrAddArtist(QStringLiteral("Same")));
+    EXPECT_NE(pDb->addGenre(QStringLiteral("House")), pDb->addGenre(QStringLiteral("House")));
+    EXPECT_NE(pDb->addKey(QStringLiteral("8A")), pDb->addKey(QStringLiteral("8A")));
+    const qint64 label = pDb->addLabel(QStringLiteral("Label"));
+    const qint64 album = pDb->addAlbum(QStringLiteral("Album"), first);
+    EXPECT_NE(album, pDb->addAlbum(QStringLiteral("Album"), first));
+    EXPECT_EQ(album, pDb->findOrAddAlbum(QStringLiteral("Album"), first));
+    EXPECT_TRUE(pDb->lastErrorMessage().isEmpty()) << qPrintable(pDb->lastErrorMessage());
+    sqlite3* pHandle = handleOf(*pDb);
+    EXPECT_EQ(QStringLiteral("2"), scalar(pHandle, "SELECT count(*) FROM artist WHERE name = 'Same'"));
+    expectRow(pHandle,
+            "label",
+            ("label_id = " + std::to_string(label)).c_str(),
+            {{"name", "'Label'"}});
+}
+
+TEST_F(DeviceLibraryPlusDbTest, ContentWritesTheColumnsOfTheLegacyLibrary) {
+    auto pDb = createDb();
+    ASSERT_TRUE(pDb);
+    DlpContent plain;
+    plain.title = QStringLiteral("Plain");
+    const qint64 plainId = pDb->addContent(plain);
+    DlpContent full = plain;
+    full.originalArtistId = pDb->addArtist(QStringLiteral("Original"));
+    full.remixerId = pDb->addArtist(QStringLiteral("Remixer"));
+    full.labelId = pDb->addLabel(QStringLiteral("Label"));
+    full.trackNo = 3;
+    full.discNo = 2;
+    full.subtitle = QStringLiteral("Club Mix");
+    full.releaseDate = QStringLiteral("2001-01-02");
+    full.isrc = QStringLiteral("USABC0100001");
+    full.kuvoDeliveryComment = QStringLiteral("Message");
+    const qint64 fullId = pDb->addContent(full);
+    ASSERT_TRUE(pDb->lastErrorMessage().isEmpty()) << qPrintable(pDb->lastErrorMessage());
+    sqlite3* pHandle = handleOf(*pDb);
+    const std::string original = std::to_string(*full.originalArtistId);
+    const std::string remixer = std::to_string(*full.remixerId);
+    const std::string label = std::to_string(*full.labelId);
+    // The default values are the fixed values that the export wrote before.
+    expectRow(pHandle,
+            "content",
+            ("content_id = " + std::to_string(plainId)).c_str(),
+            {{"subtitle", "''"},
+                    {"trackNo", "0"},
+                    {"discNo", "0"},
+                    {"artist_id_remixer", "NULL"},
+                    {"artist_id_originalArtist", "NULL"},
+                    {"label_id", "NULL"},
+                    {"releaseDate", "''"},
+                    {"isrc", "''"},
+                    {"kuvoDeliveryComment", "''"}});
+    expectRow(pHandle,
+            "content",
+            ("content_id = " + std::to_string(fullId)).c_str(),
+            {{"subtitle", "'Club Mix'"},
+                    {"trackNo", "3"},
+                    {"discNo", "2"},
+                    {"artist_id_originalArtist", original.c_str()},
+                    {"artist_id_remixer", remixer.c_str()},
+                    {"label_id", label.c_str()},
+                    {"releaseDate", "'2001-01-02'"},
+                    {"isrc", "'USABC0100001'"},
+                    {"kuvoDeliveryComment", "'Message'"}});
+}
+
+TEST_F(DeviceLibraryPlusDbTest, HistoryAndPlaylistSequenceWriters) {
+    auto pDb = createDb();
+    ASSERT_TRUE(pDb);
+    DlpContent content;
+    content.title = QStringLiteral("A");
+    const qint64 a = pDb->addContent(content);
+    const qint64 b = pDb->addContent(content);
+    const qint64 first = pDb->addHistory(QStringLiteral("HISTORY 001"));
+    const qint64 second = pDb->addHistory(QStringLiteral("HISTORY 002"));
+    pDb->setHistoryContents(first, {b, a});
+    pDb->setHistoryContents(first, {b, a, b});
+    const qint64 late = pDb->addPlaylistAt(QStringLiteral("Late"), 0, false, 5);
+    ASSERT_TRUE(pDb->lastErrorMessage().isEmpty()) << qPrintable(pDb->lastErrorMessage());
+    sqlite3* pHandle = handleOf(*pDb);
+    expectRow(pHandle,
+            "history",
+            ("history_id = " + std::to_string(second)).c_str(),
+            {{"sequenceNo", "2"}, {"name", "'HISTORY 002'"}});
+    const std::string entries =
+            "SELECT group_concat(content_id || ':' || sequenceNo, ',') FROM (SELECT * FROM "
+            "history_content WHERE history_id = " +
+            std::to_string(first) + " ORDER BY sequenceNo)";
+    EXPECT_EQ(QStringLiteral("%1:1,%2:2,%1:3").arg(b).arg(a), scalar(pHandle, entries.c_str()));
+    expectRow(pHandle,
+            "playlist",
+            ("playlist_id = " + std::to_string(late)).c_str(),
+            {{"sequenceNo", "5"}, {"attribute", "0"}, {"playlist_id_parent", "0"}});
+}
+// End of AI-generated text.
+
 } // namespace rekordbox
 } // namespace mixxx

@@ -918,4 +918,56 @@ TEST_F(DeviceLibraryPlusStickTest, StickInfoFindsLibrariesInLowerCaseFolders) {
 }
 // End of AI-generated text.
 
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(DeviceLibraryPlusStickTest, LegacyBackupCopiesBothFilesAndRestoresThem) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    ASSERT_TRUE(stick.isValid());
+    ASSERT_TRUE(backups.isValid());
+    const QString pdb = QDir(rekordboxFolder(stick.path())).filePath("export.pdb");
+    const QString ext = QDir(rekordboxFolder(stick.path())).filePath("exportExt.pdb");
+    ASSERT_TRUE(writeFile(pdb, "pdb bytes"));
+    ASSERT_TRUE(writeFile(ext, "ext bytes"));
+    const QDateTime now(QDate(2026, 11, 26), QTime(10, 0, 0));
+    QString error;
+    const QString folder = mixxx::rekordbox::dlpBackupLegacyLibrary(
+            stick.path(), backups.path(), "Stick", now, &error);
+    ASSERT_FALSE(folder.isEmpty()) << qPrintable(error);
+    EXPECT_EQ(QDir(backups.path()).filePath("Stick/20261126-100000"), folder);
+    EXPECT_TRUE(QFileInfo(QDir(folder).filePath("export.pdb")).isFile());
+    EXPECT_TRUE(QFileInfo(QDir(folder).filePath("exportExt.pdb")).isFile());
+
+    ASSERT_TRUE(QFile::remove(pdb));
+    ASSERT_TRUE(QFile::remove(ext));
+    QStringList restored;
+    ASSERT_TRUE(mixxx::rekordbox::dlpRestoreLegacyLibrary(folder, stick.path(), &restored, &error))
+            << qPrintable(error);
+    restored.sort();
+    EXPECT_EQ((QStringList{"/PIONEER/rekordbox/export.pdb", "/PIONEER/rekordbox/exportExt.pdb"}),
+            restored);
+    QFile restoredPdb(pdb);
+    ASSERT_TRUE(restoredPdb.open(QIODevice::ReadOnly));
+    EXPECT_EQ(QByteArray("pdb bytes"), restoredPdb.readAll());
+    QFile restoredExt(ext);
+    ASSERT_TRUE(restoredExt.open(QIODevice::ReadOnly));
+    EXPECT_EQ(QByteArray("ext bytes"), restoredExt.readAll());
+}
+
+TEST_F(DeviceLibraryPlusStickTest, LegacyBackupRefusesAStickWithoutTheLegacyLibrary) {
+    QTemporaryDir stick;
+    QTemporaryDir backups;
+    QString error;
+    EXPECT_TRUE(mixxx::rekordbox::dlpBackupLegacyLibrary(stick.path(),
+            backups.path(),
+            "Stick",
+            QDateTime(QDate(2026, 11, 26), QTime(10, 0, 0)),
+            &error)
+                        .isEmpty());
+    EXPECT_FALSE(error.isEmpty());
+    EXPECT_TRUE(folderNames(backups.path()).isEmpty());
+    EXPECT_FALSE(mixxx::rekordbox::dlpRestoreLegacyLibrary(
+            backups.path(), stick.path(), nullptr, &error));
+}
+// End of AI-generated text.
+
 } // namespace

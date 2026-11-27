@@ -319,6 +319,124 @@ QString dlpBackupLibrary(const QString& stickRoot,
 }
 
 // AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+const QString kLegacyFileNames[] = {
+        QStringLiteral("export.pdb"),
+        QStringLiteral("exportExt.pdb"),
+};
+
+/// The legacy file `name` on the stick, with the letter case of the disk.
+QString legacyStickPath(const QString& stickRoot, const QString& name) {
+    return dlpStickPathNoCase(stickRoot,
+            QFileInfo(DeviceLibraryPlusDb::kRelativePath).path() + QLatin1Char('/') + name);
+}
+
+} // namespace
+
+QString dlpBackupLegacyLibrary(const QString& stickRoot,
+        const QString& backupBaseDir,
+        const QString& deviceName,
+        const QDateTime& now,
+        QString* pErrorMessage) {
+    if (isBlank(stickRoot)) {
+        return backupFailed(QCoreApplication::translate("DeviceLibraryPlus",
+                                    "The path of the stick is empty."),
+                pErrorMessage);
+    }
+    if (isBlank(backupBaseDir)) {
+        return backupFailed(QCoreApplication::translate("DeviceLibraryPlus",
+                                    "The path of the backup folder is empty."),
+                pErrorMessage);
+    }
+    if (!now.isValid()) {
+        return backupFailed(QCoreApplication::translate("DeviceLibraryPlus",
+                                    "The time of the backup is not valid."),
+                pErrorMessage);
+    }
+    if (!QFileInfo(legacyStickPath(stickRoot, kLegacyFileNames[0])).isFile()) {
+        return backupFailed(QCoreApplication::translate("DeviceLibraryPlus",
+                                    "The stick has no older device library."),
+                pErrorMessage);
+    }
+    const QDir deviceDir(QDir(backupBaseDir).filePath(fatSafeName(deviceName)));
+    const QString stamp = stampOf(now);
+    const QString stampDir = deviceDir.filePath(stamp);
+    if (!QDir().mkpath(stampDir)) {
+        return backupFailed(QCoreApplication::translate("DeviceLibraryPlus",
+                                    "Mix Two cannot make the backup folder."),
+                pErrorMessage);
+    }
+    QStringList copied;
+    for (const QString& name : kLegacyFileNames) {
+        const QFileInfo source(legacyStickPath(stickRoot, name));
+        if (!source.isFile()) {
+            continue;
+        }
+        const QString target = QDir(stampDir).filePath(name);
+        // The same second twice: the new copy replaces the old one.
+        QFile::remove(target);
+        copied.append(target);
+        if (!QFile::copy(source.filePath(), target) || QFileInfo(target).size() != source.size()) {
+            for (const QString& path : std::as_const(copied)) {
+                QFile::remove(path);
+            }
+            QDir().rmdir(stampDir);
+            return backupFailed(QCoreApplication::translate("DeviceLibraryPlus",
+                                        "Mix Two cannot copy the file %1.")
+                                        .arg(name),
+                    pErrorMessage);
+        }
+    }
+    removeOldBackups(deviceDir, stamp);
+    return stampDir;
+}
+
+bool dlpRestoreLegacyLibrary(const QString& backupFolder,
+        const QString& stickRoot,
+        QStringList* pRestoredFiles,
+        QString* pErrorMessage) {
+    const auto fail = [pErrorMessage](const QString& reason) {
+        if (pErrorMessage) {
+            *pErrorMessage = dlpMessageRestoreFailed(reason);
+        }
+        return false;
+    };
+    if (isBlank(backupFolder) || isBlank(stickRoot) ||
+            !QFileInfo(QDir(backupFolder).filePath(kLegacyFileNames[0])).isFile()) {
+        return fail(QCoreApplication::translate("DeviceLibraryPlus",
+                "The backup has no older device library."));
+    }
+    const QString rekordboxDir = dlpStickPathNoCase(
+            stickRoot, QFileInfo(DeviceLibraryPlusDb::kRelativePath).path());
+    if (!QDir().mkpath(rekordboxDir)) {
+        return fail(copyFailedReason(QFileInfo(DeviceLibraryPlusDb::kRelativePath).path()));
+    }
+    for (const QString& name : kLegacyFileNames) {
+        const QString source = QDir(backupFolder).filePath(name);
+        if (!QFileInfo(source).isFile()) {
+            continue;
+        }
+        const QString target = legacyStickPath(stickRoot, name);
+        const QString stickPath = QLatin1Char('/') + QDir(stickRoot).relativeFilePath(target);
+        QFile in(source);
+        QSaveFile out(target);
+        if (!in.open(QIODevice::ReadOnly) || !out.open(QIODevice::WriteOnly)) {
+            return fail(copyFailedReason(stickPath));
+        }
+        const QByteArray bytes = in.readAll();
+        if (out.write(bytes) != bytes.size() || !out.commit()) {
+            return fail(copyFailedReason(stickPath));
+        }
+        if (pRestoredFiles) {
+            pRestoredFiles->append(stickPath);
+        }
+    }
+    return true;
+}
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
 DlpRestoreResult dlpRestoreLibrary(const QString& stickRoot,
         const QString& backupBaseDir,
         const QString& deviceName,

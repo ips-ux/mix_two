@@ -59,6 +59,22 @@ struct DlpContent {
     qint64 masterContentId = 0;
     /// The path of the ANLZ0000.DAT file on the stick.
     QString analysisDataFilePath;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The columns that a legacy device library also has. The default values
+    /// are the fixed values that addContent() wrote before these fields.
+    /// IDs of rows in the artist and label tables; an empty value is NULL.
+    std::optional<qint64> originalArtistId, remixerId, labelId;
+    int trackNo = 0;
+    int discNo = 0;
+    /// The mix name of the track.
+    QString subtitle;
+    /// "yyyy-MM-dd", or empty.
+    QString releaseDate;
+    /// ASCII text, or empty.
+    QString isrc;
+    /// The message of the track.
+    QString kuvoDeliveryComment;
+    // End of AI-generated text.
 };
 
 /// Mix Two: what the export needs to know about a track that the library has
@@ -213,6 +229,27 @@ class DeviceLibraryPlusDb {
     /// same image twice.
     qint64 addImage(const QString& stickPath);
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Add a row to the artist, genre, key or label table on each call, also
+    /// when a row has the same name: for a copy of a library that has two
+    /// rows with one name. They return the ID. A later findOrAdd...() call
+    /// finds the first row of a name.
+    qint64 addArtist(const QString& name);
+    qint64 addGenre(const QString& name);
+    qint64 addKey(const QString& name);
+    qint64 addLabel(const QString& name);
+
+    /// Adds an album on each call (see addArtist()).
+    qint64 addAlbum(const QString& name, std::optional<qint64> artistId);
+
+    /// Adds a history list after the history lists that are there, and
+    /// returns its ID.
+    qint64 addHistory(const QString& name);
+
+    /// Replaces the tracks of a history list with these tracks, in this order.
+    void setHistoryContents(qint64 historyId, const QList<qint64>& contentIds);
+    // End of AI-generated text.
+
     /// Adds a track and returns its ID.
     qint64 addContent(const DlpContent& content);
 
@@ -230,6 +267,13 @@ class DeviceLibraryPlusDb {
     /// folders with the same parent. parentId is the ID of a folder, or 0 for
     /// the top level. Returns the ID.
     qint64 addPlaylist(const QString& name, qint64 parentId, bool isFolder);
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Like addPlaylist(), with this sequence number among the playlists and
+    /// folders with the same parent: for a copy of a playlist tree that adds
+    /// the rows in another order.
+    qint64 addPlaylistAt(const QString& name, qint64 parentId, bool isFolder, int sequenceNo);
+    // End of AI-generated text.
 
     /// The ID of the first playlist or folder with this name and this parent.
     std::optional<qint64> findPlaylist(const QString& name, qint64 parentId);
@@ -313,6 +357,16 @@ class DeviceLibraryPlusDb {
             const char* idColumn,
             NameCache& cache,
             const QString& name);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// Adds a row with this name; a loaded cache gets the name when it has no
+    /// row for it. pCache can be null.
+    qint64 addNamed(const char* table, NameCache* pCache, const QString& name);
+    /// Replaces the entries of a list in playlist_content or history_content.
+    void setListContents(const char* table,
+            const char* listColumn,
+            qint64 listId,
+            const QList<qint64>& contentIds);
+    // End of AI-generated text.
     /// Reads the rows of a table into the cache. Returns false and sets
     /// lastErrorMessage() on an error.
     bool loadNameCache(const char* table, const char* idColumn, NameCache& cache);

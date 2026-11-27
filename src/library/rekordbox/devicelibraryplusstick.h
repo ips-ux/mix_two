@@ -92,6 +92,34 @@ QString dlpBackupLibrary(const QString& stickRoot,
         QString* pErrorMessage);
 
 // AI-generated (Claude Code). Start of AI-generated text.
+/// Copies the legacy device library of the stick, `PIONEER/rekordbox/export.pdb`
+/// and `PIONEER/rekordbox/exportExt.pdb` when it exists, to the folder that
+/// dlpBackupLibrary() uses (`<backupBaseDir>/<fatSafeName(deviceName)>/<yyyyMMdd-HHmmss>/`),
+/// with the same names and the same removal of old folders. Returns the
+/// time-stamp folder. Returns an empty string and sets `pErrorMessage` (when
+/// it is not null) when the stick has no `export.pdb` or a copy fails; then
+/// it removes the copies that it made. It refuses the same values as
+/// dlpBackupLibrary().
+QString dlpBackupLegacyLibrary(const QString& stickRoot,
+        const QString& backupBaseDir,
+        const QString& deviceName,
+        const QDateTime& now,
+        QString* pErrorMessage);
+
+/// Copies `export.pdb` and `exportExt.pdb` (each one that the folder has) from
+/// a folder of dlpBackupLegacyLibrary() back to `PIONEER/rekordbox/` on the
+/// stick, each through a temporary file that is renamed over the file on the
+/// stick. Adds each file that it wrote (a path from the root of the stick) to
+/// `pRestoredFiles` (when it is not null). Returns false and sets
+/// `pErrorMessage` (when it is not null) when the folder has no `export.pdb`
+/// or a copy fails.
+bool dlpRestoreLegacyLibrary(const QString& backupFolder,
+        const QString& stickRoot,
+        QStringList* pRestoredFiles,
+        QString* pErrorMessage);
+// End of AI-generated text.
+
+// AI-generated (Claude Code). Start of AI-generated text.
 /// What dlpRestoreLibrary() did.
 struct DlpRestoreResult {
     bool ok = false;

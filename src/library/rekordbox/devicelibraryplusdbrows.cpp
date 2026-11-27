@@ -55,26 +55,26 @@ struct ContentColumn {
 constexpr ContentColumn kContentColumns[] = {
         {"title", ":title"},
         {"titleForSearch", "NULL"},
-        {"subtitle", "''"},
+        {"subtitle", ":subtitle"},
         {"bpmx100", ":bpmx100"},
         {"length", ":length"},
-        {"trackNo", "0"},
-        {"discNo", "0"},
+        {"trackNo", ":trackNo"},
+        {"discNo", ":discNo"},
         {"artist_id_artist", ":artist"},
-        {"artist_id_remixer", "NULL"},
-        {"artist_id_originalArtist", "NULL"},
+        {"artist_id_remixer", ":remixer"},
+        {"artist_id_originalArtist", ":originalArtist"},
         {"artist_id_composer", ":composer"},
         {"artist_id_lyricist", "0"},
         {"album_id", ":album"},
         {"genre_id", ":genre"},
-        {"label_id", "NULL"},
+        {"label_id", ":label"},
         {"key_id", ":key"},
         {"color_id", ":color"},
         {"image_id", ":image"},
         {"djComment", ":djComment"},
         {"rating", ":rating"},
         {"releaseYear", ":releaseYear"},
-        {"releaseDate", "''"},
+        {"releaseDate", ":releaseDate"},
         {"dateCreated", ":dateCreated"},
         {"dateAdded", ":dateAdded"},
         {"path", ":path"},
@@ -84,11 +84,11 @@ constexpr ContentColumn kContentColumns[] = {
         {"bitrate", ":bitrate"},
         {"bitDepth", ":bitDepth"},
         {"samplingRate", ":samplingRate"},
-        {"isrc", "''"},
+        {"isrc", ":isrc"},
         {"djPlayCount", ":playCount"},
         {"isHotCueAutoLoadOn", ":hotCueAutoLoad"},
         {"isKuvoDeliverStatusOn", "0"},
-        {"kuvoDeliveryComment", "''"},
+        {"kuvoDeliveryComment", ":kuvoDeliveryComment"},
         {"masterDbId", ":masterDbId"},
         {"masterContentId", ":masterContentId"},
         {"analysisDataFilePath", ":analysisDataFilePath"},
@@ -161,6 +161,17 @@ void bindContent(NamedStatement& statement, const DlpContent& content) {
     statement.bindInt(":masterDbId", content.masterDbId);
     statement.bindInt(":masterContentId", content.masterContentId);
     statement.bindText(":analysisDataFilePath", content.analysisDataFilePath);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    statement.bindOptionalInt(":remixer", content.remixerId);
+    statement.bindOptionalInt(":originalArtist", content.originalArtistId);
+    statement.bindOptionalInt(":label", content.labelId);
+    statement.bindInt(":trackNo", content.trackNo);
+    statement.bindInt(":discNo", content.discNo);
+    statement.bindText(":subtitle", content.subtitle);
+    statement.bindText(":releaseDate", content.releaseDate);
+    statement.bindText(":isrc", content.isrc);
+    statement.bindText(":kuvoDeliveryComment", content.kuvoDeliveryComment);
+    // End of AI-generated text.
 }
 
 } // namespace
@@ -455,6 +466,95 @@ QList<QPair<qint64, QString>> DeviceLibraryPlusDb::listImages() {
 
 void DeviceLibraryPlusDb::setPlaylistContents(
         qint64 playlistId, const QList<qint64>& contentIds) {
+    setListContents("playlist_content", "playlist_id", playlistId, contentIds);
+}
+
+// AI-generated (Claude Code). Start of AI-generated text.
+void DeviceLibraryPlusDb::setHistoryContents(
+        qint64 historyId, const QList<qint64>& contentIds) {
+    setListContents("history_content", "history_id", historyId, contentIds);
+}
+
+qint64 DeviceLibraryPlusDb::addNamed(const char* table, NameCache* pCache, const QString& name) {
+    QByteArray addSql("INSERT INTO \"");
+    addSql.append(table).append("\"(name) VALUES (:name)");
+    NamedStatement add(m_pDb, addSql.constData());
+    add.bindText(":name", name);
+    if (add.step() != NamedStatement::Result::Done) {
+        return failChange(add.error());
+    }
+    const qint64 id = add.insertedId();
+    if (pCache && pCache->loaded && !pCache->ids.contains(name)) {
+        pCache->ids.insert(name, id);
+    }
+    return id;
+}
+
+qint64 DeviceLibraryPlusDb::addArtist(const QString& name) {
+    return addNamed("artist", &m_artistCache, name);
+}
+
+qint64 DeviceLibraryPlusDb::addGenre(const QString& name) {
+    return addNamed("genre", &m_genreCache, name);
+}
+
+qint64 DeviceLibraryPlusDb::addKey(const QString& name) {
+    return addNamed("key", &m_keyCache, name);
+}
+
+qint64 DeviceLibraryPlusDb::addLabel(const QString& name) {
+    return addNamed("label", nullptr, name);
+}
+
+qint64 DeviceLibraryPlusDb::addAlbum(const QString& name, std::optional<qint64> artistId) {
+    NamedStatement add(m_pDb,
+            "INSERT INTO album(name, artist_id, image_id, isComplation, nameForSearch) "
+            "VALUES (:name, :artist, NULL, 0, NULL)");
+    add.bindText(":name", name);
+    add.bindOptionalInt(":artist", artistId);
+    if (add.step() != NamedStatement::Result::Done) {
+        return failChange(add.error());
+    }
+    const qint64 id = add.insertedId();
+    const QPair<QString, qint64> key(name, artistId.value_or(kNoAlbumArtist));
+    if (m_albumCacheLoaded && !m_albumIds.contains(key)) {
+        m_albumIds.insert(key, id);
+    }
+    return id;
+}
+
+qint64 DeviceLibraryPlusDb::addHistory(const QString& name) {
+    // attribute 0 is a history list; the lists have no parent folder.
+    NamedStatement add(m_pDb,
+            "INSERT INTO history(sequenceNo, name, attribute, history_id_parent) "
+            "VALUES ((SELECT COUNT(*) + 1 FROM history), :name, 0, 0)");
+    add.bindText(":name", name);
+    if (add.step() != NamedStatement::Result::Done) {
+        return failChange(add.error());
+    }
+    return add.insertedId();
+}
+
+qint64 DeviceLibraryPlusDb::addPlaylistAt(
+        const QString& name, qint64 parentId, bool isFolder, int sequenceNo) {
+    NamedStatement add(m_pDb,
+            "INSERT INTO playlist(sequenceNo, name, image_id, attribute, "
+            "playlist_id_parent) VALUES (:sequence, :name, NULL, :attribute, :parent)");
+    add.bindInt(":sequence", sequenceNo);
+    add.bindText(":name", name);
+    add.bindInt(":attribute", isFolder ? kFolderAttribute : kPlaylistAttribute);
+    add.bindInt(":parent", parentId);
+    if (add.step() != NamedStatement::Result::Done) {
+        return failChange(add.error());
+    }
+    return add.insertedId();
+}
+// End of AI-generated text.
+
+void DeviceLibraryPlusDb::setListContents(const char* table,
+        const char* listColumn,
+        qint64 listId,
+        const QList<qint64>& contentIds) {
     // One savepoint makes the delete and all inserts one commit to the file,
     // and a failed insert leaves the old list as it was.
     Savepoint savepoint(m_pDb);
@@ -463,20 +563,23 @@ void DeviceLibraryPlusDb::setPlaylistContents(
         return;
     }
     {
-        NamedStatement clear(m_pDb, "DELETE FROM playlist_content WHERE playlist_id = :playlist");
-        clear.bindInt(":playlist", playlistId);
+        QByteArray clearSql("DELETE FROM ");
+        clearSql.append(table).append(" WHERE ").append(listColumn).append(" = :list");
+        NamedStatement clear(m_pDb, clearSql.constData());
+        clear.bindInt(":list", listId);
         if (clear.step() != NamedStatement::Result::Done) {
             failChange(clear.error());
             return;
         }
 
-        NamedStatement insert(m_pDb,
-                "INSERT INTO playlist_content(playlist_id, content_id, sequenceNo) "
-                "VALUES (:playlist, :content, :sequence)");
+        QByteArray insertSql("INSERT INTO ");
+        insertSql.append(table).append('(').append(listColumn);
+        insertSql.append(", content_id, sequenceNo) VALUES (:list, :content, :sequence)");
+        NamedStatement insert(m_pDb, insertSql.constData());
         int sequenceNo = 0;
         for (const qint64 contentId : contentIds) {
             insert.reset();
-            insert.bindInt(":playlist", playlistId);
+            insert.bindInt(":list", listId);
             insert.bindInt(":content", contentId);
             insert.bindInt(":sequence", ++sequenceNo);
             if (insert.step() != NamedStatement::Result::Done) {
