@@ -213,6 +213,14 @@ TEST_F(DeviceLibraryPlusExportJobTest, ExportsLibraryToStick) {
     EXPECT_TRUE(first.summary.skipped.first().endsWith(
             QStringLiteral(": The track has no waveform. Analyse the track first.")))
             << qPrintable(first.summary.skipped.first());
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // The counts of the copied and written files. The skipped track adds
+    // nothing.
+    EXPECT_EQ(QFileInfo(pAnalysed->getLocation()).size(), first.summary.bytesCopied);
+    EXPECT_EQ(1, first.summary.audioFilesCopied);
+    EXPECT_EQ(1, first.summary.anlzWritten);
+    EXPECT_EQ(0, first.summary.anlzKept);
+    // End of AI-generated text.
 
     QList<DlpContentRef> rows;
     {
@@ -239,6 +247,13 @@ TEST_F(DeviceLibraryPlusExportJobTest, ExportsLibraryToStick) {
     ASSERT_TRUE(second.finished);
     ASSERT_EQ(1, second.completedCount) << qPrintable(second.failure);
     EXPECT_EQ(1, second.summary.tracksExported);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Nothing changed: no copy, and the ANLZ folder stays.
+    EXPECT_EQ(0, second.summary.bytesCopied);
+    EXPECT_EQ(0, second.summary.audioFilesCopied);
+    EXPECT_EQ(0, second.summary.anlzWritten);
+    EXPECT_EQ(1, second.summary.anlzKept);
+    // End of AI-generated text.
     QString error;
     auto pDb = DeviceLibraryPlusDb::open(m_stick.path(), &error);
     ASSERT_TRUE(pDb) << qPrintable(error);
@@ -246,6 +261,7 @@ TEST_F(DeviceLibraryPlusExportJobTest, ExportsLibraryToStick) {
     ASSERT_EQ(1, again.size());
     EXPECT_EQ(rows[0].id, again[0].id);
     EXPECT_EQ(rows[0].path, again[0].path);
+    EXPECT_EQ(rows[0].analysisDataFilePath, again[0].analysisDataFilePath);
     const QStringList backups = QDir(QDir(m_backups.path()).filePath(kDeviceName))
                                         .entryList(QDir::Dirs | QDir::NoDotAndDotDot);
     EXPECT_EQ(1, backups.size());
@@ -441,6 +457,14 @@ TEST_P(LegacyReplacementTest, RemovesOldAnalysisOnlyAfterLegacyReplacement) {
     pDb.reset();
     const QString oldAnalysis = m_stick.path() + before.first().analysisDataFilePath;
     ASSERT_TRUE(QFile::exists(oldAnalysis));
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Another hot cue: the ANLZ files change, so the export makes a new
+    // folder and replaces the old one (Ruling R17).
+    pTrack->createAndAddCue(mixxx::CueType::HotCue,
+            1,
+            mixxx::audio::FramePos(5000),
+            mixxx::audio::kInvalidFramePos);
+    // End of AI-generated text.
 
     const bool legacySucceeds = GetParam() == 0;
     jobRequest.writeLegacyLibrary = GetParam() != 2;
@@ -581,9 +605,15 @@ TEST(DeviceLibraryPlusCompletionTextTest, ShowsOnlyTheLinesThatApply) {
     DeviceLibraryPlusExportSummary summary;
     summary.tracksExported = 3;
     summary.playlistsExported = 2;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    summary.audioFilesCopied = 2;
+    summary.bytesCopied = 3 * 1024 * 1024 + 300 * 1024;
+    summary.anlzWritten = 2;
     const QString first = QStringLiteral(
             "3 tracks and 2 playlists are on the stick. "
-            "Eject the stick before you remove it.");
+            "Eject the stick before you remove it.\n"
+            "Mix Two copied 2 audio files (3.3 MB) and wrote new analysis files for 2 tracks.");
+    // End of AI-generated text.
     EXPECT_EQ(first, deviceLibraryPlusCompletionText(summary));
 
     summary.legacyClampedTracks = 2;

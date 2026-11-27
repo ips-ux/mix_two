@@ -35,6 +35,12 @@ using mixxx::rekordbox::AnlzTrackData;
 using mixxx::rekordbox::AnlzWaveforms;
 using mixxx::rekordbox::GridBeat;
 using mixxx::rekordbox::writeAnlzFiles;
+// AI-generated (Claude Code). Start of AI-generated text.
+using mixxx::rekordbox::anlzFileSet;
+using mixxx::rekordbox::AnlzFileSet;
+using mixxx::rekordbox::anlzFolderHasFileSet;
+using mixxx::rekordbox::writeAnlzFileSet;
+// End of AI-generated text.
 namespace anlz = mixxx::rekordbox::anlz;
 
 constexpr int kSampleRateHz = 44100;
@@ -741,6 +747,52 @@ TEST_F(AnlzWriterTest, WritesThreeFilesIntoNewFolder) {
         EXPECT_TRUE(writeAnlzFiles(m_data, sampleDir, &error)) << qPrintable(error);
     }
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+TEST_F(AnlzWriterTest, FolderHasFileSetOnlyForTheSameBytes) {
+    QTemporaryDir tempDir;
+    ASSERT_TRUE(tempDir.isValid());
+    const QString folder = tempDir.filePath(QStringLiteral("P001/0000ABCD"));
+    const AnlzFileSet set = anlzFileSet(m_data);
+    EXPECT_EQ(anlz::datBytes(m_data), set.dat);
+    EXPECT_EQ(anlz::extBytes(m_data), set.ext);
+    EXPECT_EQ(anlz::twoExBytes(m_data), set.twoEx);
+
+    // No folder.
+    EXPECT_FALSE(anlzFolderHasFileSet(folder, set));
+    QString error;
+    ASSERT_TRUE(writeAnlzFileSet(set, folder, &error)) << qPrintable(error);
+    EXPECT_TRUE(anlzFolderHasFileSet(folder, set));
+    // writeAnlzFiles() writes the same bytes.
+    ASSERT_TRUE(writeAnlzFiles(m_data, folder, &error)) << qPrintable(error);
+    EXPECT_TRUE(anlzFolderHasFileSet(folder, set));
+
+    // Other data: another path is in the DAT file.
+    AnlzTrackData other = m_data;
+    other.stickPath = QStringLiteral("/Contents/Other/file.mp3");
+    EXPECT_FALSE(anlzFolderHasFileSet(folder, anlzFileSet(other)));
+
+    const QDir dir(folder);
+    const auto writeFile = [&dir](const char* name, const QByteArray& bytes) {
+        QFile file(dir.filePath(QString::fromLatin1(name)));
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate)) << name;
+        ASSERT_EQ(bytes.size(), file.write(bytes)) << name;
+    };
+    // One other byte, the same size.
+    QByteArray changed = set.twoEx;
+    changed[changed.size() - 1] = static_cast<char>(changed.at(changed.size() - 1) ^ 0x01);
+    writeFile("ANLZ0000.2EX", changed);
+    EXPECT_FALSE(anlzFolderHasFileSet(folder, set));
+    // A short file.
+    writeFile("ANLZ0000.2EX", set.twoEx.left(set.twoEx.size() - 1));
+    EXPECT_FALSE(anlzFolderHasFileSet(folder, set));
+    writeFile("ANLZ0000.2EX", set.twoEx);
+    EXPECT_TRUE(anlzFolderHasFileSet(folder, set));
+    // A missing file.
+    ASSERT_TRUE(QFile::remove(dir.filePath(QStringLiteral("ANLZ0000.EXT"))));
+    EXPECT_FALSE(anlzFolderHasFileSet(folder, set));
+}
+// End of AI-generated text.
 
 TEST_F(AnlzWriterTest, FailureOnTheSecondFileChangesNothing) {
     QTemporaryDir tempDir;

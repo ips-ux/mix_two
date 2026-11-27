@@ -610,9 +610,17 @@ void DeviceLibraryPlusExportJob::run() {
     }
 
     summary.playlistsExported = exporter.playlistCount();
+    // AI-generated (Claude Code). Start of AI-generated text.
+    summary.bytesCopied = exporter.bytesCopied();
+    summary.audioFilesCopied = exporter.audioFilesCopied();
+    summary.anlzWritten = exporter.anlzWrittenCount();
+    summary.anlzKept = exporter.anlzKeptCount();
+    // End of AI-generated text.
     qInfo() << "Device Library Plus export completed:" << summary.tracksExported
             << "tracks," << summary.playlistsExported << "playlists," << summary.skipped.size()
-            << "skipped";
+            << "skipped;" << summary.audioFilesCopied << "audio files copied ("
+            << summary.bytesCopied << "bytes)," << summary.anlzWritten << "ANLZ sets written,"
+            << summary.anlzKept << "ANLZ sets kept";
     emit completed(summary);
 }
 
@@ -623,6 +631,13 @@ QString deviceLibraryPlusCompletionText(const DeviceLibraryPlusExportSummary& su
             "Eject the stick before you remove it.")
                            .arg(summary.tracksExported)
                            .arg(summary.playlistsExported);
+    text += QLatin1Char('\n') +
+            QCoreApplication::translate("DeviceExporter",
+                    "Mix Two copied %1 audio files (%2 MB) and wrote new analysis "
+                    "files for %3 tracks.")
+                    .arg(summary.audioFilesCopied)
+                    .arg(static_cast<double>(summary.bytesCopied) / (1024.0 * 1024.0), 0, 'f', 1)
+                    .arg(summary.anlzWritten);
     if (!summary.legacyLibraryError.isEmpty()) {
         text += QStringLiteral("\n\n") +
                 QCoreApplication::translate("DeviceExporter",

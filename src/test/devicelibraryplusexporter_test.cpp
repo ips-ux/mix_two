@@ -10,6 +10,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QImage>
 #include <QList>
 #include <QRegularExpression>
@@ -285,14 +286,27 @@ class DeviceLibraryPlusExporterTest : public MixxxTest, ::SoundSourceProviderReg
         return result;
     }
 
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The counts of an exporter after finish().
+    struct ExportCounts {
+        qint64 bytesCopied = -1;
+        int audioFilesCopied = -1;
+        int anlzWritten = -1;
+        int anlzKept = -1;
+        int replacedFiles = -1;
+    };
+    // End of AI-generated text.
+
     /// Exports the tracks with a new exporter on the database and calls
     /// finish(). Returns the results. `stickRoot` replaces the stick root of
-    /// options() when it is not empty.
+    /// options() when it is not empty. `pCounts` (if it is not null) gets the
+    /// counts of the exporter.
     QList<DlpTrackResult> exportAndFinish(DeviceLibraryPlusDb* pDb,
             const QList<DlpExportTrack>& items,
             const QList<DlpExportPlaylist>& playlists = {},
             const QList<DlpExportPlaylist>& crates = {},
-            const QString& stickRoot = QString()) const {
+            const QString& stickRoot = QString(),
+            ExportCounts* pCounts = nullptr) const {
         QList<DlpTrackResult> results;
         DeviceLibraryPlusExporter::Options exportOptions = options();
         if (!stickRoot.isEmpty()) {
@@ -305,7 +319,17 @@ class DeviceLibraryPlusExporterTest : public MixxxTest, ::SoundSourceProviderReg
             results.append(exporter.exportTrack(item));
         }
         EXPECT_TRUE(exporter.exportPlaylists(playlists, crates, &error)) << qPrintable(error);
+        if (pCounts) {
+            // Before finish(): finish() does not change the counts.
+            pCounts->replacedFiles = exporter.replacedFileCount();
+        }
         EXPECT_TRUE(exporter.finish(&error)) << qPrintable(error);
+        if (pCounts) {
+            pCounts->bytesCopied = exporter.bytesCopied();
+            pCounts->audioFilesCopied = exporter.audioFilesCopied();
+            pCounts->anlzWritten = exporter.anlzWrittenCount();
+            pCounts->anlzKept = exporter.anlzKeptCount();
+        }
         return results;
     }
 
@@ -504,13 +528,13 @@ TEST_F(DeviceLibraryPlusExporterTest, ReExportUpdatesSameRow) {
     ASSERT_EQ(1, after.size());
     EXPECT_EQ(before[0].id, after[0].id);
     EXPECT_EQ(stickPath, after[0].path);
-    // Ruling R17: the ANLZ files go into a new folder. After the save no row
-    // uses the old folder, and its files are removed.
-    EXPECT_NE(dlpPathKey(before[0].analysisDataFilePath),
-            dlpPathKey(after[0].analysisDataFilePath));
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Ruling R17: the title is not in the ANLZ files, so their bytes did not
+    // change. The row keeps its ANLZ folder.
+    EXPECT_EQ(before[0].analysisDataFilePath, after[0].analysisDataFilePath);
+    // End of AI-generated text.
     EXPECT_TRUE(kAnlzPathPattern.match(after[0].analysisDataFilePath).hasMatch())
             << qPrintable(after[0].analysisDataFilePath);
-    EXPECT_FALSE(QFileInfo::exists(QFileInfo(onStick(before[0].analysisDataFilePath)).path()));
     const QString newAnlzFolder =
             QFileInfo(after[0].analysisDataFilePath).path().mid(QStringLiteral("/PIONEER/USBANLZ/").size());
     EXPECT_EQ((QStringList{newAnlzFolder + QStringLiteral("/ANLZ0000.2EX"),
@@ -533,6 +557,167 @@ TEST_F(DeviceLibraryPlusExporterTest, ReExportUpdatesSameRow) {
     EXPECT_EQ(artworkBytes, readFile(smallArtwork));
     EXPECT_EQ(artworkWritten, QFileInfo(smallArtwork).lastModified());
 }
+
+// AI-generated (Claude Code). Start of AI-generated text.
+namespace {
+
+/// The modification time of each file below a folder, by its path.
+QHash<QString, QDateTime> fileTimesBelow(const QString& root) {
+    QHash<QString, QDateTime> times;
+    QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString path = it.next();
+        times.insert(path, QFileInfo(path).lastModified());
+    }
+    return times;
+}
+
+const QDateTime kAnlzMarkTime(QDate(2020, 1, 2), QTime(3, 4, 5));
+
+} // namespace
+
+TEST_F(DeviceLibraryPlusExporterTest, ReExportKeepsAnlzFolderWithSameBytes) {
+    const QString sourceA = toComputer(QStringLiteral("artist.mp3"), "music", "a.mp3");
+    const QString sourceB = toComputer(QStringLiteral("all.mp3"), "music", "b.mp3");
+    TrackPointer pA = makeTrack(sourceA, 21);
+    TrackPointer pB = makeTrack(sourceB, 22);
+    pA->setArtist(QStringLiteral("Keep A"));
+    pB->setArtist(QStringLiteral("Keep B"));
+    ExportCounts counts;
+    {
+        auto pDb = newDb();
+        ASSERT_TRUE(pDb);
+        const auto results =
+                exportAndFinish(pDb.get(), {itemFor(pA), itemFor(pB)}, {}, {}, QString(), &counts);
+        ASSERT_TRUE(results[0].contentId && results[1].contentId);
+    }
+    // The first export copies both files and writes both ANLZ sets.
+    EXPECT_EQ(QFileInfo(sourceA).size() + QFileInfo(sourceB).size(), counts.bytesCopied);
+    EXPECT_EQ(2, counts.audioFilesCopied);
+    EXPECT_EQ(2, counts.anlzWritten);
+    EXPECT_EQ(0, counts.anlzKept);
+
+    const QString anlzRoot = onStick(QStringLiteral("/PIONEER/USBANLZ"));
+    QList<DlpContentRef> before;
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        before = pDb->listContents();
+    }
+    ASSERT_EQ(2, before.size());
+    // A marker time on each ANLZ file: a file that is written again loses it.
+    const QHash<QString, QDateTime> firstFiles = fileTimesBelow(anlzRoot);
+    ASSERT_EQ(6, firstFiles.size());
+    for (auto it = firstFiles.constBegin(); it != firstFiles.constEnd(); ++it) {
+        QFile file(it.key());
+        ASSERT_TRUE(file.open(QIODevice::ReadWrite)) << qPrintable(it.key());
+        ASSERT_TRUE(file.setFileTime(kAnlzMarkTime, QFileDevice::FileModificationTime));
+    }
+
+    // The same tracks again: nothing is copied or written.
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        const auto results =
+                exportAndFinish(pDb.get(), {itemFor(pA), itemFor(pB)}, {}, {}, QString(), &counts);
+        ASSERT_TRUE(results[0].contentId && results[1].contentId);
+    }
+    EXPECT_EQ(0, counts.bytesCopied);
+    EXPECT_EQ(0, counts.audioFilesCopied);
+    EXPECT_EQ(0, counts.anlzWritten);
+    EXPECT_EQ(2, counts.anlzKept);
+    EXPECT_EQ(0, counts.replacedFiles);
+    QList<DlpContentRef> kept;
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        kept = pDb->listContents();
+    }
+    ASSERT_EQ(2, kept.size());
+    for (int i = 0; i < 2; ++i) {
+        EXPECT_EQ(before[i].analysisDataFilePath, kept[i].analysisDataFilePath);
+    }
+    const QHash<QString, QDateTime> keptFiles = fileTimesBelow(anlzRoot);
+    EXPECT_EQ(firstFiles.keys().size(), keptFiles.size());
+    for (auto it = keptFiles.constBegin(); it != keptFiles.constEnd(); ++it) {
+        EXPECT_TRUE(firstFiles.contains(it.key())) << qPrintable(it.key());
+        EXPECT_EQ(kAnlzMarkTime, it.value()) << qPrintable(it.key());
+    }
+
+    // Another hot cue for A, and one other byte in the EXT file of B (the
+    // same size): both get a new folder, and finish() removes the old ones.
+    pA->createAndAddCue(mixxx::CueType::HotCue, 1, audio::FramePos(5000), audio::kInvalidFramePos);
+    const QString extOfB = QFileInfo(onStick(kept[1].analysisDataFilePath)).path() +
+            QStringLiteral("/ANLZ0000.EXT");
+    {
+        QFile file(extOfB);
+        ASSERT_TRUE(file.open(QIODevice::ReadWrite));
+        QByteArray bytes = file.readAll();
+        ASSERT_FALSE(bytes.isEmpty());
+        bytes[bytes.size() - 1] = static_cast<char>(bytes.at(bytes.size() - 1) ^ 0x01);
+        ASSERT_TRUE(file.seek(0));
+        ASSERT_EQ(bytes.size(), file.write(bytes));
+    }
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        const auto results =
+                exportAndFinish(pDb.get(), {itemFor(pA), itemFor(pB)}, {}, {}, QString(), &counts);
+        ASSERT_TRUE(results[0].contentId && results[1].contentId);
+    }
+    EXPECT_EQ(0, counts.bytesCopied);
+    EXPECT_EQ(2, counts.anlzWritten);
+    EXPECT_EQ(0, counts.anlzKept);
+    auto pDb = openDb();
+    ASSERT_TRUE(pDb);
+    const QList<DlpContentRef> after = pDb->listContents();
+    ASSERT_EQ(2, after.size());
+    for (int i = 0; i < 2; ++i) {
+        EXPECT_NE(dlpPathKey(kept[i].analysisDataFilePath),
+                dlpPathKey(after[i].analysisDataFilePath));
+        EXPECT_TRUE(QFileInfo::exists(onStick(after[i].analysisDataFilePath)));
+        EXPECT_FALSE(QFileInfo::exists(QFileInfo(onStick(kept[i].analysisDataFilePath)).path()));
+    }
+    EXPECT_EQ(6, fileTimesBelow(anlzRoot).size());
+}
+
+TEST_F(DeviceLibraryPlusExporterTest, MissingAnlzFileGivesNewFolder) {
+    TrackPointer pTrack = makeTrack(toComputer(QStringLiteral("artist.mp3")), 23);
+    {
+        auto pDb = newDb();
+        ASSERT_TRUE(pDb);
+        ASSERT_TRUE(exportAndFinish(pDb.get(), {itemFor(pTrack)})[0].contentId);
+    }
+    QList<DlpContentRef> before;
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        before = pDb->listContents();
+    }
+    ASSERT_EQ(1, before.size());
+    ASSERT_TRUE(QFile::remove(
+            QFileInfo(onStick(before[0].analysisDataFilePath)).path() +
+            QStringLiteral("/ANLZ0000.EXT")));
+    ExportCounts counts;
+    {
+        auto pDb = openDb();
+        ASSERT_TRUE(pDb);
+        ASSERT_TRUE(exportAndFinish(pDb.get(), {itemFor(pTrack)}, {}, {}, QString(), &counts)[0]
+                            .contentId);
+    }
+    EXPECT_EQ(1, counts.anlzWritten);
+    EXPECT_EQ(0, counts.anlzKept);
+    auto pDb = openDb();
+    ASSERT_TRUE(pDb);
+    const QList<DlpContentRef> after = pDb->listContents();
+    ASSERT_EQ(1, after.size());
+    EXPECT_NE(dlpPathKey(before[0].analysisDataFilePath),
+            dlpPathKey(after[0].analysisDataFilePath));
+    EXPECT_TRUE(QFileInfo::exists(
+            QFileInfo(onStick(after[0].analysisDataFilePath)).path() +
+            QStringLiteral("/ANLZ0000.EXT")));
+}
+// End of AI-generated text.
 
 TEST_F(DeviceLibraryPlusExporterTest, ReExportWithOtherCoverWritesNewImage) {
     TrackPointer pTrack = makeTrack(toComputer(QStringLiteral("artist.mp3")), 3);
@@ -1207,11 +1392,18 @@ TEST_F(DeviceLibraryPlusExporterTest, TrackOnStickIsNotCopied) {
     const QList<DlpContentRef> after = pDb->listContents();
     ASSERT_EQ(1, after.size());
     EXPECT_EQ(before[0].path, after[0].path);
-    // Ruling R17: a new ANLZ folder for each export of the track.
-    EXPECT_NE(dlpPathKey(before[0].analysisDataFilePath),
-            dlpPathKey(after[0].analysisDataFilePath));
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // Ruling R17: one ANLZ folder stays, the folder of the row: the old one
+    // when the bytes are the same, else a new one.
     EXPECT_TRUE(QFileInfo::exists(onStick(after[0].analysisDataFilePath)));
-    EXPECT_FALSE(QFileInfo::exists(onStick(before[0].analysisDataFilePath)));
+    const QString anlzFolder = QFileInfo(after[0].analysisDataFilePath)
+                                       .path()
+                                       .mid(QStringLiteral("/PIONEER/USBANLZ/").size());
+    EXPECT_EQ((QStringList{anlzFolder + QStringLiteral("/ANLZ0000.2EX"),
+                      anlzFolder + QStringLiteral("/ANLZ0000.DAT"),
+                      anlzFolder + QStringLiteral("/ANLZ0000.EXT")}),
+            filesBelow(onStick(QStringLiteral("/PIONEER/USBANLZ"))));
+    // End of AI-generated text.
     EXPECT_FALSE(QFileInfo::exists(onStick(QStringLiteral("/Contents"))));
 }
 
@@ -1744,9 +1936,10 @@ TEST_F(DeviceLibraryPlusExporterTest, WritesSampleStick) {
     pDb.reset();
 
     // A second export to the same stick (Ruling R17), so that the checks also
-    // see a re-export: new ANLZ folders for all three tracks (the old ones are
-    // removed), another hot cue for the MP3 track, and another cover for the
-    // WAV track (a new image; b1 stays, because the MP3 track uses it).
+    // see a re-export: another hot cue for the MP3 track (a new ANLZ folder;
+    // the old one is removed), and another cover for the WAV track (a new
+    // image; b1 stays, because the MP3 track uses it). The WAV and FLAC
+    // tracks keep their ANLZ folders, because the bytes did not change.
     pMp3->createAndAddCue(mixxx::CueType::HotCue, 1, audio::FramePos(20000), audio::kInvalidFramePos);
     QImage green(120, 90, QImage::Format_RGB32);
     green.fill(Qt::green);

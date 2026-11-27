@@ -3,12 +3,14 @@
 #include <QByteArray>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QSaveFile>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <utility>
 
 #include "library/rekordbox/devicelibraryplusmapping.h"
 
@@ -346,6 +348,41 @@ quint32 msFromFrames(audio::FramePos position,
 bool writeAnlzFiles(const AnlzTrackData& data,
         const QString& folder,
         QString* pErrorMessage) {
+    return writeAnlzFileSet(anlzFileSet(data), folder, pErrorMessage);
+}
+
+// AI-generated (Claude Code). Start of AI-generated text.
+AnlzFileSet anlzFileSet(const AnlzTrackData& data) {
+    return AnlzFileSet{anlz::datBytes(data), anlz::extBytes(data), anlz::twoExBytes(data)};
+}
+
+bool anlzFolderHasFileSet(const QString& folder, const AnlzFileSet& set) {
+    const QDir dir(folder);
+    const std::array<std::pair<QString, const QByteArray*>, 3> files = {{
+            {QStringLiteral("ANLZ0000.DAT"), &set.dat},
+            {QStringLiteral("ANLZ0000.EXT"), &set.ext},
+            {QStringLiteral("ANLZ0000.2EX"), &set.twoEx},
+    }};
+    // The sizes first: a file of another size is not read.
+    for (const auto& [name, pBytes] : files) {
+        const QFileInfo info(dir.filePath(name));
+        if (!info.isFile() || info.size() != pBytes->size()) {
+            return false;
+        }
+    }
+    for (const auto& [name, pBytes] : files) {
+        QFile file(dir.filePath(name));
+        if (!file.open(QIODevice::ReadOnly) || file.readAll() != *pBytes) {
+            return false;
+        }
+    }
+    return true;
+}
+// End of AI-generated text.
+
+bool writeAnlzFileSet(const AnlzFileSet& set,
+        const QString& folder,
+        QString* pErrorMessage) {
     const auto fail = [&](const QString& what) {
         if (pErrorMessage) {
             *pErrorMessage = writeErrorMessage(what);
@@ -364,9 +401,9 @@ bool writeAnlzFiles(const AnlzTrackData& data,
         std::unique_ptr<QSaveFile> pFile;
     };
     std::array<Output, 3> outputs = {{
-            {QStringLiteral("ANLZ0000.DAT"), anlz::datBytes(data), nullptr},
-            {QStringLiteral("ANLZ0000.EXT"), anlz::extBytes(data), nullptr},
-            {QStringLiteral("ANLZ0000.2EX"), anlz::twoExBytes(data), nullptr},
+            {QStringLiteral("ANLZ0000.DAT"), set.dat, nullptr},
+            {QStringLiteral("ANLZ0000.EXT"), set.ext, nullptr},
+            {QStringLiteral("ANLZ0000.2EX"), set.twoEx, nullptr},
     }};
     const auto cancelAll = [&outputs]() {
         for (Output& output : outputs) {

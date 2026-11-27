@@ -83,7 +83,9 @@ struct DlpTrackResult {
 /// the export wrote stay, and the next export can use the audio files again.
 ///
 /// The export never writes over a file that the library on the stick uses
-/// (Rulings R17 and R18): a re-exported track gets a new ANLZ folder, a new
+/// (Rulings R17 and R18): a re-exported track gets a new ANLZ folder when
+/// the bytes of its ANLZ files changed (else it keeps the folder of its row
+/// and nothing is written), a new
 /// image when the cover bytes changed, and a new audio copy (" (2)", ...)
 /// when its copy in /Contents has another size than its file. finish()
 /// removes the replaced files only after a good save, and only when no row
@@ -177,6 +179,26 @@ class DeviceLibraryPlusExporter {
     int replacedFileCount() const {
         return static_cast<int>(m_replaced.anlzFolders.size() +
                 m_replaced.imagePaths.size() + m_replaced.audioPaths.size());
+    }
+    // End of AI-generated text.
+
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The bytes of the audio files that exportTrack() copied to the stick.
+    qint64 bytesCopied() const {
+        return m_bytesCopied;
+    }
+    /// The number of audio files that exportTrack() copied to the stick.
+    int audioFilesCopied() const {
+        return m_audioFilesCopied;
+    }
+    /// The number of tracks for which exportTrack() wrote new ANLZ files.
+    int anlzWrittenCount() const {
+        return m_anlzWritten;
+    }
+    /// The number of tracks that kept the ANLZ folder of their row, because
+    /// the files had the same bytes (Ruling R17).
+    int anlzKeptCount() const {
+        return m_anlzKept;
     }
     // End of AI-generated text.
 
@@ -278,6 +300,15 @@ class DeviceLibraryPlusExporter {
     /// The files that this export replaced; finish() removes them.
     DlpReplacedFiles m_replaced;
     int m_playlistCount = 0;
+    // AI-generated (Claude Code). Start of AI-generated text.
+    /// The dlpPathKey() of the old ANLZ folders that tracks of this export
+    /// kept. A folder is kept for one track only, also when two rows use it.
+    QSet<QString> m_keptAnlzFolderKeys;
+    qint64 m_bytesCopied = 0;
+    int m_audioFilesCopied = 0;
+    int m_anlzWritten = 0;
+    int m_anlzKept = 0;
+    // End of AI-generated text.
 };
 
 } // namespace rekordbox

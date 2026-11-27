@@ -462,6 +462,20 @@ TEST_F(DeviceLibraryPlusExportJobBenchTest, ExportIsNearTheSpeedOfACopy) {
             seconds(second.totalNs),
             filesCopiedAgain,
             static_cast<long long>(bytesCopiedAgain));
+    // AI-generated (Claude Code). Start of AI-generated text.
+    std::printf("| export | audio files copied | bytes copied | ANLZ written | ANLZ kept |\n");
+    std::printf("|---|---|---|---|---|\n");
+    for (const auto& [name, run] : {std::pair<const char*, const BenchRun*>{"first", &first},
+                 std::pair<const char*, const BenchRun*>{"second", &second}}) {
+        std::printf("| %s | %d | %lld | %d | %d |\n",
+                name,
+                run->summary.audioFilesCopied,
+                static_cast<long long>(run->summary.bytesCopied),
+                run->summary.anlzWritten,
+                run->summary.anlzKept);
+    }
+    std::printf("\n");
+    // End of AI-generated text.
     printPhases("first export", first, trackCount);
     printPhases("second export", second, trackCount);
     printTrackSteps(trackIds, stickRoot);
@@ -472,6 +486,10 @@ TEST_F(DeviceLibraryPlusExportJobBenchTest, ExportIsNearTheSpeedOfACopy) {
         std::printf("Report only: set MIXTWO_EXPORT_BENCH_RATIO to make the ratio a limit.\n");
     }
     EXPECT_EQ(0, filesCopiedAgain) << "The second export copied audio files again.";
+    // AI-generated (Claude Code). Start of AI-generated text.
+    EXPECT_EQ(0, second.summary.bytesCopied) << "The second export copied audio files again.";
+    EXPECT_EQ(0, second.summary.anlzWritten) << "The second export wrote ANLZ files again.";
+    // End of AI-generated text.
 }
 
 } // namespace mixxx

@@ -17,7 +17,8 @@ namespace rekordbox {
 /// (dlpRemoveReplacedFiles()). All paths are stick paths, from the root of
 /// the stick.
 struct DlpReplacedFiles {
-    /// The old ANLZ folders of re-exported tracks (no file name).
+    /// The old ANLZ folders of re-exported tracks that got a new folder (no
+    /// file name).
     QStringList anlzFolders;
     /// The old `bN.jpg` files of re-exported tracks.
     QStringList imagePaths;

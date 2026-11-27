@@ -380,15 +380,39 @@ DlpTrackResult DeviceLibraryPlusExporter::exportTrack(const DlpExportTrack& item
         if (!reason.isEmpty()) {
             return skip(copyFailedMessage(reason));
         }
+        // AI-generated (Claude Code). Start of AI-generated text.
+        m_bytesCopied += source.size();
+        ++m_audioFilesCopied;
+        // End of AI-generated text.
     }
 
-    // 5. The ANLZ files. Ruling R17: always a new folder, also for a track
-    // that has a row. The files of the row stay until the new library is on
-    // the stick; finish() removes them after the save.
-    const QString anlzFolder = dlpAnlzFolder(target.stickPath, m_usedAnlzFolderKeys, m_root);
-    if (!writeAnlzFiles(*data, absolutePath(anlzFolder), &error)) {
-        return skip(error);
+    // AI-generated (Claude Code). Start of AI-generated text.
+    // 5. The ANLZ files. Ruling R17 (amended): when the folder of the row
+    // has the three files with the same bytes, the track keeps that folder
+    // and nothing is written. Else the files go into a new folder; the files
+    // of the row stay until the new library is on the stick, and finish()
+    // removes them after the save. The DAT file holds the stick path, so a
+    // track at a new path always gets a new folder.
+    const AnlzFileSet anlzFiles = anlzFileSet(*data);
+    QString anlzFolder;
+    if (ownRow && !ownRow->analysisDataFilePath.isEmpty()) {
+        const QString oldFolder = folderOf(ownRow->analysisDataFilePath);
+        const QString oldKey = dlpPathKey(oldFolder);
+        if (!m_keptAnlzFolderKeys.contains(oldKey) &&
+                anlzFolderHasFileSet(absolutePath(oldFolder), anlzFiles)) {
+            m_keptAnlzFolderKeys.insert(oldKey);
+            ++m_anlzKept;
+            anlzFolder = oldFolder;
+        }
     }
+    if (anlzFolder.isEmpty()) {
+        anlzFolder = dlpAnlzFolder(target.stickPath, m_usedAnlzFolderKeys, m_root);
+        if (!writeAnlzFileSet(anlzFiles, absolutePath(anlzFolder), &error)) {
+            return skip(error);
+        }
+        ++m_anlzWritten;
+    }
+    // End of AI-generated text.
 
     // 6. The artwork.
     const std::optional<qint64> imageId = imageOf(item, ownRow, &result.warnings);

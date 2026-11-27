@@ -69,6 +69,16 @@ struct DeviceLibraryPlusExportSummary {
     QString legacyLibraryError;
     int legacyClampedTracks = 0;
     bool keptReplacedFiles = false;
+
+    /// The bytes of the audio files that the export copied to the stick.
+    qint64 bytesCopied = 0;
+    /// The number of audio files that the export copied to the stick.
+    int audioFilesCopied = 0;
+    /// The number of tracks with new ANLZ files on the stick.
+    int anlzWritten = 0;
+    /// The number of tracks that kept their ANLZ folder, because the files
+    /// had the same bytes.
+    int anlzKept = 0;
     // End of AI-generated text.
 };
 

@@ -51,5 +51,29 @@ bool writeAnlzFiles(const AnlzTrackData& data,
         const QString& folder,
         QString* pErrorMessage);
 
+// AI-generated (Claude Code). Start of AI-generated text.
+/// Mix Two: the bytes of the three ANLZ files of a track.
+struct AnlzFileSet {
+    QByteArray dat;
+    QByteArray ext;
+    QByteArray twoEx;
+};
+
+/// The bytes of ANLZ0000.DAT, ANLZ0000.EXT and ANLZ0000.2EX for the data.
+AnlzFileSet anlzFileSet(const AnlzTrackData& data);
+
+/// Writes the three files of the set into `folder`, as writeAnlzFiles()
+/// does (the same rules for a failure and the same error message).
+bool writeAnlzFileSet(const AnlzFileSet& set,
+        const QString& folder,
+        QString* pErrorMessage);
+
+/// True only when `folder` has all three ANLZ files with the bytes of the
+/// set. The function compares the sizes first and reads a file only when
+/// its size is the same. A missing file or a file that cannot be read gives
+/// false. The function writes nothing.
+bool anlzFolderHasFileSet(const QString& folder, const AnlzFileSet& set);
+// End of AI-generated text.
+
 } // namespace rekordbox
 } // namespace mixxx

@@ -22,6 +22,15 @@ Writing rules for this file (ASD-STE100):
 ## Unreleased (2026-10-27)
 
 <!-- AI-generated (Claude Code). Start of AI-generated text. -->
+### Faster export to a stick that has your tracks
+
+When you export to a stick again, Mix Two does not write the analysis
+files of a track again if they did not change. The result message shows how
+many audio files Mix Two copied, their size in MB, and for how many tracks
+it wrote new analysis files.
+<!-- End of AI-generated text. -->
+
+<!-- AI-generated (Claude Code). Start of AI-generated text. -->
 ### Device Library Plus sticks in the rekordbox list
 
 A stick with only a Device Library Plus now shows in the rekordbox list.
